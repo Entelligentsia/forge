@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "Entelligentsia/forge",
+  "name": "forge",
   "description": "Self-enhancing AI engineering team for Claude Code — generates project-specific SDLC instances from your codebase",
   "owner": {
     "name": "Entelligentsia",
