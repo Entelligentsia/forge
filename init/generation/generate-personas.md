@@ -28,3 +28,23 @@ produce a project-specific version that incorporates:
 - The project's actual entity names and business rules
 - The project's actual auth patterns and conventions
 - The project's actual directory structure and paths
+
+## Skill Invocation Wiring
+
+Read `.forge/config.json` for `installedSkills`. For each installed skill
+that is relevant to a persona's domain, add an explicit invocation instruction
+to that persona's workflow steps.
+
+Read `$FORGE_ROOT/meta/skill-recommendations.md` for the persona integration
+pattern. Apply it: the instruction must be a YOU MUST directive placed at the
+relevant workflow step (not buried in a notes section).
+
+Example — if `vue-best-practices` is installed and the persona is Supervisor:
+
+> "When reviewing Vue components, YOU MUST invoke the `vue-best-practices`
+> skill before applying the stack checklist. That skill provides universal
+> Vue technique depth; the checklist provides project conventions. Both are required."
+
+This wiring is what distinguishes Forge-generated personas from plain skill
+invocation: the persona carries project-specific knowledge *and* knows exactly
+when to reach for a universal technique skill. Neither layer alone is sufficient.

@@ -1,5 +1,5 @@
 ---
-description: Regenerate deterministic tools from the latest tool specs
+description: Use when tool specs have changed and engineering/tools/ needs to be regenerated to match
 ---
 
 # /forge:update-tools
@@ -9,8 +9,13 @@ latest tool specs.
 
 ## What this does
 
+First, resolve the plugin root:
+```
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+```
+
 1. Read `.forge/config.json` for project language and paths
-2. Locate the Forge plugin's `meta/tool-specs/`
+2. Read tool specs from `$FORGE_ROOT/meta/tool-specs/`
 3. For each tool spec (`collate`, `seed-store`, `validate-store`):
    a. Read the current spec from the plugin
    b. Read the current generated tool from `engineering/tools/`

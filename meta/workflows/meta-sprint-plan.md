@@ -8,9 +8,11 @@ and a dependency graph.
 ## Algorithm
 
 ### Step 1 — Load Context
-- Read MASTER_INDEX.md for project state
-- Read the previous sprint's retrospective (if exists)
-- Read any task prompts or feature requests for this sprint
+- Read `SPRINT_REQUIREMENTS.md` from `engineering/sprints/{SPRINT_ID}/` — this is
+  the primary input. YOU MUST NOT plan tasks without a completed requirements document.
+  If it does not exist, stop and direct the user to run `/sprint-intake` first.
+- Read `MASTER_INDEX.md` for project state
+- Read the previous sprint's retrospective (if exists) for carry-over context
 
 ### Step 2 — Define Tasks
 For each task:

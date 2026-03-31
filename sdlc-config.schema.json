@@ -99,6 +99,12 @@
         }
       }
     },
+    "installedSkills": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Marketplace skill names installed during forge:init or recommended by forge:health. Used to wire skill invocations into generated personas and workflows.",
+      "examples": ["vue-best-practices", "stripe-integration", "claude-api"]
+    },
     "sprint": {
       "type": "object",
       "description": "Optional sprint execution configuration",

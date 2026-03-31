@@ -1,5 +1,5 @@
 ---
-description: Bootstrap a complete AI-SDLC instance for the current project
+description: Use when the current project has no Forge SDLC instance and you need to bootstrap one from scratch
 ---
 
 # /forge:init
@@ -9,11 +9,13 @@ AI software development lifecycle for the codebase in the current working direct
 
 ## Locate the Forge plugin
 
-The forge plugin files are installed at one of these locations (check in order):
-1. `~/.claude/plugins/cache/agentic-skills/forge/` (marketplace install)
-2. The directory this command file lives in (local `--plugin-dir` usage)
+Set `$FORGE_ROOT` to the plugin root provided by Claude Code:
 
-Set `$FORGE_ROOT` to the forge plugin root (the directory containing `meta/` and `init/`).
+```
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+```
+
+`$FORGE_ROOT` is the directory containing `meta/`, `init/`, `hooks/`, and `commands/`.
 
 ## Execute
 

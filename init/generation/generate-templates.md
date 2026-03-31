@@ -7,7 +7,7 @@ adding stack-specific sections.
 
 ## Inputs
 
-- `$FORGE_ROOT/meta/templates/meta-*.md` (7 meta-templates)
+- `$FORGE_ROOT/meta/templates/meta-*.md` (8 meta-templates)
 - Discovery context (from Phase 1)
 - Generated knowledge base (from Phase 2)
 
@@ -19,6 +19,7 @@ adding stack-specific sections.
 - `PROGRESS_TEMPLATE.md`
 - `CODE_REVIEW_TEMPLATE.md`
 - `PLAN_REVIEW_TEMPLATE.md`
+- `SPRINT_REQUIREMENTS_TEMPLATE.md`
 - `SPRINT_MANIFEST_TEMPLATE.md`
 - `RETROSPECTIVE_TEMPLATE.md`
 

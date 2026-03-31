@@ -1,185 +1,177 @@
 # Forge
 
 <div align="center">
-  <img src="assets/forge_hero_banner.png" alt="Forge AI SDLC" width="100%" />
+  <img src="assets/forge_hero_banner.png" alt="Forge AI SDLC" width="50%" />
 </div>
 
 <div align="center">
-  <strong>A self-enhancing AI software development lifecycle for Claude Code.</strong>
+  <strong>A self-enhancing AI engineering team for Claude Code — built from your codebase, not a template.</strong>
 </div>
+
 <br/>
 
-AI coding assistants are incredibly powerful, but raw intelligence without structure leads to chaos. **Forge** turns your `Claude Code` instance into a highly disciplined, self-improving engineering organization in minutes. 
-
-It analyzes your codebase and generates a complete, project-specific engineering practice: agent personas, workflows, document templates, review checklists, and deterministic tools—all strictly tailored to your project's unique tech stack, entities, and team conventions. 
-
-**It doesn't just write code; it plans, reviews, approves, and gets smarter with every single task.**
-
 ---
 
-## Why Forge?
+## The Problem
 
-| **Zero-Config Structure** | **Multi-Agent Orchestration** | **Continuous Learning** |
-| :--- | :--- | :--- |
-| Discovers your routing, models, tests, and CI pipelines automatically on initialization. | Deploys specialized roles: **Engineer** (plans/builds), **Supervisor** (reviews), and **Architect** (approves). | Every retrospective feeds the knowledge base. The system gets ~25% smarter every sprint. |
+Claude Code is capable. But left unstructured, it:
 
----
+- Re-learns your project conventions from scratch every session
+- Writes code without a second set of eyes — no plan review, no code review
+- Has no memory of past decisions, bugs, or architectural tradeoffs
+- Produces inconsistent results across tasks because there's no shared standard
 
-## The Self-Enhancing Flywheel
-
-<div align="center">
-  <img src="assets/sdlc_flywheel.png" alt="Self-Enhancing Flywheel" width="80%" />
-</div>
-
-Forge is not a static set of prompts. Every agent actively writes back what it discovers about your project:
-*   The **Supervisor** adds new architectural patterns to the stack checklist when it catches them.
-*   The **Bug Fixer** tags root cause categories and builds preventive checks.
-*   The **Retrospective** promotes recurring patterns and prunes stale rules.
-*   The **Engineer** updates domain docs when it uncovers undocumented business logic.
-
-By Sprint 3, the `stack-checklist.md` adapts from 5 auto-detected items to over 25 rules—all earned from real project experience.
+The more complex your project, the worse this gets.
 
 ---
 
 ## What Forge Does
 
-```text
-Your codebase → /forge:init → Complete SDLC instance → Self-enhancing flywheel
-```
+Forge runs once against your codebase and generates a complete, project-specific engineering practice — then deploys it as a multi-agent team inside Claude Code.
 
-1. **Scans** your project to discover stack, entities, routes, tests, build pipeline
-2. **Generates** a knowledge base (~60% accurate on Day 1, improving rapidly)
-3. **Generates** project-specific agent workflows, templates, and tools in your stack's language
-4. **Runs** a multi-agent lifecycle: Engineer plans → Supervisor reviews → Engineer implements → Supervisor reviews code → Architect approves
-5. **Learns** — every workflow writes back what it discovers about the project
+### Adapts itself to your project
 
----
+Forge doesn't ask you to fill in a config file. It reads your codebase — routes, models, tests, CI pipeline, auth patterns — and generates personas, workflows, and review criteria that reflect how *your* project actually works. The Engineer persona knows your entity names. The Supervisor knows your security patterns. The Architect knows your deployment constraints.
 
-## Installation
+### Self-learns with every cycle
 
-### Prerequisites
-- [Claude Code](https://claude.ai/code) v1.0.33 or later
-- The `agentic-skills` marketplace registered (one-time setup)
+Every completed task feeds the knowledge base. The Supervisor adds new patterns to the review checklist when it catches something worth catching again. The Bug Fixer tags root causes and builds preventive checks. The Retrospective agent promotes what's working and prunes what isn't. By Sprint 3, the system understands your project better than any static prompt ever could — and it keeps improving.
 
-### Register the marketplace
-If you haven't used any `agentic-skills` plugins before, add this to your Claude Code settings (`~/.claude/settings.json`):
+### Stack agnostic, with opinions where it counts
 
-```json
-{
-  "extraKnownMarketplaces": {
-    "agentic-skills": {
-      "source": {
-        "source": "github",
-        "repo": "Entelligentsia/agentic-skills"
-      }
-    }
-  }
-}
-```
+Forge generates everything in your language and adapts to whatever framework you're running. It makes no assumptions about your stack until it reads it. Where popular stacks have well-established best practices — Django migrations, Vue Composition API, Rails conventions — Forge's generated workflows encode those opinions explicitly. Everything else is derived from what it finds.
 
-### Install the plugin
-```bash
-/plugin install forge@agentic-skills
-```
-*This installs Forge globally, making the `/forge:*` commands available in any directory.*
+### Deterministic tools — LLM resources for thinking, not housekeeping
 
-### Verify
-Run `/help`—you should see `forge:init`, `forge:regenerate`, `forge:update-tools`, and `forge:health`.
+Forge is deliberately opinionated about what an LLM should and shouldn't do. Repeated, mechanical operations — collating sprint artifacts, seeding the task store, validating schema integrity — are generated once as deterministic tools in your project's own language and reused forever. Burning context tokens on tasks a script can do reliably is wasteful computing. Forge doesn't do it.
+
+### A knowledge base built for surgical recall
+
+The knowledge base is not a monolith. It is intentionally decomposed into focused documents — one for routing, one for the entity model, one for the stack checklist, one per architecture area. When an agent needs context, it loads exactly the relevant section and nothing else. This keeps every agent fast, focused, and cheap to run — and it gets sharper as the knowledge base matures.
+
+### Context-efficient by design
+
+Forge agents don't load your entire codebase into context on every task. They work from the curated local knowledge base built during init. Agents read exactly what they need for the task at hand. This keeps context lean, responses accurate, and costs predictable as the project grows.
+
+### The Quiz — interview Forge about your own project
+
+`/quiz` is a lightweight tool that turns the knowledge base into an interactive Q&A. Ask Forge about your architecture, your entities, your conventions — and if an answer is incomplete or wrong, say so. Forge uses that feedback as a guided session to patch the knowledge base on the spot. It's the fastest way to validate and sharpen what the system knows about your project.
+
+### Discovers and recommends the skills your LLM will benefit from
+
+During init, Forge checks the Claude Code marketplace for skills relevant to your stack — LSP intelligence for your language, framework-specific best practices, API integration skills. Already-installed skills are wired directly into generated personas: the Supervisor for a Vue project knows to invoke `vue-best-practices` before reviewing a component. New gaps surface in `/forge:health` so your tooling stays current as the project evolves.
 
 ---
 
-## Quick Start: New Codebase
+## Install
 
-You have a project with code but no structured engineering practice. Forge will discover what's there and generate everything.
+**Prerequisites:** [Claude Code](https://claude.ai/code) v1.0.33+
 
-### 1. Initialize the SDLC
-```bash
+```
+/plugin install Entelligentsia/forge
+```
+
+`/forge:init`, `/forge:health`, `/forge:regenerate`, and `/forge:update-tools` are now available in any project.
+
+---
+
+## Start Using It
+
+### On a new or existing project
+
+```
 cd /path/to/your/project
 /forge:init
 ```
-Forge runs 9 automated phases (~10-15 minutes, no interaction needed):
 
-| Phase | What Happens |
-|-------|-------------|
-| 1. Discover | Scans package.json, models, routes, tests, CI config |
-| 2. Knowledge Base | Generates architecture docs, entity model, stack checklist |
-| 3. Personas | Generates project-specific agent identities |
-| 4. Templates | Generates document templates with stack-specific sections |
-| 5. Workflows | Generates 14 agent workflows with your commands and paths |
-| 6. Orchestration | Wires the task pipeline and sprint scheduler |
-| 7. Commands | Creates `/engineer`, `/supervisor`, `/sprint-plan`, etc. |
-| 8. Tools | Generates collate/validate/seed tools in your language |
-| 9. Smoke Test | Validates everything connects, self-corrects if needed |
+Forge scans your codebase and runs 9 automated phases (~10–15 min, no interaction needed):
 
-### 2. Review the Knowledge Base
-Forge generates human-readable knowledge in the `engineering/` directory. Lines marked `[?]` need your attention:
-*   `architecture/` (Database, Routing, Stack docs)
-*   `business-domain/` (Entity Models)
-*   `stack-checklist.md` (Initial code review criteria)
+| Phase | What happens |
+|---|---|
+| Discover | Reads your stack, routes, models, tests, CI config |
+| Skill Recommendations | Checks installed skills, recommends marketplace additions for your stack |
+| Knowledge Base | Generates `engineering/` — architecture docs, entity model, review checklist |
+| Personas | Generates Engineer, Supervisor, Architect identities specific to your stack |
+| Templates | Generates plan, review, and retrospective document formats |
+| Workflows | Generates 15 agent workflows wired to your actual commands and paths |
+| Orchestration | Assembles the task pipeline and sprint scheduler |
+| Commands | Creates `/plan-task`, `/implement`, `/sprint-plan`, etc. in `.claude/commands/` |
+| Tools | Generates `collate`, `validate-store`, `seed-store` in your project's language |
+| Smoke Test | Validates everything connects; self-corrects if needed |
 
-### 3. Plan & Execute
-```bash
-/sprint-plan            # The Architect helps define tasks, estimates & dependencies
-/run-task ACME-S01-T01  # Drive task through: Plan → Review → Implement → Appprove
-/retrospective S01      # The loop closes: review work & update the knowledge base
+### After init — your first sprint
+
 ```
+/sprint-intake            # Architect interviews you to capture structured sprint requirements
+/sprint-plan              # Architect breaks requirements into tasks with estimates and dependency graph
+/run-sprint S01           # Orchestrator drives all tasks through the pipeline in dependency waves
+/retrospective S01        # Close the sprint and feed learnings back into the knowledge base
+```
+
+```mermaid
+flowchart LR
+    A([sprint-intake]) --> B([sprint-plan])
+    B --> C([run-sprint])
+    C --> D([retrospective])
+    D --> E[(Knowledge\nBase)]
+    E -.->|richer next sprint| A
+```
+
+To drive a single task manually instead of the full sprint:
+
+```
+/run-task PROJ-S01-T01
+```
+
+```mermaid
+flowchart LR
+    T1[Engineer\nPlan] --> T2{Supervisor\nReview Plan}
+    T2 -->|revision| T1
+    T2 -->|approved| T3[Engineer\nImplement]
+    T3 --> T4{Supervisor\nReview Code}
+    T4 -->|revision| T3
+    T4 -->|approved| T5[Architect\nApprove]
+    T5 --> T6([commit])
+```
+
+### What was generated
+
+```
+.forge/               Config, workflows, templates, task/sprint/bug store
+engineering/          Architecture docs, entity model, stack checklist, sprint history
+.claude/commands/     Slash commands: /sprint-intake, /sprint-plan, /run-sprint, /run-task…
+engineering/tools/    collate, validate-store, seed-store (in your language)
+```
+
+Lines marked `[?]` in `engineering/` are items Forge wasn't certain about — review and correct them before your first sprint.
 
 ---
 
-## Advanced Usage
+## Day-to-Day Commands
 
-### Existing Codebases with Engineering History
-If you already have sprint artifacts or task history, Forge will gracefully integrate it. Run `/forge:init` as normal, then sequence your past artifacts into the AI database:
-```bash
-/collate
-# or
-python engineering/tools/seed_store.py
-```
-
-### The Generated SDLC Footprint
-```text
-.forge/                              SDLC infrastructure (Store, Config, Workflows)
-engineering/                         Project knowledge (Docs, Sprints, Bugs, Checklists)
-.claude/                             Standalone slash commands (/engineer, /sprint-plan)
-```
-
-### Generated Workflow Commands
-After init, standalone agent commands are available:
-| Command | Agent | Purpose |
-|---------|-------|---------|
-| `/engineer {TASK_ID}` | Engineer | Plan or implement a task |
-| `/supervisor {TASK_ID}` | Supervisor | Review plan or implementation |
-| `/fix-bug {BUG_ID}` | Engineer | Triage and fix a bug |
-| `/approve {TASK_ID}` | Architect | Final sign-off |
-| `/sprint-plan` | Architect | Plan a new sprint |
-| `/run-task`, `/run-sprint` | Orchestrator | Full execution pipelines |
-| `/retrospective {SPRINT_ID}` | Architect | Sprint closure and learning |
+| Command | What it does |
+|---|---|
+| `/sprint-intake` | Architect interviews you to capture and document sprint requirements |
+| `/sprint-plan` | Architect breaks requirements into tasks, estimates, and dependency graph |
+| `/run-sprint SPRINT-ID` | Orchestrator executes all sprint tasks in dependency waves |
+| `/run-task TASK-ID` | Drives a single task through the full pipeline end-to-end |
+| `/fix-bug BUG-ID` | Triage and fix a bug with root cause tracking |
+| `/retrospective SPRINT-ID` | Closes a sprint and updates the knowledge base |
+| `/forge:health` | Checks for stale docs, coverage gaps, and missing skills |
+| `/forge:regenerate` | Refreshes workflows and personas from an enriched knowledge base |
 
 ---
 
 ## Supported Stacks
 
-Forge adapts to any codebase that Claude Code can read, generating tools in your primary language and workflows in universal Markdown:
-- **Python** (Django, FastAPI, Flask)
-- **JavaScript/TypeScript** (Express, Next.js, Nuxt, React, Vue)
-- **Go** (Standard library, Gin, Echo)
-- **Ruby** (Rails)
-- **Rust** (Actix, Axum)
+Forge adapts to any codebase Claude Code can read. Tools are generated in your primary language; workflows are universal Markdown.
+
+**Python** · **TypeScript / JavaScript** · **Go** · **Ruby** · **Rust**
+
+Frameworks detected automatically: Django · FastAPI · Flask · Express · Next.js · Nuxt · Vue · React · Rails · Gin · Echo · Actix · Axum — and anything else in the repo.
 
 ---
 
-## Origin & Vision
-
-Forge was distilled from the AI-SDLC system built at [WalkInto](https://walkinto.in), an enterprise 360° virtual tour SaaS platform. After thousands of AI operations, 28 sprints, 100+ tasks, and 90+ bugs managed through a multi-agent system, those specialized patterns were generalized into a meta-system that can bootstrap itself into *any* codebase.
-
-| **Dive Deeper** |
-| :--- |
-| [01. What is Forge & Why it Exists](vision/01-OVERVIEW.md) |
-| [02. The Origin Story](vision/02-ORIGIN-STORY.md) |
-| [05. The Self-Enhancement Flywheel](vision/05-SELF-ENHANCEMENT.md) |
-| [09. SDLC Orchestration](vision/09-ORCHESTRATION.md) |
-
-<br/>
 <div align="center">
-  <strong>License:</strong> MIT
+  MIT License
 </div>

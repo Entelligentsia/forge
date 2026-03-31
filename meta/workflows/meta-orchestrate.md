@@ -25,6 +25,19 @@ Each phase has:
 plan → review-plan → [loop max 3] → implement → review-implementation → [loop max 3] → approve → writeback → commit
 ```
 
+## Iron Laws
+
+**YOU MUST NOT advance a phase until its gate checks pass.** Skipping a gate
+because "it's probably fine" or "it's a small change" is not allowed. No exceptions.
+
+**Review ordering is hardcoded:** spec compliance review ALWAYS runs before
+code quality review. Never reverse this. Checking quality before confirming
+correctness is wasted work.
+
+**Revision loop exhaustion is an escalation trigger.** If max_iterations is
+reached without approval, escalate to the human immediately. Do NOT approve
+to unblock the pipeline.
+
 ## Error Recovery
 
 - Test/build failure: pass error to Engineer revision workflow, retry once

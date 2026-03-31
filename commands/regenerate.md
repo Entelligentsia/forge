@@ -1,5 +1,5 @@
 ---
-description: Re-generate workflows and templates from the current (enriched) knowledge base
+description: Use when the engineering knowledge base has been enriched by sprints and you want to refresh the generated workflows and templates
 ---
 
 # /forge:regenerate
@@ -9,9 +9,14 @@ of agent writeback — to produce workflows and templates that are richer than D
 
 ## What this does
 
+First, resolve the plugin root:
+```
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+```
+
 1. Read `.forge/config.json` for project configuration
 2. Read the current `engineering/` knowledge base (architecture, business domain, stack checklist)
-3. Locate the Forge plugin's `meta/` definitions
+3. Read the Forge plugin's `meta/` definitions from `$FORGE_ROOT/meta/`
 4. Re-generate:
    - `.forge/workflows/` — from meta-workflows + enriched knowledge base
    - `.forge/templates/` — from meta-templates + enriched knowledge base
