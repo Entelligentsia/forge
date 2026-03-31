@@ -159,6 +159,7 @@ Lines marked `[?]` in `engineering/` are items Forge wasn't certain about — re
 | `/retrospective SPRINT-ID` | Closes a sprint and updates the knowledge base |
 | `/forge:health` | Checks for stale docs, coverage gaps, and missing skills |
 | `/forge:regenerate` | Refreshes workflows and personas from an enriched knowledge base |
+| `/forge:remove` | Removes Forge from the project — with options to keep the knowledge base |
 
 ---
 

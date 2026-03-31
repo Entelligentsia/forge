@@ -13,6 +13,7 @@ entry points to the generated workflows.
 ## Outputs
 
 `.claude/commands/` with non-namespaced commands:
+- `sprint-intake.md` → `/sprint-intake`
 - `engineer.md` → `/engineer {TASK_ID}`
 - `supervisor.md` → `/supervisor {TASK_ID}`
 - `implement.md` → `/implement {TASK_ID}`
