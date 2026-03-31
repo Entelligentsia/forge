@@ -17,8 +17,10 @@ Persona context is NOT written as separate files. It is incorporated
 into the generated workflows (Phase 5) as the opening section of each
 workflow that establishes the agent's identity, knowledge, and constraints.
 
-This phase produces an intermediate persona context document used as
-input to Phase 5.
+This phase produces an intermediate persona context document at
+`.forge/personas-context.md` (add to `.gitignore`). Phase 5 reads this
+file as its persona input. Phases 3 and 5 must share the same agent
+context — do not spawn a separate agent between them.
 
 ## Instructions
 

@@ -36,6 +36,7 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
    high-confidence recommendations with one-line install instructions. If the live
    list differs from `installedSkills` in config, update config to match.
 6. Report all findings with actionable recommendations
+7. Close the report with: `If you've found a bug in Forge itself, run /forge:report-bug`
 
 ## Output
 

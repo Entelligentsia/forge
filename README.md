@@ -92,6 +92,12 @@ Forge agents don't load your entire codebase into context on every task. They wo
 
 `/quiz` is a lightweight tool that turns the knowledge base into an interactive Q&A. Ask Forge about your architecture, your entities, your conventions — and if an answer is incomplete or wrong, say so. Forge uses that feedback as a guided session to patch the knowledge base on the spot. It's the fastest way to validate and sharpen what the system knows about your project.
 
+### Improves itself through your feedback
+
+Forge is a living system — and it gets better with yours. When something breaks or behaves unexpectedly, `/forge:report-bug` turns your experience into a structured GitHub issue in seconds. It reads your Forge version, project stack, and OS automatically, interviews you for the details that actually matter, drafts the report in the standard Forge bug format, and files it to the Forge repository with one confirmation. No copy-pasting error messages into a browser form.
+
+Every bug report feeds directly into the Forge meta-definition — the same source that generates your SDLC. Patterns reported by users become better specs, better guard-rails, and sharper smoke tests for everyone running Forge. The system that learns from your project also learns from you.
+
 ### Discovers and recommends the skills your LLM will benefit from
 
 During init, Forge checks the Claude Code marketplace for skills relevant to your stack — LSP intelligence for your language, framework-specific best practices, API integration skills. Already-installed skills are wired directly into generated personas: the Supervisor for a Vue project knows to invoke `vue-best-practices` before reviewing a component. New gaps surface in `/forge:health` so your tooling stays current as the project evolves.
@@ -103,10 +109,11 @@ During init, Forge checks the Claude Code marketplace for skills relevant to you
 **Prerequisites:** [Claude Code](https://claude.ai/code) v1.0.33+
 
 ```
-/plugin install Entelligentsia/forge
+/plugin marketplace add Entelligentsia/forge
+/plugin install forge@forge
 ```
 
-`/forge:init`, `/forge:health`, `/forge:regenerate`, and `/forge:update-tools` are now available in any project.
+`/forge:init`, `/forge:health`, `/forge:regenerate`, `/forge:update-tools`, and `/forge:report-bug` are now available in any project.
 
 ---
 
@@ -195,6 +202,7 @@ Lines marked `[?]` in `engineering/` are items Forge wasn't certain about — re
 | `/forge:health` | Checks for stale docs, coverage gaps, and missing skills |
 | `/forge:regenerate` | Refreshes workflows and personas from an enriched knowledge base |
 | `/forge:remove` | Removes Forge from the project — with options to keep the knowledge base |
+| `/forge:report-bug` | File a bug against Forge itself — gathers context automatically and opens a GitHub issue |
 
 ---
 

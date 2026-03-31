@@ -7,8 +7,6 @@ the complete lifecycle. This is the task state machine.
 
 ## Pipeline Phases
 
-See vision/09-ORCHESTRATION.md for the full phase schema.
-
 Each phase has:
 - `name` — identifier
 - `agent` — which role executes

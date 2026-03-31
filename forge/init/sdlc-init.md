@@ -57,16 +57,20 @@ Recommended (not yet installed):
 Install recommended? [Y/n] Or specify: e.g. "stripe-integration"
 ```
 
-5. If the user confirms, run `/plugin install <skill-name>` for each selected skill.
+5. If the user confirms, run `/plugin install <skill-name>@<marketplace>` for each selected skill.
 6. Write `"installedSkills"` to `.forge/config.json` as the union of:
    - Skills already installed that match the recommendation mapping
    - Skills just installed in this step
    This ensures persona generation sees the user's full relevant skill set,
    not just what Forge installed today.
+7. **Track skipped skills for the Report.** Build a list of every recommended
+   marketplace skill that was NOT installed (either skipped or not selected).
+   For each, record `{ name, marketplace, confidence, reason }`. This list is
+   carried forward and emitted in the post-init Report — it is not lost.
 
 **If the user skips or installs none:** proceed without blocking. Pre-existing
-skills are still recorded and wired. New skill recommendations are also
-surfaced later by `/forge:health`.
+skills are still recorded and wired. All skipped recommendations are surfaced
+again in the Report with copy-paste install commands.
 
 ---
 
@@ -86,7 +90,7 @@ Also scaffold: `.forge/store/` directories, `engineering/sprints/`, `engineering
 Read `$FORGE_ROOT/init/generation/generate-personas.md` and follow it.
 
 **Input**: `$FORGE_ROOT/meta/personas/` + discovery context + generated knowledge base
-**Output**: Persona context embedded into workflow generation (Phase 5)
+**Output**: `.forge/personas-context.md` (intermediate; gitignored) — consumed by Phase 5 in the same agent context
 
 ---
 
@@ -103,7 +107,7 @@ Read `$FORGE_ROOT/init/generation/generate-templates.md` and follow it.
 
 Read `$FORGE_ROOT/init/generation/generate-workflows.md` and follow it.
 
-**Input**: `$FORGE_ROOT/meta/workflows/` + personas + templates + discovery context + knowledge base
+**Input**: `$FORGE_ROOT/meta/workflows/` + `.forge/personas-context.md` + templates + discovery context + knowledge base
 **Output**: `.forge/workflows/` (14 project-specific workflow files)
 
 ---
@@ -151,4 +155,29 @@ After all phases complete, report to the user:
 - Generated artifacts: workflow count, command count, template count, tool count
 - Smoke test results
 - Confidence rating
-- Next step: review `engineering/` docs, then run `/sprint-plan`
+
+**Recommended skills (if any were skipped in Phase 1.5):**
+
+If the skipped-skills list is non-empty, include a section at the end of the
+report. Use this exact format, one line per skill:
+
+```
+Recommended skills — install when ready:
+
+  /plugin install typescript-lsp@claude-plugins-official
+    ↳ HIGH — LSP intelligence for TypeScript/JavaScript (detected in stack)
+
+  /plugin install frontend-design@claude-plugins-official
+    ↳ HIGH — Production-grade UI patterns, avoids generic AI aesthetics (React detected)
+```
+
+Rules:
+- Only list marketplace skills (those with a `@<marketplace>` install path).
+- Personal skills that are missing should be noted separately:
+  `vue-best-practices — personal skill; place SKILL.md in ~/.claude/skills/vue-best-practices/`
+- Order by confidence: High → Medium → Low.
+- Do not repeat skills that are already installed.
+
+**Next step:** review `engineering/` docs, then run `/sprint-plan`
+
+If you encountered any problems during this init run, file them with `/forge:report-bug` — it gathers context automatically and opens an issue in the Forge repository.

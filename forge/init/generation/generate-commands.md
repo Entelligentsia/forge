@@ -28,6 +28,14 @@ entry points to the generated workflows.
 
 ## Instructions
 
+**Pre-generation check (idempotency):** For each command file listed above, before writing:
+1. If the file does not exist — write it fresh.
+2. If the file exists — read it and check whether it references `.forge/workflows/`.
+   - If it does NOT reference `.forge/workflows/` (stale path from a prior convention) — overwrite it with the Forge-generated content and log: `Replaced stale command: <filename>`.
+   - If it already references `.forge/workflows/` — skip it (already up to date).
+
+This ensures re-running `forge:init` on a project with prior SDLC setup does not leave stale command files pointing to obsolete paths.
+
 Each command file should:
 1. Set appropriate model in frontmatter (sonnet for Engineer, opus for Supervisor/Architect)
 2. Load the corresponding workflow from `.forge/workflows/`
