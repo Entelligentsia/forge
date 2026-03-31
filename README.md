@@ -6,6 +6,8 @@
 
 <div align="center">
   <strong>A self-enhancing AI engineering team for Claude Code — built from your codebase, not a template.</strong>
+  <br/><br/>
+  <a href="https://entelligentsia.in/open-source/forge">entelligentsia.in/open-source/forge</a>
 </div>
 
 <br/>
@@ -246,5 +248,5 @@ Frameworks detected automatically: Django · FastAPI · Flask · Express · Next
 ---
 
 <div align="center">
-  MIT License
+  MIT License · <a href="https://entelligentsia.in/open-source/forge/privacy">Privacy Policy</a>
 </div>
