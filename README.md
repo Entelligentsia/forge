@@ -12,6 +12,40 @@
 
 ---
 
+## Summary
+
+Forge is a Claude Code plugin that turns your codebase into a self-improving AI engineering team. Run it once on any project — it reads your stack, generates a complete set of project-specific agents, workflows, and a structured knowledge base, then deploys them as slash commands. Every sprint, the system learns from what it builds and gets sharper.
+
+**One install. One init. A full engineering practice that improves with every task.**
+
+---
+
+## Quick Start
+
+**1. Install Forge** (once, works across all your projects):
+```
+/plugin install Entelligentsia/forge
+```
+
+**2. Bootstrap your project:**
+```
+cd /path/to/your/project
+/forge:init
+```
+Forge scans your codebase and generates everything in ~10–15 minutes. No config files to fill in.
+
+**3. Run your first sprint:**
+```
+/sprint-intake      # Capture sprint requirements in a structured interview
+/sprint-plan        # Break requirements into tasks with estimates and dependencies
+/run-sprint S01     # Execute — Plan → Review → Implement → Review → Approve → Commit
+/retrospective S01  # Close the sprint and feed learnings back
+```
+
+That's it. Forge handles the rest.
+
+---
+
 ## The Problem
 
 Claude Code is capable. But left unstructured, it:
