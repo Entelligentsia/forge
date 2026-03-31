@@ -25,7 +25,7 @@ Forge is a Claude Code plugin that turns your codebase into a self-improving AI 
 **1. Install Forge** (once, works across all your projects):
 ```
 /plugin marketplace add Entelligentsia/forge
-/plugin install forge@Entelligentsia/forge
+/plugin install forge@forge
 ```
 
 **2. Bootstrap your project:**
