@@ -1,7 +1,7 @@
 # Forge
 
 <div align="center">
-  <img src="assets/forge_hero_banner.png" alt="Forge AI SDLC" width="50%" />
+  <img src="assets/forge_hero_banner.png" alt="Forge AI SDLC" width="100%" />
 </div>
 
 <div align="center">
@@ -62,45 +62,70 @@ The more complex your project, the worse this gets.
 
 ## What Forge Does
 
-Forge runs once against your codebase and generates a complete, project-specific engineering practice — then deploys it as a multi-agent team inside Claude Code.
+Forge runs once against your codebase and generates a complete, project-specific engineering practice — then deploys it as a multi-agent team <img align="left" width="256" style="margin-right: 25px; margin-bottom: 15px;" src="assets/forge_adapts.png" alt="Adapts itself to your project illustration">
 
 ### Adapts itself to your project
-
 Forge doesn't ask you to fill in a config file. It reads your codebase — routes, models, tests, CI pipeline, auth patterns — and generates personas, workflows, and review criteria that reflect how *your* project actually works. The Engineer persona knows your entity names. The Supervisor knows your security patterns. The Architect knows your deployment constraints.
 
-### Self-learns with every cycle
+<br clear="both"/>
 
+<img align="right" width="256" style="margin-left: 25px; margin-bottom: 15px;" src="assets/forge_learns.png" alt="Self-learns with every cycle illustration">
+
+### Self-learns with every cycle
 Every completed task feeds the knowledge base. The Supervisor adds new patterns to the review checklist when it catches something worth catching again. The Bug Fixer tags root causes and builds preventive checks. The Retrospective agent promotes what's working and prunes what isn't. By Sprint 3, the system understands your project better than any static prompt ever could — and it keeps improving.
 
-### Stack agnostic, with opinions where it counts
+<br clear="both"/>
 
+<img align="left" width="256" style="margin-right: 25px; margin-bottom: 15px;" src="assets/forge_agnostic.png" alt="Stack agnostic illustration">
+
+### Stack agnostic, with opinions where it counts
 Forge generates everything in your language and adapts to whatever framework you're running. It makes no assumptions about your stack until it reads it. Where popular stacks have well-established best practices — Django migrations, Vue Composition API, Rails conventions — Forge's generated workflows encode those opinions explicitly. Everything else is derived from what it finds.
 
-### Deterministic tools — LLM resources for thinking, not housekeeping
+<br clear="both"/>
 
+<img align="right" width="256" style="margin-left: 25px; margin-bottom: 15px;" src="assets/forge_deterministic.png" alt="Deterministic tools illustration">
+
+### Deterministic tools — LLM resources for thinking, not housekeeping
 Forge is deliberately opinionated about what an LLM should and shouldn't do. Repeated, mechanical operations — collating sprint artifacts, seeding the task store, validating schema integrity — are generated once as deterministic tools in your project's own language and reused forever. Burning context tokens on tasks a script can do reliably is wasteful computing. Forge doesn't do it.
 
-### A knowledge base built for surgical recall
+<br clear="both"/>
 
+<img align="left" width="256" style="margin-right: 25px; margin-bottom: 15px;" src="assets/forge_knowledge.png" alt="A knowledge base built for surgical recall illustration">
+
+### A knowledge base built for surgical recall
 The knowledge base is not a monolith. It is intentionally decomposed into focused documents — one for routing, one for the entity model, one for the stack checklist, one per architecture area. When an agent needs context, it loads exactly the relevant section and nothing else. This keeps every agent fast, focused, and cheap to run — and it gets sharper as the knowledge base matures.
 
-### Context-efficient by design
+<br clear="both"/>
 
+<img align="right" width="256" style="margin-left: 25px; margin-bottom: 15px;" src="assets/forge_contextefficient.png" alt="Context-efficient by design illustration">
+
+### Context-efficient by design
 Forge agents don't load your entire codebase into context on every task. They work from the curated local knowledge base built during init. Agents read exactly what they need for the task at hand. This keeps context lean, responses accurate, and costs predictable as the project grows.
 
-### The Quiz — interview Forge about your own project
+<br clear="both"/>
 
+<img align="left" width="256" style="margin-right: 25px; margin-bottom: 15px;" src="assets/forge_quiz.png" alt="The Quiz illustration">
+
+### The Quiz — interview Forge about your own project
 `/quiz` is a lightweight tool that turns the knowledge base into an interactive Q&A. Ask Forge about your architecture, your entities, your conventions — and if an answer is incomplete or wrong, say so. Forge uses that feedback as a guided session to patch the knowledge base on the spot. It's the fastest way to validate and sharpen what the system knows about your project.
 
+<br clear="both"/>
+
+<img align="right" width="256" style="margin-left: 25px; margin-bottom: 15px;" src="assets/forge_improves.png" alt="Improves itself through your feedback illustration">
+
 ### Improves itself through your feedback
-
 Forge is a living system — and it gets better with yours. When something breaks or behaves unexpectedly, `/forge:report-bug` turns your experience into a structured GitHub issue in seconds. It reads your Forge version, project stack, and OS automatically, interviews you for the details that actually matter, drafts the report in the standard Forge bug format, and files it to the Forge repository with one confirmation. No copy-pasting error messages into a browser form.
-
+<br/><br/>
 Every bug report feeds directly into the Forge meta-definition — the same source that generates your SDLC. Patterns reported by users become better specs, better guard-rails, and sharper smoke tests for everyone running Forge. The system that learns from your project also learns from you.
 
-### Discovers and recommends the skills your LLM will benefit from
+<br clear="both"/>
 
+<img align="left" width="256" style="margin-right: 25px; margin-bottom: 15px;" src="assets/forge_skills.png" alt="Discovers and recommends the skills illustration">
+
+### Discovers and recommends the skills your LLM will benefit from
 During init, Forge checks the Claude Code marketplace for skills relevant to your stack — LSP intelligence for your language, framework-specific best practices, API integration skills. Already-installed skills are wired directly into generated personas: the Supervisor for a Vue project knows to invoke `vue-best-practices` before reviewing a component. New gaps surface in `/forge:health` so your tooling stays current as the project evolves.
+
+<br clear="both"/>
 
 ---
 
