@@ -140,6 +140,8 @@ During init, Forge checks the Claude Code marketplace for skills relevant to you
 
 `/forge:init`, `/forge:health`, `/forge:regenerate`, `/forge:update-tools`, and `/forge:report-bug` are now available in any project.
 
+> **Note:** Forge is pending approval in the Claude Code marketplace. Once listed, the install commands above will be the official route. In the meantime, installation instructions may vary — check the [repository](https://github.com/Entelligentsia/forge) for the latest.
+
 ---
 
 ## Start Using It
