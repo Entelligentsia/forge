@@ -250,3 +250,9 @@ Frameworks detected automatically: Django · FastAPI · Flask · Express · Next
 <div align="center">
   MIT License · <a href="https://entelligentsia.in/open-source/forge/privacy">Privacy Policy</a>
 </div>
+
+<!-- 
+Maintainer Note:
+After saving `assets/forge_social.png`, upload it manually to set the social preview:
+GitHub → Entelligentsia/forge → Settings → Social preview → Edit → Upload image
+-->
