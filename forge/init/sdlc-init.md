@@ -33,7 +33,7 @@ Read `$FORGE_ROOT/meta/skill-recommendations.md` for the full mapping and ration
 Using the stack discovered in Phase 1, look up matching skills from the
 recommendation mapping. For each match:
 
-1. Run `bash "$FORGE_ROOT/hooks/list-skills.sh"` to get all currently installed
+1. Run `node "$FORGE_ROOT/hooks/list-skills.js"` to get all currently installed
    skill names. This reads `~/.claude/plugins/installed_plugins.json` directly —
    user-scope (global) and local-scope skills matching the current project path.
 2. Split matching skills into two buckets:

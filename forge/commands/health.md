@@ -29,7 +29,7 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 2. Read the knowledge base files in `engineering/`
 3. Read the store in `.forge/store/` for sprint/task history
 4. Scan the codebase for entities not in the knowledge base (Grep for model/type definitions)
-5. Check skill gaps: run `bash "$FORGE_ROOT/hooks/list-skills.sh"` to get the live
+5. Check skill gaps: run `node "$FORGE_ROOT/hooks/list-skills.js"` to get the live
    installed skill list from `~/.claude/plugins/installed_plugins.json` (source of
    truth — not the config, which can be stale). Read `$FORGE_ROOT/meta/skill-recommendations.md`,
    cross-reference the stack against live installed skills, report any uninstalled

@@ -6,7 +6,7 @@ that complement Forge's project-specific knowledge.
 
 ## Skill Sources
 
-Skills come from two locations — both are checked by `hooks/list-skills.sh`:
+Skills come from two locations — both are checked by `hooks/list-skills.js`:
 
 | Source | Location | Install mechanism |
 |---|---|---|
