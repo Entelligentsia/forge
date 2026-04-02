@@ -16,7 +16,7 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 
 1. Read `.forge/config.json` for project language and paths
 2. Read tool specs from `$FORGE_ROOT/meta/tool-specs/`
-3. For each tool spec (`collate`, `seed-store`, `validate-store`):
+3. For each tool spec (`collate`, `seed-store`, `validate-store`, `manage-config`):
    a. Read the current spec from the plugin
    b. Read the current generated tool from `engineering/tools/`
    c. Show the user what changed in the spec

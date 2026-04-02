@@ -77,14 +77,25 @@ if (fs.existsSync(cacheFile)) {
 const elapsed = cache ? now - (cache.lastCheck || 0) : Infinity;
 
 if (elapsed < checkInterval) {
-  // Cache still fresh — use stored result
+  // Cache still fresh — use stored result.
+  // If the local version has advanced since the cache was written (i.e. the
+  // user just ran /plugin install), update migratedFrom so /forge:update knows
+  // the pre-install baseline and reset lastCheck so we fetch a fresh remote
+  // version on the next session.
+  if (cache.localVersion && cache.localVersion !== local) {
+    const updated = { ...cache, migratedFrom: cache.localVersion, localVersion: local, lastCheck: 0 };
+    try { fs.writeFileSync(cacheFile, JSON.stringify(updated)); } catch { /* non-fatal */ }
+  }
   const updateMsg = buildUpdateMsg(cache.remoteVersion || '', local);
   emit(forgeContext, updateMsg);
 } else {
-  // Cache expired or missing — fetch fresh
+  // Cache expired or missing — fetch fresh.
   fetchRemoteVersion((remoteVersion) => {
     if (remoteVersion) {
-      const newCache = { lastCheck: now, remoteVersion, localVersion: local };
+      // Preserve migratedFrom if already set; seed it from current local version
+      // when writing for the first time so /forge:update has a baseline.
+      const migratedFrom = (cache && cache.migratedFrom) || (cache && cache.localVersion) || local;
+      const newCache = { lastCheck: now, remoteVersion, localVersion: local, migratedFrom };
       try { fs.writeFileSync(cacheFile, JSON.stringify(newCache)); } catch { /* non-fatal */ }
     }
     const updateMsg = buildUpdateMsg(remoteVersion, local);

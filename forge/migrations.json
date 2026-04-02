@@ -1,0 +1,10 @@
+{
+  "0.2.0": {
+    "version": "0.3.0",
+    "date": "2026-04-02",
+    "notes": "Pluggable pipeline routing, /forge:add-pipeline command, manage-config tool spec, extended /forge:regenerate with tools and knowledge-base categories.",
+    "regenerate": ["tools", "workflows"],
+    "breaking": false,
+    "manual": []
+  }
+}
