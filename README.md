@@ -148,16 +148,26 @@ During init, Forge checks the Claude Code marketplace for skills relevant to you
 
 ---
 
-## Start Using It
+## Get Started
 
-### On a new or existing project
+Choose the guide that matches your situation:
+
+| I want to… | Guide |
+|---|---|
+| Onboard an existing codebase into Forge | [Existing project →](docs/existing-project.md) |
+| Start a new project with Forge from day 1 | [New project →](docs/new-project.md) |
+| Understand how the default workflows operate | [Default workflows →](docs/default-workflows.md) |
+| Adapt Forge pipelines and workflows to my team's process | [Customising workflows →](docs/customising-workflows.md) |
+
+---
+
+## How it works
 
 ```
-cd /path/to/your/project
-/forge:init
+/forge:init  →  review engineering/  →  /sprint-intake  →  /sprint-plan  →  /run-sprint  →  /retrospective
 ```
 
-Forge scans your codebase and runs 9 automated phases (~10–15 min, no interaction needed):
+`/forge:init` scans your codebase and runs 9 automated phases (~10–15 min, no interaction needed):
 
 | Phase | What happens |
 |---|---|
@@ -168,52 +178,34 @@ Forge scans your codebase and runs 9 automated phases (~10–15 min, no interact
 | Templates | Generates plan, review, and retrospective document formats |
 | Workflows | Generates 15 agent workflows wired to your actual commands and paths |
 | Orchestration | Assembles the task pipeline and sprint scheduler |
-| Commands | Creates `/plan-task`, `/implement`, `/sprint-plan`, etc. in `.claude/commands/` |
-| Tools | Generates `collate`, `validate-store`, `seed-store` in your project's language |
+| Commands | Creates `/sprint-intake`, `/sprint-plan`, `/run-sprint`, `/run-task`, etc. in `.claude/commands/` |
+| Tools | Generates `collate`, `validate-store`, `seed-store`, `manage-config` in your project's language |
 | Smoke Test | Validates everything connects; self-corrects if needed |
 
-### After init — your first sprint
-
-```
-/sprint-intake            # Architect interviews you to capture structured sprint requirements
-/sprint-plan              # Architect breaks requirements into tasks with estimates and dependency graph
-/run-sprint S01           # Orchestrator drives all tasks through the pipeline in dependency waves
-/retrospective S01        # Close the sprint and feed learnings back into the knowledge base
-```
+After init, each sprint task runs through the full pipeline automatically:
 
 ```mermaid
 flowchart LR
-    A([sprint-intake]) --> B([sprint-plan])
-    B --> C([run-sprint])
-    C --> D([retrospective])
-    D --> E[(Knowledge\nBase)]
-    E -.->|richer next sprint| A
+    P[Engineer\nPlan] --> RP{Supervisor\nReview Plan}
+    RP -->|revision| P
+    RP -->|approved| I[Engineer\nImplement]
+    I --> RC{Supervisor\nReview Code}
+    RC -->|revision| I
+    RC -->|approved| AP[Architect\nApprove]
+    AP --> CM([commit])
+
+    style RP fill:#f5a623,color:#000
+    style RC fill:#f5a623,color:#000
+    style AP fill:#4a90e2,color:#fff
 ```
 
-To drive a single task manually instead of the full sprint:
-
-```
-/run-task PROJ-S01-T01
-```
-
-```mermaid
-flowchart LR
-    T1[Engineer\nPlan] --> T2{Supervisor\nReview Plan}
-    T2 -->|revision| T1
-    T2 -->|approved| T3[Engineer\nImplement]
-    T3 --> T4{Supervisor\nReview Code}
-    T4 -->|revision| T3
-    T4 -->|approved| T5[Architect\nApprove]
-    T5 --> T6([commit])
-```
-
-### What was generated
+### What gets generated
 
 ```
 .forge/               Config, workflows, templates, task/sprint/bug store
 engineering/          Architecture docs, entity model, stack checklist, sprint history
 .claude/commands/     Slash commands: /sprint-intake, /sprint-plan, /run-sprint, /run-task…
-engineering/tools/    collate, validate-store, seed-store (in your language)
+engineering/tools/    collate, validate-store, seed-store, manage-config (in your language)
 ```
 
 Lines marked `[?]` in `engineering/` are items Forge wasn't certain about — review and correct them before your first sprint.
@@ -231,7 +223,9 @@ Lines marked `[?]` in `engineering/` are items Forge wasn't certain about — re
 | `/fix-bug BUG-ID` | Triage and fix a bug with root cause tracking |
 | `/retrospective SPRINT-ID` | Closes a sprint and updates the knowledge base |
 | `/forge:health` | Checks for stale docs, coverage gaps, and missing skills |
-| `/forge:regenerate` | Refreshes workflows and personas from an enriched knowledge base |
+| `/forge:regenerate [target]` | Refreshes workflows, templates, tools, or knowledge-base docs |
+| `/forge:update` | Propagates a plugin update into the project's generated artifacts |
+| `/forge:add-pipeline [name]` | Add or manage a custom task pipeline in `.forge/config.json` |
 | `/forge:remove` | Removes Forge from the project — with options to keep the knowledge base |
 | `/forge:report-bug` | File a bug against Forge itself — gathers context automatically and opens a GitHub issue |
 
