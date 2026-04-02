@@ -19,13 +19,22 @@ wiring in the generated atomic workflows.
 ## Instructions
 
 ### orchestrate_task.md
-1. Define each pipeline phase with concrete values:
+1. Add a **Pipeline Resolution** section at the top of the orchestrator:
+   - Read `task.pipeline` from the task manifest JSON
+   - If set, resolve it against `config.pipelines[task.pipeline]`
+   - If not set or not found, use the default pipeline
+   - For each phase in the resolved pipeline, invoke the phase's `command`
+     with the task ID as argument
+2. Define the default pipeline phases with concrete values:
    - Workflow file paths (the exact filenames generated in Phase 5)
    - Gate checks (test command, build command, lint command from config)
    - Model assignments per role
    - Max iteration counts
-2. Include error recovery strategies
-3. Include event emission format with project ID prefix
+3. For custom pipelines, the orchestrator invokes each phase's `command` as
+   a slash command (e.g., `convert-measure {TASK_ID}`). Review-role phases
+   still enforce revision loops up to `maxIterations`.
+4. Include error recovery strategies
+5. Include event emission format with project ID prefix
 
 ### run_sprint.md
 1. Define execution modes (sequential, wave-parallel, full-parallel)

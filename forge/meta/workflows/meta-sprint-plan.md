@@ -29,6 +29,10 @@ For each task:
 ### Step 4 — Create Sprint Manifest
 - Write sprint JSON to .forge/store/sprints/
 - Write task JSONs to .forge/store/tasks/
+  - If `config.pipelines` defines named pipelines, check whether each task matches
+    a non-default pipeline (by task description, output artifacts, or domain pattern).
+    If so, set `task.pipeline` to the matching pipeline name. When uncertain, omit the
+    field (the orchestrator will use the default pipeline).
 - Create task artifact directories in engineering/sprints/{SPRINT_ID}/
 
 ### Step 5 — Generate Task Prompts

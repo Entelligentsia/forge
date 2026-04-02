@@ -17,11 +17,33 @@ Each phase has:
 - `max_iterations` — revision loop limit (for review phases)
 - `gate_checks` — conditions that must pass before proceeding
 
+## Pipeline Resolution
+
+The orchestrator supports pluggable pipelines. When starting a task:
+
+1. Read the task manifest from `.forge/store/tasks/{TASK_ID}.json`.
+2. If `task.pipeline` is set, look up that key in `.forge/config.json` → `pipelines`.
+3. If found, use the phases defined in that pipeline.
+4. If `task.pipeline` is not set or the key is not found, use the `default` pipeline
+   (either from `config.pipelines.default` or the hardcoded default below).
+
+Each phase in a pipeline has:
+- `command` — the slash command to invoke (passed the task ID as argument)
+- `role` — semantic role (`plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`)
+- `maxIterations` — for review roles, the revision loop limit (default 3)
+
+Review roles (`review-plan`, `review-code`) trigger revision loops: if the
+review verdict is "Revision Required", the orchestrator routes back to the
+preceding phase (up to `maxIterations`).
+
 ## Default Pipeline
 
 ```
 plan → review-plan → [loop max 3] → implement → review-implementation → [loop max 3] → approve → writeback → commit
 ```
+
+When no `pipelines` section exists in config, the orchestrator uses this
+hardcoded default. Projects that define `config.pipelines.default` override it.
 
 ## Iron Laws
 

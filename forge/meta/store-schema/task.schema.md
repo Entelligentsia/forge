@@ -20,6 +20,7 @@
 | `planIterations` | integer | no | Number of plan review loops |
 | `codeReviewIterations` | integer | no | Number of code review loops |
 | `assignedModel` | string | no | Model used for implementation |
+| `pipeline` | string | no | Named pipeline to use instead of `default`. Must match a key in `config.pipelines`. When absent, the orchestrator uses the `default` pipeline. |
 
 ## Status Values
 
