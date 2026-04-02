@@ -11,28 +11,36 @@ It reads the migration manifest, computes the delta from your previous version
 to the current one, and runs exactly the regeneration targets that are needed —
 no more.
 
-## Locate plugin and cache
+## Locate plugin root
 
 ```
-FORGE_ROOT:  !`echo "${CLAUDE_PLUGIN_ROOT}"`
-PLUGIN_DATA: !`echo "${CLAUDE_PLUGIN_DATA}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 ```
 
 ## Step 1 — Determine versions
 
-Read current plugin version:
+Read the current plugin version by reading this file directly:
+
 ```
-CURRENT_VERSION: !`node -e "const f=require('fs'),p=require('path');try{process.stdout.write(JSON.parse(f.readFileSync(p.join(process.env.CLAUDE_PLUGIN_ROOT,'.claude-plugin','plugin.json'),'utf8')).version||'')}catch{process.stdout.write('')}"`
+$FORGE_ROOT/.claude-plugin/plugin.json
 ```
 
-Read the migration baseline (the version installed before the last `/plugin install`):
+Extract the `version` field. This is `CURRENT_VERSION`.
+
+Read the migration baseline from the update-check cache. The cache file is at:
+
 ```
-CACHE: !`node -e "const f=require('fs'),p=require('path'),c=p.join(process.env.CLAUDE_PLUGIN_DATA||require('os').tmpdir(),'forge-plugin-data','update-check-cache.json');try{process.stdout.write(f.readFileSync(c,'utf8'))}catch{process.stdout.write('{}')}"`
+${CLAUDE_PLUGIN_DATA}/forge-plugin-data/update-check-cache.json
 ```
 
-Extract `migratedFrom` from the cache JSON. If absent, fall back to `localVersion`
-from the cache. If both are absent, ask the user: "What version of Forge did you
-have before updating?" and use their answer.
+If `CLAUDE_PLUGIN_DATA` is not set, look in the OS temp directory under
+`forge-plugin-data/update-check-cache.json`. Read the file if it exists.
+
+Extract `migratedFrom` from the cache JSON. If absent, fall back to
+`localVersion` from the cache. If both are absent, ask the user:
+> "What version of Forge did you have before updating?"
+and use their answer as the baseline. The user can also pass `--from <version>`
+as an argument to set the baseline explicitly.
 
 If `CURRENT_VERSION` equals the baseline, tell the user:
 > "Already up to date — no migrations to apply."
@@ -93,20 +101,14 @@ knowledge-base sub-targets if present.
 
 ## Step 5 — Record migration state
 
-Write the completed migration version back to the cache so subsequent runs
-know the new baseline:
+Update the cache file to record the completed migration. Read the existing
+cache file (path from Step 1), update `migratedFrom` and `localVersion` to
+`CURRENT_VERSION`, and write it back. Use the Write or Edit tool — do not
+run a shell command for this step.
 
-```
-!`node -e "
-const fs=require('fs'),path=require('path'),os=require('os');
-const dataDir=process.env.CLAUDE_PLUGIN_DATA||path.join(os.tmpdir(),'forge-plugin-data');
-const cacheFile=path.join(dataDir,'update-check-cache.json');
-let cache={};
-try{cache=JSON.parse(fs.readFileSync(cacheFile,'utf8'))}catch{}
-cache.migratedFrom=process.argv[1];
-cache.localVersion=process.argv[1];
-fs.writeFileSync(cacheFile,JSON.stringify(cache));
-" CURRENT_VERSION`
+If the cache file does not exist, create it with:
+```json
+{ "migratedFrom": "<CURRENT_VERSION>", "localVersion": "<CURRENT_VERSION>" }
 ```
 
 Print:
