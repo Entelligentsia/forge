@@ -94,6 +94,16 @@ Work through the knowledge base systematically in this order:
 
 **Time budget:** 60–90 minutes for a typical greenfield project with minimal scaffolding.
 
+### Regenerate workflows after the quiz session
+
+The workflows generated at init reflect the KB *as it was at that moment* — sparse, low-confidence discovery output. Once the quiz session has corrected the entity model, architecture, and checklist, the workflows should be regenerated to reflect what you actually told Forge:
+
+```bash
+/forge:regenerate workflows
+```
+
+This produces workflows where the Supervisor's review criteria know about your actual entities, your auth patterns, and your stack conventions — not the guesses from the initial scan. Do this once after the quiz session, before Sprint 1.
+
 ---
 
 ## Using Forge to structure day-1 decisions

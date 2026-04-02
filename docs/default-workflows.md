@@ -138,6 +138,14 @@ The Retrospective agent reads all sprint artifacts — plans, code reviews, esca
 
 This step is what makes Forge self-improving. Skipping it is possible but leaves the knowledge base stale.
 
+The retrospective updates the **knowledge base** automatically. It does not update the generated **workflows** — those are a snapshot that only changes when you explicitly regenerate them. After a retrospective that surfaces significant new patterns (new architectural constraints, new review criteria, new entity relationships), propagate those changes into the workflows:
+
+```bash
+/forge:regenerate workflows
+```
+
+You don't need to do this every sprint — once every few sprints, or when the retrospective reveals something substantial, is the right cadence.
+
 ---
 
 ## Day-to-day command reference
@@ -157,47 +165,53 @@ This step is what makes Forge self-improving. Skipping it is possible but leaves
 
 ## Maintenance cadence
 
-Forge is a living system. These are the maintenance operations and when to run them.
+Two things evolve over a project's lifetime: the **knowledge base** (KB) and the **generated workflows**. They update through different mechanisms and on different schedules.
 
 ```mermaid
 flowchart TD
-    E[Every sprint] --> RS[/retrospective]
+    subgraph auto["Updates automatically"]
+        RET[/retrospective\nevery sprint] -->|writes back| KB[(Knowledge Base)]
+    end
 
-    P[Periodically\nor after major changes] --> H[/forge:health]
-    H --> |stale docs detected| RK[/forge:regenerate\nknowledge-base]
+    subgraph manual["Manual regeneration triggers"]
+        direction LR
+        T1[Every few sprints\nor after significant retrospective]
+        T2[After health detects\ncodebase drift]
+        T3[After Forge\nplugin update]
+    end
 
-    U[When Forge updates] --> PI[/plugin install\nEntelligentsia/forge]
-    PI --> FU[/forge:update]
-
-    RK --> RW[/forge:regenerate\nworkflows]
-    RW --> |if tools changed| RT[/forge:regenerate tools]
+    T1 --> RW[/forge:regenerate\nworkflows]
+    T2 --> RK[/forge:regenerate\nknowledge-base ...]
+    RK --> RW2[follow up:\n/forge:regenerate workflows\nif changes are substantial]
+    T3 --> FU[/forge:update\nautomatically runs\nright targets]
 ```
 
-### After major codebase changes
+### Knowledge base vs workflow regeneration — when each applies
 
-Run `/forge:health` to detect drift between the knowledge base and the actual code:
+| Situation | What to run |
+|---|---|
+| Every sprint — always | `/retrospective` (auto-updates KB) |
+| Every few sprints, or retrospective revealed major new patterns | `/forge:regenerate workflows` |
+| Health detects orphaned entities | `/forge:regenerate knowledge-base business-domain` |
+| Health detects new subsystems in code | `/forge:regenerate knowledge-base architecture` |
+| Health detects new libraries | `/forge:regenerate knowledge-base stack-checklist` |
+| KB was just refreshed and changes were substantial | `/forge:regenerate workflows` (follow-up) |
+| New Forge plugin version available | `/plugin install Entelligentsia/forge` then `/forge:update` |
+| New tool spec added (e.g. after Forge update) | `/forge:regenerate tools` (or handled by `/forge:update`) |
+
+### After major codebase changes
 
 ```bash
 /forge:health
 ```
 
-Common findings and responses:
-
-| Health finding | Response |
-|---|---|
-| Orphaned entities (in code, not in KB) | `/forge:regenerate knowledge-base business-domain` |
-| New subsystems not in architecture docs | `/forge:regenerate knowledge-base architecture` |
-| New libraries not in stack checklist | `/forge:regenerate knowledge-base stack-checklist` |
-| Stale workflows (after KB enrichment) | `/forge:regenerate workflows` |
+Health detects drift between the KB and the actual code. After applying the indicated `regenerate knowledge-base` command, judge whether the KB changes were substantial enough to warrant a workflow regeneration. New entities and minor additions usually aren't; new subsystems, new auth patterns, or new review-critical libraries usually are.
 
 ### After a Forge plugin update
 
 ```bash
-# You'll see this at session start when an update is available:
-# "Forge 0.4.0 available. Run: /plugin install Entelligentsia/forge"
-
 /plugin install Entelligentsia/forge
-/forge:update       # Applies migrations — regenerates only what changed
+/forge:update       # reads migration manifest, runs only the affected targets
 ```
 
-`/forge:update` reads the migration manifest and runs only the regeneration targets affected by the version bump. It does not do a full rebuild unless the migration requires it.
+`/forge:update` handles the regeneration decisions automatically — it knows which targets each version bump requires. You don't need to run `regenerate` manually after an update.

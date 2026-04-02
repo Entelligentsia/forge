@@ -124,25 +124,37 @@ If you prefer to drive individual tasks manually:
 
 ## The knowledge flywheel
 
-Forge gets more accurate with every sprint, automatically.
+The knowledge base updates automatically after every sprint. The generated workflows do not — they are a snapshot generated at a point in time and only update when you explicitly run `/forge:regenerate workflows`.
 
 ```mermaid
 flowchart LR
     S[Sprint work] --> D[Agents discover\nproject patterns]
-    D --> W[Agents write back\nto knowledge base]
+    D --> W[Agents write back\nto KB automatically]
     W --> R[Retrospective\npromotes + prunes]
-    R --> B[Richer KB\nfor next sprint]
+    R --> B[Richer KB]
     B --> S
 
+    B -.->|manual trigger\nevery few sprints| RG[/forge:regenerate\nworkflows]
+    RG -.-> WF[Sharper workflows\nand review criteria]
+    WF -.-> S
+
     style B fill:#2ecc71,color:#fff
+    style RG fill:#e67e22,color:#fff
+    style WF fill:#4a90e2,color:#fff
 ```
 
-Specifically, after each sprint:
+Specifically, after each sprint the KB updates automatically:
 - The **Supervisor** adds new patterns to `stack-checklist.md` when it catches something worth catching again
 - The **Bug Fixer** tags root causes and builds preventive checks
 - The **Retrospective agent** promotes what worked and retires what didn't
 
-By Sprint 3–4, the system understands your project better than any static prompt ever could.
+The workflows absorb that enrichment only when regenerated. Run `regenerate workflows` every few sprints, or after a retrospective that revealed significant new patterns:
+
+```bash
+/forge:regenerate workflows
+```
+
+By Sprint 3–4 the KB is substantially richer than at init. A workflow regeneration at that point produces review criteria and pipelines that reflect what the system has actually learned about your project.
 
 ---
 
