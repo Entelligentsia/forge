@@ -22,5 +22,13 @@
     "regenerate": [],
     "breaking": false,
     "manual": []
+  },
+  "0.3.2": {
+    "version": "0.3.3",
+    "date": "2026-04-02",
+    "notes": "Fix seed-store camelCase/snake_case mismatch — spec now explicitly requires camelCase field names matching validate-store (fixes 167 false-positive errors from /forge:health).",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": []
   }
 }
