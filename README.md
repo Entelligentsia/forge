@@ -12,6 +12,18 @@
 
 <br/>
 
+<div align="center">
+
+[⚡ Quick Start](#quick-start) &nbsp;·&nbsp;
+[📦 Install](#install) &nbsp;·&nbsp;
+[🚀 Get Started](#get-started) &nbsp;·&nbsp;
+[📖 Command Reference](docs/commands/index.md) &nbsp;·&nbsp;
+[🗺️ Onboarding Guides](#get-started) &nbsp;·&nbsp;
+[🔧 Customise](docs/customising-workflows.md) &nbsp;·&nbsp;
+[🐛 Report a Bug](docs/commands/forge/report-bug.md)
+
+</div>
+
 ---
 
 ## Summary
@@ -186,12 +198,12 @@ After init, each sprint task runs through the full pipeline automatically:
 
 ```mermaid
 flowchart LR
-    P[Engineer\nPlan] --> RP{Supervisor\nReview Plan}
+    P["Engineer<br/>Plan"] --> RP{"Supervisor<br/>Review Plan"}
     RP -->|revision| P
-    RP -->|approved| I[Engineer\nImplement]
-    I --> RC{Supervisor\nReview Code}
+    RP -->|approved| I["Engineer<br/>Implement"]
+    I --> RC{"Supervisor<br/>Review Code"}
     RC -->|revision| I
-    RC -->|approved| AP[Architect\nApprove]
+    RC -->|approved| AP["Architect<br/>Approve"]
     AP --> CM([commit])
 
     style RP fill:#f5a623,color:#000
@@ -214,24 +226,34 @@ Lines marked `[?]` in `engineering/` are items Forge wasn't certain about — re
 
 ## Command Reference
 
-Full lifecycle documentation for every command — inputs, outputs, gate checks, revision loops, and diagrams — is in the [command reference](docs/commands/index.md).
+Full lifecycle documentation — inputs, outputs, gate checks, revision loops, and diagrams — lives in the **[📖 command reference](docs/commands/index.md)**.
 
-## Day-to-Day Commands
+### Sprint commands
 
-| Command | What it does |
-|---|---|
-| `/sprint-intake` | Architect interviews you to capture and document sprint requirements |
-| `/sprint-plan` | Architect breaks requirements into tasks, estimates, and dependency graph |
-| `/run-sprint SPRINT-ID` | Orchestrator executes all sprint tasks in dependency waves |
-| `/run-task TASK-ID` | Drives a single task through the full pipeline end-to-end |
-| `/fix-bug BUG-ID` | Triage and fix a bug with root cause tracking |
-| `/retrospective SPRINT-ID` | Closes a sprint and updates the knowledge base |
-| `/forge:health` | Checks for stale docs, coverage gaps, and missing skills |
-| `/forge:regenerate [target]` | Refreshes workflows, templates, tools, or knowledge-base docs |
-| `/forge:update` | Propagates a plugin update into the project's generated artifacts |
-| `/forge:add-pipeline [name]` | Add or manage a custom task pipeline in `.forge/config.json` |
-| `/forge:remove` | Removes Forge from the project — with options to keep the knowledge base |
-| `/forge:report-bug` | File a bug against Forge itself — gathers context automatically and opens a GitHub issue |
+| Command | What it does | Reference |
+|---|---|---|
+| `/sprint-intake` | Architect interviews you and produces structured sprint requirements | [→](docs/commands/sprint/intake.md) |
+| `/sprint-plan` | Breaks requirements into tasks with estimates and a dependency graph | [→](docs/commands/sprint/plan.md) |
+| `/run-sprint SPRINT-ID` | Executes all sprint tasks in dependency waves | [→](docs/commands/sprint/run.md) |
+| `/retrospective SPRINT-ID` | Closes a sprint and feeds learnings back into the knowledge base | [→](docs/commands/sprint/retrospective.md) |
+
+### Task pipeline commands
+
+| Command | What it does | Reference |
+|---|---|---|
+| `/run-task TASK-ID` | Drives a single task through the full pipeline end-to-end | [→](docs/commands/task-pipeline/run-task.md) |
+| `/fix-bug BUG-ID` | Triage, root-cause, and fix a bug with knowledge base writeback | [→](docs/commands/task-pipeline/fix-bug.md) |
+
+### Forge plugin commands
+
+| Command | What it does | Reference |
+|---|---|---|
+| `/forge:init` | Bootstrap a complete SDLC instance from your codebase | [→](docs/commands/forge/init.md) |
+| `/forge:health` | Detect stale docs, orphaned entities, and missing skills | [→](docs/commands/forge/health.md) |
+| `/forge:regenerate [target]` | Refresh workflows, templates, tools, or knowledge-base docs | [→](docs/commands/forge/regenerate.md) |
+| `/forge:update` | Propagate a plugin version upgrade into project artifacts | [→](docs/commands/forge/update.md) |
+| `/forge:add-pipeline [name]` | Add or manage a custom task pipeline in `.forge/config.json` | [→](docs/commands/forge/add-pipeline.md) |
+| `/forge:report-bug` | File a bug against Forge — gathers context and opens a GitHub issue | [→](docs/commands/forge/report-bug.md) |
 
 ---
 
