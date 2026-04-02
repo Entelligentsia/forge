@@ -27,57 +27,34 @@ already installed Forge. This includes:
 2. If `"tools"` or `"workflows"` is in `regenerate`, users will need to run
    `/forge:update` after installing — make sure the migration notes are clear.
 
-**What does NOT need a version bump:** documentation-only changes, typo fixes
-in `docs/`, README updates, or changes that have no effect on installed projects.
+3. **Run a security scan before pushing.** A version bump means new code is
+   being distributed to every user who has Forge installed. Scan it first:
 
-## Security Scanning
-
-**After every version-bump commit lands on `main`, run a security scan and
-file the report as a versioned artifact.**
-
-### Steps
-
-1. **Reinstall the plugin locally** from the repo so the scan targets the exact
-   code that was just committed:
-   ```
-   /plugin install ./forge
-   ```
-
-2. **Run the scan:**
    ```
    /security-watchdog:scan-plugin forge:forge
    ```
 
-3. **Save the report** to `docs/security/scan-v{VERSION}.md`, where `{VERSION}`
-   matches the version just bumped to (e.g. `docs/security/scan-v0.3.6.md`).
-   The report should be the full output from the scan — do not summarise.
+   Save the full report (do not summarise) to
+   `docs/security/scan-v{VERSION}.md` and commit it together with the
+   version bump in the same commit or a follow-up `security:` commit.
 
-4. **Update `README.md`** — add a row to the Security Scan History table under
-   the `## Security` section:
-   ```
-   | v{VERSION} | {DATE} | [Report](docs/security/scan-v{VERSION}.md) | {one-line finding summary} |
-   ```
-   If the `## Security` section does not yet exist in README, create it
-   directly above the `## Supported Stacks` section using this template:
+   Add a row to the Security Scan History table in `README.md` under
+   `## Security`. If that section does not yet exist, create it directly
+   above `## Supported Stacks`:
 
    ```markdown
    ## Security
 
-   Every plugin release is scanned with
-   [security-watchdog](https://github.com/Entelligentsia/security-watchdog)
-   before publication. Reports are filed as versioned artifacts in
+   Every release is scanned with `/security-watchdog:scan-plugin` before
+   publication. Reports are filed as versioned artifacts in
    [`docs/security/`](docs/security/).
 
    | Version | Date | Report | Summary |
    |---------|------|--------|---------|
-   | v{VERSION} | {DATE} | [scan-v{VERSION}.md](docs/security/scan-v{VERSION}.md) | {summary} |
    ```
 
-5. **Commit** the report and README update together:
-   ```
-   git add docs/security/scan-v{VERSION}.md README.md
-   git commit -m "security: add scan report for v{VERSION}"
-   ```
+**What does NOT need a version bump:** documentation-only changes, typo fixes
+in `docs/`, README updates, or changes that have no effect on installed projects.
 
 ## Official Documentation
 
