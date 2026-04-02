@@ -19,6 +19,7 @@ language-agnostic tool specs.
 | `collate.spec.md` | `collate.py` | `collate.cjs` | `collate.mjs` | `collate.go` | `collate.sh` |
 | `seed-store.spec.md` | `seed_store.py` | `seed-store.cjs` | `seed-store.mjs` | `seed-store.go` | `seed-store.sh` |
 | `validate-store.spec.md` | `validate_store.py` | `validate-store.cjs` | `validate-store.mjs` | `validate-store.go` | `validate-store.sh` |
+| `manage-config.spec.md` | `manage_config.py` | `manage-config.cjs` | `manage-config.mjs` | `manage-config.go` | `manage-config.sh` |
 
 ## Instructions
 
