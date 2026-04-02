@@ -16,7 +16,7 @@ const https = require('https');
 const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || '.';
 const dataDir = process.env.CLAUDE_PLUGIN_DATA || path.join(os.tmpdir(), 'forge-plugin-data');
 const cacheFile = path.join(dataDir, 'update-check-cache.json');
-const remoteUrl = 'https://raw.githubusercontent.com/Entelligentsia/forge/main/.claude-plugin/plugin.json';
+const remoteUrl = 'https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json';
 const checkInterval = 86400; // 24 hours in seconds
 
 fs.mkdirSync(dataDir, { recursive: true });

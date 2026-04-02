@@ -7,7 +7,7 @@ set -euo pipefail
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-.}"
 DATA_DIR="${CLAUDE_PLUGIN_DATA:-/tmp/forge-plugin-data}"
 CACHE_FILE="$DATA_DIR/update-check-cache.json"
-REMOTE_URL="https://raw.githubusercontent.com/Entelligentsia/forge/main/.claude-plugin/plugin.json"
+REMOTE_URL="https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json"
 CHECK_INTERVAL=86400  # 24 hours in seconds
 
 mkdir -p "$DATA_DIR"

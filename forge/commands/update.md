@@ -27,14 +27,12 @@ $FORGE_ROOT/.claude-plugin/plugin.json
 
 Extract the `version` field. This is `CURRENT_VERSION`.
 
-Read the migration baseline from the update-check cache. The cache file is at:
+Read the migration baseline from the update-check cache. Resolve the cache path:
 
-```
-${CLAUDE_PLUGIN_DATA}/forge-plugin-data/update-check-cache.json
-```
+- If `CLAUDE_PLUGIN_DATA` is set and non-empty: `${CLAUDE_PLUGIN_DATA}/forge-plugin-data/update-check-cache.json`
+- Otherwise: `/tmp/forge-plugin-data/update-check-cache.json`
 
-If `CLAUDE_PLUGIN_DATA` is not set, look in the OS temp directory under
-`forge-plugin-data/update-check-cache.json`. Read the file if it exists.
+Call this resolved path `CACHE_FILE`. Read the file if it exists.
 
 Extract `migratedFrom` from the cache JSON. If absent, fall back to
 `localVersion` from the cache. If both are absent, ask the user:
@@ -101,10 +99,11 @@ knowledge-base sub-targets if present.
 
 ## Step 5 — Record migration state
 
-Update the cache file to record the completed migration. Read the existing
-cache file (path from Step 1), update `migratedFrom` and `localVersion` to
-`CURRENT_VERSION`, and write it back. Use the Write or Edit tool — do not
-run a shell command for this step.
+Update the cache file to record the completed migration. Use `CACHE_FILE`
+from Step 1. If the parent directory does not exist, create it with
+`mkdir -p` before writing. Read the existing file if present, update
+`migratedFrom` and `localVersion` to `CURRENT_VERSION`, and write it back.
+Use the Write or Edit tool — do not run a shell command for this step.
 
 If the cache file does not exist, create it with:
 ```json

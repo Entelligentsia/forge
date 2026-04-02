@@ -36,7 +36,7 @@ before continuing.
 ## List mode (`--list`)
 
 ```
-!`$MANAGE_CONFIG list-pipelines`
+!`[ -n "$MANAGE_CONFIG" ] && $MANAGE_CONFIG list-pipelines || echo "manage-config tool not found — run /forge:init or /forge:update-tools first."`
 ```
 
 Exit after printing — do not modify config.
@@ -52,7 +52,7 @@ Exit after printing — do not modify config.
 
 2. Remove the pipeline:
    ```
-   !`$MANAGE_CONFIG pipeline remove PIPELINE_NAME`
+   !`[ -n "$MANAGE_CONFIG" ] && $MANAGE_CONFIG pipeline remove PIPELINE_NAME`
    ```
    The tool exits 1 if the name does not exist — surface that error directly.
 
@@ -86,7 +86,7 @@ Check each phase before invoking the tool:
 
 Check whether the pipeline already exists:
 ```
-!`$MANAGE_CONFIG get pipelines.PIPELINE_NAME 2>/dev/null`
+!`[ -n "$MANAGE_CONFIG" ] && $MANAGE_CONFIG get pipelines.PIPELINE_NAME 2>/dev/null || true`
 ```
 If output is non-empty, tell the user and ask whether to overwrite or abort.
 
@@ -108,7 +108,7 @@ Ask the user to confirm before writing.
 
 Invoke the tool to write atomically:
 ```
-!`$MANAGE_CONFIG pipeline add PIPELINE_NAME --description "DESCRIPTION" --phases 'PHASES_JSON'`
+!`[ -n "$MANAGE_CONFIG" ] && $MANAGE_CONFIG pipeline add PIPELINE_NAME --description "DESCRIPTION" --phases 'PHASES_JSON'`
 ```
 
 The tool validates the phases against the schema and preserves all other config
