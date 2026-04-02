@@ -42,37 +42,43 @@ flowchart TD
 
 ### 1. Custom pipelines — route tasks to specialised agents
 
-The default pipeline (plan → review → implement → review → approve → commit) works for general engineering tasks. When you have a recurring specialised task type — measure conversion, schema migration, client code generation — you can define a dedicated pipeline for it.
+The default pipeline (plan → review → implement → review → approve → commit) works for general engineering tasks. When you have a recurring specialised task type — generating typed API clients from a spec, running schema migrations, scaffolding integration stubs — the generic pipeline adds friction without value. You can define a dedicated pipeline for it.
+
+**Example: generating a typed API client from an OpenAPI spec**
+
+A team consuming a third-party API updates its generated client every time the upstream spec changes. The task is mechanical: the spec is the plan. There is nothing to design, no architecture to review. The useful steps are generation, spec-compliance validation, and commit.
+
+The default pipeline forces a plan → review-plan cycle that produces no value here. A custom pipeline skips straight to generation:
 
 ```bash
-/forge:add-pipeline measure-conversion
+/forge:add-pipeline api-client-sync
 ```
 
 Forge will prompt you for:
 - A **description** — used by the sprint planner to auto-assign this pipeline to matching tasks
 - **Phases** — the slash commands to invoke, in order, each with a semantic role
 
-Example — a pipeline that skips planning (the spec is the plan) and uses domain-specific review:
-
 ```
 command          role
-convert-measure  implement
-review-measure   review-code
-approve-measure  approve
+generate-client  implement
+validate-client  review-code
+approve          approve
 commit           commit
 ```
+
+`generate-client` runs the OpenAPI code generator against the spec and writes the client files. `validate-client` checks the generated output against the spec for completeness and breaking changes, then approves or requests a retry. The revision loop is preserved — if the generated client is missing endpoints or has type errors, `validate-client` routes back to `generate-client` automatically (up to the configured `maxIterations`).
 
 This writes the pipeline into `.forge/config.json`:
 
 ```json
 {
   "pipelines": {
-    "measure-conversion": {
-      "description": "For tasks that convert HEDIS measure specs into JSON artifacts",
+    "api-client-sync": {
+      "description": "For tasks that regenerate typed API clients from an OpenAPI spec",
       "phases": [
-        { "command": "convert-measure", "role": "implement" },
-        { "command": "review-measure",  "role": "review-code" },
-        { "command": "approve-measure", "role": "approve" },
+        { "command": "generate-client", "role": "implement" },
+        { "command": "validate-client", "role": "review-code" },
+        { "command": "approve",         "role": "approve" },
         { "command": "commit",          "role": "commit" }
       ]
     }
@@ -85,7 +91,7 @@ Then run `/forge:regenerate workflows` to wire the routing into the generated or
 ```mermaid
 flowchart LR
     T[Task manifest] --> ORC{Orchestrator}
-    ORC -->|task.pipeline = measure-conversion| CP[Custom pipeline\nconvert → review → approve → commit]
+    ORC -->|task.pipeline = api-client-sync| CP[Custom pipeline\ngenerate → validate → approve → commit]
     ORC -->|task.pipeline absent| DP[Default pipeline\nplan → review → implement → review → approve → commit]
 
     style CP fill:#7b68ee,color:#fff
