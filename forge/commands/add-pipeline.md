@@ -35,8 +35,8 @@ before continuing.
 
 ## List mode (`--list`)
 
-```
-!`[ -n "$MANAGE_CONFIG" ] && $MANAGE_CONFIG list-pipelines || echo "manage-config tool not found — run /forge:init or /forge:update-tools first."`
+```sh
+[ -n "$MANAGE_CONFIG" ] && $MANAGE_CONFIG list-pipelines || echo "manage-config tool not found — run /forge:init or /forge:update-tools first."
 ```
 
 Exit after printing — do not modify config.
@@ -44,15 +44,15 @@ Exit after printing — do not modify config.
 ## Remove mode (`--remove PIPELINE_NAME`)
 
 1. Check for tasks that reference this pipeline:
-   ```
-   !`grep -rl '"pipeline":\s*"PIPELINE_NAME"' .forge/store/tasks/ 2>/dev/null`
+   ```sh
+   grep -rl '"pipeline": "PIPELINE_NAME"' .forge/store/tasks/ 2>/dev/null
    ```
    If any are found, list them and warn the user that those tasks will fail at
    orchestration time. Ask for explicit confirmation before continuing.
 
 2. Remove the pipeline:
-   ```
-   !`[ -n "$MANAGE_CONFIG" ] && $MANAGE_CONFIG pipeline remove PIPELINE_NAME`
+   ```sh
+   [ -n "$MANAGE_CONFIG" ] && $MANAGE_CONFIG pipeline remove PIPELINE_NAME
    ```
    The tool exits 1 if the name does not exist — surface that error directly.
 
@@ -85,8 +85,8 @@ Check each phase before invoking the tool:
   default pipeline for all tasks without a `pipeline` field.
 
 Check whether the pipeline already exists:
-```
-!`[ -n "$MANAGE_CONFIG" ] && $MANAGE_CONFIG get pipelines.PIPELINE_NAME 2>/dev/null || true`
+```sh
+[ -n "$MANAGE_CONFIG" ] && $MANAGE_CONFIG get pipelines.PIPELINE_NAME 2>/dev/null || true
 ```
 If output is non-empty, tell the user and ask whether to overwrite or abort.
 
@@ -107,8 +107,8 @@ Ask the user to confirm before writing.
 ### Step 4 — Write
 
 Invoke the tool to write atomically:
-```
-!`[ -n "$MANAGE_CONFIG" ] && $MANAGE_CONFIG pipeline add PIPELINE_NAME --description "DESCRIPTION" --phases 'PHASES_JSON'`
+```sh
+[ -n "$MANAGE_CONFIG" ] && $MANAGE_CONFIG pipeline add PIPELINE_NAME --description "DESCRIPTION" --phases 'PHASES_JSON'
 ```
 
 The tool validates the phases against the schema and preserves all other config
@@ -130,3 +130,9 @@ Next steps:
    task's .forge/store/tasks/<TASK_ID>.json, or let the sprint planner assign it
    automatically during the next /sprint-plan run.
 ```
+
+## On error
+
+If any step above fails unexpectedly, describe what went wrong and ask:
+
+> "This looks like a Forge bug. Would you like to file a report to help improve it? Run `/forge:report-bug` — I'll pre-fill the report from this conversation."

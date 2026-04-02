@@ -123,3 +123,9 @@ $ARGUMENTS
 If the user passes `--from <version>`, use that as the baseline instead of the
 cached value. Useful when the cache is missing or the user installed across
 multiple versions in one step.
+
+## On error
+
+If any step above fails unexpectedly, describe what went wrong and ask:
+
+> "This looks like a Forge bug. Would you like to file a report to help improve it? Run `/forge:report-bug` — I'll pre-fill the report from this conversation."

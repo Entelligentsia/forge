@@ -41,7 +41,16 @@ yet initialised in this project.
 
 ## Step 3 — Interview the user
 
-Ask the following questions, one message (the user may answer all at once):
+**If this command was invoked immediately after a Forge error** (i.e., the recent conversation contains an error from a Forge command), extract the answers from that context automatically:
+- Which command failed → from the conversation
+- What happened → from the error output
+- Expected behaviour → infer from the command's purpose
+- Reproduction steps → from the conversation
+- Severity → infer from impact (blocked = HIGH, partial failure = MEDIUM, cosmetic = LOW)
+
+Skip to Step 4 directly with the pre-filled answers.
+
+**Otherwise**, ask the following questions in one message (the user may answer all at once):
 
 ```
 To file a Forge bug report, please answer:
@@ -122,11 +131,11 @@ If the user says **no** or anything other than Y/y/edit: cancel and inform the u
 
 Run:
 
-```
-result: !`gh issue create --repo Entelligentsia/forge --title "<TITLE>" --body "<BODY>"`
+```sh
+gh issue create --repo Entelligentsia/forge --title "TITLE" --body "BODY"
 ```
 
-Pass title and body via variables or a heredoc to avoid shell escaping issues.
+Substitute `TITLE` and `BODY` with the collected values. Pass title and body via variables or a heredoc to avoid shell escaping issues.
 The `gh` output will include the new issue URL.
 
 Report the URL to the user:

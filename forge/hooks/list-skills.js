@@ -16,6 +16,10 @@
 
 'use strict';
 
+// On unexpected failure, exit 1 (same as "skill not found") so callers
+// degrade gracefully rather than seeing an unhandled exception crash.
+process.on('uncaughtException', () => process.exit(1));
+
 const fs = require('fs');
 const path = require('path');
 const os = require('os');

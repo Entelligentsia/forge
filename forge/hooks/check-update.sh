@@ -2,6 +2,10 @@
 # Forge session-start hook — runs on SessionStart
 # 1. Injects Forge-awareness context if this project has a .forge/ directory.
 # 2. Checks once per day whether a newer version is available.
+#
+# This hook must never exit non-zero — a hook failure surfaces as noise to the
+# user and blocks session start context. All logic runs inside main(); any
+# unexpected error exits 0 silently via the fallback trap.
 set -euo pipefail
 
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-.}"
@@ -9,6 +13,8 @@ DATA_DIR="${CLAUDE_PLUGIN_DATA:-/tmp/forge-plugin-data}"
 CACHE_FILE="$DATA_DIR/update-check-cache.json"
 REMOTE_URL="https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json"
 CHECK_INTERVAL=86400  # 24 hours in seconds
+
+main() {
 
 mkdir -p "$DATA_DIR"
 
@@ -68,3 +74,7 @@ if [ -n "$UPDATE_MSG" ] || [ -n "$FORGE_CONTEXT" ]; then
     ESCAPED=$(printf '%s' "$COMBINED" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' ' ')
     printf '{"additionalContext":"%s"}\n' "$ESCAPED"
 fi
+
+} # end main
+
+main || exit 0

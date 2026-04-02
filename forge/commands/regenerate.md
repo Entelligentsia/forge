@@ -172,3 +172,9 @@ are not yet represented in review checklist items.
 
 Run `workflows` + `templates` in sequence. This preserves the pre-existing
 behaviour for callers that do not pass an argument.
+
+## On error
+
+If any step above fails unexpectedly, describe what went wrong and ask:
+
+> "This looks like a Forge bug. Would you like to file a report to help improve it? Run `/forge:report-bug` — I'll pre-fill the report from this conversation."

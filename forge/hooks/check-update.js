@@ -8,6 +8,10 @@
 
 'use strict';
 
+// This hook must never exit non-zero — a hook failure surfaces as noise to the
+// user and blocks session start context. Any uncaught exception exits 0.
+process.on('uncaughtException', () => process.exit(0));
+
 const fs = require('fs');
 const path = require('path');
 const os = require('os');

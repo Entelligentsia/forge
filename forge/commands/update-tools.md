@@ -30,3 +30,9 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 $ARGUMENTS
 
 If the user specifies a tool name (e.g., "collate"), update only that tool.
+
+## On error
+
+If any step above fails unexpectedly, describe what went wrong and ask:
+
+> "This looks like a Forge bug. Would you like to file a report to help improve it? Run `/forge:report-bug` — I'll pre-fill the report from this conversation."

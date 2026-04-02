@@ -147,3 +147,9 @@ Confirm completion and remind the user:
 - To reinstall Forge in this project: `/forge:init`
 - The plugin itself is unaffected — only project artifacts were removed
 - To uninstall the plugin entirely: `/plugin uninstall forge`
+
+## On error
+
+If any step above fails unexpectedly, describe what went wrong and ask:
+
+> "This looks like a Forge bug. Would you like to file a report to help improve it? Run `/forge:report-bug` — I'll pre-fill the report from this conversation."

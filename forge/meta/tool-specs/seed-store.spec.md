@@ -49,6 +49,30 @@ Status defaults: sprint → `"active"`, task → `"planned"`, bug → `"open"`.
 Infer a better status from artifact presence when possible (e.g. PROGRESS.md
 with "committed" → `"committed"`).
 
+## Error Handling
+
+- Wrap the entire entry point in a top-level exception handler.
+- On unexpected errors (missing config, unreadable directories, unhandled
+  exceptions), print a clear one-line message to stderr and exit 1.
+- Never let the tool crash with an unhandled exception or stack trace visible
+  to the caller — all errors are caught and reported cleanly.
+- Python pattern:
+  ```python
+  if __name__ == "__main__":
+      try:
+          sys.exit(main())
+      except Exception as e:
+          print(f"Error: {e}", file=sys.stderr)
+          sys.exit(1)
+  ```
+- JS/TS pattern:
+  ```js
+  process.on('uncaughtException', (e) => {
+      process.stderr.write(`Error: ${e.message}\n`);
+      process.exit(1);
+  });
+  ```
+
 ## Algorithm
 
 1. Read `.forge/config.json` for prefix and paths

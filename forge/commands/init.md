@@ -40,3 +40,9 @@ The current working directory is the target project. All generated artifacts go 
 $ARGUMENTS
 
 If the user passes a phase name or number, resume from that phase.
+
+## On error
+
+If any step above fails unexpectedly, describe what went wrong and ask:
+
+> "This looks like a Forge bug. Would you like to file a report to help improve it? Run `/forge:report-bug` — I'll pre-fill the report from this conversation."
