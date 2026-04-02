@@ -6,5 +6,13 @@
     "regenerate": ["tools", "workflows"],
     "breaking": false,
     "manual": []
+  },
+  "0.3.0": {
+    "version": "0.3.1",
+    "date": "2026-04-02",
+    "notes": "Fix /forge:update shell permission error — replaced inline node one-liners with Read/Write tool instructions.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
   }
 }
