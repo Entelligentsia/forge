@@ -30,6 +30,18 @@ already installed Forge. This includes:
 **What does NOT need a version bump:** documentation-only changes, typo fixes
 in `docs/`, README updates, or changes that have no effect on installed projects.
 
+## Official Documentation
+
+- **Plugin development** — https://code.claude.com/docs/en/plugins.md
+  Creating plugins, manifest schema, skills/agents/hooks/MCP, testing with `--plugin-dir`, converting standalone configs.
+
+- **Marketplace development** — https://code.claude.com/docs/en/plugin-marketplaces.md
+  `marketplace.json` schema, plugin sources (relative path, GitHub, git-subdir, npm), hosting, private repos, managed restrictions, version/release channels.
+
+- **Plugins reference** (full technical spec) — https://code.claude.com/docs/en/plugins-reference.md
+
+- **Discover & install plugins** — https://code.claude.com/docs/en/discover-plugins.md
+
 ## Plugin Structure
 
 - `forge/` — the installable plugin (this is what users get via `/plugin install`)
