@@ -87,7 +87,7 @@
     },
     "pipeline": {
       "type": "object",
-      "description": "Optional pipeline customisation",
+      "description": "Optional pipeline customisation for the default pipeline",
       "properties": {
         "skipPhases": {
           "type": "array",
@@ -98,6 +98,71 @@
           "default": 3
         }
       }
+    },
+    "pipelines": {
+      "type": "object",
+      "description": "Named pipeline definitions. Each key is a pipeline name that tasks can reference via their `pipeline` field. The `default` pipeline is used when a task has no `pipeline` field. Projects define custom pipelines to route tasks to specialized agent commands.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["phases"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of when to use this pipeline"
+          },
+          "phases": {
+            "type": "array",
+            "description": "Ordered list of pipeline phases. Each phase maps to a slash command.",
+            "items": {
+              "type": "object",
+              "required": ["command", "role"],
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "Slash command name (without /) to invoke for this phase"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": ["plan", "review-plan", "implement", "review-code", "approve", "commit"],
+                  "description": "Semantic role of this phase in the pipeline lifecycle"
+                },
+                "model": {
+                  "type": "string",
+                  "description": "Optional model override for this phase"
+                },
+                "maxIterations": {
+                  "type": "integer",
+                  "description": "Max revision loop iterations for review phases",
+                  "default": 3
+                }
+              }
+            }
+          }
+        }
+      },
+      "examples": [
+        {
+          "default": {
+            "phases": [
+              {"command": "engineer", "role": "plan"},
+              {"command": "supervisor", "role": "review-plan"},
+              {"command": "implement", "role": "implement"},
+              {"command": "supervisor", "role": "review-code"},
+              {"command": "approve", "role": "approve"},
+              {"command": "commit", "role": "commit"}
+            ]
+          },
+          "measure-conversion": {
+            "description": "Specialized pipeline for HEDIS measure encoding",
+            "phases": [
+              {"command": "convert-measure", "role": "implement"},
+              {"command": "review-measure", "role": "review-code"},
+              {"command": "approve-measure", "role": "approve"},
+              {"command": "commit", "role": "commit"}
+            ]
+          }
+        }
+      ]
     },
     "installedSkills": {
       "type": "array",
