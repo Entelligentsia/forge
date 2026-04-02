@@ -41,13 +41,13 @@ flowchart TD
     B --> C{How much\nwas found?}
 
     C -->|Rich scaffolding| D[High confidence\n~70-85%\nfew question marks]
-    C -->|Minimal files| E[Lower confidence\n~40-60%\nmany question marks]
+    C -->|Minimal files| E[Lower confidence<br/>~40-60%<br/>many question marks]
 
     D --> F[Knowledge Base\nautomatically useful]
     E --> G[Knowledge Base\nneeds manual bootstrapping]
 
-    F --> H([Review [?] items\n~30 min])
-    G --> I([Expand KB manually\n~60-90 min])
+    F --> H([Review flagged items<br/>~30 min])
+    G --> I([Expand KB manually<br/>~60-90 min])
 
     H --> J([First sprint])
     I --> J

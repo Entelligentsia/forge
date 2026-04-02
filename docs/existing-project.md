@@ -128,14 +128,14 @@ The knowledge base updates automatically after every sprint. The generated workf
 
 ```mermaid
 flowchart LR
-    S[Sprint work] --> D[Agents discover\nproject patterns]
-    D --> W[Agents write back\nto KB automatically]
-    W --> R[Retrospective\npromotes + prunes]
+    S[Sprint work] --> D[Agents discover<br/>project patterns]
+    D --> W[Agents write back<br/>to KB automatically]
+    W --> R[Retrospective<br/>promotes + prunes]
     R --> B[Richer KB]
     B --> S
 
-    B -.->|manual trigger\nevery few sprints| RG[/forge:regenerate\nworkflows]
-    RG -.-> WF[Sharper workflows\nand review criteria]
+    B -.->|manual, every few sprints| RG["/forge:regenerate workflows"]
+    RG -.-> WF[Sharper workflows<br/>and review criteria]
     WF -.-> S
 
     style B fill:#2ecc71,color:#fff

@@ -170,20 +170,19 @@ Two things evolve over a project's lifetime: the **knowledge base** (KB) and the
 ```mermaid
 flowchart TD
     subgraph auto["Updates automatically"]
-        RET[/retrospective\nevery sprint] -->|writes back| KB[(Knowledge Base)]
+        RET["/retrospective — every sprint"] -->|writes back| KB[(Knowledge Base)]
     end
 
     subgraph manual["Manual regeneration triggers"]
-        direction LR
-        T1[Every few sprints\nor after significant retrospective]
-        T2[After health detects\ncodebase drift]
-        T3[After Forge\nplugin update]
+        T1[Every few sprints<br/>or after significant retrospective]
+        T2[After health detects<br/>codebase drift]
+        T3[After Forge<br/>plugin update]
     end
 
-    T1 --> RW[/forge:regenerate\nworkflows]
-    T2 --> RK[/forge:regenerate\nknowledge-base ...]
-    RK --> RW2[follow up:\n/forge:regenerate workflows\nif changes are substantial]
-    T3 --> FU[/forge:update\nautomatically runs\nright targets]
+    T1 --> RW["/forge:regenerate workflows"]
+    T2 --> RK["/forge:regenerate knowledge-base"]
+    RK --> RW2["follow up: forge:regenerate workflows<br/>if changes are substantial"]
+    T3 --> FU["/forge:update — runs right targets automatically"]
 ```
 
 ### Knowledge base vs workflow regeneration — when each applies

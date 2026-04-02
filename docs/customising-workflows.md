@@ -171,14 +171,14 @@ When Forge ships a new version, `/forge:update` applies the relevant migrations.
 
 ```mermaid
 flowchart TD
-    U[/forge:update] --> M[Read migrations.json\ncompute delta from prev version]
+    U["/forge:update"] --> M[Read migrations.json<br/>compute delta from prev version]
     M --> R[Regenerate affected targets]
     R --> D{File has local edits?}
-    D -->|yes| P[Show diff\nask user to decide per section]
+    D -->|yes| P[Show diff<br/>ask user to decide per section]
     D -->|no| W[Write directly]
     P --> K[Keep your edits / take new version / merge manually]
-    K --> Done
-    W --> Done
+    K --> Done([Done])
+    W --> Done([Done])
 ```
 
 **General rule:** customisations at the pipeline level (`config.json`) survive updates cleanly because the plugin never touches `config.json`. Customisations inside generated workflow files require a merge review on each update that touches those files.
