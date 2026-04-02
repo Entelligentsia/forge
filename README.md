@@ -212,6 +212,10 @@ Lines marked `[?]` in `engineering/` are items Forge wasn't certain about — re
 
 ---
 
+## Command Reference
+
+Full lifecycle documentation for every command — inputs, outputs, gate checks, revision loops, and diagrams — is in the [command reference](docs/commands/index.md).
+
 ## Day-to-Day Commands
 
 | Command | What it does |
