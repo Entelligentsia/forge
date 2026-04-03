@@ -130,12 +130,12 @@ Read `$FORGE_ROOT/init/generation/generate-commands.md` and follow it.
 
 ---
 
-## Phase 8 — Generate Tools
+## Phase 8 — Install Tools
 
 Read `$FORGE_ROOT/init/generation/generate-tools.md` and follow it.
 
-**Input**: `$FORGE_ROOT/meta/tool-specs/` + `.forge/config.json`
-**Output**: `engineering/tools/` (collate, seed-store, validate-store in project's language)
+**Input**: `$FORGE_ROOT/tools/` + `$FORGE_ROOT/schemas/` + `.forge/config.json`
+**Output**: `engineering/tools/` (four pre-built CJS tools) + `.forge/schemas/` (four JSON Schema files)
 
 ---
 

@@ -54,5 +54,13 @@
     "regenerate": ["tools"],
     "breaking": false,
     "manual": []
+  },
+  "0.3.6": {
+    "version": "0.3.7",
+    "date": "2026-04-03",
+    "notes": "Ship tools as pre-built Node.js CJS scripts (collate, seed-store, validate-store, manage-config) and JSON Schema files; Phase 8 copies instead of generating; eliminates project-language dependency for tooling; adds JSON Schema backing for all store types (closes #10).",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": []
   }
 }

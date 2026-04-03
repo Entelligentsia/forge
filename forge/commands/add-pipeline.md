@@ -18,8 +18,8 @@ MANAGE_CONFIG: !`ls engineering/tools/manage-config.* 2>/dev/null | head -1`
 ```
 
 If `MANAGE_CONFIG` is empty, stop and tell the user:
-> "The manage-config tool has not been generated yet. Run `/forge:init` (phase 8)
-> or `/forge:regenerate` with `tools` argument to generate it first."
+> "The manage-config tool is not installed yet. Run `/forge:init` (phase 8)
+> or `/forge:update-tools` to install it first."
 
 ## Arguments
 

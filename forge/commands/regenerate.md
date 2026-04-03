@@ -69,19 +69,15 @@ current knowledge base.
 
 ---
 
-## Category: `tools` — full rebuild
+## Category: `tools` — copy from plugin
 
-Re-generate `engineering/tools/` from the tool specs and current config.
-Safe to rebuild from scratch — inputs are fully deterministic.
+Copy the pre-built tools and schemas from the installed plugin into the project.
+This is equivalent to running `/forge:update-tools`.
 
-1. Read all `$FORGE_ROOT/meta/tool-specs/*.spec.md`
-2. Read `.forge/config.json` for the project's primary language and paths
-3. Re-generate `engineering/tools/` following
-   `$FORGE_ROOT/init/generation/generate-tools.md`
-4. Show diffs and prompt before overwriting
+Read and follow `$FORGE_ROOT/init/generation/generate-tools.md`.
 
-**When to use:** a new tool spec has been added (e.g., after a Forge update),
-or the project has switched its primary language.
+**When to use:** after a Forge plugin update that includes tool changes
+(the migration entry will list `"tools"` in `regenerate`).
 
 ---
 

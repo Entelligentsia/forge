@@ -29,7 +29,7 @@ gh is not installed or not authenticated.
 Collect the following in parallel:
 
 ```
-forge_version:  !`cat "${CLAUDE_PLUGIN_ROOT}/forge/.claude-plugin/plugin.json" 2>/dev/null | grep '"version"' | head -1 | sed 's/.*: *"\(.*\)".*/\1/'`
+forge_version:  !`cat "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json" 2>/dev/null | grep '"version"' | head -1 | sed 's/.*: *"\(.*\)".*/\1/'`
 node_version:   !`node --version 2>/dev/null || echo "N/A"`
 os_info:        !`uname -srm 2>/dev/null || echo "N/A"`
 forge_config:   !`cat ".forge/config.json" 2>/dev/null | head -30 || echo "No .forge/config.json found"`

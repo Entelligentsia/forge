@@ -1,35 +1,62 @@
 ---
-description: Use when tool specs have changed and engineering/tools/ needs to be regenerated to match
+description: Use when you want to update the tools in engineering/tools/ and .forge/schemas/ to match the currently installed Forge plugin version
 ---
 
 # /forge:update-tools
 
-Regenerate the deterministic tools in `engineering/tools/` from the Forge plugin's
-latest tool specs.
+Copy the pre-built tools and schemas from the installed Forge plugin into this project.
 
-## What this does
+Run this after upgrading the Forge plugin to get the latest tool versions,
+or if `engineering/tools/` is missing or corrupted.
 
-First, resolve the plugin root:
+## Locate the plugin
+
 ```
 FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 ```
 
-1. Read `.forge/config.json` for project language and paths
-2. Read tool specs from `$FORGE_ROOT/meta/tool-specs/`
-3. For each tool spec (`collate`, `seed-store`, `validate-store`, `manage-config`):
-   a. Read the current spec from the plugin
-   b. Read the current generated tool from `engineering/tools/`
-   c. Show the user what changed in the spec
-   d. Offer to regenerate the tool
-4. Generate new tool in the project's language
-5. Show diff between old and new tool
-6. Prompt before overwriting — the team may have customised the tool
+Read `.forge/config.json` for `paths.tools` (default: `engineering/tools`).
 
 ## Arguments
 
 $ARGUMENTS
 
-If the user specifies a tool name (e.g., "collate"), update only that tool.
+If the user specifies a tool name (e.g., `collate`), copy only that tool.
+Otherwise copy all four tools and all schemas.
+
+## Steps
+
+### 1 — Show what will change
+
+For each tool to be updated, show a diff between the current file in
+`{paths.tools}/` and the source in `$FORGE_ROOT/tools/`.
+
+If the files are identical, skip with: `collate.cjs — already up to date`
+
+### 2 — Prompt before overwriting
+
+If any diffs are non-empty, ask:
+> "Update N tool(s)? [Y/n]"
+
+If the user declines, exit without changes.
+
+### 3 — Copy tools
+
+Copy from `$FORGE_ROOT/tools/` to `{paths.tools}/`.
+Make each file executable (`chmod +x`).
+
+### 4 — Copy schemas (unless --tools-only)
+
+Copy all four files from `$FORGE_ROOT/schemas/` to `.forge/schemas/`.
+
+### 5 — Verify
+
+Run:
+```
+node {paths.tools}/validate-store.cjs --dry-run
+```
+
+Report the result. Exit 0 on success, 1 on failure.
 
 ## On error
 

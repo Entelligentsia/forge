@@ -28,3 +28,36 @@
 ## Root Cause Categories
 
 `validation` / `auth` / `business-rule` / `data-integrity` / `race-condition` / `integration` / `configuration` / `regression`
+
+## JSON Schema
+
+This block is the canonical machine-readable definition. It is emitted verbatim
+to `.forge/schemas/bug.schema.json` during init (Phase 8).
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "forge/bug.schema.json",
+  "title": "Bug",
+  "type": "object",
+  "required": ["bugId", "title", "severity", "status", "path", "reportedAt"],
+  "properties": {
+    "bugId":                { "type": "string" },
+    "title":                { "type": "string" },
+    "description":          { "type": "string" },
+    "severity":             { "type": "string", "enum": ["critical", "major", "minor"] },
+    "status":               { "type": "string", "enum": ["reported", "triaged", "in-progress", "fixed", "verified"] },
+    "path":                 { "type": "string" },
+    "rootCauseCategory": {
+      "type": "string",
+      "enum": ["validation", "auth", "business-rule", "data-integrity", "race-condition", "integration", "configuration", "regression"]
+    },
+    "similarBugs":          { "type": "array", "items": { "type": "string" } },
+    "checklistItemAdded":   { "type": "boolean" },
+    "businessRuleUpdated":  { "type": "boolean" },
+    "reportedAt":           { "type": "string", "format": "date-time" },
+    "resolvedAt":           { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}
+```

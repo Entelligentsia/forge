@@ -37,3 +37,41 @@ Failed states: `plan-revision-required`, `code-revision-required`, `blocked`, `e
   "type": "addition | correction | removal"
 }
 ```
+
+## JSON Schema
+
+This block is the canonical machine-readable definition. It is emitted verbatim
+to `.forge/schemas/task.schema.json` during init (Phase 8).
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "forge/task.schema.json",
+  "title": "Task",
+  "type": "object",
+  "required": ["taskId", "sprintId", "title", "status", "path"],
+  "properties": {
+    "taskId":               { "type": "string" },
+    "sprintId":             { "type": "string" },
+    "title":                { "type": "string" },
+    "description":          { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft", "planned", "plan-approved", "implementing",
+        "implemented", "review-approved", "approved", "committed",
+        "plan-revision-required", "code-revision-required", "blocked", "escalated"
+      ]
+    },
+    "path":                 { "type": "string" },
+    "estimate":             { "type": "string", "enum": ["S", "M", "L", "XL"] },
+    "dependencies":         { "type": "array", "items": { "type": "string" } },
+    "knowledgeUpdates":     { "type": "array" },
+    "planIterations":       { "type": "integer", "minimum": 0 },
+    "codeReviewIterations": { "type": "integer", "minimum": 0 },
+    "assignedModel":        { "type": "string" },
+    "pipeline":             { "type": "string" }
+  },
+  "additionalProperties": false
+}
+```

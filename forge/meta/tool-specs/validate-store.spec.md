@@ -8,6 +8,7 @@ between sprints/tasks/bugs/events, no orphaned records.
 ## Inputs
 
 - `.forge/config.json` — paths
+- `.forge/schemas/` — JSON Schema files (task, event, sprint, bug); written during init Phase 8
 - `.forge/store/` — all JSON files
 
 ## Outputs
@@ -26,10 +27,18 @@ between sprints/tasks/bugs/events, no orphaned records.
 ## Validation Rules
 
 ### Required Fields
-- Sprint: sprintId, title, status
-- Task: taskId, sprintId, title, status
-- Bug: bugId, title, severity, status
-- Event: eventId, taskId, role, action, startTimestamp
+
+Load the JSON Schema files from `.forge/schemas/` at runtime and derive required
+fields from each schema's `"required"` array. Do NOT hardcode field names.
+
+If a schema file is missing, fall back to these defaults and warn:
+- Sprint: `sprintId`, `title`, `status`
+- Task: `taskId`, `sprintId`, `title`, `status`, `path`
+- Bug: `bugId`, `title`, `severity`, `status`, `path`, `reportedAt`
+- Event: `eventId`, `taskId`, `sprintId`, `role`, `action`, `phase`, `iteration`, `startTimestamp`, `endTimestamp`, `durationMinutes`
+
+When schemas are present, also validate field types and enum values per the
+schema definitions — not just field presence.
 
 ### Referential Integrity
 - Every task.sprintId references an existing sprint

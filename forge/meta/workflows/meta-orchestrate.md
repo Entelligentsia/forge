@@ -68,7 +68,27 @@ to unblock the pipeline.
 
 ## Event Emission
 
-Every phase emits a structured event to .forge/store/events/.
+Every phase emits a structured event to `.forge/store/events/{sprintId}/`.
+
+**Required fields** (defined in `.forge/schemas/event.schema.json`):
+
+| Field | Value |
+|-------|-------|
+| `eventId` | `{ISO_TIMESTAMP}_{TASK_ID}_{role}_{action}` e.g. `20260415T141523000Z_ACME-S02-T03_engineer_implement` |
+| `taskId` | Task ID from the task manifest |
+| `sprintId` | Sprint ID from the task manifest |
+| `role` | Agent role executing this phase (e.g. `engineer`, `supervisor`, `architect`) |
+| `action` | Slash command invoked (e.g. `/implement`, `/review-plan`) |
+| `phase` | Pipeline phase name (e.g. `plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`) |
+| `iteration` | 1-based iteration count for this phase |
+| `startTimestamp` | ISO 8601 timestamp when the phase began |
+| `endTimestamp` | ISO 8601 timestamp when the phase completed |
+| `durationMinutes` | Elapsed minutes (computed from start/end) |
+
+**Optional fields**: `model`, `verdict` (for review phases: `Approved` / `Revision Required`), `notes`.
+
+Use only the field names above — no aliases (`agent`, `status`, `timestamp`, `details`, etc.).
+When in doubt, read `.forge/schemas/event.schema.json` directly.
 
 ## Generation Instructions
 - Fill in concrete test/build/lint commands from .forge/config.json

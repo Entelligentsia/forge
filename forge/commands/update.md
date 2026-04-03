@@ -75,7 +75,7 @@ Changes:
 
 Regeneration required:
   workflows   — re-generate .forge/workflows/ from updated meta-definitions
-  tools       — re-generate engineering/tools/ from updated tool specs
+  tools       — install updated pre-built tools into engineering/tools/ and .forge/schemas/
 
 <If breaking: true>
 ⚠ Breaking changes — manual steps required before regenerating:

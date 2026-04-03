@@ -2,40 +2,67 @@
 
 ## Purpose
 
-Generate deterministic tools in the project's native language from
-language-agnostic tool specs.
+Install pre-built tools and schemas from the Forge plugin into the project.
+No generation step — tools ship with the plugin and are copied as-is.
 
 ## Inputs
 
-- `$FORGE_ROOT/meta/tool-specs/*.spec.md` (3 tool specs)
-- `.forge/config.json` — language, paths, prefix
+- `$FORGE_ROOT/tools/` — pre-built Node.js CJS tool scripts
+- `$FORGE_ROOT/schemas/` — JSON Schema files for all store types
+- `.forge/config.json` — target paths
 
 ## Outputs
 
-`engineering/tools/` with tools in the project's primary language:
-
-| Tool Spec | Python | Node.js (CJS) | Node.js (ESM) | Go | Shell (fallback) |
-|-----------|--------|---------------|---------------|----|-------------------|
-| `collate.spec.md` | `collate.py` | `collate.cjs` | `collate.mjs` | `collate.go` | `collate.sh` |
-| `seed-store.spec.md` | `seed_store.py` | `seed-store.cjs` | `seed-store.mjs` | `seed-store.go` | `seed-store.sh` |
-| `validate-store.spec.md` | `validate_store.py` | `validate-store.cjs` | `validate-store.mjs` | `validate-store.go` | `validate-store.sh` |
-| `manage-config.spec.md` | `manage_config.py` | `manage-config.cjs` | `manage-config.mjs` | `manage-config.go` | `manage-config.sh` |
+- `engineering/tools/` — four executable tool scripts
+- `.forge/schemas/` — four JSON Schema files
 
 ## Instructions
 
-**Before generating Node.js tools**, read the project's `package.json`. Check for `"type": "module"`:
-- If `"type": "module"` is present: the project is ESM. Generate tools with `.mjs` extension using ESM `import`/`export` syntax.
-- If `"type": "module"` is absent or `"type": "commonjs"`: generate tools with `.cjs` extension using CommonJS `require()`/`module.exports` syntax.
+Read `.forge/config.json` for:
+- `paths.tools` (default: `engineering/tools`)
+- `paths.store` (default: `.forge/store`)
 
-Never generate `.js` Node.js tools — `.js` files are interpreted according to the nearest `package.json`'s `"type"` field, which causes `require is not defined` errors in ESM projects.
+### Step 1 — Copy tools
 
-For each tool spec:
-1. Read the spec's Algorithm, CLI Interface, and Formatting Rules
-2. Detect the Node.js module system (see above) before generating Node.js tools
-3. Generate an implementation in the project's primary language
-4. Make it executable (`#!/usr/bin/env <lang>`)
-5. Use the project's standard library — minimal dependencies
-6. Follow the project's naming conventions
-7. Read `.forge/config.json` for paths and prefix at runtime
-8. Include basic error handling and usage help
-9. Make the tool self-contained (single file)
+Copy all four files from `$FORGE_ROOT/tools/` to the project's tools directory:
+
+| Source | Destination |
+|--------|-------------|
+| `$FORGE_ROOT/tools/collate.cjs` | `{paths.tools}/collate.cjs` |
+| `$FORGE_ROOT/tools/seed-store.cjs` | `{paths.tools}/seed-store.cjs` |
+| `$FORGE_ROOT/tools/validate-store.cjs` | `{paths.tools}/validate-store.cjs` |
+| `$FORGE_ROOT/tools/manage-config.cjs` | `{paths.tools}/manage-config.cjs` |
+
+Create the destination directory if it does not exist.
+Make each file executable (`chmod +x`).
+
+### Step 2 — Copy schemas
+
+Copy all four files from `$FORGE_ROOT/schemas/` to `.forge/schemas/`:
+
+| Source | Destination |
+|--------|-------------|
+| `$FORGE_ROOT/schemas/task.schema.json` | `.forge/schemas/task.schema.json` |
+| `$FORGE_ROOT/schemas/event.schema.json` | `.forge/schemas/event.schema.json` |
+| `$FORGE_ROOT/schemas/sprint.schema.json` | `.forge/schemas/sprint.schema.json` |
+| `$FORGE_ROOT/schemas/bug.schema.json` | `.forge/schemas/bug.schema.json` |
+
+Create `.forge/schemas/` if it does not exist.
+
+### Step 3 — Verify
+
+Run a quick smoke test:
+```
+node {paths.tools}/validate-store.cjs --dry-run
+```
+
+If it exits non-zero, report the error. Do not proceed to Phase 9 until this passes.
+
+## Notes
+
+- Tools are plain Node.js CJS — no `npm install` needed, no dependencies beyond stdlib.
+- Node.js is a prerequisite for all platforms Forge currently supports
+  (Claude Code, Gemini CLI, Codex CLI, GitHub Copilot CLI).
+- Tools read `.forge/config.json` at runtime relative to `process.cwd()` —
+  they must be run from the project root.
+- To update tools after a plugin upgrade, run `/forge:update-tools`.

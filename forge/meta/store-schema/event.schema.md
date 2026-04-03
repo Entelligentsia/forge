@@ -27,3 +27,37 @@ Example: `20260415T141523000Z_ACME-S02-T03_engineer_implement`
 | `model` | string | no | Model used (sonnet, opus, haiku) |
 | `verdict` | string | no | For review phases: Approved / Revision Required |
 | `notes` | string | no | Free-form notes |
+
+## JSON Schema
+
+This block is the canonical machine-readable definition. It is emitted verbatim
+to `.forge/schemas/event.schema.json` during init (Phase 8).
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "forge/event.schema.json",
+  "title": "Event",
+  "type": "object",
+  "required": [
+    "eventId", "taskId", "sprintId", "role", "action",
+    "phase", "iteration", "startTimestamp", "endTimestamp", "durationMinutes"
+  ],
+  "properties": {
+    "eventId":         { "type": "string" },
+    "taskId":          { "type": "string" },
+    "sprintId":        { "type": "string" },
+    "role":            { "type": "string" },
+    "action":          { "type": "string" },
+    "phase":           { "type": "string" },
+    "iteration":       { "type": "integer", "minimum": 1 },
+    "startTimestamp":  { "type": "string", "format": "date-time" },
+    "endTimestamp":    { "type": "string", "format": "date-time" },
+    "durationMinutes": { "type": "number", "minimum": 0 },
+    "model":           { "type": "string" },
+    "verdict":         { "type": "string" },
+    "notes":           { "type": "string" }
+  },
+  "additionalProperties": false
+}
+```
