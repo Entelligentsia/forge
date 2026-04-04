@@ -65,6 +65,17 @@ function statusBadge(status) {
   return badge ? `${badge} ${status}` : status;
 }
 
+// Resolve a directory name under `base` by trying candidates in order.
+// Returns the first candidate whose directory exists, or the last candidate as fallback.
+// This handles projects that name sprint/task dirs with the full ID (e.g. HEDIS-S01)
+// instead of just the trailing segment (e.g. S01).
+function resolveDir(base, ...candidates) {
+  for (const c of candidates) {
+    if (fs.existsSync(path.join(base, c))) return c;
+  }
+  return candidates[candidates.length - 1];
+}
+
 function padTable(rows) {
   if (rows.length === 0) return '';
   const cols = rows[0].length;
@@ -165,7 +176,7 @@ for (const sprint of targetSprints) {
     if (totalMinutes > 0) lines.push(`**Total tracked:** ${fmtDuration(totalMinutes)}`, '');
   }
 
-  const sprintDirName = sprint.sprintId.split('-').pop(); // e.g. S01
+  const sprintDirName = resolveDir(path.join(engRoot, 'sprints'), sprint.sprintId, sprint.sprintId.split('-').pop());
   const timesheetPath = path.join(engRoot, 'sprints', sprintDirName, 'TIMESHEET.md');
   writeFile(timesheetPath, lines.join('\n') + '\n');
 }
@@ -221,7 +232,7 @@ if (allBugs.length > 0) {
     for (const s of [...allSprints].reverse()) {
       const tasks = tasksBySprint[s.sprintId] || [];
       const completed = tasks.filter(t => t.status === 'committed').length;
-      const sprintDir = s.sprintId.split('-').pop();
+      const sprintDir = resolveDir(path.join(engRoot, 'sprints'), s.sprintId, s.sprintId.split('-').pop());
       rows.push([
         s.sprintId, s.title || '—', statusBadge(s.status),
         `${completed}/${tasks.length}`,
@@ -240,11 +251,20 @@ if (allBugs.length > 0) {
     if (tasks.length === 0) continue;
     lines.push(`### ${sprint.sprintId}`, '');
     const rows = [['Task', 'Title', 'Status', 'Estimate']];
+    const sprintDir = resolveDir(path.join(engRoot, 'sprints'), sprint.sprintId, sprint.sprintId.split('-').pop());
     for (const t of tasks) {
-      const taskDir = t.taskId.split('-').pop();
-      const sprintDir = sprint.sprintId.split('-').pop();
+      // Derive task link from t.path if available (most reliable — already has correct dir names).
+      // Fall back to filesystem detection against full task ID vs. trailing segment.
+      let taskLink;
+      if (t.path) {
+        const rel = path.relative(engPath, t.path).replace(/\\/g, '/');
+        taskLink = path.dirname(rel).replace(/\\/g, '/') + '/INDEX.md';
+      } else {
+        const taskDir = resolveDir(path.join(engRoot, 'sprints', sprintDir), t.taskId, t.taskId.split('-').pop());
+        taskLink = `sprints/${sprintDir}/${taskDir}/INDEX.md`;
+      }
       rows.push([
-        `[${t.taskId}](sprints/${sprintDir}/${taskDir}/INDEX.md)`,
+        `[${t.taskId}](${taskLink})`,
         t.title || '—', statusBadge(t.status), t.estimate || '—',
       ]);
     }
@@ -258,7 +278,7 @@ if (allBugs.length > 0) {
     const closed = allBugs.filter(b =>  ['fixed', 'verified'].includes(b.status));
     const rows = [['Bug', 'Title', 'Severity', 'Status']];
     for (const b of [...open, ...closed]) {
-      const bugDir = b.bugId.split('-').pop();
+      const bugDir = resolveDir(path.join(engRoot, 'bugs'), b.bugId, b.bugId.split('-').pop());
       rows.push([
         `[${b.bugId}](bugs/${bugDir}/INDEX.md)`,
         b.title || '—', b.severity || '—', statusBadge(b.status),

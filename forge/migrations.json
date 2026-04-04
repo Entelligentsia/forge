@@ -63,6 +63,14 @@
     "breaking": false,
     "manual": []
   },
+  "0.3.11": {
+    "version": "0.3.12",
+    "date": "2026-04-04",
+    "notes": "Fix collate writing TIMESHEETs to wrong sprint dir and generating broken MASTER_INDEX links when sprint/task dirs use the full ID (e.g. HEDIS-S01) instead of the trailing segment (e.g. S01).",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": []
+  },
   "0.3.10": {
     "version": "0.3.11",
     "date": "2026-04-04",
