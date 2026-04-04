@@ -1,0 +1,14 @@
+{
+  "bugId": "BUG-001",
+  "title": "Sprint runner accumulates context across tasks — violates light-context principle",
+  "description": "run_sprint.md invokes slash commands inline within the same conversation context. Each task phase (plan, review, implement, review, approve, commit) appends to the orchestrator's context window. By the Nth task, the context is bloated with artifacts from all prior tasks. Forge's stated design principle is to keep context light and nimble. The fix is to spawn each task phase as a subagent (Agent tool call) so every phase runs in a fresh, isolated context. The orchestrator reads task state from disk between subagent calls, keeping its own context minimal.",
+  "severity": "major",
+  "status": "fixed",
+  "path": ".forge/workflows/run_sprint.md",
+  "rootCauseCategory": "business-rule",
+  "similarBugs": [],
+  "checklistItemAdded": false,
+  "businessRuleUpdated": false,
+  "reportedAt": "2026-04-04T00:00:00Z",
+  "resolvedAt": "2026-04-04T00:00:00Z"
+}

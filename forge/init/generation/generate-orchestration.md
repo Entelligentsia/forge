@@ -23,18 +23,29 @@ wiring in the generated atomic workflows.
    - Read `task.pipeline` from the task manifest JSON
    - If set, resolve it against `config.pipelines[task.pipeline]`
    - If not set or not found, use the default pipeline
-   - For each phase in the resolved pipeline, invoke the phase's `command`
-     with the task ID as argument
 2. Define the default pipeline phases with concrete values:
    - Workflow file paths (the exact filenames generated in Phase 5)
    - Gate checks (test command, build command, lint command from config)
    - Model assignments per role
    - Max iteration counts
-3. For custom pipelines, the orchestrator invokes each phase's `command` as
-   a slash command (e.g., `convert-measure {TASK_ID}`). Review-role phases
-   still enforce revision loops up to `maxIterations`.
-4. Include error recovery strategies
-5. Include event emission format with project ID prefix
+3. **Each phase MUST be invoked as an Agent tool subagent, NOT inline.**
+   The subagent prompt must include the exact `.forge/workflows/{workflow_filename}.md`
+   path and the task ID. Example:
+   ```
+   Use the Agent tool to spawn a subagent:
+     prompt: "Read `.forge/workflows/engineer_plan_task.md` and follow it. Task ID: {TASK_ID}.
+              Also read `engineering/MASTER_INDEX.md` for project state."
+     description: "plan phase for {TASK_ID}"
+   ```
+   The subagent reads all context it needs from disk and writes results (artifacts,
+   task status) back to disk before returning. The orchestrator then reads verdicts
+   from disk artifacts. Never pass conversation context to subagents — disk is the
+   source of truth.
+4. For custom pipelines, each phase's `workflow` file is used as the subagent's
+   workflow instruction. Review-role phases still enforce revision loops up to
+   `maxIterations` — read verdict from the disk artifact after the subagent returns.
+5. Include error recovery strategies
+6. Include event emission format with project ID prefix
 
 ### run_sprint.md
 1. Define execution modes (sequential, wave-parallel, full-parallel)

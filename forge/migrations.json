@@ -63,6 +63,14 @@
     "breaking": false,
     "manual": []
   },
+  "0.3.10": {
+    "version": "0.3.11",
+    "date": "2026-04-04",
+    "notes": "Fix context accumulation in sprint runner and task orchestrator — each phase now runs as an Agent tool subagent (fresh context per phase/task), keeping the orchestrator itself light and nimble (closes BUG-001).",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
   "0.3.9": {
     "version": "0.3.10",
     "date": "2026-04-04",

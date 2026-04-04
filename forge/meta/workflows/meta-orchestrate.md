@@ -43,6 +43,25 @@ plan → review-plan → [loop max 3] → implement → review-implementation �
 When no `pipelines` section exists in config, the orchestrator uses this
 hardcoded default. Projects that define `config.pipelines.default` override it.
 
+## Context Isolation
+
+**Each phase MUST run as a subagent (Agent tool call), NOT inline.**
+
+Invoking phases inline accumulates context from every prior phase and task into
+the orchestrator's window. This violates Forge's design principle of keeping
+context light and nimble. By the time a sprint reaches its third or fourth task,
+an inline orchestrator is carrying tens of thousands of tokens of prior work that
+is irrelevant to the current phase.
+
+The fix: use the Agent tool to spawn a subagent per phase. Each subagent:
+- Starts with a fresh context window
+- Receives only what it needs: the workflow file path and the task ID
+- Reads all other context from disk (task JSON, PLAN.md, MASTER_INDEX.md, etc.)
+- Writes results to disk (artifacts, task status updates)
+- Returns to the orchestrator, which then reads the verdict from disk
+
+The orchestrator itself stays minimal — it only holds the phase loop and event log.
+
 ## Execution Algorithm
 
 The orchestrator MUST follow this procedure exactly. Do not deviate.
@@ -56,9 +75,13 @@ for each task in dependency_sorted(tasks):
   while i < len(phases):
     phase = phases[i]
 
-    # --- Invoke phase ---
+    # --- Invoke phase as subagent (fresh context per phase) ---
     emit_event(task, phase, iteration=iteration_counts.get(phase.command, 0) + 1, action="start")
-    invoke_slash_command(phase.command, task_id)
+    spawn_subagent(
+      prompt="Read `{phase.workflow}` and follow it. Task ID: {task_id}. Also read `engineering/MASTER_INDEX.md` for project state.",
+      description="{phase.name} phase for {task_id}"
+    )
+    # Subagent reads all context from disk, does its work, writes artifacts/status to disk, then exits.
     emit_event(task, phase, action="complete")
 
     # --- Non-review phases always advance ---
@@ -184,3 +207,5 @@ When in doubt, read `.forge/schemas/event.schema.json` directly.
 - Include stack-specific gate checks
 - Set model assignments per role
 - Use the Execution Algorithm above verbatim — do not paraphrase or summarise it
+- `spawn_subagent` = Agent tool call. Each phase invocation MUST use the Agent tool with
+  the exact workflow filename and task ID in the prompt. Never invoke phases inline.
