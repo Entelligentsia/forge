@@ -86,11 +86,15 @@ if (elapsed < checkInterval) {
   // user just ran /plugin install), update migratedFrom so /forge:update knows
   // the pre-install baseline and reset lastCheck so we fetch a fresh remote
   // version on the next session.
+  let postInstallMsg = '';
   if (cache.localVersion && cache.localVersion !== local) {
     const updated = { ...cache, migratedFrom: cache.localVersion, localVersion: local, lastCheck: 0 };
     try { fs.writeFileSync(cacheFile, JSON.stringify(updated)); } catch { /* non-fatal */ }
+    if (fs.existsSync(path.join('.forge', 'config.json'))) {
+      postInstallMsg = `Forge was updated to ${local} (was ${cache.localVersion}). Run /forge:update to apply changes to this project.`;
+    }
   }
-  const updateMsg = buildUpdateMsg(cache.remoteVersion || '', local);
+  const updateMsg = postInstallMsg || buildUpdateMsg(cache.remoteVersion || '', local);
   emit(forgeContext, updateMsg);
 } else {
   // Cache expired or missing — fetch fresh.
