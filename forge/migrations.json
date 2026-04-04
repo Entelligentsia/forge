@@ -63,6 +63,14 @@
     "breaking": false,
     "manual": []
   },
+  "0.3.12": {
+    "version": "0.3.13",
+    "date": "2026-04-04",
+    "notes": "Drop TIMESHEET generation from collate; make event model field required with CLI-agnostic full model ID (not short alias); add timing capture instructions to orchestrate event emission.",
+    "regenerate": ["tools", "workflows"],
+    "breaking": false,
+    "manual": []
+  },
   "0.3.11": {
     "version": "0.3.12",
     "date": "2026-04-04",

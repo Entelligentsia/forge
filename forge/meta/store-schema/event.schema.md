@@ -24,7 +24,7 @@ Example: `20260415T141523000Z_ACME-S02-T03_engineer_implement`
 | `startTimestamp` | string | yes | ISO 8601 |
 | `endTimestamp` | string | yes | ISO 8601 |
 | `durationMinutes` | number | yes | Computed duration |
-| `model` | string | no | Model used (sonnet, opus, haiku) |
+| `model` | string | yes | Full model identifier as reported by the host CLI (e.g. `claude-sonnet-4-6`, `gpt-4o`, `o3`) — use the full ID, not a short alias |
 | `verdict` | string | no | For review phases: Approved / Revision Required |
 | `notes` | string | no | Free-form notes |
 
@@ -41,7 +41,7 @@ to `.forge/schemas/event.schema.json` during init (Phase 8).
   "type": "object",
   "required": [
     "eventId", "taskId", "sprintId", "role", "action",
-    "phase", "iteration", "startTimestamp", "endTimestamp", "durationMinutes"
+    "phase", "iteration", "startTimestamp", "endTimestamp", "durationMinutes", "model"
   ],
   "properties": {
     "eventId":         { "type": "string" },

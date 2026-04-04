@@ -37,17 +37,6 @@ function writeFile(filePath, content) {
   fs.writeFileSync(filePath, content, 'utf8');
 }
 
-function fmtDuration(minutes) {
-  if (minutes < 60) return `${Math.round(minutes)}m`;
-  const h = Math.floor(minutes / 60), m = Math.round(minutes % 60);
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
-
-function fmtTs(iso) {
-  if (!iso) return '—';
-  return iso.replace('T', ' ').slice(0, 16);
-}
-
 function statusBadge(status) {
   const map = {
     committed: '✅', approved: '✅', completed: '✅',
@@ -109,17 +98,6 @@ for (const t of allTasks) {
   tasksBySprint[t.sprintId].push(t);
 }
 
-// Load events by sprint
-function loadEvents(sprintId) {
-  const evDir = path.join(storeRoot, 'events', sprintId);
-  if (!fs.existsSync(evDir)) return [];
-  return fs.readdirSync(evDir)
-    .filter(f => f.endsWith('.json'))
-    .map(f => readJson(path.join(evDir, f)))
-    .filter(Boolean)
-    .sort((a, b) => (a.startTimestamp || '').localeCompare(b.startTimestamp || ''));
-}
-
 // Sprints to process
 const targetSprints = SPRINT_ARG
   ? allSprints.filter(s => s.sprintId === SPRINT_ARG || s.sprintId.endsWith(`-${SPRINT_ARG}`))
@@ -128,79 +106,6 @@ const targetSprints = SPRINT_ARG
 if (SPRINT_ARG && targetSprints.length === 0) {
   console.error(`Error: sprint '${SPRINT_ARG}' not found in store`);
   process.exit(1);
-}
-
-// --- Generate TIMESHEET.md per sprint ---
-for (const sprint of targetSprints) {
-  const events = loadEvents(sprint.sprintId);
-  const tasks  = (tasksBySprint[sprint.sprintId] || [])
-    .sort((a, b) => a.taskId.localeCompare(b.taskId));
-
-  const lines = [GENERATED, '', `# ${sprint.sprintId} — Timesheet`, ''];
-
-  // Sprint summary
-  lines.push('## Summary', '');
-  const summaryRows = [
-    ['Sprint', 'Status', 'Tasks'],
-    [sprint.sprintId, sprint.status, tasks.length],
-  ];
-  lines.push(padTable(summaryRows), '');
-
-  // Task status table
-  if (tasks.length > 0) {
-    lines.push('## Tasks', '');
-    const taskRows = [['Task ID', 'Title', 'Status', 'Estimate']];
-    for (const t of tasks) {
-      taskRows.push([t.taskId, t.title || '—', statusBadge(t.status), t.estimate || '—']);
-    }
-    lines.push(padTable(taskRows), '');
-  }
-
-  // Activity log from events
-  if (events.length > 0) {
-    lines.push('## Activity Log', '');
-    const evRows = [['Timestamp', 'Task', 'Role', 'Phase', 'Duration', 'Verdict']];
-    let totalMinutes = 0;
-    for (const e of events) {
-      totalMinutes += e.durationMinutes || 0;
-      evRows.push([
-        fmtTs(e.startTimestamp),
-        e.taskId || '—',
-        e.role || '—',
-        e.phase || '—',
-        e.durationMinutes != null ? fmtDuration(e.durationMinutes) : '—',
-        e.verdict || '—',
-      ]);
-    }
-    lines.push(padTable(evRows), '');
-    if (totalMinutes > 0) lines.push(`**Total tracked:** ${fmtDuration(totalMinutes)}`, '');
-  }
-
-  const sprintDirName = resolveDir(path.join(engRoot, 'sprints'), sprint.sprintId, sprint.sprintId.split('-').pop());
-  const timesheetPath = path.join(engRoot, 'sprints', sprintDirName, 'TIMESHEET.md');
-  writeFile(timesheetPath, lines.join('\n') + '\n');
-}
-
-// --- Generate bugs/TIMESHEET.md ---
-if (allBugs.length > 0) {
-  const lines = [GENERATED, '', '# Bug Registry — Timesheet', ''];
-  const open   = allBugs.filter(b => !['fixed', 'verified'].includes(b.status));
-  const closed = allBugs.filter(b =>  ['fixed', 'verified'].includes(b.status));
-
-  function bugTable(bugs, heading) {
-    if (bugs.length === 0) return;
-    lines.push(`## ${heading}`, '');
-    const rows = [['Bug ID', 'Title', 'Severity', 'Status', 'Reported']];
-    for (const b of bugs) {
-      rows.push([b.bugId, b.title || '—', b.severity || '—', b.status, fmtTs(b.reportedAt)]);
-    }
-    lines.push(padTable(rows), '');
-  }
-
-  bugTable(open, 'Open');
-  bugTable(closed, 'Resolved');
-
-  writeFile(path.join(engRoot, 'bugs', 'TIMESHEET.md'), lines.join('\n') + '\n');
 }
 
 // --- Generate MASTER_INDEX.md ---
@@ -228,15 +133,13 @@ if (allBugs.length > 0) {
   // Sprint registry
   lines.push('## Sprint Registry', '');
   if (allSprints.length > 0) {
-    const rows = [['Sprint', 'Title', 'Status', 'Tasks', 'Timesheet']];
+    const rows = [['Sprint', 'Title', 'Status', 'Tasks']];
     for (const s of [...allSprints].reverse()) {
       const tasks = tasksBySprint[s.sprintId] || [];
       const completed = tasks.filter(t => t.status === 'committed').length;
-      const sprintDir = resolveDir(path.join(engRoot, 'sprints'), s.sprintId, s.sprintId.split('-').pop());
       rows.push([
         s.sprintId, s.title || '—', statusBadge(s.status),
         `${completed}/${tasks.length}`,
-        `[TIMESHEET](sprints/${sprintDir}/TIMESHEET.md)`,
       ]);
     }
     lines.push(padTable(rows), '');

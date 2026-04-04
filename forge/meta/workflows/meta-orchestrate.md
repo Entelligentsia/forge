@@ -192,11 +192,12 @@ Every phase emits a structured event to `.forge/store/events/{sprintId}/`.
 | `action` | Slash command invoked (e.g. `/implement`, `/review-plan`) |
 | `phase` | Pipeline phase name (e.g. `plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`) |
 | `iteration` | 1-based iteration count for this phase |
-| `startTimestamp` | ISO 8601 timestamp when the phase began |
-| `endTimestamp` | ISO 8601 timestamp when the phase completed |
-| `durationMinutes` | Elapsed minutes (computed from start/end) |
+| `startTimestamp` | ISO 8601 timestamp recorded **before** spawning the phase subagent |
+| `endTimestamp` | ISO 8601 timestamp recorded **after** the subagent returns |
+| `durationMinutes` | Decimal minutes elapsed between start and end (compute from the two timestamps) |
+| `model` | Model identifier as reported by the host CLI for this phase (e.g. `claude-sonnet-4-6`, `gpt-4o`, `o3`) — use the full identifier, not a short alias |
 
-**Optional fields**: `model`, `verdict` (for review phases: `Approved` / `Revision Required`), `notes`.
+**Optional fields**: `verdict` (for review phases: `Approved` / `Revision Required`), `notes`.
 
 Use only the field names above — no aliases (`agent`, `status`, `timestamp`, `details`, etc.).
 When in doubt, read `.forge/schemas/event.schema.json` directly.
