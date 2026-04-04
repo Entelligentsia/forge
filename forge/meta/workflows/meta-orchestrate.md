@@ -31,10 +31,8 @@ Each phase in a pipeline has:
 - `command` — the slash command to invoke (passed the task ID as argument)
 - `role` — semantic role (`plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`)
 - `maxIterations` — for review roles, the revision loop limit (default 3)
-
-Review roles (`review-plan`, `review-code`) trigger revision loops: if the
-review verdict is "Revision Required", the orchestrator routes back to the
-preceding phase (up to `maxIterations`).
+- `on_revision` — (optional) command name of the phase to re-invoke on "Revision Required";
+  if absent, defaults to the nearest preceding phase whose role is not a review role
 
 ## Default Pipeline
 
@@ -44,6 +42,93 @@ plan → review-plan → [loop max 3] → implement → review-implementation �
 
 When no `pipelines` section exists in config, the orchestrator uses this
 hardcoded default. Projects that define `config.pipelines.default` override it.
+
+## Execution Algorithm
+
+The orchestrator MUST follow this procedure exactly. Do not deviate.
+
+```
+for each task in dependency_sorted(tasks):
+  phases = resolve_pipeline(task)           # from config.pipelines or default
+  iteration_counts = {}                     # keyed by phase command name
+  i = 0
+
+  while i < len(phases):
+    phase = phases[i]
+
+    # --- Invoke phase ---
+    emit_event(task, phase, iteration=iteration_counts.get(phase.command, 0) + 1, action="start")
+    invoke_slash_command(phase.command, task_id)
+    emit_event(task, phase, action="complete")
+
+    # --- Non-review phases always advance ---
+    if phase.role not in ("review-plan", "review-code"):
+      i += 1
+      continue
+
+    # --- Review phase: detect verdict ---
+    verdict = read_verdict(task, phase)     # see Verdict Detection below
+
+    if verdict == "Approved":
+      i += 1                                # advance to next phase
+
+    elif verdict == "Revision Required":
+      iteration_counts[phase.command] = iteration_counts.get(phase.command, 0) + 1
+
+      if iteration_counts[phase.command] >= phase.maxIterations:   # default 3
+        escalate_to_human(task, phase, reason="max iterations reached")
+        break                               # stop processing this task
+
+      # Route back to the revision target
+      target = phase.on_revision or nearest_preceding_non_review(phases, i)
+      i = index_of(phases, target)          # loop back
+
+    else:
+      # Unexpected verdict (empty, malformed, or unknown)
+      escalate_to_human(task, phase, reason=f"unrecognised verdict: {verdict}")
+      break
+```
+
+## Verdict Detection
+
+After each review phase completes, the orchestrator MUST read the verdict
+before branching. Do not infer the verdict from conversation context alone —
+always read the artifact.
+
+| Phase role    | Artifact to read                                      | Verdict field                  |
+|---------------|-------------------------------------------------------|--------------------------------|
+| `review-plan` | `{engineering}/sprints/{sprintDir}/{taskDir}/PLAN_REVIEW.md` | Line matching `**Verdict:**`   |
+| `review-code` | `{engineering}/sprints/{sprintDir}/{taskDir}/CODE_REVIEW.md` | Line matching `**Verdict:**`   |
+
+The verdict line format is:
+
+```
+**Verdict:** Approved
+```
+or
+```
+**Verdict:** Revision Required
+```
+
+Parse the value after `**Verdict:**` (trimmed). Any value other than `Approved`
+or `Revision Required` is unrecognised — escalate.
+
+If the artifact does not exist after the review phase completes, treat it as an
+unrecognised verdict and escalate.
+
+## Escalation Procedure
+
+When escalating to the human:
+
+1. Update the task store: set `status` to `escalated`
+2. Emit a final event with `verdict: "escalated"` and `notes` explaining the reason
+3. Output a clear message:
+   ```
+   ⚠ Task {TASK_ID} escalated: {reason}
+   Review artifact: {artifact_path}
+   Resume with: /{phase.command} {TASK_ID} after addressing the issues.
+   ```
+4. Stop processing this task. Continue to the next task in the sprint.
 
 ## Iron Laws
 
@@ -57,6 +142,9 @@ correctness is wasted work.
 **Revision loop exhaustion is an escalation trigger.** If max_iterations is
 reached without approval, escalate to the human immediately. Do NOT approve
 to unblock the pipeline.
+
+**Always read the verdict from the artifact.** Never assume approval because the
+review phase ran without error. The artifact is the source of truth.
 
 ## Error Recovery
 
@@ -95,3 +183,4 @@ When in doubt, read `.forge/schemas/event.schema.json` directly.
 - Reference generated workflows by exact filename in .forge/workflows/
 - Include stack-specific gate checks
 - Set model assignments per role
+- Use the Execution Algorithm above verbatim — do not paraphrase or summarise it

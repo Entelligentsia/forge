@@ -134,6 +134,10 @@
                   "type": "integer",
                   "description": "Max revision loop iterations for review phases",
                   "default": 3
+                },
+                "on_revision": {
+                  "type": "string",
+                  "description": "Command name of the phase to re-invoke on 'Revision Required'. Defaults to the nearest preceding non-review phase if omitted."
                 }
               }
             }
