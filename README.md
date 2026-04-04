@@ -253,7 +253,20 @@ Full lifecycle documentation — inputs, outputs, gate checks, revision loops, a
 | `/forge:regenerate [target]` | Refresh workflows, templates, tools, or knowledge-base docs | [→](docs/commands/forge/regenerate.md) |
 | `/forge:update` | Propagate a plugin version upgrade into project artifacts | [→](docs/commands/forge/update.md) |
 | `/forge:add-pipeline [name]` | Add or manage a custom task pipeline in `.forge/config.json` | [→](docs/commands/forge/add-pipeline.md) |
+| `/forge:migrate` | Migrate a pre-existing AI-SDLC store to Forge format — interviews you to define the mapping | |
 | `/forge:report-bug` | File a bug against Forge — gathers context and opens a GitHub issue | [→](docs/commands/forge/report-bug.md) |
+
+---
+
+## Security
+
+Every release is scanned with `/security-watchdog:scan-plugin` before
+publication. Reports are filed as versioned artifacts in
+[`docs/security/`](docs/security/).
+
+| Version | Date | Report | Summary |
+|---------|------|--------|---------|
+| 0.3.8 | 2026-04-04 | [scan-v0.3.8.md](docs/security/scan-v0.3.8.md) | 83 files — 0 critical, 3 warnings (all justified), SAFE TO USE |
 
 ---
 

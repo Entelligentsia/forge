@@ -46,6 +46,7 @@ function validateRecord(record, schema, fallbackRequired) {
   for (const [field, def] of Object.entries(schema.properties || {})) {
     const val = record[field];
     if (val === undefined) continue;
+    if (val === null) continue;
 
     if (def.type) {
       const ok = def.type === 'integer' ? Number.isInteger(val)
@@ -69,7 +70,7 @@ const FALLBACK = {
   sprint: ['sprintId', 'title', 'status'],
   task:   ['taskId', 'sprintId', 'title', 'status', 'path'],
   bug:    ['bugId', 'title', 'severity', 'status', 'path', 'reportedAt'],
-  event:  ['eventId', 'taskId', 'sprintId', 'role', 'action', 'phase', 'iteration', 'startTimestamp', 'endTimestamp', 'durationMinutes'],
+  event:  ['eventId', 'sprintId', 'role', 'action', 'startTimestamp', 'endTimestamp', 'durationMinutes'],
 };
 
 const config    = readConfig();
@@ -113,7 +114,11 @@ const bugIds    = new Set();
 for (const file of listJsonFiles(path.join(storePath, 'sprints'))) {
   const rec = readJson(file);
   if (!rec) { err(file, 'invalid JSON'); continue; }
-  if (rec.sprintId) sprintIds.add(rec.sprintId);
+  if (rec.sprintId) {
+    sprintIds.add(rec.sprintId);
+    const prefix = config.project?.prefix;
+    if (prefix) sprintIds.add(`${prefix}-${rec.sprintId}`);
+  }
   for (const e of validateRecord(rec, schemas.sprint, FALLBACK.sprint)) err(file, e);
 }
 

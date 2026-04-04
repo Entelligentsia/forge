@@ -50,12 +50,19 @@ function fmtTs(iso) {
 
 function statusBadge(status) {
   const map = {
-    committed: '✅', approved: '✅', implemented: '🔧', implementing: '🔧',
-    'plan-approved': '📋', planned: '📋', draft: '📝',
+    committed: '✅', approved: '✅', completed: '✅',
+    'retrospective-done': '✅', fixed: '✅', verified: '✅',
+    implemented: '🔧', implementing: '🔧',
+    'in-progress': '🔵', active: '🔵',
+    'plan-approved': '📋', 'review-approved': '📋', planned: '📋',
+    planning: '📝', draft: '📝',
+    triaged: '🟡', 'partially-completed': '🟡',
     'plan-revision-required': '🔄', 'code-revision-required': '🔄',
-    blocked: '🚫', escalated: '⚠️',
+    reported: '🔴', blocked: '🚫', escalated: '⚠️',
+    abandoned: '❌',
   };
-  return map[status] || status;
+  const badge = map[status];
+  return badge ? `${badge} ${status}` : status;
 }
 
 function padTable(rows) {
@@ -133,7 +140,7 @@ for (const sprint of targetSprints) {
     lines.push('## Tasks', '');
     const taskRows = [['Task ID', 'Title', 'Status', 'Estimate']];
     for (const t of tasks) {
-      taskRows.push([t.taskId, t.title || '—', `${statusBadge(t.status)} ${t.status}`, t.estimate || '—']);
+      taskRows.push([t.taskId, t.title || '—', statusBadge(t.status), t.estimate || '—']);
     }
     lines.push(padTable(taskRows), '');
   }
@@ -216,7 +223,7 @@ if (allBugs.length > 0) {
       const completed = tasks.filter(t => t.status === 'committed').length;
       const sprintDir = s.sprintId.split('-').pop();
       rows.push([
-        s.sprintId, s.title || '—', `${statusBadge(s.status)} ${s.status}`,
+        s.sprintId, s.title || '—', statusBadge(s.status),
         `${completed}/${tasks.length}`,
         `[TIMESHEET](sprints/${sprintDir}/TIMESHEET.md)`,
       ]);
@@ -238,7 +245,7 @@ if (allBugs.length > 0) {
       const sprintDir = sprint.sprintId.split('-').pop();
       rows.push([
         `[${t.taskId}](sprints/${sprintDir}/${taskDir}/INDEX.md)`,
-        t.title || '—', `${statusBadge(t.status)} ${t.status}`, t.estimate || '—',
+        t.title || '—', statusBadge(t.status), t.estimate || '—',
       ]);
     }
     lines.push(padTable(rows), '');
@@ -254,7 +261,7 @@ if (allBugs.length > 0) {
       const bugDir = b.bugId.split('-').pop();
       rows.push([
         `[${b.bugId}](bugs/${bugDir}/INDEX.md)`,
-        b.title || '—', b.severity || '—', `${statusBadge(b.status)} ${b.status}`,
+        b.title || '—', b.severity || '—', statusBadge(b.status),
       ]);
     }
     lines.push(padTable(rows), '');

@@ -62,5 +62,13 @@
     "regenerate": ["tools"],
     "breaking": false,
     "manual": []
+  },
+  "0.3.7": {
+    "version": "0.3.8",
+    "date": "2026-04-04",
+    "notes": "Fix collate statusBadge() double-status rendering; fix validate-store false failures (null fields, prefixed sprint IDs, sprint-level events); add 'abandoned' to sprint/task schemas; add /forge:migrate command for interactive pre-Forge store migration (closes #11, #12, #13).",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": []
   }
 }

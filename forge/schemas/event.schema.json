@@ -4,8 +4,8 @@
   "title": "Event",
   "type": "object",
   "required": [
-    "eventId", "taskId", "sprintId", "role", "action",
-    "phase", "iteration", "startTimestamp", "endTimestamp", "durationMinutes"
+    "eventId", "sprintId", "role", "action",
+    "startTimestamp", "endTimestamp", "durationMinutes"
   ],
   "properties": {
     "eventId":         { "type": "string" },

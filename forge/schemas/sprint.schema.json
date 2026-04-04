@@ -10,7 +10,7 @@
     "description":    { "type": "string" },
     "status": {
       "type": "string",
-      "enum": ["planning", "active", "completed", "retrospective-done", "blocked", "partially-completed"]
+      "enum": ["planning", "active", "completed", "retrospective-done", "blocked", "partially-completed", "abandoned"]
     },
     "taskIds":        { "type": "array", "items": { "type": "string" } },
     "dependencies":   { "type": "object" },

@@ -14,7 +14,7 @@
       "enum": [
         "draft", "planned", "plan-approved", "implementing",
         "implemented", "review-approved", "approved", "committed",
-        "plan-revision-required", "code-revision-required", "blocked", "escalated"
+        "plan-revision-required", "code-revision-required", "blocked", "escalated", "abandoned"
       ]
     },
     "path":                 { "type": "string" },
