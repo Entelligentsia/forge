@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "project": {
+    "prefix": "FORGE",
+    "name": "Forge",
+    "description": "Self-enhancing AI SDLC plugin for Claude Code — generates project-specific engineering teams from any codebase"
+  },
+  "stack": {
+    "languages": ["javascript"],
+    "framework": "claude-code-plugin",
+    "frontendFramework": null,
+    "database": null,
+    "taskQueue": null,
+    "containerisation": null
+  },
+  "commands": {
+    "test": "node forge/tools/validate-store.cjs --dry-run",
+    "lint": "node --check forge/tools/collate.cjs forge/tools/validate-store.cjs forge/tools/seed-store.cjs forge/tools/manage-config.cjs forge/tools/estimate-usage.cjs forge/hooks/check-update.js forge/hooks/triage-error.js forge/hooks/list-skills.js",
+    "syntaxCheck": {
+      "javascript": "node --check"
+    }
+  },
+  "paths": {
+    "engineering": "engineering",
+    "store": ".forge/store",
+    "workflows": ".forge/workflows",
+    "commands": ".claude/commands",
+    "templates": ".forge/templates",
+    "tools": "engineering/tools"
+  },
+  "pipeline": {
+    "maxReviewIterations": 3
+  },
+  "installedSkills": ["security-watchdog"]
+}
