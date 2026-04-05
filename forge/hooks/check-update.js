@@ -58,7 +58,7 @@ function fetchRemoteVersion(cb) {
 
 function buildUpdateMsg(remoteVersion, local) {
   return remoteVersion && remoteVersion !== local
-    ? `Forge ${remoteVersion} available (you have ${local}). Run: /plugin install Entelligentsia/forge`
+    ? `Forge ${remoteVersion} available (you have ${local}). Run /forge:update to review changes and update.`
     : '';
 }
 

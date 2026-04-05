@@ -37,7 +37,7 @@ if [ -f "$CACHE_FILE" ]; then
         # Already checked recently — use cached result
         CACHED_REMOTE=$(jq -r '.remoteVersion // ""' "$CACHE_FILE" 2>/dev/null || echo "")
         if [ -n "$CACHED_REMOTE" ] && [ "$CACHED_REMOTE" != "$LOCAL_VERSION" ]; then
-            UPDATE_MSG="Forge $CACHED_REMOTE available (you have $LOCAL_VERSION). Run: /plugin install Entelligentsia/forge"
+            UPDATE_MSG="Forge $CACHED_REMOTE available (you have $LOCAL_VERSION). Run /forge:update to review changes and update."
         fi
     else
         # Cache expired — fetch fresh
@@ -46,7 +46,7 @@ if [ -f "$CACHE_FILE" ]; then
             NOW=$(date +%s)
             printf '{"lastCheck":%d,"remoteVersion":"%s","localVersion":"%s"}\n' "$NOW" "$REMOTE_VERSION" "$LOCAL_VERSION" > "$CACHE_FILE"
             if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
-                UPDATE_MSG="Forge $REMOTE_VERSION available (you have $LOCAL_VERSION). Run: /plugin install Entelligentsia/forge"
+                UPDATE_MSG="Forge $REMOTE_VERSION available (you have $LOCAL_VERSION). Run /forge:update to review changes and update."
             fi
         fi
     fi
@@ -57,7 +57,7 @@ else
         NOW=$(date +%s)
         printf '{"lastCheck":%d,"remoteVersion":"%s","localVersion":"%s"}\n' "$NOW" "$REMOTE_VERSION" "$LOCAL_VERSION" > "$CACHE_FILE"
         if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
-            UPDATE_MSG="Forge $REMOTE_VERSION available (you have $LOCAL_VERSION). Run: /plugin install Entelligentsia/forge"
+            UPDATE_MSG="Forge $REMOTE_VERSION available (you have $LOCAL_VERSION). Run /forge:update to review changes and update."
         fi
     fi
 fi

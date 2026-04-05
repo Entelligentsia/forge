@@ -10,12 +10,35 @@ the complete lifecycle. This is the task state machine.
 Each phase has:
 - `name` — identifier
 - `agent` — which role executes
-- `model` — which model to use
+- `model` — which model to use (see Model Resolution below)
 - `workflow` — which workflow file to load
 - `requires` — prerequisite artifact
 - `produces` — output artifact
 - `max_iterations` — revision loop limit (for review phases)
 - `gate_checks` — conditions that must pass before proceeding
+
+## Model Resolution
+
+Each phase subagent MUST be spawned with an explicit `model` parameter.
+The orchestrator resolves the model for each phase using this priority:
+
+1. **`phase.model`** — if the pipeline phase definition in `config.pipelines`
+   includes a `model` field, use it (highest priority, allows per-phase override).
+2. **Role-based default** — if no `phase.model` is set, use the role default:
+   | Role | Default Model |
+   |------|---------------|
+   | `plan` | `sonnet` |
+   | `implement` | `sonnet` |
+   | `review-plan` | `opus` |
+   | `review-code` | `opus` |
+   | `approve` | `opus` |
+   | `commit` | `haiku` |
+
+The orchestrator itself runs on whichever model it was invoked with (typically
+`sonnet` — it is a lightweight state machine and does not need a heavy model).
+
+Short model names (`sonnet`, `opus`, `haiku`) are valid for the Agent tool's
+`model` parameter in Claude Code.
 
 ## Pipeline Resolution
 
@@ -75,11 +98,15 @@ for each task in dependency_sorted(tasks):
   while i < len(phases):
     phase = phases[i]
 
+    # --- Resolve model for this phase (see Model Resolution) ---
+    phase_model = phase.model or ROLE_MODEL_DEFAULTS[phase.role]
+
     # --- Invoke phase as subagent (fresh context per phase) ---
     emit_event(task, phase, iteration=iteration_counts.get(phase.command, 0) + 1, action="start")
     spawn_subagent(
       prompt="Read `{phase.workflow}` and follow it. Task ID: {task_id}. Also read `engineering/MASTER_INDEX.md` for project state.",
-      description="{phase.name} phase for {task_id}"
+      description="{phase.name} phase for {task_id}",
+      model=phase_model
     )
     # Subagent reads all context from disk, does its work, writes artifacts/status to disk, then exits.
     emit_event(task, phase, action="complete")
@@ -206,7 +233,13 @@ When in doubt, read `.forge/schemas/event.schema.json` directly.
 - Fill in concrete test/build/lint commands from .forge/config.json
 - Reference generated workflows by exact filename in .forge/workflows/
 - Include stack-specific gate checks
-- Set model assignments per role
 - Use the Execution Algorithm above verbatim — do not paraphrase or summarise it
 - `spawn_subagent` = Agent tool call. Each phase invocation MUST use the Agent tool with
   the exact workflow filename and task ID in the prompt. Never invoke phases inline.
+- **Model assignment is mandatory.** Every `spawn_subagent` call in the generated
+  orchestrator MUST include a `model` parameter. The generated workflow must:
+  1. Include the Model Resolution section (priority: `phase.model` from config → role default)
+  2. Include the role-based default table
+  3. Pass `model=phase_model` in every `spawn_subagent()` call in the execution algorithm
+  Do NOT generate a "Model Assignments" table without wiring it into the algorithm —
+  that produces dead documentation.

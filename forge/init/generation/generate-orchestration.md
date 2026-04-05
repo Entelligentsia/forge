@@ -26,26 +26,31 @@ wiring in the generated atomic workflows.
 2. Define the default pipeline phases with concrete values:
    - Workflow file paths (the exact filenames generated in Phase 5)
    - Gate checks (test command, build command, lint command from config)
-   - Model assignments per role
    - Max iteration counts
-3. **Each phase MUST be invoked as an Agent tool subagent, NOT inline.**
+3. **Include the Model Resolution section** from meta-orchestrate.md verbatim.
+   The generated orchestrator MUST resolve a model for each phase using the priority:
+   `phase.model` (from config pipeline) → role-based default table. The role defaults are:
+   `plan`/`implement` → `sonnet`, `review-plan`/`review-code`/`approve` → `opus`, `commit` → `haiku`.
+4. **Each phase MUST be invoked as an Agent tool subagent, NOT inline.**
    The subagent prompt must include the exact `.forge/workflows/{workflow_filename}.md`
-   path and the task ID. Example:
+   path and the task ID. **The `model` parameter is mandatory.** Example:
    ```
    Use the Agent tool to spawn a subagent:
      prompt: "Read `.forge/workflows/engineer_plan_task.md` and follow it. Task ID: {TASK_ID}.
               Also read `engineering/MASTER_INDEX.md` for project state."
      description: "plan phase for {TASK_ID}"
+     model: phase_model   # resolved from phase.model or role default — NEVER omit
    ```
    The subagent reads all context it needs from disk and writes results (artifacts,
    task status) back to disk before returning. The orchestrator then reads verdicts
    from disk artifacts. Never pass conversation context to subagents — disk is the
    source of truth.
-4. For custom pipelines, each phase's `workflow` file is used as the subagent's
+5. For custom pipelines, each phase's `workflow` file is used as the subagent's
    workflow instruction. Review-role phases still enforce revision loops up to
    `maxIterations` — read verdict from the disk artifact after the subagent returns.
-5. Include error recovery strategies
-6. Include event emission format with project ID prefix
+   Custom pipeline phases that define `"model"` in config override the role default.
+6. Include error recovery strategies
+7. Include event emission format with project ID prefix
 
 ### run_sprint.md
 1. Define execution modes (sequential, wave-parallel, full-parallel)

@@ -1,4 +1,12 @@
 {
+  "0.3.14": {
+    "version": "0.3.15",
+    "date": "2026-04-05",
+    "notes": "Fix model assignment in orchestrator: spawn_subagent now passes explicit model per phase (phase.model from config → role-based default). Unified /forge:update UX: checks GitHub, shows changelog, guides install, and applies migrations in one command.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
   "0.3.13": {
     "version": "0.3.14",
     "date": "2026-04-05",

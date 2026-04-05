@@ -28,11 +28,17 @@ already installed Forge. This includes:
    `/forge:update` after installing — make sure the migration notes are clear.
 
 3. **Run a security scan before pushing.** A version bump means new code is
-   being distributed to every user who has Forge installed. Scan it first:
+   being distributed to every user who has Forge installed. Scan the
+   **source directory** (`forge/`), not the cached install under
+   `~/.claude/plugins/cache/`:
 
    ```
-   /security-watchdog:scan-plugin forge:forge
+   /security-watchdog:scan-plugin forge:forge --source-path forge/
    ```
+
+   If the scan skill does not support `--source-path`, tell it explicitly
+   to scan the source at `/home/boni/src/forge/forge/` (or the current
+   repo's `forge/` directory) instead of the installed plugin cache.
 
    Save the full report (do not summarise) to
    `docs/security/scan-v{VERSION}.md` and commit it together with the
