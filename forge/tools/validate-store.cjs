@@ -48,6 +48,11 @@ function validateRecord(record, schema, fallbackRequired) {
 
   if (!schema) return errors;
 
+  // Generic property loop — covers ALL schema-defined fields including optional ones.
+  // Token fields (inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens,
+  // estimatedCostUSD) are not in `required`, so absent fields skip via `continue`
+  // below. When present, the integer/number type checks and minimum:0 guard apply
+  // automatically. No special-casing is needed for token fields.
   for (const [field, def] of Object.entries(schema.properties || {})) {
     const val = record[field];
     if (val === undefined) continue;
