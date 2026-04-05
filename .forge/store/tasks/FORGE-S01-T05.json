@@ -2,7 +2,7 @@
   "taskId": "FORGE-S01-T05",
   "sprintId": "FORGE-S01",
   "title": "collate.cjs — COST_REPORT.md generation",
-  "status": "approved",
+  "status": "committed",
   "assignedModel": "claude-sonnet-4-6",
   "path": "forge/tools/collate.cjs",
   "estimate": "L",
