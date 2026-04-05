@@ -1,0 +1,28 @@
+{
+  "sprintId": "FORGE-S01",
+  "title": "Token Usage Tracking",
+  "description": "Give Forge users transparent, per-phase token usage metrics so they can understand plugin efficiency and provide actionable data in bug reports.",
+  "status": "retrospective-done",
+  "completedAt": "2026-04-05T07:20:00Z",
+  "taskIds": [
+    "FORGE-S01-T01",
+    "FORGE-S01-T02",
+    "FORGE-S01-T03",
+    "FORGE-S01-T04",
+    "FORGE-S01-T05",
+    "FORGE-S01-T06",
+    "FORGE-S01-T07",
+    "FORGE-S01-T08"
+  ],
+  "dependencies": {
+    "FORGE-S01-T02": ["FORGE-S01-T01"],
+    "FORGE-S01-T03": ["FORGE-S01-T01"],
+    "FORGE-S01-T04": ["FORGE-S01-T01"],
+    "FORGE-S01-T05": ["FORGE-S01-T01"],
+    "FORGE-S01-T06": ["FORGE-S01-T05"],
+    "FORGE-S01-T07": ["FORGE-S01-T05"],
+    "FORGE-S01-T08": ["FORGE-S01-T02", "FORGE-S01-T03", "FORGE-S01-T04", "FORGE-S01-T05", "FORGE-S01-T06", "FORGE-S01-T07"]
+  },
+  "executionMode": "sequential",
+  "createdAt": "2026-04-05T12:00:00Z"
+}
