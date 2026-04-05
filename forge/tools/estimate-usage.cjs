@@ -126,7 +126,7 @@ function estimateTokens(event) {
     ((inputTokens + outputTokens) / 1_000_000 * pricePerMillion).toFixed(6)
   );
 
-  return { inputTokens, outputTokens, estimatedCostUSD };
+  return { inputTokens, outputTokens, estimatedCostUSD, tokenSource: 'estimated' };
 }
 
 function processEventFile(filePath, dryRun) {

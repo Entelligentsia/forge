@@ -25,7 +25,8 @@
     "outputTokens":       { "type": "integer", "minimum": 0 },
     "cacheReadTokens":    { "type": "integer", "minimum": 0 },
     "cacheWriteTokens":   { "type": "integer", "minimum": 0 },
-    "estimatedCostUSD":   { "type": "number",  "minimum": 0 }
+    "estimatedCostUSD":   { "type": "number",  "minimum": 0 },
+    "tokenSource":        { "type": "string",  "enum": ["reported", "estimated"] }
   },
   "additionalProperties": false
 }

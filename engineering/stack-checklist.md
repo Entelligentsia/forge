@@ -42,3 +42,4 @@ consult this before approving any change to `forge/`.
 - [ ] Top-level `try/catch` with `process.exit(1)` wrapping all tool logic
 - [ ] `--dry-run` flag supported where writes are performed
 - [ ] Tool reads `.forge/config.json` for paths rather than hardcoding
+- [ ] `toLocaleString()` calls work without full ICU — consider fallback formatting for minimal Node.js environments

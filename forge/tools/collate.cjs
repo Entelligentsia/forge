@@ -200,6 +200,194 @@ if (SPRINT_ARG && targetSprints.length === 0) {
   writeFile(masterPath, lines.join('\n') + '\n');
 }
 
+// --- Load events per sprint ---
+function loadSprintEvents(sprintId) {
+  const eventsDir = path.join(storeRoot, 'events', sprintId);
+  if (!fs.existsSync(eventsDir)) return [];
+  return fs.readdirSync(eventsDir)
+    .filter(f => f.endsWith('.json') && !f.startsWith('_'))
+    .map(f => readJson(path.join(eventsDir, f)))
+    .filter(Boolean);
+}
+
+// --- Format helpers ---
+function fmtTokens(n) {
+  if (n === undefined || n === null) return '—';
+  return n.toLocaleString('en-US');
+}
+
+function fmtCost(n) {
+  if (n === undefined || n === null) return '—';
+  return `$${n.toFixed(4)}`;
+}
+
+function sourceLabel(sources) {
+  // sources: Set of tokenSource values (may include undefined)
+  const vals = [...sources];
+  const hasReported  = vals.includes('reported');
+  const hasEstimated = vals.includes('estimated');
+  const hasUnknown   = vals.some(v => v === undefined || v === null);
+
+  if (hasReported && !hasEstimated && !hasUnknown) return '(reported)';
+  if (hasEstimated && !hasReported && !hasUnknown) return '(estimated)';
+  if (!hasReported && !hasEstimated && hasUnknown)  return '(unknown)';
+  return '(mixed)';
+}
+
+// --- Generate COST_REPORT.md per sprint ---
+const REVIEW_PHASES = new Set(['review', 'review-plan', 'review-code', 'review-implementation']);
+let costReportsWritten = 0;
+
+for (const sprint of targetSprints) {
+  const events = loadSprintEvents(sprint.sprintId);
+  // Only events that have at least inputTokens present
+  const tokenEvents = events.filter(e => e.inputTokens !== undefined);
+
+  const sprintDirName = resolveDir(
+    path.join(engRoot, 'sprints'),
+    sprint.sprintId,
+    sprint.sprintId.split('-').pop()
+  );
+  const reportPath = path.join(engRoot, 'sprints', sprintDirName, 'COST_REPORT.md');
+
+  const lines = [
+    GENERATED,
+    '',
+    `# Cost Report — ${sprint.sprintId}`,
+    '',
+    `> Generated: ${new Date().toISOString().slice(0, 10)}`,
+    `> Sprint: ${sprint.title || sprint.sprintId}`,
+    '',
+  ];
+
+  if (tokenEvents.length === 0) {
+    lines.push('_No token data available for this sprint._', '');
+    writeFile(reportPath, lines.join('\n') + '\n');
+    costReportsWritten++;
+    continue;
+  }
+
+  // --- Section 1: Per-task totals ---
+  lines.push('## Per-Task Totals', '');
+  {
+    const byTask = {};
+    for (const e of tokenEvents) {
+      const tid = e.taskId || '(unknown)';
+      if (!byTask[tid]) byTask[tid] = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0, sources: new Set() };
+      const g = byTask[tid];
+      g.inputTokens     += e.inputTokens     || 0;
+      g.outputTokens    += e.outputTokens    || 0;
+      g.cacheReadTokens += e.cacheReadTokens  || 0;
+      g.cacheWriteTokens+= e.cacheWriteTokens || 0;
+      g.estimatedCostUSD+= e.estimatedCostUSD || 0;
+      g.sources.add(e.tokenSource);
+    }
+    const rows = [['Task', 'Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD', 'Source']];
+    for (const [tid, g] of Object.entries(byTask).sort(([a], [b]) => a.localeCompare(b))) {
+      rows.push([
+        tid,
+        fmtTokens(g.inputTokens),
+        fmtTokens(g.outputTokens),
+        fmtTokens(g.cacheReadTokens),
+        fmtTokens(g.cacheWriteTokens),
+        fmtCost(g.estimatedCostUSD),
+        sourceLabel(g.sources),
+      ]);
+    }
+    lines.push(padTable(rows), '');
+  }
+
+  // --- Section 2: Per-role breakdown ---
+  lines.push('## Per-Role Breakdown', '');
+  {
+    const byRole = {};
+    for (const e of tokenEvents) {
+      const role = e.role || '(unknown)';
+      if (!byRole[role]) byRole[role] = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0 };
+      const g = byRole[role];
+      g.inputTokens     += e.inputTokens     || 0;
+      g.outputTokens    += e.outputTokens    || 0;
+      g.cacheReadTokens += e.cacheReadTokens  || 0;
+      g.cacheWriteTokens+= e.cacheWriteTokens || 0;
+      g.estimatedCostUSD+= e.estimatedCostUSD || 0;
+    }
+    const rows = [['Role', 'Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD']];
+    for (const [role, g] of Object.entries(byRole).sort(([a], [b]) => a.localeCompare(b))) {
+      rows.push([
+        role,
+        fmtTokens(g.inputTokens),
+        fmtTokens(g.outputTokens),
+        fmtTokens(g.cacheReadTokens),
+        fmtTokens(g.cacheWriteTokens),
+        fmtCost(g.estimatedCostUSD),
+      ]);
+    }
+    lines.push(padTable(rows), '');
+  }
+
+  // --- Section 3: Revision waste ---
+  lines.push('## Revision Waste', '');
+  {
+    const revisionEvents = tokenEvents.filter(e => (e.iteration || 1) > 1 && REVIEW_PHASES.has(e.phase));
+    if (revisionEvents.length === 0) {
+      lines.push('_No revision waste in this sprint._', '');
+    } else {
+      const byTask = {};
+      for (const e of revisionEvents) {
+        const tid = e.taskId || '(unknown)';
+        if (!byTask[tid]) byTask[tid] = { iterations: new Set(), inputTokens: 0, outputTokens: 0, estimatedCostUSD: 0 };
+        const g = byTask[tid];
+        g.iterations.add(e.iteration);
+        g.inputTokens     += e.inputTokens     || 0;
+        g.outputTokens    += e.outputTokens    || 0;
+        g.estimatedCostUSD+= e.estimatedCostUSD || 0;
+      }
+      const rows = [['Task', 'Revision Iterations', 'Input Tokens', 'Output Tokens', 'Est. Cost USD']];
+      for (const [tid, g] of Object.entries(byTask).sort(([a], [b]) => a.localeCompare(b))) {
+        rows.push([
+          tid,
+          g.iterations.size,
+          fmtTokens(g.inputTokens),
+          fmtTokens(g.outputTokens),
+          fmtCost(g.estimatedCostUSD),
+        ]);
+      }
+      lines.push(padTable(rows), '');
+    }
+  }
+
+  // --- Section 4: Model split ---
+  lines.push('## Model Split', '');
+  {
+    const byModel = {};
+    for (const e of tokenEvents) {
+      const model = e.model || '(unknown)';
+      if (!byModel[model]) byModel[model] = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0 };
+      const g = byModel[model];
+      g.inputTokens     += e.inputTokens     || 0;
+      g.outputTokens    += e.outputTokens    || 0;
+      g.cacheReadTokens += e.cacheReadTokens  || 0;
+      g.cacheWriteTokens+= e.cacheWriteTokens || 0;
+      g.estimatedCostUSD+= e.estimatedCostUSD || 0;
+    }
+    const rows = [['Model', 'Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD']];
+    for (const [model, g] of Object.entries(byModel).sort(([a], [b]) => a.localeCompare(b))) {
+      rows.push([
+        model,
+        fmtTokens(g.inputTokens),
+        fmtTokens(g.outputTokens),
+        fmtTokens(g.cacheReadTokens),
+        fmtTokens(g.cacheWriteTokens),
+        fmtCost(g.estimatedCostUSD),
+      ]);
+    }
+    lines.push(padTable(rows), '');
+  }
+
+  writeFile(reportPath, lines.join('\n') + '\n');
+  costReportsWritten++;
+}
+
 // --- Write COLLATION_STATE.json ---
 const stateData = {
   collatedAt: new Date().toISOString(),
@@ -210,4 +398,4 @@ const stateData = {
 writeFile(path.join(storeRoot, 'COLLATION_STATE.json'), JSON.stringify(stateData, null, 2) + '\n');
 
 const tag = DRY_RUN ? '[dry-run] ' : '';
-console.log(`${tag}Collated: ${targetSprints.length} sprint(s), ${allBugs.length} bug(s) → MASTER_INDEX.md updated`);
+console.log(`${tag}Collated: ${targetSprints.length} sprint(s), ${allBugs.length} bug(s) → MASTER_INDEX.md updated, ${costReportsWritten} COST_REPORT(s) written`);
