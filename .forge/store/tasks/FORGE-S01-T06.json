@@ -1,0 +1,10 @@
+{
+  "taskId": "FORGE-S01-T06",
+  "sprintId": "FORGE-S01",
+  "title": "Retrospective meta-workflow — cost analysis and baselines",
+  "status": "approved",
+  "path": "forge/meta/workflows/meta-retrospective.md",
+  "estimate": "M",
+  "dependencies": ["FORGE-S01-T05"],
+  "pipeline": "default"
+}
