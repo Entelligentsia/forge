@@ -2,7 +2,7 @@
   "taskId": "FORGE-S01-T04",
   "sprintId": "FORGE-S01",
   "title": "estimate-usage.cjs — token estimation fallback tool",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/tools/estimate-usage.cjs",
   "estimate": "M",
   "dependencies": ["FORGE-S01-T01"],
