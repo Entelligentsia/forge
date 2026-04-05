@@ -39,6 +39,33 @@ Extract from `forge_config` (if present): `language`, `framework`, and a
 1-line project description. If the config is absent, note that Forge was not
 yet initialised in this project.
 
+## Step 2b — Token data opt-in
+
+1. **Detect a relevant sprint.** Read `.forge/config.json` to confirm the store
+   path (default `.forge/store`). Then read the sprint store JSONs from
+   `.forge/store/sprints/` to find the sprint with `status: "active"` or
+   `status: "in-progress"`. If multiple match, use the one with the most recent
+   `updatedAt` date. Check whether a `COST_REPORT.md` file exists under
+   `engineering/sprints/<sprint-dir>/COST_REPORT.md` for that sprint. If no
+   sprint qualifies or no `COST_REPORT.md` is found, skip all remaining steps
+   in Step 2b (silent — do not print anything to the user).
+
+2. **Check config override.** Read `forge_config` (already loaded in Step 2).
+   If `pipeline.includeTokenDataInBugReports` is a boolean:
+   - `true`  → set `include_token_data = true`, skip the prompt
+   - `false` → set `include_token_data = false`, skip the prompt
+
+3. **Prompt the user** (only when a `COST_REPORT.md` was found and no config
+   override is set):
+   ```
+   Include token usage data from the relevant sprint in this report?
+   (Helps the Forge team diagnose efficiency issues) [Y/n]
+   ```
+   Treat empty input / Enter as **Y**. Set `include_token_data` accordingly.
+
+4. **Capture the cost data.** If `include_token_data = true`, read the content
+   of the detected `COST_REPORT.md` file. Store it as `cost_report_content`.
+
 ## Step 3 — Interview the user
 
 **If this command was invoked immediately after a Forge error** (i.e., the recent conversation contains an error from a Forge command), extract the answers from that context automatically:
@@ -112,6 +139,19 @@ Example: `generate-tools.md: Node.js tool generation fails on ESM projects [HIGH
 - Project stack: <language + framework from .forge/config.json, or "Forge not initialised">
 - Node.js: <node_version>
 - OS: <os_info>
+```
+
+If `include_token_data = true`, append the following block immediately after
+the `## Environment` section (leave it out entirely when `include_token_data`
+is false or was never set):
+
+```markdown
+<details>
+<summary>Token Usage Data</summary>
+
+{cost_report_content}
+
+</details>
 ```
 
 ## Step 5 — Show draft and confirm

@@ -96,6 +96,10 @@
         "maxReviewIterations": {
           "type": "integer",
           "default": 3
+        },
+        "includeTokenDataInBugReports": {
+          "type": "boolean",
+          "description": "If set, silently opt in (true) or out (false) of appending sprint token usage data to Forge bug reports. When absent, the user is prompted at report time."
         }
       }
     },
