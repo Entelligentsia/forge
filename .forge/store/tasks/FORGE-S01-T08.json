@@ -2,7 +2,7 @@
   "taskId": "FORGE-S01-T08",
   "sprintId": "FORGE-S01",
   "title": "Version bump, migration entry, and security scan",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/.claude-plugin/plugin.json",
   "estimate": "S",
   "dependencies": ["FORGE-S01-T02", "FORGE-S01-T03", "FORGE-S01-T04", "FORGE-S01-T05", "FORGE-S01-T06", "FORGE-S01-T07"],
