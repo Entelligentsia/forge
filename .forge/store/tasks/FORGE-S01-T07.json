@@ -2,7 +2,7 @@
   "taskId": "FORGE-S01-T07",
   "sprintId": "FORGE-S01",
   "title": "Bug report opt-in — token data in bug reports with user prompt",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/commands/report-bug.md",
   "estimate": "S",
   "dependencies": ["FORGE-S01-T05"],
