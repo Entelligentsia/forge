@@ -2,7 +2,7 @@
   "taskId": "FORGE-S01-T03",
   "sprintId": "FORGE-S01",
   "title": "Orchestrator meta-workflow — subagent self-reporting and sidecar merge",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/meta/workflows/meta-orchestrate.md",
   "estimate": "M",
   "dependencies": ["FORGE-S01-T01"],
