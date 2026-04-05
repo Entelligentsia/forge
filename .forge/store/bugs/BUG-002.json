@@ -1,0 +1,14 @@
+{
+  "bugId": "BUG-002",
+  "title": "validate-store: referential integrity checks incomplete — bugs, virtual sprints, and nullable foreign keys",
+  "description": "Event taskId only checked against task records (not bugs); virtual sprint directories rejected; nullable foreign keys (sprintId on tasks, taskId/sprintId on events) rejected as missing required field.",
+  "severity": "major",
+  "status": "fixed",
+  "path": "forge/tools/validate-store.cjs",
+  "rootCauseCategory": "validation",
+  "similarBugs": ["BUG-003"],
+  "checklistItemAdded": true,
+  "businessRuleUpdated": false,
+  "reportedAt": "2026-04-05T01:22:25Z",
+  "resolvedAt": "2026-04-05T00:00:00Z"
+}

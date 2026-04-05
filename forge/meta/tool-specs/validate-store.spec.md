@@ -35,15 +35,21 @@ If a schema file is missing, fall back to these defaults and warn:
 - Sprint: `sprintId`, `title`, `status`
 - Task: `taskId`, `sprintId`, `title`, `status`, `path`
 - Bug: `bugId`, `title`, `severity`, `status`, `path`, `reportedAt`
-- Event: `eventId`, `taskId`, `sprintId`, `role`, `action`, `phase`, `iteration`, `startTimestamp`, `endTimestamp`, `durationMinutes`
+- Event: `eventId`, `sprintId`, `role`, `action`, `startTimestamp`, `endTimestamp`, `durationMinutes`
 
 When schemas are present, also validate field types and enum values per the
 schema definitions — not just field presence.
 
+### Nullable Foreign Keys
+
+`sprintId` and `taskId` are nullable foreign keys — `null` means "not associated"
+(e.g. standalone bug fix with no sprint, sprint-level event with no task).
+The validator must accept `null` for these fields without reporting an error.
+
 ### Referential Integrity
-- Every task.sprintId references an existing sprint
-- Every event.taskId references an existing task
-- Every event.sprintId references an existing sprint
+- Every task.sprintId references an existing sprint (when non-null)
+- Every event.taskId references an existing task OR bug (when non-null)
+- Every event.sprintId references an existing sprint OR matches the parent directory name (virtual sprint dirs like `events/bugs/`, `events/ops/`)
 - Every bug.similarBugs[] references existing bugs
 
 ### Orphan Detection

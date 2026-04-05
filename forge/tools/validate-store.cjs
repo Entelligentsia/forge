@@ -30,13 +30,18 @@ function loadSchema(schemasDir, name) {
   return fs.existsSync(p) ? readJson(p) : null;
 }
 
+// Foreign keys that are legitimately null (e.g. standalone bug fix has no sprint)
+const NULLABLE_FK = new Set(['sprintId', 'taskId']);
+
 // --- Validation ---
 function validateRecord(record, schema, fallbackRequired) {
   const errors = [];
   const required = schema ? (schema.required || []) : fallbackRequired;
 
   for (const field of required) {
-    if (record[field] === undefined || record[field] === null || record[field] === '') {
+    if (record[field] === undefined || record[field] === '') {
+      errors.push(`missing required field: "${field}"`);
+    } else if (record[field] === null && !NULLABLE_FK.has(field)) {
       errors.push(`missing required field: "${field}"`);
     }
   }
@@ -105,6 +110,35 @@ function err(file, msg) {
   errors++;
 }
 
+// --- Backfill defaults for --fix mode ---
+const BACKFILL = {
+  sprint: {
+    createdAt: (rec) => rec.completedAt || rec.startDate || rec.endDate || new Date().toISOString(),
+  },
+  bug: {
+    reportedAt: (rec) => rec.resolvedAt || new Date().toISOString(),
+  },
+};
+
+function backfillRecord(file, rec, type) {
+  const rules = BACKFILL[type];
+  if (!rules) return false;
+  let changed = false;
+  for (const [field, derive] of Object.entries(rules)) {
+    if (rec[field] === undefined || rec[field] === null || rec[field] === '') {
+      const val = derive(rec);
+      rec[field] = val;
+      console.log(`FIXED  ${path.relative(cwd, file)}: backfilled "${field}" = "${val}"`);
+      changed = true;
+      fixes++;
+    }
+  }
+  if (changed) {
+    fs.writeFileSync(file, JSON.stringify(rec, null, 2) + '\n', 'utf8');
+  }
+  return changed;
+}
+
 // Load all records up-front for referential integrity checks
 const sprintIds = new Set();
 const taskIds   = new Set();
@@ -114,6 +148,7 @@ const bugIds    = new Set();
 for (const file of listJsonFiles(path.join(storePath, 'sprints'))) {
   const rec = readJson(file);
   if (!rec) { err(file, 'invalid JSON'); continue; }
+  if (FIX_MODE) backfillRecord(file, rec, 'sprint');
   if (rec.sprintId) {
     sprintIds.add(rec.sprintId);
     const prefix = config.project?.prefix;
@@ -132,6 +167,7 @@ for (const file of listJsonFiles(path.join(storePath, 'tasks'))) {
 for (const file of listJsonFiles(path.join(storePath, 'bugs'))) {
   const rec = readJson(file);
   if (!rec) { err(file, 'invalid JSON'); continue; }
+  if (FIX_MODE) backfillRecord(file, rec, 'bug');
   if (rec.bugId) bugIds.add(rec.bugId);
   for (const e of validateRecord(rec, schemas.bug, FALLBACK.bug)) err(file, e);
 }
@@ -162,15 +198,18 @@ if (fs.existsSync(eventsRoot)) {
       const rec = readJson(file);
       if (!rec) { err(file, 'invalid JSON'); continue; }
       for (const e of validateRecord(rec, schemas.event, FALLBACK.event)) err(file, e);
-      if (rec.taskId && !taskIds.has(rec.taskId))
-        err(file, `taskId "${rec.taskId}" references unknown task`);
-      if (rec.sprintId && !sprintIds.has(rec.sprintId))
+      if (rec.taskId && !taskIds.has(rec.taskId) && !bugIds.has(rec.taskId))
+        err(file, `taskId "${rec.taskId}" references unknown task or bug`);
+      if (rec.sprintId && !sprintIds.has(rec.sprintId) && rec.sprintId !== sprintDir)
         err(file, `sprintId "${rec.sprintId}" references unknown sprint`);
     }
   }
 }
 
 // --- Result ---
+if (fixes > 0) {
+  console.log(`${fixes} field(s) backfilled.`);
+}
 if (errors === 0) {
   console.log(`Store validation passed (${sprintIds.size} sprint(s), ${taskIds.size} task(s), ${bugIds.size} bug(s)).`);
   process.exit(0);

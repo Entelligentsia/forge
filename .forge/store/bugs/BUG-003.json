@@ -1,0 +1,14 @@
+{
+  "bugId": "BUG-003",
+  "title": "forge:update: migration 0.3.7→0.3.13 missing data migration for new required schema fields",
+  "description": "New required fields (sprint.createdAt, bug.reportedAt) have no backfill mechanism — stores predating those field additions fail validate-store after update.",
+  "severity": "major",
+  "status": "fixed",
+  "path": "forge/tools/validate-store.cjs",
+  "rootCauseCategory": "data-integrity",
+  "similarBugs": ["BUG-002"],
+  "checklistItemAdded": true,
+  "businessRuleUpdated": false,
+  "reportedAt": "2026-04-05T01:22:39Z",
+  "resolvedAt": "2026-04-05T00:00:00Z"
+}

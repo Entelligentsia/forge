@@ -1,4 +1,12 @@
 {
+  "0.3.13": {
+    "version": "0.3.14",
+    "date": "2026-04-05",
+    "notes": "Fix validate-store: nullable FK support (sprintId/taskId), event taskId checked against bugs, virtual sprint dirs accepted, --fix backfills sprint.createdAt and bug.reportedAt; align spec fallback list with schema (closes #15, #16).",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": []
+  },
   "0.2.0": {
     "version": "0.3.0",
     "date": "2026-04-02",
