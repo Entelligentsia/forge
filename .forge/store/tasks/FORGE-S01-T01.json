@@ -2,7 +2,7 @@
   "taskId": "FORGE-S01-T01",
   "sprintId": "FORGE-S01",
   "title": "Event schema — add optional token fields",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/schemas/event.schema.json",
   "estimate": "S",
   "dependencies": [],
