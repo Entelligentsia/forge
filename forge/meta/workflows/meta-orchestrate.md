@@ -85,6 +85,35 @@ The fix: use the Agent tool to spawn a subagent per phase. Each subagent:
 
 The orchestrator itself stays minimal — it only holds the phase loop and event log.
 
+## Token Self-Reporting
+
+Each phase subagent is responsible for reporting its own token usage via a sidecar file.
+
+**Before returning, every subagent MUST:**
+
+1. Run `/cost` to retrieve token usage for the session.
+2. Parse the output for the five fields:
+   `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
+3. Write a sidecar file at `.forge/store/events/{sprintId}/_{eventId}_usage.json` with the exact format:
+   ```json
+   {
+     "inputTokens": <integer>,
+     "outputTokens": <integer>,
+     "cacheReadTokens": <integer>,
+     "cacheWriteTokens": <integer>,
+     "estimatedCostUSD": <number>
+   }
+   ```
+
+The `eventId` is computed by the orchestrator before spawning and passed in the subagent prompt —
+it follows the format `{ISO_TIMESTAMP}_{TASK_ID}_{role}_{action}` (e.g.
+`20260415T141523000Z_ACME-S02-T03_engineer_implement`).
+
+The leading underscore on the sidecar filename marks it as ephemeral — `validate-store.cjs` skips
+files prefixed with `_`, so the sidecar will never be treated as a real event record. If `/cost` is
+unavailable or token data cannot be parsed, skip writing the sidecar silently — the orchestrator
+handles missing sidecars gracefully (see Execution Algorithm below).
+
 ## Execution Algorithm
 
 The orchestrator MUST follow this procedure exactly. Do not deviate.
@@ -101,15 +130,26 @@ for each task in dependency_sorted(tasks):
     # --- Resolve model for this phase (see Model Resolution) ---
     phase_model = phase.model or ROLE_MODEL_DEFAULTS[phase.role]
 
+    # --- Compute eventId before spawning so the subagent can name its sidecar ---
+    start_ts = current_iso_timestamp()       # e.g. "20260415T141523000Z"
+    event_id = f"{start_ts}_{task_id}_{phase.role}_{phase.action}"
+    sidecar_path = f".forge/store/events/{sprint_id}/_{event_id}_usage.json"
+
     # --- Invoke phase as subagent (fresh context per phase) ---
-    emit_event(task, phase, iteration=iteration_counts.get(phase.command, 0) + 1, action="start")
+    emit_event(task, phase, eventId=event_id, iteration=iteration_counts.get(phase.command, 0) + 1, action="start")
     spawn_subagent(
-      prompt="Read `{phase.workflow}` and follow it. Task ID: {task_id}. Also read `engineering/MASTER_INDEX.md` for project state.",
+      prompt="Read `{phase.workflow}` and follow it. Task ID: {task_id}. Also read `engineering/MASTER_INDEX.md` for project state. Before returning: run /cost, parse token usage, and write sidecar `.forge/store/events/{sprint_id}/_{event_id}_usage.json` with fields: inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD.",
       description="{phase.name} phase for {task_id}",
       model=phase_model
     )
     # Subagent reads all context from disk, does its work, writes artifacts/status to disk, then exits.
-    emit_event(task, phase, action="complete")
+
+    # --- Sidecar merge: pick up token usage written by subagent (graceful fallback if missing) ---
+    token_fields = {}
+    if file_exists(sidecar_path):
+        token_fields = read_json(sidecar_path)
+        delete_file(sidecar_path)
+    emit_event(task, phase, action="complete", extra_fields=token_fields)
 
     # --- Non-review phases always advance ---
     if phase.role not in ("review-plan", "review-code"):
@@ -224,7 +264,9 @@ Every phase emits a structured event to `.forge/store/events/{sprintId}/`.
 | `durationMinutes` | Decimal minutes elapsed between start and end (compute from the two timestamps) |
 | `model` | Model identifier as reported by the host CLI for this phase (e.g. `claude-sonnet-4-6`, `gpt-4o`, `o3`) — use the full identifier, not a short alias |
 
-**Optional fields**: `verdict` (for review phases: `Approved` / `Revision Required`), `notes`.
+**Optional fields**: `verdict` (for review phases: `Approved` / `Revision Required`), `notes`,
+`inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`
+(token usage merged from the subagent sidecar — present only when the subagent wrote the sidecar).
 
 Use only the field names above — no aliases (`agent`, `status`, `timestamp`, `details`, etc.).
 When in doubt, read `.forge/schemas/event.schema.json` directly.
@@ -243,3 +285,8 @@ When in doubt, read `.forge/schemas/event.schema.json` directly.
   3. Pass `model=phase_model` in every `spawn_subagent()` call in the execution algorithm
   Do NOT generate a "Model Assignments" table without wiring it into the algorithm —
   that produces dead documentation.
+- **Include the sidecar merge pattern.** After each subagent returns, check for
+  `_{eventId}_usage.json` in the events directory; if found, merge the five token fields
+  (`inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`)
+  into the event record and delete the sidecar; if missing, emit without token fields
+  (graceful fallback — no error).
