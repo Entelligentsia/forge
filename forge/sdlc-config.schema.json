@@ -152,21 +152,22 @@
         {
           "default": {
             "phases": [
-              {"command": "engineer", "role": "plan"},
-              {"command": "supervisor", "role": "review-plan"},
-              {"command": "implement", "role": "implement"},
-              {"command": "supervisor", "role": "review-code"},
-              {"command": "approve", "role": "approve"},
-              {"command": "commit", "role": "commit"}
+              {"command": "engineer", "role": "plan", "model": "sonnet"},
+              {"command": "supervisor", "role": "review-plan", "model": "opus"},
+              {"command": "implement", "role": "implement", "model": "sonnet"},
+              {"command": "supervisor", "role": "review-code", "model": "opus"},
+              {"command": "approve", "role": "approve", "model": "opus"},
+              {"command": "commit", "role": "commit", "model": "haiku"}
             ]
           },
-          "measure-conversion": {
-            "description": "Specialized pipeline for HEDIS measure encoding",
+          "hotfix": {
+            "description": "Fast-track pipeline for urgent fixes — skips plan review",
             "phases": [
-              {"command": "convert-measure", "role": "implement"},
-              {"command": "review-measure", "role": "review-code"},
-              {"command": "approve-measure", "role": "approve"},
-              {"command": "commit", "role": "commit"}
+              {"command": "engineer", "role": "plan", "model": "sonnet"},
+              {"command": "implement", "role": "implement", "model": "sonnet"},
+              {"command": "supervisor", "role": "review-code", "model": "opus"},
+              {"command": "approve", "role": "approve", "model": "opus"},
+              {"command": "commit", "role": "commit", "model": "haiku"}
             ]
           }
         }

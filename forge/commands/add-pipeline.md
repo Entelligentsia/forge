@@ -75,6 +75,19 @@ parse it. Otherwise, ask the user for:
 
    Collect phases until the user signals done (empty line or "done").
 
+3. **Model defaults** — after collecting phases, for any phase where the user did
+   not specify a `model`, fill it from the role-based defaults:
+   | Role | Default Model |
+   |------|---------------|
+   | `plan` | `sonnet` |
+   | `implement` | `sonnet` |
+   | `review-plan` | `opus` |
+   | `review-code` | `opus` |
+   | `approve` | `opus` |
+   | `commit` | `haiku` |
+
+   Always include the `model` field in the generated phase JSON — never omit it.
+
 ### Step 2 — Validate (before touching config)
 
 Check each phase before invoking the tool:

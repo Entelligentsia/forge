@@ -17,6 +17,15 @@ const CONFIG_PATH = path.join(process.cwd(), '.forge', 'config.json');
 const VALID_ROLES = ['plan', 'review-plan', 'implement', 'review-code', 'approve', 'commit'];
 const VALID_NAME = /^[a-z0-9_-]+$/;
 
+const ROLE_MODEL_DEFAULTS = {
+  'plan': 'sonnet',
+  'implement': 'sonnet',
+  'review-plan': 'opus',
+  'review-code': 'opus',
+  'approve': 'opus',
+  'commit': 'haiku'
+};
+
 function readConfig() {
   if (!fs.existsSync(CONFIG_PATH)) {
     console.error('Error: .forge/config.json not found. Run /forge:init first.');
@@ -94,6 +103,7 @@ if (!subcmd) {
     '  list-pipelines                                  List all pipelines',
     '  pipeline add <name> --description <t> --phases <json>',
     '  pipeline remove <name>',
+    '  pipeline backfill-models                 Backfill model fields from role defaults',
     '  set <key.path> <json-value>                     Set an arbitrary value',
   ].join('\n'));
   process.exit(2);
@@ -152,6 +162,31 @@ if (subcmd === 'pipeline') {
       : { phases };
     writeConfig(config, detectIndent(raw));
     console.log(`Pipeline '${name}' saved.`);
+    process.exit(0);
+  }
+
+  if (action === 'backfill-models') {
+    const { config, raw } = readConfig();
+    if (!config.pipelines || Object.keys(config.pipelines).length === 0) {
+      console.log('No pipelines configured — nothing to backfill.');
+      process.exit(0);
+    }
+    let updated = 0;
+    for (const [name, pl] of Object.entries(config.pipelines)) {
+      if (!Array.isArray(pl.phases)) continue;
+      for (const phase of pl.phases) {
+        if (!phase.model && ROLE_MODEL_DEFAULTS[phase.role]) {
+          phase.model = ROLE_MODEL_DEFAULTS[phase.role];
+          updated++;
+        }
+      }
+    }
+    if (updated === 0) {
+      console.log('All pipeline phases already have model fields.');
+      process.exit(0);
+    }
+    writeConfig(config, detectIndent(raw));
+    console.log(`Backfilled model fields on ${updated} phase(s) across ${Object.keys(config.pipelines).length} pipeline(s).`);
     process.exit(0);
   }
 
