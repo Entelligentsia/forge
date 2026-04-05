@@ -2,7 +2,7 @@
   "taskId": "FORGE-S01-T02",
   "sprintId": "FORGE-S01",
   "title": "validate-store — handle new event token fields",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/tools/validate-store.cjs",
   "estimate": "S",
   "dependencies": ["FORGE-S01-T01"],
