@@ -1,0 +1,10 @@
+{
+  "taskId": "FORGE-S01-T01",
+  "sprintId": "FORGE-S01",
+  "title": "Event schema — add optional token fields",
+  "status": "approved",
+  "path": "forge/schemas/event.schema.json",
+  "estimate": "S",
+  "dependencies": [],
+  "pipeline": "default"
+}

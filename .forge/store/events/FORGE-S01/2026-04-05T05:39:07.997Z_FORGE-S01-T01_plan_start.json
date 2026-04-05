@@ -1,0 +1,14 @@
+{
+  "eventId": "2026-04-05T05:39:07.997Z_FORGE-S01-T01_plan_start",
+  "taskId": "FORGE-S01-T01",
+  "sprintId": "FORGE-S01",
+  "role": "plan",
+  "action": "engineer",
+  "phase": "plan",
+  "iteration": 1,
+  "startTimestamp": "2026-04-05T05:39:07.997Z",
+  "endTimestamp": null,
+  "durationMinutes": null,
+  "model": "claude-sonnet-4-6",
+  "verdict": null
+}

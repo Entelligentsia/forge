@@ -19,8 +19,13 @@
     "endTimestamp":    { "type": "string", "format": "date-time" },
     "durationMinutes": { "type": "number", "minimum": 0 },
     "model":           { "type": "string" },
-    "verdict":         { "type": "string" },
-    "notes":           { "type": "string" }
+    "verdict":            { "type": "string" },
+    "notes":              { "type": "string" },
+    "inputTokens":        { "type": "integer", "minimum": 0 },
+    "outputTokens":       { "type": "integer", "minimum": 0 },
+    "cacheReadTokens":    { "type": "integer", "minimum": 0 },
+    "cacheWriteTokens":   { "type": "integer", "minimum": 0 },
+    "estimatedCostUSD":   { "type": "number",  "minimum": 0 }
   },
   "additionalProperties": false
 }

@@ -1,0 +1,12 @@
+{
+  "eventId": "2026-04-05T05:40:02.632Z_FORGE-S01-T01_engineer_plan-task",
+  "taskId": "FORGE-S01-T01",
+  "sprintId": "FORGE-S01",
+  "role": "engineer",
+  "action": "plan-task",
+  "phase": "plan",
+  "iteration": 1,
+  "startTimestamp": "2026-04-05T05:39:07.997Z",
+  "endTimestamp": "2026-04-05T05:40:02.632Z",
+  "durationMinutes": 0.91
+}
