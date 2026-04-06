@@ -2,32 +2,32 @@
   "0.5.3": {
     "version": "0.5.4",
     "date": "2026-04-06",
-    "notes": "Fix commands regeneration scope (custom commands never touched); fix stale /plan-task context string in check-update hooks (now /plan); security scan SAFE — 0 critical, 0 warnings.",
+    "notes": "0.5.x patch: fix command scope boundary, stale session context, install guidance.",
     "regenerate": [],
     "breaking": false,
     "manual": []
   },
   "0.5.2": {
-    "version": "0.5.3",
+    "version": "0.5.4",
     "date": "2026-04-06",
-    "notes": "Fix forge:update install instruction — replace broken CLI command with /plugin UI guidance.",
+    "notes": "0.5.x patch: fix command scope boundary, stale session context, install guidance.",
     "regenerate": [],
     "breaking": false,
     "manual": []
   },
   "0.5.1": {
-    "version": "0.5.2",
+    "version": "0.5.4",
     "date": "2026-04-06",
-    "notes": "Fix command wrapper regeneration: generate-commands.md now detects wrappers pointing at missing/renamed workflows and overwrites them; forge:regenerate gains a 'commands' target; default regeneration now includes commands alongside workflows and templates.",
+    "notes": "0.5.x patch: fix command wrapper regeneration and scope boundary.",
     "regenerate": ["commands"],
     "breaking": false,
     "manual": []
   },
   "0.5.0": {
-    "version": "0.5.1",
+    "version": "0.5.4",
     "date": "2026-04-06",
-    "notes": "Fix forge:update migration gaps: Step 5b-pre now cleans up retired .forge/workflows/ files on every run; Step 5b-rename scans pipeline configs for retired command names (engineer→plan, supervisor→review-plan/review-code) and offers per-pipeline diff+update.",
-    "regenerate": [],
+    "notes": "0.5.x patches: fix command wrapper regeneration, pipeline command renames in config, retired file cleanup, scope boundary for custom commands.",
+    "regenerate": ["commands"],
     "breaking": false,
     "manual": []
   },
