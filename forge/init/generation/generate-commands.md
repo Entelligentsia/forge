@@ -31,11 +31,12 @@ entry points to the generated workflows.
 
 **Pre-generation check (idempotency):** For each command file listed above, before writing:
 1. If the file does not exist — write it fresh.
-2. If the file exists — read it and check whether it references `.forge/workflows/`.
-   - If it does NOT reference `.forge/workflows/` (stale path from a prior convention) — overwrite it with the Forge-generated content and log: `Replaced stale command: <filename>`.
-   - If it already references `.forge/workflows/` — skip it (already up to date).
+2. If the file exists — read it and extract the workflow path it references (the `.forge/workflows/` path).
+   - If it does NOT reference `.forge/workflows/` — overwrite and log: `Replaced stale command: <filename>`.
+   - If it references `.forge/workflows/` but that workflow file **does not exist on disk** — overwrite and log: `Replaced command pointing to missing workflow: <filename>`.
+   - If it references `.forge/workflows/` and the workflow file exists — skip it (already up to date).
 
-This ensures re-running `forge:init` on a project with prior SDLC setup does not leave stale command files pointing to obsolete paths.
+This ensures renamed workflows (e.g. `engineer_plan_task.md` → `plan_task.md`) cause the command wrappers to be regenerated rather than silently left pointing at a missing file.
 
 Each command file should:
 1. Set appropriate model in frontmatter (sonnet for plan/implement/commit, opus for review-plan/review-code/approve)

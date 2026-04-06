@@ -29,8 +29,9 @@ $ARGUMENTS
 Parse the argument to identify the target category and optional sub-target:
 
 ```
-/forge:regenerate                          # workflows + templates (default)
+/forge:regenerate                          # workflows + commands + templates (default)
 /forge:regenerate workflows                # atomic workflows + orchestration
+/forge:regenerate commands                 # .claude/commands/ slash command wrappers
 /forge:regenerate templates                # document templates only
 /forge:regenerate tools                    # schemas only (tools ship with plugin)
 /forge:regenerate knowledge-base           # all three sub-targets (merge mode)
@@ -69,6 +70,33 @@ orchestration (Phase 6).
    ```
 
 **Do NOT touch:** `.claude/commands/`, `.forge/config.json`, or any knowledge base file.
+
+---
+
+## Category: `commands` — full rebuild
+
+Re-generate `.claude/commands/` slash command wrappers from the current
+`.forge/workflows/`. This is a thin generation step — each command file
+is just a wrapper that loads its workflow and passes arguments.
+
+Run this when:
+- Workflow files have been renamed (e.g. after a 0.5.0 upgrade)
+- A new workflow was added and its command wrapper is missing
+- A command wrapper is pointing at a workflow that no longer exists
+
+1. Read `.forge/config.json` for paths
+2. Enumerate `.forge/workflows/` to know what workflow files currently exist
+3. Re-generate `.claude/commands/` following
+   `$FORGE_ROOT/init/generation/generate-commands.md`
+   The idempotency check will overwrite any command that references a
+   missing or renamed workflow, and skip any that are already correct.
+4. After writing each command file, record its new hash:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record .claude/commands/{filename}.md
+   ```
+
+Note: this step does **not** delete retired command files (e.g. `engineer.md`,
+`supervisor.md`). Those are cleaned up by Step 5b-pre in `/forge:update`.
 
 ---
 
@@ -188,8 +216,7 @@ are not yet represented in review checklist items.
 
 ## Default (no argument)
 
-Run `workflows` + `templates` in sequence. This preserves the pre-existing
-behaviour for callers that do not pass an argument.
+Run `workflows` + `commands` + `templates` in sequence.
 
 ## On error
 
