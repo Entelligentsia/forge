@@ -116,13 +116,12 @@ If they choose **[1]**, proceed:
 
 Print:
 ```
-Run this command to install the update:
+To install the update:
 
-  ! /plugin install Entelligentsia/forge
+  1. Run /plugin to open the plugin manager
+  2. Find Forge in your installed plugins and update it
 
-(The `!` prefix runs it in this session so I can detect when it completes.)
-
-Tell me when the install is done, or paste the output.
+Tell me when the install is done.
 ```
 
 Wait for the user to confirm the install completed.
