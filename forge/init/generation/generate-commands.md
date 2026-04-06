@@ -29,6 +29,10 @@ entry points to the generated workflows.
 
 ## Instructions
 
+**Scope boundary:** Only ever read, write, or delete files in the explicit output list above.
+Never touch any other file in `.claude/commands/` — custom commands, project-specific
+wrappers, and unrecognised files must be left completely untouched.
+
 **Pre-generation check (idempotency):** For each command file listed above, before writing:
 1. If the file does not exist — write it fresh.
 2. If the file exists — read it and extract the workflow path it references (the `.forge/workflows/` path).

@@ -237,9 +237,14 @@ Check both slash commands (`.claude/commands/`) and workflow files
 
 #### Old command files
 
-For each filename in the **old command name list**
-(`engineer.md`, `supervisor.md` — names retired in favour of `plan.md`,
-`review-plan.md`, `review-code.md`), check if the file exists:
+The retired list is **exact** — only these two files, nothing else:
+- `engineer.md` → retired in favour of `plan.md`
+- `supervisor.md` → retired in favour of `review-plan.md` / `review-code.md`
+
+Do NOT match partial names, prefixes, or variants (`supervisor-code.md`,
+`engineer-security.md`, etc.) — those are custom commands and must not be touched.
+
+For each filename in the retired list, check if the file exists:
 
 ```sh
 ls .claude/commands/{old-name}.md 2>/dev/null

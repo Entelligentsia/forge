@@ -95,8 +95,11 @@ Run this when:
    node "$FORGE_ROOT/tools/generation-manifest.cjs" record .claude/commands/{filename}.md
    ```
 
-Note: this step does **not** delete retired command files (e.g. `engineer.md`,
-`supervisor.md`). Those are cleaned up by Step 5b-pre in `/forge:update`.
+**DO NOT** touch any `.claude/commands/` file that is not in the output list
+in `generate-commands.md`. Custom commands (`supervisor-code.md`, project-specific
+wrappers, etc.) must never be written, overwritten, or deleted by this step.
+Retired Forge command files (`engineer.md`, `supervisor.md`) are cleaned up
+separately by Step 5b-pre in `/forge:update` — not here.
 
 ---
 

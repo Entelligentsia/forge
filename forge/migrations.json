@@ -1,4 +1,12 @@
 {
+  "0.5.3": {
+    "version": "0.5.4",
+    "date": "2026-04-06",
+    "notes": "Fix commands regeneration scope: generate-commands.md and regenerate 'commands' target now have explicit scope boundary — custom commands (supervisor-code.md, etc.) are never touched. Step 5b-pre retired list is exact (engineer.md, supervisor.md only).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.5.2": {
     "version": "0.5.3",
     "date": "2026-04-06",
