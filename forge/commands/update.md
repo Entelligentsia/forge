@@ -118,7 +118,7 @@ Print:
 ```
 Run this command to install the update:
 
-  ! /plugin install Entelligentsia/forge
+  ! /plugin install Entelligentsia/forge/forge
 
 (The `!` prefix runs it in this session so I can detect when it completes.)
 
