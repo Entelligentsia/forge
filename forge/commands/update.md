@@ -226,11 +226,15 @@ All tools are invoked directly from the plugin:
 
 If `.forge/config.json` does not exist, skip this step and proceed to **Step 6**.
 
-### 5b-pre — Check for orphaned generated files
+### 5b-pre — Check for retired generated files
 
-Before the pipeline audit, check for files left behind by a rename migration.
-This covers both slash commands (`.claude/commands/`) and workflow files
-(`.forge/workflows/`) that were renamed in 0.5.0.
+This step runs on every update, regardless of version. It checks for known
+retired filenames that Forge no longer generates. These may exist on any
+project that was initialised before a rename — including projects that ran
+a prior update before this check was added.
+
+Check both slash commands (`.claude/commands/`) and workflow files
+(`.forge/workflows/`).
 
 #### Old command files
 
