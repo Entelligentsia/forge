@@ -38,11 +38,14 @@ Forge is a Claude Code plugin that turns your codebase into a self-improving AI 
 
 **1. Install Forge** (once, works across all your projects):
 ```
+# Stable (recommended)
+/plugin marketplace add Entelligentsia/skillforge
+/plugin install forge@skillforge
+
+# Canary (latest development build)
 /plugin marketplace add Entelligentsia/forge
 /plugin install forge@forge
 ```
-
-> **Note:** Forge is pending approval in the Claude Code marketplace. Once listed, the install commands above will be the official route. In the meantime, installation instructions may vary — check the [repository](https://github.com/Entelligentsia/forge) for the latest.
 
 **2. Bootstrap your project:**
 ```
@@ -150,13 +153,16 @@ During init, Forge checks the Claude Code marketplace for skills relevant to you
 **Prerequisites:** [Claude Code](https://claude.ai/code) v1.0.33+
 
 ```
+# Stable (recommended)
+/plugin marketplace add Entelligentsia/skillforge
+/plugin install forge@skillforge
+
+# Canary (latest development build)
 /plugin marketplace add Entelligentsia/forge
 /plugin install forge@forge
 ```
 
 `/forge:init`, `/forge:health`, `/forge:regenerate`, `/forge:update-tools`, and `/forge:report-bug` are now available in any project.
-
-> **Note:** Forge is pending approval in the Claude Code marketplace. Once listed, the install commands above will be the official route. In the meantime, installation instructions may vary — check the [repository](https://github.com/Entelligentsia/forge) for the latest.
 
 ---
 

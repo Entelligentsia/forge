@@ -175,8 +175,13 @@ User's project/
 ### From the Agentic Skills Marketplace
 
 ```bash
-# Install the Forge plugin (user scope — available in all projects)
-/plugin install forge@agentic-skills
+# Stable (recommended)
+/plugin marketplace add Entelligentsia/skillforge
+/plugin install forge@skillforge
+
+# Canary (latest development build)
+/plugin marketplace add Entelligentsia/forge
+/plugin install forge@forge
 ```
 
 This installs Forge globally, making the `/forge:*` commands available in any project directory.

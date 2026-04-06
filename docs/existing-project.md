@@ -177,6 +177,6 @@ When health flags drift, refresh the affected knowledge base category:
 When a new Forge version is available (you'll see a nudge at session start):
 
 ```bash
-/plugin install Entelligentsia/forge
+/plugin install forge@skillforge
 /forge:update        # Propagates plugin changes into your project's generated artifacts
 ```

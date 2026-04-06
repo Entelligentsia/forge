@@ -195,7 +195,7 @@ flowchart TD
 | Health detects new subsystems in code | `/forge:regenerate knowledge-base architecture` |
 | Health detects new libraries | `/forge:regenerate knowledge-base stack-checklist` |
 | KB was just refreshed and changes were substantial | `/forge:regenerate workflows` (follow-up) |
-| New Forge plugin version available | `/plugin install Entelligentsia/forge` then `/forge:update` |
+| New Forge plugin version available | `/plugin install forge@skillforge` then `/forge:update` |
 | New tool spec added (e.g. after Forge update) | `/forge:regenerate tools` (or handled by `/forge:update`) |
 
 ### After major codebase changes
@@ -209,7 +209,7 @@ Health detects drift between the KB and the actual code. After applying the indi
 ### After a Forge plugin update
 
 ```bash
-/plugin install Entelligentsia/forge
+/plugin install forge@skillforge
 /forge:update       # reads migration manifest, runs only the affected targets
 ```
 

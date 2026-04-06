@@ -38,7 +38,12 @@ git push origin main
 
 Users upgrade with:
 ```
-/plugin install forge@forge   (or: /plugin install Entelligentsia/forge)
+# Stable
+/plugin install forge@skillforge
+
+# Canary
+/plugin install forge@forge
+
 /forge:update                  (propagate changes into project artifacts)
 ```
 

@@ -9,7 +9,8 @@
 
 Propagates a Forge plugin upgrade into the project's generated artifacts. Reads the migration manifest, computes the delta from the previously-installed version to the current one, runs exactly the regeneration targets that are required — no more — and records the new baseline.
 
-Run this after `/plugin install Entelligentsia/forge`.
+Run this after installing or upgrading Forge (`/plugin install forge@skillforge` for stable,
+or `/plugin install forge@forge` for canary).
 
 ---
 

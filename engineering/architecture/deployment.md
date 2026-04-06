@@ -9,6 +9,11 @@ step — the plugin ships as source files from the `forge/` subdirectory.
 ## Install Path (Users)
 
 ```
+# Stable
+/plugin marketplace add Entelligentsia/skillforge
+/plugin install forge@skillforge
+
+# Canary
 /plugin marketplace add Entelligentsia/forge
 /plugin install forge@forge
 ```
@@ -24,8 +29,8 @@ https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin
 ```
 
 When a new version is detected:
-1. User sees: "Forge X.Y.Z available. Run: /plugin install Entelligentsia/forge"
-2. User installs: `/plugin install forge@forge`
+1. User sees: "Forge X.Y.Z available."
+2. User installs: `/plugin install forge@skillforge` (stable) or `/plugin install forge@forge` (canary)
 3. Next session: hook detects version change, prompts: "Run /forge:update"
 4. User runs `/forge:update` to propagate changes into project artifacts
 
@@ -36,7 +41,9 @@ When a new version is detected:
 3. Security scan run with `/security-watchdog:scan-plugin forge:forge`
 4. Scan report saved to `docs/security/scan-v{VERSION}.md`
 5. README security table updated
-6. Commit pushed to `main`
+6. Tag the commit in `Entelligentsia/forge`
+7. Bump the submodule pointer in `Entelligentsia/skillforge` to that tag
+8. Merge the skillforge bump to `main`
 
 ## Repository Structure
 
