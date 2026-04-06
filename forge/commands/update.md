@@ -226,10 +226,13 @@ All tools are invoked directly from the plugin:
 
 If `.forge/config.json` does not exist, skip this step and proceed to **Step 6**.
 
-### 5b-pre — Check for orphaned generated command files
+### 5b-pre — Check for orphaned generated files
 
-Before the pipeline audit, check for old-named generated command files that may
-have been left behind by a rename migration.
+Before the pipeline audit, check for files left behind by a rename migration.
+This covers both slash commands (`.claude/commands/`) and workflow files
+(`.forge/workflows/`) that were renamed in 0.5.0.
+
+#### Old command files
 
 For each filename in the **old command name list**
 (`engineer.md`, `supervisor.md` — names retired in favour of `plan.md`,
@@ -242,13 +245,12 @@ ls .claude/commands/{old-name}.md 2>/dev/null
 For each found file, determine whether it is pristine or user-modified:
 
 ```sh
-# If MANIFEST_TOOL is available:
 node "$FORGE_ROOT/tools/generation-manifest.cjs" check .claude/commands/{old-name}.md
 ```
 
 Report and offer:
 
-**If pristine (exit 0) or untracked but content matches expected generated pattern:**
+**If pristine (exit 0) or untracked:**
 > 〇 `.claude/commands/{old-name}.md` — generated file, no user edits detected.
 >    This file was renamed to `{new-name}.md` in a recent Forge update.
 >    Safe to remove. Delete it? (yes / no)
@@ -259,10 +261,50 @@ Report and offer:
 >    Review your changes and merge them into `.claude/commands/{new-name}.md` manually.
 >    Delete the old file after migrating? (yes / no)
 
-**If MANIFEST_TOOL is absent** — cannot verify; always ask before deleting:
+**If generation-manifest tool is absent** — cannot verify; always ask before deleting:
 > ── `.claude/commands/{old-name}.md` exists.
->    This file was renamed to `{new-name}.md`. Cannot verify if it has been modified
->    (generation-manifest tool not installed). Delete it? (yes / no / show contents)
+>    This file was renamed to `{new-name}.md`. Cannot verify if it has been modified.
+>    Delete it? (yes / no / show contents)
+
+#### Old workflow files
+
+For each filename in the **old workflow name list**, check if it exists:
+
+```
+engineer_plan_task.md        → renamed to plan_task.md
+engineer_implement_plan.md   → renamed to implement_plan.md
+engineer_commit_task.md      → renamed to commit_task.md
+engineer_update_plan.md      → renamed to update_plan.md
+engineer_update_implementation.md → renamed to update_implementation.md
+engineer_fix_bug.md          → renamed to fix_bug.md
+supervisor_review_plan.md    → renamed to review_plan.md
+supervisor_review_implementation.md → renamed to review_code.md
+```
+
+```sh
+ls .forge/workflows/{old-name}.md 2>/dev/null
+```
+
+For each found file, check manifest status:
+
+```sh
+node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/workflows/{old-name}.md
+```
+
+**If pristine or untracked:**
+> 〇 `.forge/workflows/{old-name}.md` — generated file, no user edits.
+>    The orchestrator now reads `.forge/workflows/{new-name}.md` instead.
+>    Safe to remove. Delete it? (yes / no)
+
+**If modified (exit 1):**
+> △ `.forge/workflows/{old-name}.md` — manually modified since generation.
+>    The orchestrator now uses `.forge/workflows/{new-name}.md`.
+>    Merge your changes into the new file before deleting.
+>    Delete the old file? (yes / no)
+
+**If generation-manifest tool is absent:**
+> ── `.forge/workflows/{old-name}.md` exists. Cannot verify if modified.
+>    Delete it? (yes / no / show contents)
 
 Never delete without explicit confirmation.
 
