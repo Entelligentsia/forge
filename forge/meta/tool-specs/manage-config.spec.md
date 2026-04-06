@@ -30,7 +30,14 @@ Print the value at the dot-notation path (e.g., `project.prefix`,
 <tool> manage-config list-pipelines
 ```
 Print a table of all pipeline names, their descriptions, and phase counts.
-If no `pipelines` key exists, print "No pipelines configured." and exit 0.
+If no `pipelines` key exists, print `── No pipelines configured.` and exit 0.
+
+```
+<tool> manage-config pipeline get <name>
+```
+Print the full detail of a named pipeline as a markdown phase table with
+columns `# | Role | Command | Workflow | Model | maxIter`.
+Exit 1 with `× Pipeline '{name}' not found` if the name does not exist.
 
 ### Write subcommands
 
@@ -39,7 +46,7 @@ If no `pipelines` key exists, print "No pipelines configured." and exit 0.
 ```
 Add or replace a named pipeline. `--phases` accepts a JSON array string of
 phase objects, each with `command` and `role` (required), and optionally
-`model` and `maxIterations`.
+`model`, `maxIterations`, `on_revision`, and `workflow`.
 
 ```
 <tool> manage-config pipeline remove <name>
@@ -62,6 +69,9 @@ Applied before any write. Exit 1 and print a clear error if any rule fails.
 - `role` must be one of: `plan`, `review-plan`, `implement`, `review-code`,
   `approve`, `commit`.
 - `maxIterations` must be a positive integer when present.
+- `workflow` (optional string) — path to a custom workflow file. When present,
+  the orchestrator invokes this file directly instead of the built-in workflow
+  for the command name. Used for custom phase commands in `engineering/commands/`.
 - At least one phase is required per pipeline.
 
 ### Pipeline name
@@ -127,3 +137,7 @@ Applied before any write. Exit 1 and print a clear error if any rule fails.
 - Do not add or remove trailing newlines beyond what was present.
 - `list-pipelines` output: markdown pipe table with columns
   `Name | Description | Phases`. Print `(none)` when description is absent.
+- `pipeline get` output: optional description line prefixed with `──`, then
+  a markdown pipe table with columns `# | Role | Command | Workflow | Model | maxIter`.
+  Print `(built-in)` when `workflow` is absent; `—` when `maxIterations` is absent.
+- Success messages prefixed with `〇`; errors prefixed with `×`; neutral info with `──`.

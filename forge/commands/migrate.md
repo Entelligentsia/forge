@@ -36,7 +36,7 @@ Collect the distinct values present in each `status` field and `severity` field 
 
 Report only the values that are **not** already valid Forge enums. If all values are already valid, tell the user:
 
-> "Store is already fully Forge-compatible — no migration needed. Run `node engineering/tools/validate-store.cjs` to confirm."
+> "Store is already fully Forge-compatible — no migration needed. Run `node \"$FORGE_ROOT/tools/validate-store.cjs\"` to confirm."
 
 Then exit.
 
@@ -98,8 +98,8 @@ Do not modify any field that was not part of the agreed mapping. Do not add or r
 
 Run:
 
-```
-node engineering/tools/validate-store.cjs --dry-run
+```sh
+node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run
 ```
 
 Report the result. If errors remain (e.g. values the user chose to skip), list them clearly so the user knows what still needs attention.

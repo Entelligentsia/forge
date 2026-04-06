@@ -75,14 +75,15 @@
     },
     "paths": {
       "type": "object",
-      "required": ["engineering", "store", "workflows", "commands", "templates", "tools"],
+      "required": ["engineering", "store", "workflows", "commands", "templates"],
       "properties": {
         "engineering": { "type": "string", "default": "engineering" },
         "store": { "type": "string", "default": ".forge/store" },
         "workflows": { "type": "string", "default": ".forge/workflows" },
         "commands": { "type": "string", "default": ".claude/commands" },
         "templates": { "type": "string", "default": ".forge/templates" },
-        "tools": { "type": "string", "default": "engineering/tools" }
+        "forgeRoot": { "type": "string", "description": "Absolute path to the installed Forge plugin root. Set at init time and refreshed by /forge:update. Used by generated workflows to invoke Forge tools without requiring $CLAUDE_PLUGIN_ROOT in subagent contexts." },
+        "customCommands": { "type": "string", "default": "engineering/commands", "description": "Directory for project-specific custom pipeline phase commands. Files here are workflow scripts invoked directly by the orchestrator via the phase workflow field." }
       }
     },
     "pipeline": {
@@ -142,6 +143,10 @@
                 "on_revision": {
                   "type": "string",
                   "description": "Command name of the phase to re-invoke on 'Revision Required'. Defaults to the nearest preceding non-review phase if omitted."
+                },
+                "workflow": {
+                  "type": "string",
+                  "description": "Optional path to a workflow file. When set, the orchestrator reads and follows this file directly instead of deriving the workflow from the command name. Use for custom phase commands in engineering/commands/."
                 }
               }
             }
@@ -152,10 +157,10 @@
         {
           "default": {
             "phases": [
-              {"command": "engineer", "role": "plan", "model": "sonnet"},
-              {"command": "supervisor", "role": "review-plan", "model": "opus"},
+              {"command": "plan", "role": "plan", "model": "sonnet"},
+              {"command": "review-plan", "role": "review-plan", "model": "opus"},
               {"command": "implement", "role": "implement", "model": "sonnet"},
-              {"command": "supervisor", "role": "review-code", "model": "opus"},
+              {"command": "review-code", "role": "review-code", "model": "opus"},
               {"command": "approve", "role": "approve", "model": "opus"},
               {"command": "commit", "role": "commit", "model": "haiku"}
             ]
@@ -163,9 +168,9 @@
           "hotfix": {
             "description": "Fast-track pipeline for urgent fixes — skips plan review",
             "phases": [
-              {"command": "engineer", "role": "plan", "model": "sonnet"},
+              {"command": "plan", "role": "plan", "model": "sonnet"},
               {"command": "implement", "role": "implement", "model": "sonnet"},
-              {"command": "supervisor", "role": "review-code", "model": "opus"},
+              {"command": "review-code", "role": "review-code", "model": "opus"},
               {"command": "approve", "role": "approve", "model": "opus"},
               {"command": "commit", "role": "commit", "model": "haiku"}
             ]

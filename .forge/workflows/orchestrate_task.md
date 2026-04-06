@@ -14,12 +14,12 @@ plan → review-plan [max 3] → implement → review-code [max 3] → approve �
 
 | Phase | Command | Role | Workflow | Model |
 |---|---|---|---|---|
-| plan | `/engineer {TASK_ID}` | plan | `.forge/workflows/engineer_plan_task.md` | from config |
-| review-plan | `/supervisor {TASK_ID}` | review-plan | `.forge/workflows/supervisor_review_plan.md` | from config |
-| implement | `/implement {TASK_ID}` | implement | `.forge/workflows/engineer_implement_plan.md` | from config |
-| review-code | `/supervisor {TASK_ID}` | review-code | `.forge/workflows/supervisor_review_implementation.md` | from config |
+| plan | `/plan {TASK_ID}` | plan | `.forge/workflows/plan_task.md` | from config |
+| review-plan | `/review-plan {TASK_ID}` | review-plan | `.forge/workflows/review_plan.md` | from config |
+| implement | `/implement {TASK_ID}` | implement | `.forge/workflows/implement_plan.md` | from config |
+| review-code | `/review-code {TASK_ID}` | review-code | `.forge/workflows/review_code.md` | from config |
 | approve | `/approve {TASK_ID}` | approve | `.forge/workflows/architect_approve.md` | from config |
-| commit | `/commit {TASK_ID}` | commit | `.forge/workflows/engineer_commit_task.md` | from config |
+| commit | `/commit {TASK_ID}` | commit | `.forge/workflows/commit_task.md` | from config |
 
 ## Gate Checks (before advancing past `implement`)
 
@@ -45,13 +45,30 @@ while i < len(phases):
 
   emit_event(task, phase, iteration=iteration_counts.get(phase.command, 0) + 1, action="start")
 
+  # Announce the phase before spawning. Use the persona symbol:
+  #   plan / implement / update-plan / update-impl / commit → 🌱 Engineer
+  #   review-plan / review-code                            → 🌿 Supervisor
+  #   approve                                              → ⛰️  Architect
+  #   custom workflow (phase.workflow set)                 → use symbol from workflow file
+  # Output one line: "{symbol} {phase.name} — {TASK_ID}"
+  #
+  # Resolve the workflow file path:
+  #   if phase.workflow is set → use that path directly (custom command in engineering/commands/)
+  #   otherwise → derive from the built-in command→workflow mapping:
+  #     plan / update-plan       → .forge/workflows/plan_task.md
+  #     implement / update-impl  → .forge/workflows/implement_plan.md
+  #     review-plan              → .forge/workflows/review_plan.md
+  #     review-code              → .forge/workflows/review_code.md
+  #     approve                  → .forge/workflows/architect_approve.md
+  #     commit                   → .forge/workflows/commit_task.md
+  #
   # Spawn a fresh-context subagent for this phase using the Agent tool:
-  #   prompt:      "Read `{phase.workflow}` and follow it. Task ID: {TASK_ID}.
+  #   prompt:      "Read `{resolved_workflow_path}` and follow it. Task ID: {TASK_ID}.
   #                 Also read `engineering/MASTER_INDEX.md` for project state."
   #   description: "{phase.name} phase for {TASK_ID}"
   # The subagent reads all context from disk, does its work, writes artifacts/status,
   # then exits. Do NOT pass conversation history or prior phase output to subagents.
-  spawn_subagent(phase.workflow, task_id)
+  spawn_subagent(resolved_workflow_path, task_id)
 
   emit_event(task, phase, action="complete")
 
@@ -68,7 +85,7 @@ while i < len(phases):
   elif verdict == "Revision Required":
     iteration_counts[phase.command] = iteration_counts.get(phase.command, 0) + 1
     if iteration_counts[phase.command] >= phase.maxIterations:  # default 3
-      escalate_to_human(task, phase, reason="max iterations reached")
+          escalate_to_human(task, phase, reason="max iterations reached")
       break
     target = phase.on_revision or nearest_preceding_non_review(phases, i)
     i = index_of(phases, target)
@@ -94,9 +111,10 @@ If the artifact does not exist or the verdict is unrecognised — escalate.
 2. Emit event with `verdict: "escalated"`
 3. Output:
    ```
-   ⚠ Task {TASK_ID} escalated: {reason}
-   Review artifact: {artifact_path}
-   Resume with: /{phase.command} {TASK_ID} after addressing the issues.
+   △ Task {TASK_ID} — escalated to human
+   ── Reason: {reason}
+   ── Review: {artifact_path}
+   ── Resume: /{phase.command} {TASK_ID} after addressing the issues.
    ```
 4. Continue to next task in sprint
 

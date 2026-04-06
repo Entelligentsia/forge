@@ -26,7 +26,7 @@ If any events loaded in Step 1 have an `inputTokens` field, compute the followin
 - **Total tokens:** sum of `inputTokens + outputTokens` across all events that have token data.
 - **Total estimated cost:** sum of `estimatedCostUSD` across those events.
 - **Per-task token totals:** group events by `taskId`, sum tokens per task, sort descending by total tokens (most expensive first).
-- **Review overhead ratio:** sum of tokens for events where `role` is `supervisor` or `architect` (review/approve phases) divided by total sprint tokens. Express as a percentage.
+- **Review overhead ratio:** sum of tokens for events where `role` is `review-plan`, `review-code`, or `approve` divided by total sprint tokens. Express as a percentage.
 - **Baseline comparison:** if `.forge/store/COST_BASELINES.json` exists, load it and compare the current sprint's median tokens per estimate tier (S/M/L/XL) to the stored baseline medians. Flag any task whose total tokens exceed 2× the baseline for its estimate tier.
 
 Gracefully skip all cost aggregation if no events have token fields.

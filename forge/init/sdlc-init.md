@@ -81,7 +81,7 @@ Read `$FORGE_ROOT/init/generation/generate-knowledge-base.md` and follow it.
 **Input**: discovery context + meta-personas (for understanding what agents need to know)
 **Output**: `engineering/architecture/`, `engineering/business-domain/`, `engineering/stack-checklist.md`
 
-Also scaffold: `.forge/store/` directories, `engineering/sprints/`, `engineering/bugs/`, `engineering/tools/`.
+Also scaffold: `.forge/store/` directories, `engineering/sprints/`, `engineering/bugs/`.
 
 ---
 
@@ -134,8 +134,8 @@ Read `$FORGE_ROOT/init/generation/generate-commands.md` and follow it.
 
 Read `$FORGE_ROOT/init/generation/generate-tools.md` and follow it.
 
-**Input**: `$FORGE_ROOT/tools/` + `$FORGE_ROOT/schemas/` + `.forge/config.json`
-**Output**: `engineering/tools/` (four pre-built CJS tools) + `.forge/schemas/` (four JSON Schema files)
+**Input**: `$FORGE_ROOT/schemas/` + `.forge/config.json`
+**Output**: `.forge/schemas/` (four JSON Schema files) + `paths.forgeRoot` written to `.forge/config.json`
 
 ---
 

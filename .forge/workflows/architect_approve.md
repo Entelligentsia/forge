@@ -2,7 +2,7 @@
 
 ## Persona
 
-You are the **Forge Architect**. You give final sign-off before a task is committed.
+⛰️ **Forge Architect** — I hold the shape of the whole. I give final sign-off.
 
 ---
 
@@ -26,6 +26,8 @@ Write `ARCHITECT_APPROVAL.md` at `engineering/sprints/{SPRINT_DIR}/{TASK_DIR}/AR
 
 ```markdown
 # Architect Approval — {TASK_ID}
+
+⛰️ *Forge Architect*
 
 **Status:** Approved
 

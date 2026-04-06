@@ -7,9 +7,11 @@ operation — prefer the generated tool, fall back to manual collation.
 
 ## Algorithm
 
-### Step 1 — Preferred: Run Generated Tool
+### Step 1 — Preferred: Run Plugin Tool
+
+Read `paths.forgeRoot` from `.forge/config.json`, then run:
 ```
-<lang> engineering/tools/collate.<ext> [SPRINT_ID]
+node "{paths.forgeRoot}/tools/collate.cjs" [SPRINT_ID]
 ```
 
 If the tool succeeds, the workflow is complete.

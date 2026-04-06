@@ -15,6 +15,13 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 Read `.forge/config.json`. If it does not exist, stop and tell the user to run
 `/forge:init` first.
 
+Resolve tools from the plugin:
+```
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+```
+
+All tool invocations in this command use `node "$FORGE_ROOT/tools/<tool>.cjs"`.
+
 ## Arguments
 
 $ARGUMENTS
@@ -25,7 +32,7 @@ Parse the argument to identify the target category and optional sub-target:
 /forge:regenerate                          # workflows + templates (default)
 /forge:regenerate workflows                # atomic workflows + orchestration
 /forge:regenerate templates                # document templates only
-/forge:regenerate tools                    # engineering/tools/ only
+/forge:regenerate tools                    # schemas only (tools ship with plugin)
 /forge:regenerate knowledge-base           # all three sub-targets (merge mode)
 /forge:regenerate knowledge-base architecture
 /forge:regenerate knowledge-base business-domain
@@ -48,11 +55,20 @@ orchestration (Phase 6).
 5. Re-generate `.forge/workflows/` following
    `$FORGE_ROOT/init/generation/generate-workflows.md` and
    `$FORGE_ROOT/init/generation/generate-orchestration.md`
-6. Show a unified diff between current and regenerated files
-7. Prompt before overwriting each file — never auto-replace
+6. Before overwriting each file, if `MANIFEST_TOOL` is set, check its status:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/workflows/{filename}.md
+   ```
+   - Exit 0 (pristine) or exit 2 (untracked) → show diff and prompt as normal
+   - Exit 1 (modified) → show diff **and** surface a clear warning:
+     > △ `.forge/workflows/{filename}.md` has been manually modified.
+     > Overwriting will discard your changes. Proceed? (yes / no / show diff)
+7. After writing each file, record its new hash:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/workflows/{filename}.md
+   ```
 
-**Do NOT touch:** `.claude/commands/`, `engineering/tools/`, `.forge/config.json`,
-or any knowledge base file.
+**Do NOT touch:** `.claude/commands/`, `.forge/config.json`, or any knowledge base file.
 
 ---
 
@@ -65,18 +81,24 @@ current knowledge base.
 2. Read the current knowledge base in `engineering/`
 3. Re-generate `.forge/templates/` following
    `$FORGE_ROOT/init/generation/generate-templates.md`
-4. Show diffs and prompt before overwriting
+4. Before overwriting each file, check manifest status (same pattern as
+   workflows above — warn on modified, proceed normally on pristine/untracked)
+5. After writing each file, record its new hash:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/templates/{filename}.md
+   ```
 
 ---
 
-## Category: `tools` — copy from plugin
+## Category: `tools` — refresh schemas only
 
-Copy the pre-built tools and schemas from the installed plugin into the project.
-This is equivalent to running `/forge:update-tools`.
+Tools ship with the Forge plugin and are invoked directly from `$FORGE_ROOT/tools/`.
+They are never copied to the project. The `tools` regeneration target only refreshes
+the JSON schemas in `.forge/schemas/`.
 
 Read and follow `$FORGE_ROOT/init/generation/generate-tools.md`.
 
-**When to use:** after a Forge plugin update that includes tool changes
+**When to use:** after a Forge plugin update that changes store schemas
 (the migration entry will list `"tools"` in `regenerate`).
 
 ---

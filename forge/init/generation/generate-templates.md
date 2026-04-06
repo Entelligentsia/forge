@@ -30,3 +30,10 @@ For each meta-template:
 2. Add framework-specific subsections based on the detected stack
 3. Reference the project's actual entity names and test output formats
 4. Use the project's ID format in template headers
+
+After writing each template file, record it in the generation manifest:
+```sh
+node {paths.tools}/generation-manifest.cjs record {paths.templates}/{filename}.md
+```
+
+If `generation-manifest.cjs` is not yet installed, skip silently.

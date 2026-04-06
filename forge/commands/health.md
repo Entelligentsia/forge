@@ -15,8 +15,9 @@ Assess the health and currency of the project's SDLC knowledge base.
 | **Unused checklist items** | Stack-checklist items never triggered in reviews |
 | **Coverage gaps** | Architecture areas with no sub-document |
 | **Writeback backlog** | `[?]` items not yet confirmed by a retrospective |
-| **Store integrity** | Run `node engineering/tools/validate-store.cjs --dry-run` if the tool exists |
+| **Store integrity** | Run `node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run` |
 | **Skill gaps** | Marketplace skills relevant to the stack that are not installed |
+| **Modified generated files** | Generated files that have been manually edited since last recorded — run `node "$FORGE_ROOT/tools/generation-manifest.cjs" list --modified` |
 
 ## How to run
 
@@ -29,15 +30,28 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 2. Read the knowledge base files in `engineering/`
 3. Read the store in `.forge/store/` for sprint/task history
 4. Scan the codebase for entities not in the knowledge base (Grep for model/type definitions)
-5. If `engineering/tools/validate-store.cjs` exists, run `node engineering/tools/validate-store.cjs --dry-run` and include the result in the report
-6. Check skill gaps: run `node "$FORGE_ROOT/hooks/list-skills.js"` to get the live
+5. Run store validation:
+   ```sh
+   node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run
+   ```
+   Include the result in the report.
+6. Check modified generated files:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" list --modified
+   ```
+   If any modified or missing files are reported, include them in the health
+   report under **Modified generated files** with the note:
+   > These files were manually edited after generation. Regeneration will warn
+   > before overwriting them. Run `/forge:regenerate` to review and update.
+   If all files are pristine (or the tool is absent), omit this section.
+7. Check skill gaps: run `node "$FORGE_ROOT/hooks/list-skills.js"` to get the live
    installed skill list from `~/.claude/plugins/installed_plugins.json` (source of
    truth — not the config, which can be stale). Read `$FORGE_ROOT/meta/skill-recommendations.md`,
    cross-reference the stack against live installed skills, report any uninstalled
    high-confidence recommendations with one-line install instructions. If the live
    list differs from `installedSkills` in config, update config to match.
-7. Report all findings with actionable recommendations
-8. Close the report with: `If you've found a bug in Forge itself, run /forge:report-bug`
+8. Report all findings with actionable recommendations
+9. Close the report with: `If you've found a bug in Forge itself, run /forge:report-bug`
 
 ## Output
 

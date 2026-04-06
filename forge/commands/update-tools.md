@@ -1,13 +1,14 @@
 ---
-description: Use when you want to update the tools in engineering/tools/ and .forge/schemas/ to match the currently installed Forge plugin version
+description: Use when you want to refresh .forge/schemas/ to match the currently installed Forge plugin version
 ---
 
 # /forge:update-tools
 
-Copy the pre-built tools and schemas from the installed Forge plugin into this project.
+Refresh the JSON schemas in `.forge/schemas/` from the installed Forge plugin.
 
-Run this after upgrading the Forge plugin to get the latest tool versions,
-or if `engineering/tools/` is missing or corrupted.
+Forge tools (`collate.cjs`, `manage-config.cjs`, etc.) ship with the plugin and
+are invoked directly from `$FORGE_ROOT/tools/` — they are not copied to the project.
+This command only manages schemas.
 
 ## Locate the plugin
 
@@ -15,48 +16,28 @@ or if `engineering/tools/` is missing or corrupted.
 FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 ```
 
-Read `.forge/config.json` for `paths.tools` (default: `engineering/tools`).
-
-## Arguments
-
-$ARGUMENTS
-
-If the user specifies a tool name (e.g., `collate`), copy only that tool.
-Otherwise copy all four tools and all schemas.
-
 ## Steps
 
-### 1 — Show what will change
-
-For each tool to be updated, show a diff between the current file in
-`{paths.tools}/` and the source in `$FORGE_ROOT/tools/`.
-
-If the files are identical, skip with: `collate.cjs — already up to date`
-
-### 2 — Prompt before overwriting
-
-If any diffs are non-empty, ask:
-> "Update N tool(s)? [Y/n]"
-
-If the user declines, exit without changes.
-
-### 3 — Copy tools
-
-Copy from `$FORGE_ROOT/tools/` to `{paths.tools}/`.
-Make each file executable (`chmod +x`).
-
-### 4 — Copy schemas (unless --tools-only)
+### 1 — Copy schemas
 
 Copy all four files from `$FORGE_ROOT/schemas/` to `.forge/schemas/`.
+Create `.forge/schemas/` if it does not exist.
 
-### 5 — Verify
+| Source | Destination |
+|--------|-------------|
+| `$FORGE_ROOT/schemas/task.schema.json` | `.forge/schemas/task.schema.json` |
+| `$FORGE_ROOT/schemas/event.schema.json` | `.forge/schemas/event.schema.json` |
+| `$FORGE_ROOT/schemas/sprint.schema.json` | `.forge/schemas/sprint.schema.json` |
+| `$FORGE_ROOT/schemas/bug.schema.json` | `.forge/schemas/bug.schema.json` |
 
-Run:
+### 2 — Verify
+
+```sh
+node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run
 ```
-node {paths.tools}/validate-store.cjs --dry-run
-```
 
-Report the result. Exit 0 on success, 1 on failure.
+Print `〇 Schemas updated and store validation passed.` on success.
+Print `× Validation failed — {output}` on non-zero exit.
 
 ## On error
 

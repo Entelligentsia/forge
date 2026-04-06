@@ -252,10 +252,10 @@ Every phase emits a structured event to `.forge/store/events/{sprintId}/`.
 
 | Field | Value |
 |-------|-------|
-| `eventId` | `{ISO_TIMESTAMP}_{TASK_ID}_{role}_{action}` e.g. `20260415T141523000Z_ACME-S02-T03_engineer_implement` |
+| `eventId` | `{ISO_TIMESTAMP}_{TASK_ID}_{role}_{action}` e.g. `20260415T141523000Z_ACME-S02-T03_implement_plan-task` |
 | `taskId` | Task ID from the task manifest |
 | `sprintId` | Sprint ID from the task manifest |
-| `role` | Agent role executing this phase (e.g. `engineer`, `supervisor`, `architect`) |
+| `role` | Pipeline phase role (e.g. `plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`) |
 | `action` | Slash command invoked (e.g. `/implement`, `/review-plan`) |
 | `phase` | Pipeline phase name (e.g. `plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`) |
 | `iteration` | 1-based iteration count for this phase |

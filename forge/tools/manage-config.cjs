@@ -6,6 +6,7 @@
 // Usage: manage-config get <key.path>
 //        manage-config list-pipelines
 //        manage-config pipeline add <name> --description <text> --phases <json>
+//        manage-config pipeline get <name>
 //        manage-config pipeline remove <name>
 //        manage-config set <key.path> <json-value>
 
@@ -28,15 +29,15 @@ const ROLE_MODEL_DEFAULTS = {
 
 function readConfig() {
   if (!fs.existsSync(CONFIG_PATH)) {
-    console.error('Error: .forge/config.json not found. Run /forge:init first.');
+    console.error('× .forge/config.json not found. Run /forge:init first.');
     process.exit(1);
   }
   let raw;
   try { raw = fs.readFileSync(CONFIG_PATH, 'utf8'); } catch (e) {
-    console.error(`Error reading ${CONFIG_PATH}: ${e.message}`); process.exit(1);
+    console.error(`× reading ${CONFIG_PATH}: ${e.message}`); process.exit(1);
   }
   try { return { config: JSON.parse(raw), raw }; } catch (e) {
-    console.error(`Error: .forge/config.json is not valid JSON: ${e.message}`); process.exit(1);
+    console.error(`× .forge/config.json is not valid JSON: ${e.message}`); process.exit(1);
   }
 }
 
@@ -53,7 +54,7 @@ function writeConfig(config, indent) {
     fs.renameSync(tmp, CONFIG_PATH);
   } catch (e) {
     try { fs.unlinkSync(tmp); } catch {}
-    console.error(`Error writing config: ${e.message}`); process.exit(1);
+    console.error(`× writing config: ${e.message}`); process.exit(1);
   }
 }
 
@@ -99,12 +100,13 @@ if (!subcmd) {
     'Usage: manage-config <subcommand> [options]',
     '',
     'Subcommands:',
-    '  get <key.path>                                  Print a config value',
-    '  list-pipelines                                  List all pipelines',
+    '  get <key.path>                                     Print a config value',
+    '  list-pipelines                                     List all pipelines',
     '  pipeline add <name> --description <t> --phases <json>',
+    '  pipeline get <name>                                Print a pipeline in full',
     '  pipeline remove <name>',
-    '  pipeline backfill-models                 Backfill model fields from role defaults',
-    '  set <key.path> <json-value>                     Set an arbitrary value',
+    '  pipeline backfill-models                           Backfill model fields from role defaults',
+    '  set <key.path> <json-value>                        Set an arbitrary value',
   ].join('\n'));
   process.exit(2);
 }
@@ -123,7 +125,7 @@ if (subcmd === 'list-pipelines') {
   const { config } = readConfig();
   const pipelines = config.pipelines;
   if (!pipelines || Object.keys(pipelines).length === 0) {
-    console.log('No pipelines configured.');
+    console.log('── No pipelines configured.');
     process.exit(0);
   }
   console.log('| Name | Description | Phases |');
@@ -139,21 +141,41 @@ if (subcmd === 'list-pipelines') {
 if (subcmd === 'pipeline') {
   const action = args[0];
 
+  if (action === 'get') {
+    const name = args[1];
+    if (!name) { console.error('Usage: manage-config pipeline get <name>'); process.exit(2); }
+    const { config } = readConfig();
+    if (!config.pipelines || !config.pipelines[name]) {
+      console.error(`× Pipeline '${name}' not found`); process.exit(1);
+    }
+    const pl = config.pipelines[name];
+    if (pl.description) console.log(`── ${pl.description}\n`);
+    console.log('| # | Role | Command | Workflow | Model | maxIter |');
+    console.log('|---|------|---------|----------|-------|---------|');
+    (pl.phases || []).forEach((p, i) => {
+      const wf = p.workflow || '(built-in)';
+      const model = p.model || '(default)';
+      const maxIter = p.maxIterations != null ? p.maxIterations : '—';
+      console.log(`| ${i + 1} | ${p.role} | \`${p.command}\` | \`${wf}\` | ${model} | ${maxIter} |`);
+    });
+    process.exit(0);
+  }
+
   if (action === 'add') {
     const name = args[1];
     if (!name) { console.error('Usage: manage-config pipeline add <name> --description <text> --phases <json>'); process.exit(2); }
-    if (!VALID_NAME.test(name)) { console.error(`Error: pipeline name must match [a-z0-9_-], got: ${name}`); process.exit(1); }
+    if (!VALID_NAME.test(name)) { console.error(`× pipeline name must match [a-z0-9_-], got: ${name}`); process.exit(1); }
 
     const flags = parseArgs(args.slice(2));
     if (!flags.phases) { console.error('Error: --phases <json> is required'); process.exit(2); }
 
     let phases;
     try { phases = JSON.parse(flags.phases); } catch (e) {
-      console.error(`Error: --phases is not valid JSON: ${e.message}`); process.exit(2);
+      console.error(`× --phases is not valid JSON: ${e.message}`); process.exit(2);
     }
 
     const err = validatePhases(phases);
-    if (err) { console.error(`Validation error: ${err}`); process.exit(1); }
+    if (err) { console.error(`× ${err}`); process.exit(1); }
 
     const { config, raw } = readConfig();
     if (!config.pipelines) config.pipelines = {};
@@ -161,14 +183,14 @@ if (subcmd === 'pipeline') {
       ? { description: flags.description, phases }
       : { phases };
     writeConfig(config, detectIndent(raw));
-    console.log(`Pipeline '${name}' saved.`);
+    console.log(`〇 Pipeline '${name}' saved.`);
     process.exit(0);
   }
 
   if (action === 'backfill-models') {
     const { config, raw } = readConfig();
     if (!config.pipelines || Object.keys(config.pipelines).length === 0) {
-      console.log('No pipelines configured — nothing to backfill.');
+      console.log('── No pipelines configured — nothing to backfill.');
       process.exit(0);
     }
     let updated = 0;
@@ -182,11 +204,11 @@ if (subcmd === 'pipeline') {
       }
     }
     if (updated === 0) {
-      console.log('All pipeline phases already have model fields.');
+      console.log('〇 All pipeline phases already have model fields.');
       process.exit(0);
     }
     writeConfig(config, detectIndent(raw));
-    console.log(`Backfilled model fields on ${updated} phase(s) across ${Object.keys(config.pipelines).length} pipeline(s).`);
+    console.log(`〇 Backfilled model fields on ${updated} phase(s) across ${Object.keys(config.pipelines).length} pipeline(s).`);
     process.exit(0);
   }
 
@@ -195,12 +217,12 @@ if (subcmd === 'pipeline') {
     if (!name) { console.error('Usage: manage-config pipeline remove <name>'); process.exit(2); }
     const { config, raw } = readConfig();
     if (!config.pipelines || !config.pipelines[name]) {
-      console.error(`Error: pipeline '${name}' not found`); process.exit(1);
+      console.error(`× Pipeline '${name}' not found`); process.exit(1);
     }
     delete config.pipelines[name];
     if (Object.keys(config.pipelines).length === 0) delete config.pipelines;
     writeConfig(config, detectIndent(raw));
-    console.log(`Pipeline '${name}' removed.`);
+    console.log(`〇 Pipeline '${name}' removed.`);
     process.exit(0);
   }
 

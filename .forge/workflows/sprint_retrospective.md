@@ -118,4 +118,4 @@ Only include estimate tiers for which at least one data point exists. If no toke
 
 ## Step 6 — Collate
 
-Run: `node engineering/tools/collate.cjs`
+Run: `node forge/tools/collate.cjs`

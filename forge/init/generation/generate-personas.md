@@ -31,6 +31,12 @@ produce a project-specific version that incorporates:
 - The project's actual auth patterns and conventions
 - The project's actual directory structure and paths
 
+**Persona block format** — each generated workflow opens with a single line using the
+persona's symbol (from its `## Symbol` section) and a quiet first-person announcement.
+Follow the `Persona block format` template in each meta-persona's Generation Instructions,
+substituting `{Project}` with the project's name. The line should be brief, present-tense,
+and speak to what the persona is about to do — not a role description, but a voice.
+
 ## Skill Invocation Wiring
 
 Read `.forge/config.json` for `installedSkills`. For each installed skill

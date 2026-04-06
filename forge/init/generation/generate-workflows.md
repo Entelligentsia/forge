@@ -47,6 +47,15 @@ For each meta-workflow:
 7. Include the Knowledge Writeback step in every workflow
 8. Include the Event Emission step in every workflow
 
+After writing each workflow file, record it in the generation manifest:
+```sh
+node {paths.tools}/generation-manifest.cjs record {paths.workflows}/{filename}.md
+```
+
+This must happen immediately after the file is written, before moving to the
+next workflow. If `generation-manifest.cjs` is not yet installed, skip silently
+and note that `/forge:update-tools` should be run to install it.
+
 ## Enforcement Quality
 
 Generated workflows must resist rationalization. For any workflow with gate

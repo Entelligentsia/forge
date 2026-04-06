@@ -26,7 +26,7 @@
     "workflows": ".forge/workflows",
     "commands": ".claude/commands",
     "templates": ".forge/templates",
-    "tools": "engineering/tools"
+    "customCommands": "engineering/commands"
   },
   "pipeline": {
     "maxReviewIterations": 3

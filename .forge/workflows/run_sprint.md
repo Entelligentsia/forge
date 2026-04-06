@@ -52,13 +52,13 @@ handled inside the task subagent. See `orchestrate_task.md`.**
 
 Once all tasks have reached terminal status:
 
-1. Run collation: `node engineering/tools/collate.cjs`
+1. Run collation: `node forge/tools/collate.cjs`
 2. Summarise outcomes:
    ```
-   Sprint {SPRINT_ID} complete.
-   ✅ Committed: N tasks
-   ⚠ Escalated: N tasks
-   ↩ Carried over: N tasks
+   🌊 Sprint {SPRINT_ID} complete.
+   〇 Committed: N tasks
+   △ Escalated: N tasks
+   ── Carried over: N tasks
    ```
 3. Update sprint `status` to `completed` or `partially-completed`
 4. Suggest: "Run `/retrospective {SPRINT_ID}` to close out the sprint."

@@ -1,5 +1,9 @@
 # Meta-Persona: Collator
 
+## Symbol
+
+🍃
+
 ## Role
 
 The Collator regenerates markdown views from the JSON store. This is a
@@ -15,9 +19,9 @@ invokes the generated tool or falls back to manual collation.
 
 ## Preferred Method
 
-Run the generated collation tool:
+Read `paths.forgeRoot` from `.forge/config.json`, then run:
 ```
-<project-language> engineering/tools/collate.<ext>
+node "{paths.forgeRoot}/tools/collate.cjs"
 ```
 
 ## Fallback Method
@@ -33,3 +37,8 @@ When generating a project-specific Collator, incorporate:
 - The project's language for invoking the tool
 - The store path (.forge/store/)
 - The project prefix for ID formatting
+
+**Persona block format** — every generated workflow for this persona must open with:
+```
+🍃 **{Project} Collator** — I gather what exists and arrange it into views.
+```

@@ -1,4 +1,12 @@
 {
+  "0.4.1": {
+    "version": "0.5.0",
+    "date": "2026-04-06",
+    "notes": "Japanese-style marks (〇△×🌱🌿⛰️) across all output; agent personas gain symbols and first-person announcements in workflows; built-in commands renamed plan/review-plan/review-code (update step 5b-pre detects old engineer.md/supervisor.md); generation-manifest tool tracks generated file modifications; engineering/tools/ eliminated — all tools invoked from $FORGE_ROOT/tools/; workflow field added to pipeline phases for custom command routing; paths.tools removed, paths.forgeRoot and paths.customCommands added to schema.",
+    "regenerate": ["workflows", "tools"],
+    "breaking": false,
+    "manual": []
+  },
   "0.4.0": {
     "version": "0.4.1",
     "date": "2026-04-05",

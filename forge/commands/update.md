@@ -96,7 +96,7 @@ Present the update summary:
   • {target}
 
 {if breaking:}
-### ⚠ Breaking changes — manual steps required
+### △ Breaking changes — manual steps required
   {for each item in manual:}
   • {item}
 
@@ -140,7 +140,7 @@ $FORGE_ROOT/.claude-plugin/plugin.json   →   extract "version"   →   NEW_LOC
 
 | Condition | Action |
 |-----------|--------|
-| `NEW_LOCAL_VERSION` == `REMOTE_VERSION` | Print "✓ Forge {NEW_LOCAL_VERSION} installed successfully." and proceed to **Step 4**. |
+| `NEW_LOCAL_VERSION` == `REMOTE_VERSION` | Print "〇 Forge {NEW_LOCAL_VERSION} installed successfully." and proceed to **Step 4**. |
 | `NEW_LOCAL_VERSION` == `LOCAL_VERSION` (unchanged) | Warn: "The plugin version hasn't changed ({LOCAL_VERSION}). The install may not have completed. Would you like to try again or continue anyway?" If user wants to continue, proceed to **Step 4** using available version. |
 | `NEW_LOCAL_VERSION` is different but not `REMOTE_VERSION` | Print "Installed Forge {NEW_LOCAL_VERSION} (expected {REMOTE_VERSION}). Proceeding with {NEW_LOCAL_VERSION}." and continue to **Step 4**. |
 
@@ -189,7 +189,7 @@ Regeneration targets:
   • {target} — {description of what this regenerates}
 
 {if breaking:}
-⚠ Breaking changes — complete these manual steps first:
+△ Breaking changes — complete these manual steps first:
   {manual items}
 
 Proceed? [Y/n]
@@ -208,7 +208,247 @@ knowledge-base sub-targets if present.
 
 ---
 
-## Step 5 — Record state and summarise
+## Step 5 — Custom pipeline command audit
+
+This step runs whenever pipelines are configured. It detects non-standard phase
+commands and offers targeted, per-item improvements with explicit confirmation
+at every point. **Nothing is written without the user saying yes.**
+
+### 5a — Locate tools
+
+```
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+```
+
+All tools are invoked directly from the plugin:
+- `node "$FORGE_ROOT/tools/manage-config.cjs"`
+- `node "$FORGE_ROOT/tools/generation-manifest.cjs"`
+
+If `.forge/config.json` does not exist, skip this step and proceed to **Step 6**.
+
+### 5b-pre — Check for orphaned generated command files
+
+Before the pipeline audit, check for old-named generated command files that may
+have been left behind by a rename migration.
+
+For each filename in the **old command name list**
+(`engineer.md`, `supervisor.md` — names retired in favour of `plan.md`,
+`review-plan.md`, `review-code.md`), check if the file exists:
+
+```sh
+ls .claude/commands/{old-name}.md 2>/dev/null
+```
+
+For each found file, determine whether it is pristine or user-modified:
+
+```sh
+# If MANIFEST_TOOL is available:
+node "$FORGE_ROOT/tools/generation-manifest.cjs" check .claude/commands/{old-name}.md
+```
+
+Report and offer:
+
+**If pristine (exit 0) or untracked but content matches expected generated pattern:**
+> 〇 `.claude/commands/{old-name}.md` — generated file, no user edits detected.
+>    This file was renamed to `{new-name}.md` in a recent Forge update.
+>    Safe to remove. Delete it? (yes / no)
+
+**If modified (exit 1):**
+> △ `.claude/commands/{old-name}.md` — manually modified since generation.
+>    This file was renamed to `{new-name}.md` but contains your edits.
+>    Review your changes and merge them into `.claude/commands/{new-name}.md` manually.
+>    Delete the old file after migrating? (yes / no)
+
+**If MANIFEST_TOOL is absent** — cannot verify; always ask before deleting:
+> ── `.claude/commands/{old-name}.md` exists.
+>    This file was renamed to `{new-name}.md`. Cannot verify if it has been modified
+>    (generation-manifest tool not installed). Delete it? (yes / no / show contents)
+
+Never delete without explicit confirmation.
+
+### 5b — Check whether pipelines exist
+
+```sh
+node "$FORGE_ROOT/tools/manage-config.cjs" list-pipelines 2>/dev/null
+```
+
+If no pipelines are configured, skip to **Step 6**.
+
+### 5c — Check for `paths.customCommands`
+
+```sh
+node "$FORGE_ROOT/tools/manage-config.cjs" get paths.customCommands 2>/dev/null
+```
+
+If the key is missing from config, offer to add it:
+
+> ── New config field available: `paths.customCommands`
+>    Default: `"engineering/commands"`
+>    This is where `/forge:add-pipeline` places new custom phase command files.
+>
+>    Add it? (yes / no / use a different path)
+
+If yes (or a path was given):
+```sh
+node "$FORGE_ROOT/tools/manage-config.cjs" set paths.customCommands "engineering/commands"
+```
+
+If no, note it and continue — the rest of the audit still runs.
+
+### 5d — Identify non-built-in phase commands
+
+Built-in command names — skip any phase whose `command` matches one of these:
+`plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`
+
+For each pipeline, read its full definition:
+```sh
+node "$FORGE_ROOT/tools/manage-config.cjs" pipeline get {NAME}
+```
+
+Collect every phase where `command` is **not** in the built-in list above.
+Call this the **custom phase list**.
+
+If the custom phase list is empty, print:
+> 〇 No custom phase commands found — nothing to audit.
+
+Then skip to **Step 6**.
+
+### 5e — Audit each custom phase
+
+Work through the custom phase list one at a time. For each entry:
+
+**If `workflow` field is already set** — skip. It is already wired correctly.
+Print: `〇 {pipeline} / phase {N} ({cmd}) — workflow field present, skipping.`
+
+**If `workflow` field is NOT set** — check both standard locations for the file:
+```sh
+ls engineering/commands/{cmd}.md 2>/dev/null && echo "found:engineering"
+ls .claude/commands/{cmd}.md 2>/dev/null && echo "found:claude"
+```
+
+Display findings:
+
+> ── Pipeline `{pipeline}`, phase {N} (role: `{role}`) — command `{cmd}`
+>    No `workflow` field set.
+>
+>    File locations checked:
+>    {〇 / △}  engineering/commands/{cmd}.md
+>    {〇 / △}  .claude/commands/{cmd}.md
+
+Then branch on what was found:
+
+---
+
+**Case A — found in exactly one location (`{found_path}`)**
+
+> The orchestrator can read this file directly if a `workflow` field is added.
+>
+> Preview:
+> ```
+> pipeline "{pipeline}", phase {N}: add "workflow": "{found_path}"
+> ```
+> Add the `workflow` field? (yes / no)
+
+If yes, invoke:
+```sh
+node "$FORGE_ROOT/tools/manage-config.cjs" pipeline get {pipeline}
+```
+Reconstruct the full phases JSON with the `workflow` field added to phase {N},
+then write:
+```sh
+node "$FORGE_ROOT/tools/manage-config.cjs" pipeline add {pipeline} --description "{desc}" --phases '{updated_phases_json}'
+```
+
+---
+
+**Case B — found in both locations**
+
+> The command file exists in two places:
+>   1. `engineering/commands/{cmd}.md`
+>   2. `.claude/commands/{cmd}.md`
+>
+> Which should the `workflow` field point to?
+> (1 / 2 / neither — I'll handle this manually)
+
+On 1 or 2, follow the same write flow as Case A with the chosen path.
+On "neither", skip this phase — no config change.
+
+---
+
+**Case C — not found anywhere**
+
+> △ No file found for command `{cmd}`.
+>
+> Options:
+>   1. Create it now — run `/forge:add-pipeline` after this step and it will guide you
+>   2. I'll create it manually and wire it later
+>   3. This command is a slash command defined elsewhere — leave as-is
+>
+> (1 / 2 / 3)
+
+For option 1: note it. After the audit finishes, remind the user:
+> ── Run `/forge:add-pipeline` to create the missing command file(s) for: {list}
+
+For options 2 and 3: skip, no change.
+
+---
+
+### 5f — Offer persona decoration (per-file, preview-first, never automatic)
+
+After the `workflow` audit is complete, check each command file that was found
+for missing persona symbols. Persona decoration is purely cosmetic — it is **always
+optional and always skippable**.
+
+For each found command file:
+
+1. If `MANIFEST_TOOL` is available, check the file's manifest status first:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" check {filepath}
+   ```
+   - Exit 0 (pristine) → file is unmodified; decoration offer is low-risk
+   - Exit 1 (modified) → file has user edits; surface this before offering:
+     > △ `{filepath}` has been manually modified — your edits will be preserved.
+     >    The decoration only adds one line after `## Persona`.
+   - Exit 2 (untracked) → no manifest baseline; offer normally
+2. Read the file.
+3. Find the `## Persona` heading (if any). If absent, skip this file.
+4. Look at the first non-blank line after the heading. If it already begins with
+   one of `🌱 🌿 ⛰️ 🌊 🍂 🍃`, skip — decoration already present.
+5. Otherwise, propose a minimal decoration.
+
+**Derive the decoration:**
+- Symbol — based on the phase role in the pipeline:
+  - `plan` / `implement` / `commit` → 🌱
+  - `review-plan` / `review-code` → 🌿
+  - `approve` → ⛰️
+  - any other → 🌿
+- Announcement line — take the existing first line of the Persona content and
+  convert it to first-person present tense. Do not invent content; work with
+  what is there. Keep it to one quiet sentence.
+
+Show the user a precise diff — only the insertion point:
+
+> ── `{filepath}` — Persona section found, no symbol line.
+>
+>    Proposed addition (one line only — nothing else changes):
+>
+>    ```diff
+>      ## Persona
+>    + {symbol} **{Project} {name}** — {announcement}
+>    
+>      {existing first line of persona content...}
+>    ```
+>
+>    Apply? (yes / no / skip all remaining decoration)
+
+If yes: prepend the symbol line immediately after the `## Persona` heading.
+Touch **nothing else** in the file — not punctuation, not spacing, not other lines.
+
+If "skip all remaining decoration": stop offering decoration for subsequent files.
+
+---
+
+## Step 6 — Record state and summarise
 
 Update the cache file to record the completed migration. Use `CACHE_FILE`
 from Step 1. If the parent directory does not exist, create it with
@@ -224,7 +464,7 @@ If the cache file does not exist, create it with:
 Print the final summary:
 
 ```
-## ✓ Forge {LOCAL_VERSION} — Update Complete
+## 〇 Forge {LOCAL_VERSION} — Update Complete
 
 {if install happened:}
   Plugin updated: {old version} → {LOCAL_VERSION}
@@ -235,9 +475,16 @@ Print the final summary:
   Regenerated: {list of targets}
 {end if}
 
-Next steps:
-  • Run /forge:health to verify knowledge base currency
-  • Generated workflows and tools are ready to use
+{if custom command audit ran:}
+  Pipeline audit: {N} phase(s) reviewed
+  {if workflow fields added:}  〇 workflow fields added: {list of pipeline/phase}  {end if}
+  {if files missing:}  △ command files still needed: {list}  {end if}
+{end if}
+
+── Next steps:
+   • Run /forge:health to verify knowledge base currency
+   • Generated workflows and tools are ready to use
+   {if files missing:}• Run /forge:add-pipeline to create missing command file(s){end if}
 ```
 
 ---

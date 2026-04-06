@@ -14,9 +14,10 @@ entry points to the generated workflows.
 
 `.claude/commands/` with non-namespaced commands:
 - `sprint-intake.md` → `/sprint-intake`
-- `engineer.md` → `/engineer {TASK_ID}`
-- `supervisor.md` → `/supervisor {TASK_ID}`
+- `plan.md` → `/plan {TASK_ID}`
+- `review-plan.md` → `/review-plan {TASK_ID}`
 - `implement.md` → `/implement {TASK_ID}`
+- `review-code.md` → `/review-code {TASK_ID}`
 - `fix-bug.md` → `/fix-bug {BUG_ID}`
 - `sprint-plan.md` → `/sprint-plan`
 - `run-task.md` → `/run-task {TASK_ID}`
@@ -37,8 +38,15 @@ entry points to the generated workflows.
 This ensures re-running `forge:init` on a project with prior SDLC setup does not leave stale command files pointing to obsolete paths.
 
 Each command file should:
-1. Set appropriate model in frontmatter (sonnet for Engineer, opus for Supervisor/Architect)
+1. Set appropriate model in frontmatter (sonnet for plan/implement/commit, opus for review-plan/review-code/approve)
 2. Load the corresponding workflow from `.forge/workflows/`
 3. Load `engineering/MASTER_INDEX.md` for context
 4. Pass `$ARGUMENTS` as the task/sprint/bug ID
 5. Be clear, greppable, and self-contained
+
+After writing each command file, record it in the generation manifest:
+```sh
+node "$FORGE_ROOT/tools/generation-manifest.cjs" record {paths.commands}/{filename}.md
+```
+
+(`FORGE_ROOT` is available from the parent init flow; tool invocations use `$FORGE_ROOT/tools/` throughout.)

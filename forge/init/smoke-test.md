@@ -13,10 +13,10 @@ Self-correct up to once per failing component.
 - `engineering/architecture/INDEX.md` and sub-docs
 - `engineering/business-domain/INDEX.md` and `entity-model.md`
 - `engineering/stack-checklist.md`
-- All 14 workflows in `.forge/workflows/`
+- All 17 workflows in `.forge/workflows/`
 - All commands in `.claude/commands/`
 - All templates in `.forge/templates/`
-- All tools in `engineering/tools/`
+- `.forge/schemas/` (four JSON Schema files)
 
 ### 2. Referential — internal links resolve
 
@@ -27,7 +27,7 @@ Self-correct up to once per failing component.
 
 ### 3. Tool execution
 
-- `engineering/tools/validate-store --dry-run` runs without error (if tool exists)
+- `node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run` runs without error
 
 ### 4. Template coherence
 
@@ -50,7 +50,7 @@ If a check fails:
 
 Output a summary:
 - Knowledge base: doc count, entity count, checklist items
-- Generated artifacts: workflow count, command count, template count, tool count
+- Generated artifacts: workflow count, command count, template count, schema count
 - Smoke test: pass/fail per check, any self-corrections applied
 - Confidence rating (percentage)
 - Lines marked `[?]` that need human verification

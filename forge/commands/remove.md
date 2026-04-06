@@ -80,9 +80,10 @@ About to delete:
   ✗ .claude/commands/sprint-plan.md
   ✗ .claude/commands/run-task.md
   ✗ .claude/commands/run-sprint.md
-  ✗ .claude/commands/engineer.md
-  ✗ .claude/commands/supervisor.md
+  ✗ .claude/commands/plan.md
+  ✗ .claude/commands/review-plan.md
   ✗ .claude/commands/implement.md
+  ✗ .claude/commands/review-code.md
   ✗ .claude/commands/fix-bug.md
   ✗ .claude/commands/approve.md
   ✗ .claude/commands/commit.md
@@ -111,9 +112,10 @@ rm -f .claude/commands/sprint-intake.md \
       .claude/commands/sprint-plan.md \
       .claude/commands/run-task.md \
       .claude/commands/run-sprint.md \
-      .claude/commands/engineer.md \
-      .claude/commands/supervisor.md \
+      .claude/commands/plan.md \
+      .claude/commands/review-plan.md \
       .claude/commands/implement.md \
+      .claude/commands/review-code.md \
       .claude/commands/fix-bug.md \
       .claude/commands/approve.md \
       .claude/commands/commit.md \
@@ -128,9 +130,10 @@ rm -f .claude/commands/sprint-intake.md \
       .claude/commands/sprint-plan.md \
       .claude/commands/run-task.md \
       .claude/commands/run-sprint.md \
-      .claude/commands/engineer.md \
-      .claude/commands/supervisor.md \
+      .claude/commands/plan.md \
+      .claude/commands/review-plan.md \
       .claude/commands/implement.md \
+      .claude/commands/review-code.md \
       .claude/commands/fix-bug.md \
       .claude/commands/approve.md \
       .claude/commands/commit.md \

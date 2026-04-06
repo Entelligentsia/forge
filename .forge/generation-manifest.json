@@ -1,0 +1,134 @@
+{
+  "files": {
+    ".forge/workflows/architect_approve.md": {
+      "hash": "sha256:93a71f02d2650b7ec50b80f53a28a1e6e63b51b1ce7fd8186c64dd8559c821fd",
+      "generatedAt": "2026-04-06T12:15:29.054Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/architect_review_sprint_completion.md": {
+      "hash": "sha256:8641dbf8d687cfaea874c8040eeb3b6e0e208395339fa630adc2dbcd89affd96",
+      "generatedAt": "2026-04-06T12:15:29.081Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/architect_sprint_intake.md": {
+      "hash": "sha256:7e29e3ecd480d0cdc13e324435810fe7745c87d8ce1a2198c2ef371af16c9f02",
+      "generatedAt": "2026-04-06T12:15:29.104Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/architect_sprint_plan.md": {
+      "hash": "sha256:55d1ab4642505ff221680dceb78d5ea7bd7ccd9bdd52ede2d77975bc6bfc08b0",
+      "generatedAt": "2026-04-06T12:15:29.129Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/collator_agent.md": {
+      "hash": "sha256:c0de489643f0b02f2ba119094f22726d94b8df10becf3edd22919d4306369fd5",
+      "generatedAt": "2026-04-06T12:15:29.155Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/commit_task.md": {
+      "hash": "sha256:958d0e314fb1a201073519f68bfa0fbcb91b96262ca408fa88f0c47144a11e5b",
+      "generatedAt": "2026-04-06T12:15:29.179Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/fix_bug.md": {
+      "hash": "sha256:f85d310c2b4bb62ab0023d5fc4b6e0cb944e1079405454896a7cdbb289b1d68d",
+      "generatedAt": "2026-04-06T12:15:29.205Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/implement_plan.md": {
+      "hash": "sha256:bd6b3b963994753832f858b93606742d026ae21ec1760762459119d7381d53f2",
+      "generatedAt": "2026-04-06T12:15:29.235Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/plan_task.md": {
+      "hash": "sha256:4b72f79fe0b35b014aba46d9b407c87a4419443a427f223981d98ac6f386c45d",
+      "generatedAt": "2026-04-06T12:15:29.260Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/update_implementation.md": {
+      "hash": "sha256:fceefdee911fa5a507184de5f92b2539688ff0f2ec0cc959fc1f8f190d9cc070",
+      "generatedAt": "2026-04-06T12:15:29.285Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/update_plan.md": {
+      "hash": "sha256:25ccced092b3b4f19e5f6001b9aa80bd8a450b40bd95cd3a4a34539b95bc40bb",
+      "generatedAt": "2026-04-06T12:15:29.311Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/orchestrate_task.md": {
+      "hash": "sha256:9ed267c4e6ed25ee8ae93d9affeb3c73d1f31ef27680d47a42229e86e152523b",
+      "generatedAt": "2026-04-06T12:15:29.337Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/quiz_agent.md": {
+      "hash": "sha256:f076561e185de34ea97ca6899d9c1fb0c88a619621f9d0f7ce5e681214ad5e16",
+      "generatedAt": "2026-04-06T12:15:29.363Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/run_sprint.md": {
+      "hash": "sha256:ca18e28ceb038f7be3f3f46f51f4b13b143b9e5ba3cd6f4c3ea71f999ca2da18",
+      "generatedAt": "2026-04-06T12:15:29.389Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/sprint_retrospective.md": {
+      "hash": "sha256:9da80fc7c0d976947a20b303d72a69509ee91834466947125fd0dd4f9c7dac55",
+      "generatedAt": "2026-04-06T12:15:29.415Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/review_code.md": {
+      "hash": "sha256:d399c5203c10e3f54bd95adfbd5a4cad5931bedb9dfd93e7393f414edebe3fdf",
+      "generatedAt": "2026-04-06T12:15:29.439Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/workflows/review_plan.md": {
+      "hash": "sha256:c53baf69a7d52a9fe2584915c70f40f43c6461e7243a7eec639e2f5dbd09560a",
+      "generatedAt": "2026-04-06T12:15:29.468Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/templates/CODE_REVIEW_TEMPLATE.md": {
+      "hash": "sha256:38764409465e3d4a927f1d597346e62bc54f9ebc053fc427c9b78f7333beef79",
+      "generatedAt": "2026-04-06T12:15:29.492Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/templates/CUSTOM_COMMAND_TEMPLATE.md": {
+      "hash": "sha256:43e52c296d930f136b063a05241de4363484366915c91a5938345fccbe13fbd2",
+      "generatedAt": "2026-04-06T12:15:29.518Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/templates/PLAN_REVIEW_TEMPLATE.md": {
+      "hash": "sha256:77425c0ce997c69b775bceb8b27a61406e25579fbfb1a231cc07a79311b04e77",
+      "generatedAt": "2026-04-06T12:15:29.540Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/templates/PLAN_TEMPLATE.md": {
+      "hash": "sha256:d2062511d7feae34111382dcddb4c1935fd31b6f14e25be5896f3be2590caa89",
+      "generatedAt": "2026-04-06T12:15:29.566Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/templates/PROGRESS_TEMPLATE.md": {
+      "hash": "sha256:7dfdacc1a43556408acac4801163b4cecd3ca638f0df200a260229c6b6b0e765",
+      "generatedAt": "2026-04-06T12:15:29.589Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/templates/RETROSPECTIVE_TEMPLATE.md": {
+      "hash": "sha256:aafa2c69bac213ad5f7ba8e3e6e7e9b0fb1deb7df19cfd2172a8d59cd4bd8e38",
+      "generatedAt": "2026-04-06T12:15:29.615Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/templates/SPRINT_MANIFEST_TEMPLATE.md": {
+      "hash": "sha256:8319314520cbd14c5af9dbe42a43f5654e86515ede0fd36f6fa67100785a2706",
+      "generatedAt": "2026-04-06T12:15:29.645Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/templates/SPRINT_REQUIREMENTS_TEMPLATE.md": {
+      "hash": "sha256:dcbd130d62edfcb33aa4fdd4556f14f2bd420354693da95dfd4b5db95af18cb4",
+      "generatedAt": "2026-04-06T12:15:29.669Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/templates/TASK_PROMPT_TEMPLATE.md": {
+      "hash": "sha256:1e677570acd0f820a1821d8be06d9f73643f593ecef3174c0a94411fcaac6b0e",
+      "generatedAt": "2026-04-06T12:15:29.696Z",
+      "generatedByVersion": "1.0"
+    }
+  }
+}

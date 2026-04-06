@@ -1,5 +1,7 @@
 # PROGRESS — {TASK_ID}: {TASK_TITLE}
 
+🌱 *Forge Engineer*
+
 **Task:** {TASK_ID}
 **Sprint:** {SPRINT_ID}
 
@@ -33,10 +35,10 @@ $ node forge/tools/validate-store.cjs --dry-run
 
 | Criterion | Status | Notes |
 |---|---|---|
-| {Criterion 1} | ✅ Pass / ❌ Fail | |
-| {Criterion 2} | ✅ Pass / ❌ Fail | |
-| `node --check` passes | ✅ Pass / ❌ Fail | |
-| `validate-store --dry-run` exits 0 | ✅ Pass / ❌ Fail | |
+| {Criterion 1} | 〇 Pass / × Fail | |
+| {Criterion 2} | 〇 Pass / × Fail | |
+| `node --check` passes | 〇 Pass / × Fail | |
+| `validate-store --dry-run` exits 0 | 〇 Pass / × Fail | |
 
 ## Plugin Checklist
 
