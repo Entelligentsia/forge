@@ -8,5 +8,6 @@
   "iteration": 1,
   "startTimestamp": "2026-04-05T06:45:00Z",
   "endTimestamp": "2026-04-05T06:50:14Z",
-  "durationMinutes": 5
+  "durationMinutes": 5,
+  "model": "unknown"
 }

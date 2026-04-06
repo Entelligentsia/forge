@@ -1,0 +1,14 @@
+{
+  "bugId": "BUG-004",
+  "title": "validate-store rejects valid null timing fields on start events and has no event backfill",
+  "description": "endTimestamp and durationMinutes are legitimately null on phase-start events but the validator treated null as missing. Also: 7 pre-schema FORGE-S01 events had no --fix path, leaving 41 persistent validation errors.",
+  "severity": "major",
+  "status": "fixed",
+  "path": "forge/tools/validate-store.cjs",
+  "rootCauseCategory": "data-integrity",
+  "similarBugs": ["BUG-002", "BUG-003"],
+  "checklistItemAdded": false,
+  "businessRuleUpdated": false,
+  "reportedAt": "2026-04-07T00:00:00Z",
+  "resolvedAt": "2026-04-07T00:00:00Z"
+}

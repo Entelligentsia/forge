@@ -31,5 +31,5 @@
   "pipeline": {
     "maxReviewIterations": 3
   },
-  "installedSkills": ["security-watchdog"]
+  "installedSkills": ["agent-sdk-dev", "forge", "frontend-design", "security-watchdog", "stripe-integration", "typescript-lsp", "vue-best-practices"]
 }

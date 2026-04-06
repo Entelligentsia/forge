@@ -7,5 +7,9 @@
   "timestamp": "2026-04-05T05:57:41.172Z",
   "endTimestamp": "2026-04-05T05:57:41.172Z",
   "durationMinutes": 1,
-  "notes": "Architect approval granted. Comment-only change; no functional impact. Version bump deferred to T08."
+  "notes": "Architect approval granted. Comment-only change; no functional impact. Version bump deferred to T08.",
+  "role": "unknown",
+  "action": "architect_approve",
+  "iteration": 1,
+  "startTimestamp": "2026-04-05T05:57:41.172Z"
 }

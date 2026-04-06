@@ -30,8 +30,10 @@ function loadSchema(schemasDir, name) {
   return fs.existsSync(p) ? readJson(p) : null;
 }
 
-// Foreign keys that are legitimately null (e.g. standalone bug fix has no sprint)
-const NULLABLE_FK = new Set(['sprintId', 'taskId']);
+// Fields that are legitimately null:
+//   sprintId / taskId  — optional FK (e.g. standalone bug fix has no sprint)
+//   endTimestamp / durationMinutes — not recorded on "start" events (phase opened but never closed)
+const NULLABLE_FK = new Set(['sprintId', 'taskId', 'endTimestamp', 'durationMinutes']);
 
 // --- Validation ---
 function validateRecord(record, schema, fallbackRequired) {
@@ -123,6 +125,24 @@ const BACKFILL = {
   bug: {
     reportedAt: (rec) => rec.resolvedAt || new Date().toISOString(),
   },
+  // Events written before schema stabilisation often omit fields that can be inferred
+  // from the filename, sibling fields, or sensible defaults.
+  event: {
+    eventId:         (_rec, file) => path.basename(file, '.json'),
+    role:            (rec)        => rec.agent || 'unknown',
+    action:          (rec)        => rec.phase  || 'unknown',
+    phase:           (rec)        => rec.action || 'unknown',
+    iteration:       ()           => 1,
+    startTimestamp:  (rec)        => rec.timestamp || new Date().toISOString(),
+    // endTimestamp / durationMinutes are in NULLABLE_FK — derive only if a timestamp hint exists
+    endTimestamp:    (rec)        => rec.timestamp || null,
+    durationMinutes: ()           => null,
+    // Prefer an explicit model field; fall back to actor if it looks like a model ID
+    model: (rec) => {
+      if (rec.actor && typeof rec.actor === 'string' && rec.actor.includes('claude')) return rec.actor;
+      return 'unknown';
+    },
+  },
 };
 
 function backfillRecord(file, rec, type) {
@@ -131,7 +151,7 @@ function backfillRecord(file, rec, type) {
   let changed = false;
   for (const [field, derive] of Object.entries(rules)) {
     if (rec[field] === undefined || rec[field] === null || rec[field] === '') {
-      const val = derive(rec);
+      const val = derive(rec, file);
       rec[field] = val;
       console.log(`FIXED  ${path.relative(cwd, file)}: backfilled "${field}" = "${val}"`);
       changed = true;
@@ -202,6 +222,7 @@ if (fs.existsSync(eventsRoot)) {
     for (const file of listJsonFiles(sprintEventsDir)) {
       const rec = readJson(file);
       if (!rec) { err(file, 'invalid JSON'); continue; }
+      if (FIX_MODE) backfillRecord(file, rec, 'event');
       for (const e of validateRecord(rec, schemas.event, FALLBACK.event)) err(file, e);
       if (rec.taskId && !taskIds.has(rec.taskId) && !bugIds.has(rec.taskId))
         err(file, `taskId "${rec.taskId}" references unknown task or bug`);

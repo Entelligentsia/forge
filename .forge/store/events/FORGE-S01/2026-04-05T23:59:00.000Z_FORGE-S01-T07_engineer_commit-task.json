@@ -10,5 +10,12 @@
   "tokenUsage": {
     "inputTokens": 0,
     "outputTokens": 0
-  }
+  },
+  "role": "engineer",
+  "phase": "commit-task",
+  "iteration": 1,
+  "startTimestamp": "2026-04-05T23:59:00.000Z",
+  "endTimestamp": "2026-04-05T23:59:00.000Z",
+  "durationMinutes": null,
+  "model": "unknown"
 }
