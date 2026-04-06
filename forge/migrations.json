@@ -1,4 +1,12 @@
 {
+  "0.5.0": {
+    "version": "0.5.1",
+    "date": "2026-04-06",
+    "notes": "Fix forge:update migration gaps: Step 5b-pre now cleans up retired .forge/workflows/ files on every run; Step 5b-rename scans pipeline configs for retired command names (engineer→plan, supervisor→review-plan/review-code) and offers per-pipeline diff+update.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.4.1": {
     "version": "0.5.0",
     "date": "2026-04-06",
