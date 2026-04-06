@@ -22,7 +22,7 @@ mkdir -p "$DATA_DIR"
 # Always runs, regardless of update-check cache state.
 FORGE_CONTEXT=""
 if [ -d ".forge" ] && [ -f ".forge/config.json" ]; then
-    FORGE_CONTEXT="This project uses Forge AI-SDLC. Engineering knowledge base: engineering/. Generated workflows: .forge/workflows/. Sprint and task store: .forge/store/. Use the project slash commands (/plan-task, /implement, /sprint-plan) to drive development. Run /forge:health to check knowledge base currency."
+    FORGE_CONTEXT="This project uses Forge AI-SDLC. Engineering knowledge base: engineering/. Generated workflows: .forge/workflows/. Sprint and task store: .forge/store/. Use the project slash commands (/plan, /implement, /sprint-plan) to drive development. Run /forge:health to check knowledge base currency."
 fi
 
 # --- Update check ---

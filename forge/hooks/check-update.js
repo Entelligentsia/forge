@@ -31,7 +31,7 @@ if (fs.existsSync('.forge') && fs.existsSync(path.join('.forge', 'config.json'))
   forgeContext =
     'This project uses Forge AI-SDLC. Engineering knowledge base: engineering/. ' +
     'Generated workflows: .forge/workflows/. Sprint and task store: .forge/store/. ' +
-    'Use the project slash commands (/plan-task, /implement, /sprint-plan) to drive development. ' +
+    'Use the project slash commands (/plan, /implement, /sprint-plan) to drive development. ' +
     'Run /forge:health to check knowledge base currency.';
 }
 
