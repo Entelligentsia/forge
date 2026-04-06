@@ -312,6 +312,57 @@ node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/workflows/{old-nam
 
 Never delete without explicit confirmation.
 
+### 5b-rename — Rename retired built-in command names in pipeline config
+
+This step runs on every update. Scan every configured pipeline for phases
+that use retired built-in command names. These were renamed in 0.5.0 but
+`config.json` is never auto-rewritten — the update must offer to fix them.
+
+**Retired command name map** (command → replacement, derived from the phase `role`):
+
+| Retired command | Role | Replacement |
+|----------------|------|-------------|
+| `engineer` | `plan` | `plan` |
+| `supervisor` | `review-plan` | `review-plan` |
+| `supervisor` | `review-code` | `review-code` |
+
+Read all pipelines:
+```sh
+node "$FORGE_ROOT/tools/manage-config.cjs" list-pipelines 2>/dev/null
+```
+
+For each pipeline, read its full phase list:
+```sh
+node "$FORGE_ROOT/tools/manage-config.cjs" pipeline get {NAME}
+```
+
+Collect every phase where `command` is `engineer` or `supervisor`.
+If none found across all pipelines, skip to **Step 5b**.
+
+For each affected pipeline, show a diff preview of all changes at once:
+
+> ── Pipeline `{name}` — {N} phase(s) use retired command names:
+>
+> ```diff
+> - {"command": "engineer",  "role": "plan",        "model": "sonnet"}
+> + {"command": "plan",      "role": "plan",        "model": "sonnet"}
+>
+> - {"command": "supervisor","role": "review-plan", "model": "opus"}
+> + {"command": "review-plan","role": "review-plan","model": "opus"}
+> ```
+>
+> Update this pipeline? (yes / no)
+
+If yes: reconstruct the full phases JSON with the renamed commands and write:
+```sh
+node "$FORGE_ROOT/tools/manage-config.cjs" pipeline add {NAME} --description "{desc}" --phases '{updated_phases_json}'
+```
+
+Print `〇 Pipeline '{name}' updated.` on success.
+
+Do not rename any command that is not in the retired list above — custom
+commands like `supervisor-code` or `engineer-security` are left as-is.
+
 ### 5b — Check whether pipelines exist
 
 ```sh
