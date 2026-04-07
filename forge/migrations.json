@@ -1,4 +1,12 @@
 {
+  "0.5.6": {
+    "version": "0.5.7",
+    "date": "2026-04-07",
+    "notes": "forge:update now detects canary/source installs and skips the plugin-manager install step, going directly to migrations.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.5.5": {
     "version": "0.5.6",
     "date": "2026-04-07",

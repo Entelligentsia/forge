@@ -14,6 +14,18 @@ project's generated artifacts.
 FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 ```
 
+Detect install mode:
+
+```
+IS_CANARY = FORGE_ROOT does not contain "/.claude/plugins/cache/"
+```
+
+- **Marketplace install** (`IS_CANARY = false`): plugin lives in the Claude Code
+  cache and is updated via the plugin manager.
+- **Canary / source install** (`IS_CANARY = true`): plugin is loaded directly
+  from a local source directory. The source is already at the correct version —
+  there is nothing to install. Only migration steps apply.
+
 ---
 
 ## Step 1 — Check for updates
@@ -57,6 +69,7 @@ Now evaluate:
 |-----------|--------|
 | `REMOTE_VERSION` == `LOCAL_VERSION` and `LOCAL_VERSION` == baseline | Print "Forge {LOCAL_VERSION} — up to date. No pending migrations." and exit. |
 | `REMOTE_VERSION` == `LOCAL_VERSION` and `LOCAL_VERSION` != baseline | Print "Forge {LOCAL_VERSION} — already on latest. Applying pending migrations..." and jump to **Step 4**. |
+| `IS_CANARY` is true | Print "Canary install detected — skipping remote install. Applying pending migrations..." and jump to **Step 4**. |
 | `REMOTE_VERSION` != `LOCAL_VERSION` | Proceed to **Step 2**. |
 
 ---
@@ -113,6 +126,20 @@ Ask the user to choose. If they choose **[2]**, exit.
 If they choose **[1]**, proceed:
 
 ### Guided install
+
+**If `IS_CANARY` is true:**
+
+Print:
+```
+Canary install detected — FORGE_ROOT is a local source directory, not the
+plugin cache. There is nothing to install via the plugin manager.
+
+Your source is already at {LOCAL_VERSION}. Proceeding directly to migrations.
+```
+
+Then jump to **Step 4**.
+
+**If `IS_CANARY` is false (marketplace install):**
 
 Print:
 ```
