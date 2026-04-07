@@ -1,4 +1,12 @@
 {
+  "0.5.8": {
+    "version": "0.5.9",
+    "date": "2026-04-07",
+    "notes": "Collate meta-templates now emit a runtime FORGE_ROOT read instead of baking the absolute plugin cache path — regenerated workflows no longer go stale on version bumps.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
   "0.5.7": {
     "version": "0.5.8",
     "date": "2026-04-07",
