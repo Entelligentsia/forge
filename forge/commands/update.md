@@ -63,18 +63,22 @@ Extract `migratedFrom` from the cache JSON. If absent, fall back to
 The user can also pass `--from <version>` as an argument to set the baseline
 explicitly — this overrides any cached value.
 
-Now evaluate:
+Now evaluate — **stop at the first matching row and follow only that row's action**:
 
-| Condition | Action |
-|-----------|--------|
-| `REMOTE_VERSION` == `LOCAL_VERSION` and `LOCAL_VERSION` == baseline | Print "Forge {LOCAL_VERSION} — up to date. No pending migrations." and exit. |
-| `REMOTE_VERSION` == `LOCAL_VERSION` and `LOCAL_VERSION` != baseline | Print "Forge {LOCAL_VERSION} — already on latest. Applying pending migrations..." and jump to **Step 4**. |
-| `IS_CANARY` is true | Print "Canary install detected — skipping remote install. Applying pending migrations..." and jump to **Step 4**. |
-| `REMOTE_VERSION` != `LOCAL_VERSION` | Proceed to **Step 2**. |
+| # | Condition | Action |
+|---|-----------|--------|
+| 1 | `REMOTE_VERSION` == `LOCAL_VERSION` and `LOCAL_VERSION` == baseline | Print "Forge {LOCAL_VERSION} — up to date. No pending migrations." and **exit**. |
+| 2 | `REMOTE_VERSION` == `LOCAL_VERSION` and `LOCAL_VERSION` != baseline | Jump to **Step 2B** (project migration — no install needed). |
+| 3 | `IS_CANARY` is true | Jump to **Step 2B** (canary — no install needed). |
+| 4 | `REMOTE_VERSION` != `LOCAL_VERSION` | Proceed to **Step 2A** (plugin update available). |
+
+**Do NOT show an install prompt for rows 1, 2, or 3. Install prompts only appear in Step 2A.**
 
 ---
 
-## Step 2 — Present what's new
+## Step 2A — Plugin update available
+
+> **Only reached when `REMOTE_VERSION` != `LOCAL_VERSION` (row 4 above).**
 
 Fetch the **remote** migrations manifest from GitHub:
 
@@ -83,11 +87,7 @@ URL: https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/migration
 ```
 
 Parse the response JSON. Walk the migration chain from `LOCAL_VERSION` forward
-to `REMOTE_VERSION`:
-- Each entry key is a `from` version; its `version` field is the `to` version.
-- Collect the ordered list of migration steps that bridge local → remote.
-
-Aggregate across all steps in the path:
+to `REMOTE_VERSION`. Aggregate across all steps:
 - Union of all `regenerate` targets (deduplicated, order preserved)
 - Concatenated `notes` (one line per step)
 - `breaking: true` if any step is breaking
@@ -118,16 +118,16 @@ Present the update summary:
   [2] Skip for now
 ```
 
-If no migration path can be constructed (versions not in manifest), show
-the notes that are available and note that a full regeneration may be needed.
+If no migration path can be constructed, show available notes and recommend
+`/forge:regenerate workflows tools`.
 
 Ask the user to choose. If they choose **[2]**, exit.
 
-If they choose **[1]**, proceed:
+If they choose **[1]**, proceed to **Guided install** below.
 
 ### Guided install
 
-**If `IS_CANARY` is true:**
+**If `IS_CANARY` is true** (safety net — should have been caught by row 3):
 
 Print:
 ```
@@ -137,7 +137,7 @@ plugin cache. There is nothing to install via the plugin manager.
 Your source is already at {LOCAL_VERSION}. Proceeding directly to migrations.
 ```
 
-Then jump to **Step 4**.
+Jump to **Step 4**.
 
 **If `IS_CANARY` is false (marketplace install):**
 
@@ -152,6 +152,50 @@ Tell me when the install is done.
 ```
 
 Wait for the user to confirm the install completed.
+
+---
+
+## Step 2B — Project migration pending (plugin already current)
+
+> **Only reached from rows 2 or 3 — the plugin is already at the right version.**
+> **Do NOT show an install prompt here. There is nothing to install.**
+
+Read `$FORGE_ROOT/migrations.json` (local).
+
+Walk the migration chain from `baseline` forward to `LOCAL_VERSION`. Aggregate:
+- Union of all `regenerate` targets
+- Concatenated `notes`
+- `breaking: true` if any step is breaking
+- Union of all `manual` items
+
+Print:
+
+```
+## Forge {LOCAL_VERSION} — Plugin up to date
+
+Your project was last migrated at {baseline}. The following changes need
+to be applied to this project's generated files:
+
+### Changes since {baseline}
+{for each step in path:}
+  • {version}: {notes}
+
+### Will regenerate
+  {for each target in aggregated regenerate:}
+  • {target}
+
+{if breaking:}
+### △ Breaking changes — complete these steps first:
+  {for each item in manual:}
+  • {item}
+
+Apply migrations now? [Y/n]
+```
+
+If the user declines, exit without changes.
+If `breaking: true`, confirm they have completed the manual steps first.
+
+Then jump to **Step 4** to execute the regeneration.
 
 ---
 
