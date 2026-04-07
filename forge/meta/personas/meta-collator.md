@@ -19,9 +19,9 @@ invokes the generated tool or falls back to manual collation.
 
 ## Preferred Method
 
-Read `paths.forgeRoot` from `.forge/config.json`, then run:
-```
-node "{paths.forgeRoot}/tools/collate.cjs"
+Read `paths.forgeRoot` from `.forge/config.json` → set as `FORGE_ROOT`. Then run:
+```bash
+node "$FORGE_ROOT/tools/collate.cjs"
 ```
 
 ## Fallback Method
@@ -33,7 +33,10 @@ the same outputs following the collation algorithm in
 ## Generation Instructions
 
 When generating a project-specific Collator, incorporate:
-- The path to the generated collation tool
+- Emit the runtime-read pattern exactly as shown above — do NOT substitute
+  `paths.forgeRoot` as a literal string at generation time. The `$FORGE_ROOT`
+  variable must remain in the generated file so the path resolves from
+  `.forge/config.json` when the workflow runs, not when it is generated.
 - The project's language for invoking the tool
 - The store path (.forge/store/)
 - The project prefix for ID formatting

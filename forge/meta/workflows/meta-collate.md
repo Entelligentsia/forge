@@ -9,9 +9,9 @@ operation — prefer the generated tool, fall back to manual collation.
 
 ### Step 1 — Preferred: Run Plugin Tool
 
-Read `paths.forgeRoot` from `.forge/config.json`, then run:
-```
-node "{paths.forgeRoot}/tools/collate.cjs" [SPRINT_ID]
+Read `paths.forgeRoot` from `.forge/config.json` → set as `FORGE_ROOT`. Then run:
+```bash
+node "$FORGE_ROOT/tools/collate.cjs" [SPRINT_ID]
 ```
 
 If the tool succeeds, the workflow is complete.
@@ -33,6 +33,9 @@ If the tool is unavailable or fails:
 - `INDEX.md` in each sprint/task/bug directory
 
 ## Generation Instructions
-- Include the path to the generated collation tool
+- Emit the runtime-read pattern exactly as shown above — do NOT substitute
+  `paths.forgeRoot` as a literal string at generation time. The `$FORGE_ROOT`
+  variable must remain in the generated file so the path resolves from
+  `.forge/config.json` when the workflow runs, not when it is generated.
 - Include the project's language for invoking the tool
 - Reference .forge/store/ paths

@@ -60,7 +60,11 @@ If it exits non-zero, report the error. Do not proceed to Phase 9 until this pas
 
 - `paths.forgeRoot` is refreshed by `/forge:update` at each upgrade, so the
   stored path stays current even after plugin reinstallation.
-- Generated workflow files reference tools as:
-  `node "$(cat .forge/config.json | node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync("/dev/stdin","utf8")).paths.forgeRoot)')/tools/<tool>.cjs"`
-  — or more simply, the generation step reads `paths.forgeRoot` from config
-  and bakes the resolved path directly into each workflow file.
+- Generated workflow files reference tools using a runtime read pattern:
+  ```
+  FORGE_ROOT: read `paths.forgeRoot` from `.forge/config.json`
+  node "$FORGE_ROOT/tools/<tool>.cjs"
+  ```
+  Do NOT bake the resolved path as a string literal into generated workflow
+  files. Keeping `$FORGE_ROOT` as a runtime reference means the workflow
+  stays correct across version bumps without requiring regeneration.
