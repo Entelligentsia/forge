@@ -243,11 +243,16 @@ for (const sprint of targetSprints) {
   // Only events that have at least inputTokens present
   const tokenEvents = events.filter(e => e.inputTokens !== undefined);
 
-  const sprintDirName = resolveDir(
-    path.join(engRoot, 'sprints'),
-    sprint.sprintId,
-    sprint.sprintId.split('-').pop()
-  );
+  let sprintDirName;
+  if (sprint.path) {
+    sprintDirName = path.basename(sprint.path.replace(/\/$/, ''));
+  } else {
+    sprintDirName = resolveDir(
+      path.join(engRoot, 'sprints'),
+      sprint.sprintId,
+      sprint.sprintId.split('-').pop()
+    );
+  }
   const reportPath = path.join(engRoot, 'sprints', sprintDirName, 'COST_REPORT.md');
 
   const lines = [

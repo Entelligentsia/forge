@@ -43,3 +43,8 @@ consult this before approving any change to `forge/`.
 - [ ] `--dry-run` flag supported where writes are performed
 - [ ] Tool reads `.forge/config.json` for paths rather than hardcoding
 - [ ] `toLocaleString()` calls work without full ICU — consider fallback formatting for minimal Node.js environments
+- [ ] When adding a new file-writing block to `collate.cjs`, check whether the target entity has a `path` field in its store JSON before using `resolveDir` inference (BUG-006)
+
+## Meta-Workflows
+
+- [ ] Any meta-workflow that describes pipeline steps in prose should be reviewed against `meta-orchestrate.md` — it must generate a true orchestrator (chained Agent tool calls, verdict detection, revision loop) not a human-readable guide (BUG-005)

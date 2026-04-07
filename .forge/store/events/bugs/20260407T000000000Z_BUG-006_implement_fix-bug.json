@@ -1,0 +1,15 @@
+{
+  "eventId": "20260407T000000000Z_BUG-006_implement_fix-bug",
+  "taskId": "BUG-006",
+  "sprintId": "bugs",
+  "role": "implement",
+  "action": "/fix-bug",
+  "phase": "implement",
+  "iteration": 1,
+  "startTimestamp": "2026-04-07T00:00:00Z",
+  "endTimestamp": "2026-04-07T00:00:00Z",
+  "durationMinutes": 0,
+  "model": "claude-sonnet-4-6",
+  "verdict": "Approved",
+  "notes": "Patched collate.cjs lines 246-251 to use sprint.path when present. Addresses GitHub issue #21: no more SNN/ stub directories created for descriptive-named sprint dirs."
+}

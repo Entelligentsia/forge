@@ -1,0 +1,14 @@
+{
+  "bugId": "BUG-005",
+  "title": "fix-bug is not an orchestrator — 4 control-flow and schema deviations",
+  "description": "meta-fix-bug.md generates a prose-only workflow that describes pipeline steps but does not chain sub-agent invocations, has no loop-back on plan-revision-required verdicts, uses emoji-decorated strings in status/event fields, and is missing standardised agent announcement banners. Linked to GitHub issue #20.",
+  "severity": "major",
+  "status": "fixed",
+  "path": "forge/meta/workflows/meta-fix-bug.md",
+  "rootCauseCategory": "configuration",
+  "similarBugs": ["BUG-006"],
+  "checklistItemAdded": false,
+  "businessRuleUpdated": false,
+  "reportedAt": "2026-04-07T04:14:30Z",
+  "resolvedAt": "2026-04-07T00:00:00Z"
+}

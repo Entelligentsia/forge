@@ -1,0 +1,14 @@
+{
+  "bugId": "BUG-006",
+  "title": "collate: COST_REPORT.md written to SNN/ stub dirs instead of existing sprint_NN_*/ dirs",
+  "description": "collate.cjs lines 246-251 resolves the sprint directory for COST_REPORT using resolveDir(sprintId, sprintId.split('-').pop()) — both candidates are identical for IDs without hyphens (e.g. 'S30'), neither exists, so resolveDir falls back to create a stub dir. sprint.path is already in the JSON and ignored. Linked to GitHub issue #21.",
+  "severity": "major",
+  "status": "fixed",
+  "path": "forge/tools/collate.cjs",
+  "rootCauseCategory": "data-integrity",
+  "similarBugs": ["BUG-005"],
+  "checklistItemAdded": false,
+  "businessRuleUpdated": false,
+  "reportedAt": "2026-04-07T06:07:21Z",
+  "resolvedAt": "2026-04-07T00:00:00Z"
+}
