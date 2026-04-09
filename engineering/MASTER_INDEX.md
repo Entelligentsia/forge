@@ -12,7 +12,7 @@ _[No features yet ↗](features/INDEX.md)_
 
 | Sprint    | Title                                                     | Status               | Tasks |
 | --------- | --------------------------------------------------------- | -------------------- | ----- |
-| FORGE-S03 | Lean Migration Architecture                               | ✅ completed          | 3/3   |
+| FORGE-S03 | Lean Migration Architecture                               | ✅ retrospective-done | 3/3   |
 | FORGE-S02 | Foundational Concepts Documentation + Feature Tier (v1.0) | ✅ completed          | 10/10 |
 | FORGE-S01 | Token Usage Tracking                                      | ✅ retrospective-done | 8/8   |
 
