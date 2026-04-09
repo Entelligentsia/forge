@@ -1,0 +1,9 @@
+{
+  "sprintId": "FORGE-S03",
+  "title": "Lean Migration Architecture",
+  "status": "completed",
+  "goal": "Eliminate the coarse-grained 'tools' regeneration target, embed store schemas directly in validate-store, and introduce a granular colon-delimited migration target format so upgrades regenerate only what actually changed — across workflows, knowledge-base, and commands.",
+  "createdAt": "2026-04-09T00:00:00.000Z",
+  "taskIds": ["FORGE-S03-T01", "FORGE-S03-T02", "FORGE-S03-T03"],
+  "features": []
+}

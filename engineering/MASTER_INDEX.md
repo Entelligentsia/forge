@@ -12,10 +12,19 @@ _[No features yet ↗](features/INDEX.md)_
 
 | Sprint    | Title                                                     | Status               | Tasks |
 | --------- | --------------------------------------------------------- | -------------------- | ----- |
+| FORGE-S03 | Lean Migration Architecture                               | ✅ completed          | 3/3   |
 | FORGE-S02 | Foundational Concepts Documentation + Feature Tier (v1.0) | ✅ completed          | 10/10 |
 | FORGE-S01 | Token Usage Tracking                                      | ✅ retrospective-done | 8/8   |
 
 ## Task Registry
+
+### FORGE-S03
+
+| Task                                        | Title                                                                  | Status      | Estimate |
+| ------------------------------------------- | ---------------------------------------------------------------------- | ----------- | -------- |
+| [FORGE-S03-T01](sprints/FORGE-S03/INDEX.md) | Eliminate tools regenerate target and embed store schemas              | ✅ committed | M        |
+| [FORGE-S03-T02](sprints/FORGE-S03/INDEX.md) | Introduce granular migration target format and correct migrations.json | ✅ committed | M        |
+| [FORGE-S03-T03](sprints/FORGE-S03/INDEX.md) | Version bump to 0.6.1 with security scan and release commit            | ✅ committed | S        |
 
 ### FORGE-S02
 
