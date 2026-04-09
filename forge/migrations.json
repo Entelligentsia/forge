@@ -1,4 +1,12 @@
 {
+  "0.5.9": {
+    "version": "0.6.0",
+    "date": "2026-04-09",
+    "notes": "FORGE-S02 — Foundational Concepts Documentation + Feature Tier: new Feature entity (feature.schema.json, .forge/store/features/), feature_id nullable field added to sprint and task schemas, collate generates engineering/features/ registry, validate-store enforces feature referential integrity, seed-store scaffolds features/ on init, sprint-intake/plan wired to feature linkage, /forge:health reports per-feature FEAT-ID test coverage, docs/concepts/ section added, default-workflows.md absorbed into concepts, README and vision synced.",
+    "regenerate": ["tools", "workflows"],
+    "breaking": false,
+    "manual": []
+  },
   "0.5.8": {
     "version": "0.5.9",
     "date": "2026-04-07",

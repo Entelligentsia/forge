@@ -2,7 +2,7 @@
   "taskId": "FORGE-S02-T10",
   "sprintId": "FORGE-S02",
   "title": "Release engineering — version bump to v0.6.0, migration entry, security scan",
-  "status": "planned",
+  "status": "committed",
   "path": "forge/.claude-plugin/plugin.json",
   "estimate": "S",
   "dependencies": [
