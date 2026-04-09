@@ -67,8 +67,20 @@ const storePath = config.paths?.store || '.forge/store';
 
 const sprintsDir = path.join(cwd, engPath, 'sprints');
 const bugsDir    = path.join(cwd, engPath, 'bugs');
+const featuresDir = path.join(cwd, engPath, 'features');
 
 let sprintCount = 0, taskCount = 0, bugCount = 0;
+
+// --- Scaffold features/ ---
+if (!DRY_RUN) {
+  if (!fs.existsSync(featuresDir)) {
+    fs.mkdirSync(featuresDir, { recursive: true });
+  }
+} else {
+  if (!fs.existsSync(featuresDir)) {
+    console.log(`[dry-run] would scaffold directory: ${path.relative(cwd, featuresDir)}/`);
+  }
+}
 
 // --- Sprints and Tasks ---
 if (fs.existsSync(sprintsDir)) {

@@ -2,7 +2,7 @@
   "taskId": "FORGE-S02-T04",
   "sprintId": "FORGE-S02",
   "title": "seed-store.cjs — scaffold features/ directory on init",
-  "status": "planned",
+  "status": "committed",
   "path": "forge/tools/seed-store.cjs",
   "estimate": "S",
   "dependencies": ["FORGE-S02-T03"],
