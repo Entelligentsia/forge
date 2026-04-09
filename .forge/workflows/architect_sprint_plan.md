@@ -34,6 +34,7 @@ For each task determine:
 - **Files in `forge/`** being touched — used to assess version-bump and migration needs
 - **Materiality:** does the change require a version bump?
 - **Security scan required:** any change to `forge/` requires one
+- **`feature_id`** — propagated from `SPRINT_REQUIREMENTS.md` (nullable; `null` for standalone sprints)
 
 **Task-scoping rules (Forge-specific):**
 
@@ -56,6 +57,7 @@ Write sprint JSON to `.forge/store/sprints/FORGE-S{NN}.json` following `.forge/s
 ```json
 {
   "sprintId": "FORGE-S{NN}",
+  "feature_id": "{FEAT-NNN or null}",
   "title": "{Sprint Title}",
   "status": "planning",
   "taskIds": ["FORGE-S{NN}-T01", "FORGE-S{NN}-T02", ...],
@@ -70,6 +72,7 @@ Write task JSONs to `.forge/store/tasks/FORGE-S{NN}-T{NN}.json` following
 ```json
 {
   "taskId": "FORGE-S{NN}-T{NN}",
+  "feature_id": "{FEAT-NNN or null}",
   "sprintId": "FORGE-S{NN}",
   "title": "{Title}",
   "status": "planned",
