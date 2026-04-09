@@ -4,6 +4,7 @@
   "taskId": null,
   "role": "architect",
   "action": "sprint-plan",
+  "iteration": 1,
   "phase": "plan",
   "verdict": "approved",
   "startTimestamp": "2026-04-09T05:21:00Z",
