@@ -1,0 +1,10 @@
+{
+  "taskId": "FORGE-S02-T01",
+  "sprintId": "FORGE-S02",
+  "title": "docs/concepts/ — write all nine conceptual documentation pages",
+  "status": "planned",
+  "path": "docs/concepts/index.md",
+  "estimate": "L",
+  "dependencies": [],
+  "pipeline": "default"
+}

@@ -1,0 +1,10 @@
+{
+  "taskId": "FORGE-S02-T07",
+  "sprintId": "FORGE-S02",
+  "title": "meta-sprint-intake + meta-sprint-plan — feature linkage and feature_id propagation",
+  "status": "planned",
+  "path": "forge/meta/workflows/meta-sprint-intake.md",
+  "estimate": "M",
+  "dependencies": ["FORGE-S02-T02", "FORGE-S02-T03"],
+  "pipeline": "default"
+}

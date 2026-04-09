@@ -1,0 +1,19 @@
+{
+  "sprintId": "FORGE-S02",
+  "title": "Foundational Concepts Documentation + Feature Tier (v1.0)",
+  "status": "active",
+  "taskIds": [
+    "FORGE-S02-T01",
+    "FORGE-S02-T02",
+    "FORGE-S02-T03",
+    "FORGE-S02-T04",
+    "FORGE-S02-T05",
+    "FORGE-S02-T06",
+    "FORGE-S02-T07",
+    "FORGE-S02-T08",
+    "FORGE-S02-T09",
+    "FORGE-S02-T10"
+  ],
+  "executionMode": "sequential",
+  "createdAt": "2026-04-09T05:21:00Z"
+}

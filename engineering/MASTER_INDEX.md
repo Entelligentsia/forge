@@ -2,15 +2,31 @@
 
 # Forge — Master Index
 
-> Generated: 2026-04-05
+> Generated: 2026-04-09
 
 ## Sprint Registry
 
-| Sprint    | Title                | Status               | Tasks |
-| --------- | -------------------- | -------------------- | ----- |
-| FORGE-S01 | Token Usage Tracking | ✅ retrospective-done | 8/8   |
+| Sprint    | Title                                                     | Status               | Tasks |
+| --------- | --------------------------------------------------------- | -------------------- | ----- |
+| FORGE-S02 | Foundational Concepts Documentation + Feature Tier (v1.0) | 📝 planning          | 0/10  |
+| FORGE-S01 | Token Usage Tracking                                      | ✅ retrospective-done | 8/8   |
 
 ## Task Registry
+
+### FORGE-S02
+
+| Task                                                 | Title                                                                                                                   | Status     | Estimate |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------- | -------- |
+| [FORGE-S02-T01](../docs/concepts/INDEX.md)           | docs/concepts/ — write all nine conceptual documentation pages                                                          | 📋 planned | L        |
+| [FORGE-S02-T02](../forge/meta/store-schema/INDEX.md) | feature.schema.md — author Feature store-schema documentation                                                           | 📋 planned | S        |
+| [FORGE-S02-T03](../forge/schemas/INDEX.md)           | JSON schemas — add feature.schema.json; add nullable feature_id to sprint and task schemas                              | 📋 planned | S        |
+| [FORGE-S02-T04](../forge/tools/INDEX.md)             | seed-store.cjs — scaffold features/ directory on init                                                                   | 📋 planned | S        |
+| [FORGE-S02-T05](../forge/tools/INDEX.md)             | validate-store.cjs — referential integrity for feature_id on tasks and sprints                                          | 📋 planned | M        |
+| [FORGE-S02-T06](../forge/tools/INDEX.md)             | collate.cjs — generate engineering/features/INDEX.md and cross-link from MASTER_INDEX.md                                | 📋 planned | M        |
+| [FORGE-S02-T07](../forge/meta/workflows/INDEX.md)    | meta-sprint-intake + meta-sprint-plan — feature linkage and feature_id propagation                                      | 📋 planned | M        |
+| [FORGE-S02-T08](../forge/commands/INDEX.md)          | forge:health — per-feature FEAT-ID test coverage reporting                                                              | 📋 planned | M        |
+| [FORGE-S02-T09](../INDEX.md)                         | README + vision alignment — containment diagram, concepts link, absorb default-workflows.md, sync vision/01-OVERVIEW.md | 📋 planned | M        |
+| [FORGE-S02-T10](../forge/.claude-plugin/INDEX.md)    | Release engineering — version bump to v1.0.0, migration entry, security scan                                            | 📋 planned | S        |
 
 ### FORGE-S01
 
@@ -32,4 +48,7 @@
 | [BUG-001](bugs/001/INDEX.md) | Sprint runner accumulates context across tasks — violates light-context principle                          | major    | ✅ fixed |
 | [BUG-002](bugs/002/INDEX.md) | validate-store: referential integrity checks incomplete — bugs, virtual sprints, and nullable foreign keys | major    | ✅ fixed |
 | [BUG-003](bugs/003/INDEX.md) | forge:update: migration 0.3.7→0.3.13 missing data migration for new required schema fields                 | major    | ✅ fixed |
+| [BUG-004](bugs/004/INDEX.md) | validate-store rejects valid null timing fields on start events and has no event backfill                  | major    | ✅ fixed |
+| [BUG-005](bugs/005/INDEX.md) | fix-bug is not an orchestrator — 4 control-flow and schema deviations                                      | major    | ✅ fixed |
+| [BUG-006](bugs/006/INDEX.md) | collate: COST_REPORT.md written to SNN/ stub dirs instead of existing sprint_NN_*/ dirs                    | major    | ✅ fixed |
 
