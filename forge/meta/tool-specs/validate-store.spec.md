@@ -8,8 +8,8 @@ between sprints/tasks/bugs/events, no orphaned records.
 ## Inputs
 
 - `.forge/config.json` — paths
-- `.forge/schemas/` — JSON Schema files (task, event, sprint, bug); written during init Phase 8
-- `.forge/store/` — all JSON files
+- `.forge/schemas/` — JSON Schema files (task, event, sprint, bug, feature); written during init Phase 8
+- `.forge/store/` — all JSON files including `features/`
 
 ## Outputs
 
@@ -46,11 +46,17 @@ schema definitions — not just field presence.
 (e.g. standalone bug fix with no sprint, sprint-level event with no task).
 The validator must accept `null` for these fields without reporting an error.
 
+`feature_id` on sprint and task records is a nullable FK pointing to
+`.forge/store/features/{FEATURE_ID}.json`. A `null` value is valid (the record is
+not associated with any feature). A non-null value must match the `id` field of an
+existing feature record.
+
 ### Referential Integrity
 - Every task.sprintId references an existing sprint (when non-null)
 - Every event.taskId references an existing task OR bug (when non-null)
 - Every event.sprintId references an existing sprint OR matches the parent directory name (virtual sprint dirs like `events/bugs/`, `events/ops/`)
 - Every bug.similarBugs[] references existing bugs
+- Every sprint.feature_id and task.feature_id references an existing feature (when non-null)
 
 ### Orphan Detection
 - Task directories in `engineering/sprints/` without corresponding store JSON
@@ -87,4 +93,5 @@ The validator must accept `null` for these fields without reporting an error.
 ## Auto-Fix Rules (--fix mode)
 - Add missing optional fields with defaults
 - Create missing `.gitkeep` files in empty directories
+- Nullify orphaned `feature_id` references on sprint and task records (log each fix)
 - Do NOT delete orphaned records — only report them

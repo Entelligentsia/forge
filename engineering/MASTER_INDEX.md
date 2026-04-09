@@ -12,7 +12,7 @@ _[No features yet ↗](features/INDEX.md)_
 
 | Sprint    | Title                                                     | Status               | Tasks |
 | --------- | --------------------------------------------------------- | -------------------- | ----- |
-| FORGE-S02 | Foundational Concepts Documentation + Feature Tier (v1.0) | 🔵 active            | 8/10  |
+| FORGE-S02 | Foundational Concepts Documentation + Feature Tier (v1.0) | ✅ completed          | 10/10 |
 | FORGE-S01 | Token Usage Tracking                                      | ✅ retrospective-done | 8/8   |
 
 ## Task Registry
@@ -29,8 +29,8 @@ _[No features yet ↗](features/INDEX.md)_
 | [FORGE-S02-T06](../forge/tools/INDEX.md)             | collate.cjs — generate engineering/features/INDEX.md and cross-link from MASTER_INDEX.md                                | ✅ committed | M        |
 | [FORGE-S02-T07](../forge/meta/workflows/INDEX.md)    | meta-sprint-intake + meta-sprint-plan — feature linkage and feature_id propagation                                      | ✅ committed | M        |
 | [FORGE-S02-T08](../forge/commands/INDEX.md)          | forge:health — per-feature FEAT-ID test coverage reporting                                                              | ✅ committed | M        |
-| [FORGE-S02-T09](../INDEX.md)                         | README + vision alignment — containment diagram, concepts link, absorb default-workflows.md, sync vision/01-OVERVIEW.md | 📋 planned  | M        |
-| [FORGE-S02-T10](../forge/.claude-plugin/INDEX.md)    | Release engineering — version bump to v0.6.0, migration entry, security scan                                            | 📋 planned  | S        |
+| [FORGE-S02-T09](../INDEX.md)                         | README + vision alignment — containment diagram, concepts link, absorb default-workflows.md, sync vision/01-OVERVIEW.md | ✅ committed | M        |
+| [FORGE-S02-T10](../forge/.claude-plugin/INDEX.md)    | Release engineering — version bump to v0.6.0, migration entry, security scan                                            | ✅ committed | S        |
 
 ### FORGE-S01
 

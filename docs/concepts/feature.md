@@ -8,6 +8,13 @@ Features allow product teams to reason about the system at a macro level, instea
 
 ## Lifecycle
 
-<!-- TODO: add state diagram after T02 -->
+```mermaid
+stateDiagram-v2
+    [*] --> draft
+    draft --> active
+    active --> shipped
+    active --> retired
+    shipped --> retired
+```
 
 For commands related to managing features, see the [Commands Reference](../commands/INDEX.md).
