@@ -2,8 +2,7 @@
 # scripts/bump-skillforge.sh [<git-ref>]
 #
 # Bumps the forge submodule inside Entelligentsia/skillforge to the given
-# git ref (tag, SHA, or branch), patches plugin.json with the skillforge-
-# specific updateUrl/migrationsUrl, and commits.
+# git ref (tag, SHA, or branch) and commits the pointer update.
 #
 # Defaults to the current HEAD of this repo if no ref is given.
 #
@@ -19,12 +18,14 @@ SKILLFORGE_RAW="https://raw.githubusercontent.com/Entelligentsia/skillforge/main
 PLUGIN_JSON="forge/forge/.claude-plugin/plugin.json"
 
 # --- Resolve ref ---
-ref="${1:-$(git rev-parse HEAD)}"
+# Always resolve to a full SHA so that when we pass it to the submodule's
+# git checkout, it is unambiguous (passing "HEAD" would be resolved in the
+# *submodule* context, not in this repo's context).
+ref="${1:-HEAD}"
+sha=$(git rev-parse "$ref")
+resolved=$(git rev-parse --short "$sha")
 
-# If the ref looks like a short SHA or branch, resolve to the full SHA for the commit message.
-resolved=$(git rev-parse --short "$ref" 2>/dev/null || echo "$ref")
-
-echo "── Bumping skillforge/forge → $ref ($resolved)"
+echo "── Bumping skillforge/forge → $ref ($resolved = $sha)"
 
 # --- Sanity checks ---
 if [ ! -d "$SKILLFORGE_DIR" ]; then
@@ -40,7 +41,7 @@ fi
 # --- Update submodule ---
 git -C "$SKILLFORGE_DIR" submodule update --init forge
 git -C "$SKILLFORGE_DIR/forge" fetch --tags
-git -C "$SKILLFORGE_DIR/forge" checkout "$ref"
+git -C "$SKILLFORGE_DIR/forge" checkout "$sha"
 
 # --- Read version from checked-out forge ---
 # No plugin.json patching needed: check-update.js/.sh derive the correct URL
