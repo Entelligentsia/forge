@@ -52,13 +52,20 @@ Then skip to **Step 3** (apply pending migrations if any).
 
 ### Determine update status
 
-Read the migration baseline from the update-check cache. Resolve the cache path:
-- If `CLAUDE_PLUGIN_DATA` is set and non-empty: `${CLAUDE_PLUGIN_DATA}/forge-plugin-data/update-check-cache.json`
-- Otherwise: `/tmp/forge-plugin-data/update-check-cache.json`
+Read the migration baseline from the project-scoped update-check cache:
 
-Call this resolved path `CACHE_FILE`. Read the file if it exists.
-Extract `migratedFrom` from the cache JSON. If absent, fall back to
-`localVersion` from the cache. If both are absent, use `LOCAL_VERSION`.
+```
+CACHE_FILE = .forge/update-check-cache.json
+```
+
+This file is project-scoped — each project maintains its own migration state.
+Read it if it exists. Extract `migratedFrom` from the JSON. If absent, fall
+back to `localVersion` from the file. If both are absent, use `LOCAL_VERSION`.
+
+> **Legacy fallback:** If `.forge/update-check-cache.json` does not exist but a
+> plugin-level cache does (`${CLAUDE_PLUGIN_DATA}/forge-plugin-data/update-check-cache.json`
+> or `/tmp/forge-plugin-data/update-check-cache.json`), read `migratedFrom` from
+> there as a one-time migration. Step 6 will write the project-scoped file going forward.
 
 The user can also pass `--from <version>` as an argument to set the baseline
 explicitly — this overrides any cached value.
@@ -645,13 +652,13 @@ If "skip all remaining decoration": stop offering decoration for subsequent file
 
 ## Step 6 — Record state and summarise
 
-Update the cache file to record the completed migration. Use `CACHE_FILE`
-from Step 1. If the parent directory does not exist, create it with
-`mkdir -p` before writing. Read the existing file if present, update
-`migratedFrom` and `localVersion` to `LOCAL_VERSION`, and write it back.
-Use the Write or Edit tool — do not run a shell command for this step.
+Write `.forge/update-check-cache.json` to record the completed migration.
+Read the existing file if present, update `migratedFrom` and `localVersion`
+to `LOCAL_VERSION`, and write it back. Use the Write or Edit tool — do not
+run a shell command for this step. The `.forge/` directory always exists at
+this point (it was checked earlier), so no `mkdir -p` is needed.
 
-If the cache file does not exist, create it with:
+If the file does not exist, create it with:
 ```json
 { "migratedFrom": "<LOCAL_VERSION>", "localVersion": "<LOCAL_VERSION>" }
 ```

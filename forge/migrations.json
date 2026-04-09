@@ -1,4 +1,12 @@
 {
+  "0.6.2": {
+    "version": "0.6.3",
+    "date": "2026-04-09",
+    "notes": "Fix /forge:update migration baseline: move update-check-cache.json to .forge/ (project-scoped) so multi-project machines don't share migration state across projects.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.6.1": {
     "version": "0.6.2",
     "date": "2026-04-09",

@@ -19,7 +19,12 @@ const https = require('https');
 
 const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || '.';
 const dataDir = process.env.CLAUDE_PLUGIN_DATA || path.join(os.tmpdir(), 'forge-plugin-data');
-const cacheFile = path.join(dataDir, 'update-check-cache.json');
+// Plugin-level cache: throttle only (lastCheck, remoteVersion) — shared across all projects.
+const pluginCacheFile = path.join(dataDir, 'update-check-cache.json');
+// Project-level cache: migration state (migratedFrom, localVersion) — per project.
+const forgeDir = '.forge';
+const hasForge = fs.existsSync(forgeDir) && fs.existsSync(path.join(forgeDir, 'config.json'));
+const projectCacheFile = path.join(forgeDir, 'update-check-cache.json');
 const remoteUrl = 'https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json';
 const checkInterval = 86400; // 24 hours in seconds
 
@@ -73,38 +78,48 @@ function emit(forgeCtx, updateMsg) {
 const local = localVersion();
 const now = Math.floor(Date.now() / 1000);
 
-let cache = null;
-if (fs.existsSync(cacheFile)) {
-  try { cache = JSON.parse(fs.readFileSync(cacheFile, 'utf8')); } catch { cache = null; }
+// Plugin-level cache: throttle (lastCheck, remoteVersion) — shared, not migration state.
+let pluginCache = null;
+if (fs.existsSync(pluginCacheFile)) {
+  try { pluginCache = JSON.parse(fs.readFileSync(pluginCacheFile, 'utf8')); } catch { pluginCache = null; }
 }
 
-const elapsed = cache ? now - (cache.lastCheck || 0) : Infinity;
+// Project-level cache: migration state (migratedFrom, localVersion) — per project.
+let projectCache = null;
+if (hasForge && fs.existsSync(projectCacheFile)) {
+  try { projectCache = JSON.parse(fs.readFileSync(projectCacheFile, 'utf8')); } catch { projectCache = null; }
+}
+
+const elapsed = pluginCache ? now - (pluginCache.lastCheck || 0) : Infinity;
 
 if (elapsed < checkInterval) {
-  // Cache still fresh — use stored result.
-  // If the local version has advanced since the cache was written (i.e. the
-  // user just ran /plugin install), update migratedFrom so /forge:update knows
-  // the pre-install baseline and reset lastCheck so we fetch a fresh remote
-  // version on the next session.
+  // Plugin cache still fresh — use stored remote version.
+  // Detect post-install: if the project's recorded localVersion differs from
+  // the running plugin version, the plugin was updated since last migration.
   let postInstallMsg = '';
-  if (cache.localVersion && cache.localVersion !== local) {
-    const updated = { ...cache, migratedFrom: cache.localVersion, localVersion: local, lastCheck: 0 };
-    try { fs.writeFileSync(cacheFile, JSON.stringify(updated)); } catch { /* non-fatal */ }
-    if (fs.existsSync(path.join('.forge', 'config.json'))) {
-      postInstallMsg = `Forge was updated to ${local} (was ${cache.localVersion}). Run /forge:update to apply changes to this project.`;
-    }
+  if (hasForge && projectCache && projectCache.localVersion && projectCache.localVersion !== local) {
+    // Record the pre-install version as baseline, update localVersion.
+    const updated = { migratedFrom: projectCache.localVersion, localVersion: local };
+    try { fs.writeFileSync(projectCacheFile, JSON.stringify(updated)); } catch { /* non-fatal */ }
+    // Reset plugin cache lastCheck so we fetch a fresh remote version next session.
+    try { fs.writeFileSync(pluginCacheFile, JSON.stringify({ ...pluginCache, lastCheck: 0 })); } catch { /* non-fatal */ }
+    postInstallMsg = `Forge was updated to ${local} (was ${projectCache.localVersion}). Run /forge:update to apply changes to this project.`;
   }
-  const updateMsg = postInstallMsg || buildUpdateMsg(cache.remoteVersion || '', local);
+  const updateMsg = postInstallMsg || buildUpdateMsg((pluginCache && pluginCache.remoteVersion) || '', local);
   emit(forgeContext, updateMsg);
 } else {
-  // Cache expired or missing — fetch fresh.
+  // Plugin cache expired or missing — fetch fresh remote version.
   fetchRemoteVersion((remoteVersion) => {
     if (remoteVersion) {
-      // Preserve migratedFrom if already set; seed it from current local version
-      // when writing for the first time so /forge:update has a baseline.
-      const migratedFrom = (cache && cache.migratedFrom) || (cache && cache.localVersion) || local;
-      const newCache = { lastCheck: now, remoteVersion, localVersion: local, migratedFrom };
-      try { fs.writeFileSync(cacheFile, JSON.stringify(newCache)); } catch { /* non-fatal */ }
+      // Update plugin-level throttle cache.
+      try { fs.writeFileSync(pluginCacheFile, JSON.stringify({ lastCheck: now, remoteVersion })); } catch { /* non-fatal */ }
+      // Seed project-level cache on first run if not yet present.
+      if (hasForge && !projectCache) {
+        try { fs.writeFileSync(projectCacheFile, JSON.stringify({ migratedFrom: local, localVersion: local })); } catch { /* non-fatal */ }
+      } else if (hasForge && projectCache && !projectCache.localVersion) {
+        // Backfill localVersion if missing.
+        try { fs.writeFileSync(projectCacheFile, JSON.stringify({ ...projectCache, localVersion: local })); } catch { /* non-fatal */ }
+      }
     }
     const updateMsg = buildUpdateMsg(remoteVersion, local);
     emit(forgeContext, updateMsg);
