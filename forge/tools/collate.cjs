@@ -90,6 +90,8 @@ const allSprints = listJson(path.join(storeRoot, 'sprints'))
   .sort((a, b) => a.sprintId.localeCompare(b.sprintId));
 const allTasks   = listJson(path.join(storeRoot, 'tasks'));
 const allBugs    = listJson(path.join(storeRoot, 'bugs'));
+const allFeatures= listJson(path.join(storeRoot, 'features'))
+  .sort((a, b) => (a.id || '').localeCompare(b.id || ''));
 
 // Group tasks by sprint
 const tasksBySprint = {};
@@ -129,6 +131,14 @@ if (SPRINT_ARG && targetSprints.length === 0) {
 
   const lines = [GENERATED, '', `# ${projectName} — Master Index`, '',
     `> Generated: ${new Date().toISOString().slice(0, 10)}`, ''];
+
+  // Feature Registry
+  lines.push('## Feature Registry', '');
+  if (allFeatures.length > 0) {
+    lines.push(`[Browse all ${allFeatures.length} features ↗](features/INDEX.md)`, '');
+  } else {
+    lines.push(`_[No features yet ↗](features/INDEX.md)_`, '');
+  }
 
   // Sprint registry
   lines.push('## Sprint Registry', '');
@@ -192,12 +202,70 @@ if (SPRINT_ARG && targetSprints.length === 0) {
 
   // Re-append preserved sections not already present
   for (const [heading, content] of Object.entries(preserved)) {
-    if (!['Sprint Registry', 'Task Registry', 'Bug Registry'].includes(heading)) {
+    if (!['Feature Registry', 'Sprint Registry', 'Task Registry', 'Bug Registry'].includes(heading)) {
       lines.push(content);
     }
   }
 
   writeFile(masterPath, lines.join('\n') + '\n');
+}
+
+// --- Generate features/INDEX.md and per-feature pages ---
+{
+  const featRoot = path.join(engRoot, 'features');
+
+  const featLines = [GENERATED, '', `# Feature Registry`, '',
+    `> Generated: ${new Date().toISOString().slice(0, 10)}`, ''];
+
+  if (allFeatures.length > 0) {
+    const rows = [['Feature ID', 'Title', 'Status', 'Sprints', 'Tasks']];
+    for (const f of allFeatures) {
+      if (!f.id) continue;
+      const sp = f.sprints || [];
+      const ts = f.tasks || [];
+      rows.push([
+        `[${f.id}](${f.id}.md)`,
+        f.title || '—',
+        statusBadge(f.status || 'draft'),
+        sp.length ? sp.join(', ') : '—',
+        ts.length ? ts.join(', ') : '—'
+      ]);
+
+      // Per-feature page
+      const pfLines = [GENERATED, '', `# Feature: ${f.title || f.id}`, '',
+        `> Feature ID: ${f.id}`,
+        `> Status: ${statusBadge(f.status || 'draft')}`,
+        `> Created: ${f.created_at || '—'}`,
+        ''];
+      
+      if (f.description) pfLines.push('## Description', '', f.description, '');
+
+      if (f.requirements && f.requirements.length > 0) {
+        pfLines.push('## Requirements', '');
+        f.requirements.forEach(req => pfLines.push(`- ${req}`));
+        pfLines.push('');
+      }
+
+      if (sp.length > 0) {
+        pfLines.push('## Linked Sprints', '');
+        sp.forEach(s => pfLines.push(`- ${s}`));
+        pfLines.push('');
+      }
+
+      if (ts.length > 0) {
+        pfLines.push('## Linked Tasks', '');
+        ts.forEach(t => pfLines.push(`- ${t}`));
+        pfLines.push('');
+      }
+
+      writeFile(path.join(featRoot, `${f.id}.md`), pfLines.join('\n') + '\n');
+    }
+    featLines.push(padTable(rows), '');
+  } else {
+    featLines.push('_No features yet._', '');
+  }
+
+  writeFile(path.join(featRoot, 'INDEX.md'), featLines.join('\n') + '\n');
 }
 
 // --- Load events per sprint ---
@@ -396,6 +464,7 @@ for (const sprint of targetSprints) {
 // --- Write COLLATION_STATE.json ---
 const stateData = {
   collatedAt: new Date().toISOString(),
+  featureCount: allFeatures.length,
   sprintCount: targetSprints.length,
   taskCount: allTasks.filter(t => targetSprints.some(s => s.sprintId === t.sprintId)).length,
   bugCount: allBugs.length,
