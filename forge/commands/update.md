@@ -88,7 +88,12 @@ URL: https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/migration
 
 Parse the response JSON. Walk the migration chain from `LOCAL_VERSION` forward
 to `REMOTE_VERSION`. Aggregate across all steps:
-- Union of all `regenerate` targets (deduplicated, order preserved)
+- Union of all `regenerate` targets, applying the dominance rule: for each
+  category (`workflows`, `knowledge-base`, `commands`), if any step lists a
+  bare category name (e.g. `"workflows"`), that category is flagged for full
+  rebuild. If all steps for a category use sub-targets (e.g.
+  `"workflows:plan_task"`), collect the union of those sub-targets
+  (deduplicated, order preserved).
 - Concatenated `notes` (one line per step)
 - `breaking: true` if any step is breaking
 - Union of all `manual` items
@@ -105,8 +110,11 @@ Present the update summary:
   • {version}: {notes}
 
 ### After install, Forge will regenerate
-  {for each target in aggregated regenerate:}
-  • {target}
+  {for each category in aggregated result:}
+  {if full rebuild:}
+  • {category}: (full rebuild)
+  {else:}
+  • {category}: {sub-target1}, {sub-target2}, ...
 
 {if breaking:}
 ### △ Breaking changes — manual steps required
@@ -163,7 +171,12 @@ Wait for the user to confirm the install completed.
 Read `$FORGE_ROOT/migrations.json` (local).
 
 Walk the migration chain from `baseline` forward to `LOCAL_VERSION`. Aggregate:
-- Union of all `regenerate` targets
+- Union of all `regenerate` targets, applying the dominance rule: for each
+  category (`workflows`, `knowledge-base`, `commands`), if any step lists a
+  bare category name (e.g. `"workflows"`), that category is flagged for full
+  rebuild. If all steps for a category use sub-targets (e.g.
+  `"workflows:plan_task"`), collect the union of those sub-targets
+  (deduplicated, order preserved).
 - Concatenated `notes`
 - `breaking: true` if any step is breaking
 - Union of all `manual` items
@@ -181,8 +194,11 @@ to be applied to this project's generated files:
   • {version}: {notes}
 
 ### Will regenerate
-  {for each target in aggregated regenerate:}
-  • {target}
+  {for each category in aggregated result:}
+  {if full rebuild:}
+  • {category}: (full rebuild)
+  {else:}
+  • {category}: {sub-target1}, {sub-target2}, ...
 
 {if breaking:}
 ### △ Breaking changes — complete these steps first:
@@ -238,8 +254,10 @@ Walk the migration chain from baseline forward to `LOCAL_VERSION`:
   > `/forge:regenerate workflows` is recommended.
   Then exit.
 
-Aggregate across all steps in the path:
-- Union of all `regenerate` targets (deduplicated, order preserved)
+Aggregate across all steps in the path, applying the dominance rule:
+- For each category (`workflows`, `knowledge-base`, `commands`):
+  - If ANY step has a bare entry for this category → full rebuild for that category.
+  - Otherwise → union of all sub-targets across all steps (deduplicated, order preserved).
 - Concatenated `notes` (one line per step)
 - `breaking: true` if any step is breaking
 - Union of all `manual` items
@@ -255,8 +273,11 @@ Changes:
   {notes from each step, one per line}
 
 Regeneration targets:
-  {for each target:}
-  • {target} — {description of what this regenerates}
+  {for each category in aggregated result:}
+  {if full rebuild:}
+  • {category}: (full rebuild)
+  {else:}
+  • {category}: {sub-target1}, {sub-target2}, ...
 
 {if breaking:}
 △ Breaking changes — complete these manual steps first:
@@ -269,11 +290,13 @@ If the user declines, exit without modifying anything.
 If `breaking: true`, require the user to confirm they have completed the manual
 steps before proceeding.
 
-For each target in the aggregated regeneration list, invoke the equivalent of
-`/forge:regenerate <target>` by reading and following
-`$FORGE_ROOT/commands/regenerate.md` for that specific category.
+For each category in the aggregated result, invoke `/forge:regenerate` by
+reading and following `$FORGE_ROOT/commands/regenerate.md`:
+- If flagged for full rebuild: invoke `/forge:regenerate <category>`
+- If sub-targets collected: invoke `/forge:regenerate <category> <sub-target>`
+  for each sub-target in order
 
-Run non-knowledge-base targets first (workflows, templates), then
+Run non-knowledge-base targets first (workflows, templates, commands), then
 knowledge-base sub-targets if present.
 
 ---

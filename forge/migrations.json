@@ -1,9 +1,17 @@
 {
+  "0.6.0": {
+    "version": "0.6.1",
+    "date": "2026-04-09",
+    "notes": "Lean migration architecture: eliminate tools regenerate target (schemas now embedded in validate-store), introduce colon-delimited granular regeneration sub-targets for workflows and knowledge-base, retroactively correct 0.6.0 migration entry. No user-facing file regeneration required.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.5.9": {
     "version": "0.6.0",
     "date": "2026-04-09",
     "notes": "FORGE-S02 — Foundational Concepts Documentation + Feature Tier: new Feature entity (feature.schema.json, .forge/store/features/), feature_id nullable field added to sprint and task schemas, collate generates engineering/features/ registry, validate-store enforces feature referential integrity, seed-store scaffolds features/ on init, sprint-intake/plan wired to feature linkage, /forge:health reports per-feature FEAT-ID test coverage, docs/concepts/ section added, default-workflows.md absorbed into concepts, README and vision synced.",
-    "regenerate": ["tools", "workflows"],
+    "regenerate": ["workflows:sprint_intake", "workflows:sprint_plan"],
     "breaking": false,
     "manual": []
   },
@@ -83,7 +91,7 @@
     "version": "0.5.0",
     "date": "2026-04-06",
     "notes": "Japanese-style marks (〇△×🌱🌿⛰️) across all output; agent personas gain symbols and first-person announcements in workflows; built-in commands renamed plan/review-plan/review-code (update step 5b-pre detects old engineer.md/supervisor.md); generation-manifest tool tracks generated file modifications; engineering/tools/ eliminated — all tools invoked from $FORGE_ROOT/tools/; workflow field added to pipeline phases for custom command routing; paths.tools removed, paths.forgeRoot and paths.customCommands added to schema.",
-    "regenerate": ["workflows", "tools"],
+    "regenerate": ["workflows"],
     "breaking": false,
     "manual": []
   },
@@ -91,7 +99,7 @@
     "version": "0.4.1",
     "date": "2026-04-05",
     "notes": "Backfill explicit model fields on pipeline phases in config.json — fixes orchestrator falling through to unreliable prose role-default table (closes #19).",
-    "regenerate": ["tools"],
+    "regenerate": [],
     "breaking": true,
     "manual": ["Run model backfill on existing pipelines: node engineering/tools/manage-config.cjs pipeline backfill-models"]
   },
@@ -99,7 +107,7 @@
     "version": "0.4.0",
     "date": "2026-04-05",
     "notes": "Token Usage Tracking sprint (FORGE-S01): event schema gains optional token fields, collate generates COST_REPORT.md, estimate-usage fallback tool, orchestrator subagent self-reporting and sidecar merge, retrospective cost analysis and baselines, bug report opt-in for token data.",
-    "regenerate": ["tools", "workflows"],
+    "regenerate": ["workflows"],
     "breaking": false,
     "manual": []
   },
@@ -115,7 +123,7 @@
     "version": "0.3.14",
     "date": "2026-04-05",
     "notes": "Fix validate-store: nullable FK support (sprintId/taskId), event taskId checked against bugs, virtual sprint dirs accepted, --fix backfills sprint.createdAt and bug.reportedAt; align spec fallback list with schema (closes #15, #16).",
-    "regenerate": ["tools"],
+    "regenerate": [],
     "breaking": false,
     "manual": []
   },
@@ -123,7 +131,7 @@
     "version": "0.3.0",
     "date": "2026-04-02",
     "notes": "Pluggable pipeline routing, /forge:add-pipeline command, manage-config tool spec, extended /forge:regenerate with tools and knowledge-base categories.",
-    "regenerate": ["tools", "workflows"],
+    "regenerate": ["workflows"],
     "breaking": false,
     "manual": []
   },
@@ -147,7 +155,7 @@
     "version": "0.3.3",
     "date": "2026-04-02",
     "notes": "Fix seed-store camelCase/snake_case mismatch — spec now explicitly requires camelCase field names matching validate-store (fixes 167 false-positive errors from /forge:health).",
-    "regenerate": ["tools"],
+    "regenerate": [],
     "breaking": false,
     "manual": []
   },
@@ -171,7 +179,7 @@
     "version": "0.3.6",
     "date": "2026-04-02",
     "notes": "Graceful error handling across all plugin scripts and tool specs: hooks exit 0 on failure (never surface noise), utility scripts degrade to known exit codes, tool specs now require top-level exception handlers in generated tools.",
-    "regenerate": ["tools"],
+    "regenerate": [],
     "breaking": false,
     "manual": []
   },
@@ -179,7 +187,7 @@
     "version": "0.3.7",
     "date": "2026-04-03",
     "notes": "Ship tools as pre-built Node.js CJS scripts (collate, seed-store, validate-store, manage-config) and JSON Schema files; Phase 8 copies instead of generating; eliminates project-language dependency for tooling; adds JSON Schema backing for all store types (closes #10).",
-    "regenerate": ["tools"],
+    "regenerate": [],
     "breaking": false,
     "manual": []
   },
@@ -187,7 +195,7 @@
     "version": "0.3.13",
     "date": "2026-04-04",
     "notes": "Drop TIMESHEET generation from collate; make event model field required with CLI-agnostic full model ID (not short alias); add timing capture instructions to orchestrate event emission.",
-    "regenerate": ["tools", "workflows"],
+    "regenerate": ["workflows"],
     "breaking": false,
     "manual": []
   },
@@ -195,7 +203,7 @@
     "version": "0.3.12",
     "date": "2026-04-04",
     "notes": "Fix collate writing TIMESHEETs to wrong sprint dir and generating broken MASTER_INDEX links when sprint/task dirs use the full ID (e.g. HEDIS-S01) instead of the trailing segment (e.g. S01).",
-    "regenerate": ["tools"],
+    "regenerate": [],
     "breaking": false,
     "manual": []
   },
@@ -227,7 +235,7 @@
     "version": "0.3.8",
     "date": "2026-04-04",
     "notes": "Fix collate statusBadge() double-status rendering; fix validate-store false failures (null fields, prefixed sprint IDs, sprint-level events); add 'abandoned' to sprint/task schemas; add /forge:migrate command for interactive pre-Forge store migration (closes #11, #12, #13).",
-    "regenerate": ["tools"],
+    "regenerate": [],
     "breaking": false,
     "manual": []
   }

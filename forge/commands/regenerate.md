@@ -26,26 +26,45 @@ All tool invocations in this command use `node "$FORGE_ROOT/tools/<tool>.cjs"`.
 
 $ARGUMENTS
 
-Parse the argument to identify the target category and optional sub-target:
+Parse the argument to identify the target category and optional sub-target.
+Sub-targets may be passed either as a second positional argument or embedded
+with a colon delimiter (both forms are equivalent):
 
 ```
-/forge:regenerate                          # workflows + commands + templates (default)
-/forge:regenerate workflows                # atomic workflows + orchestration
-/forge:regenerate commands                 # .claude/commands/ slash command wrappers
-/forge:regenerate templates                # document templates only
-/forge:regenerate knowledge-base           # all three sub-targets (merge mode)
+/forge:regenerate                              # workflows + commands + templates (default)
+/forge:regenerate workflows                    # full workflow rebuild
+/forge:regenerate workflows plan_task          # single workflow file only
+/forge:regenerate workflows:plan_task          # same — colon form (from migration entries)
+/forge:regenerate workflows sprint_plan        # single workflow file only
+/forge:regenerate commands                     # .claude/commands/ slash command wrappers
+/forge:regenerate templates                    # document templates only
+/forge:regenerate knowledge-base               # all three sub-targets (merge mode)
 /forge:regenerate knowledge-base architecture
+/forge:regenerate knowledge-base:architecture  # colon form (from migration entries)
 /forge:regenerate knowledge-base business-domain
 /forge:regenerate knowledge-base stack-checklist
 ```
 
+When parsing the argument, split on `:` first: if the argument is
+`"workflows:plan_task"`, treat it as category=`workflows`,
+sub-target=`plan_task`. If no `:` is present, the second positional word
+(if any) is the sub-target. The sub-target is always optional.
+
 ---
 
-## Category: `workflows` — full rebuild
+## Category: `workflows` — full rebuild or single file
 
 Re-generate `.forge/workflows/` from the meta-workflow definitions and the
 current knowledge base. Covers both atomic workflows (Phase 5) and
 orchestration (Phase 6).
+
+**If a sub-target is provided** (e.g. `/forge:regenerate workflows plan_task`
+or the colon form `workflows:plan_task`), regenerate only the single workflow
+file `.forge/workflows/<sub-target>.md` instead of the full directory. All
+other steps below apply to that single file only (manifest check, diff prompt,
+hash recording).
+
+**If no sub-target** — full rebuild of all workflow files:
 
 1. Read `$FORGE_ROOT/meta/workflows/` — all meta-workflow files
 2. Read `$FORGE_ROOT/meta/workflows/meta-orchestrate.md`
