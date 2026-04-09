@@ -30,10 +30,147 @@ function readJson(filePath) {
   try { return JSON.parse(fs.readFileSync(filePath, 'utf8')); } catch { return null; }
 }
 
-function loadSchema(schemasDir, name) {
-  const p = path.join(schemasDir, `${name}.schema.json`);
-  return fs.existsSync(p) ? readJson(p) : null;
-}
+// Embedded JSON schemas — validate-store.cjs is self-contained and does not
+// read from .forge/schemas/. These definitions are sourced from
+// forge/meta/store-schema/*.md and are the canonical machine-readable specs.
+const SCHEMAS = {
+  sprint: {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "forge/sprint.schema.json",
+    "title": "Sprint",
+    "type": "object",
+    "required": ["sprintId", "title", "status", "taskIds", "createdAt"],
+    "properties": {
+      "sprintId":       { "type": "string" },
+      "title":          { "type": "string" },
+      "description":    { "type": "string" },
+      "status": {
+        "type": "string",
+        "enum": ["planning", "active", "completed", "retrospective-done", "blocked", "partially-completed"]
+      },
+      "goal":           { "type": "string" },
+      "taskIds":        { "type": "array", "items": { "type": "string" } },
+      "dependencies":   { "type": "object" },
+      "executionMode":  { "type": "string", "enum": ["sequential", "wave-parallel", "full-parallel"] },
+      "createdAt":      { "type": "string", "format": "date-time" },
+      "completedAt":    { "type": "string", "format": "date-time" },
+      "humanEstimates": { "type": "object" },
+      "feature_id":     { "type": ["string", "null"] },
+      "features":       { "type": "array", "items": { "type": "string" } }
+    },
+    "additionalProperties": false
+  },
+  task: {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "forge/task.schema.json",
+    "title": "Task",
+    "type": "object",
+    "required": ["taskId", "sprintId", "title", "status", "path"],
+    "properties": {
+      "taskId":               { "type": "string" },
+      "sprintId":             { "type": "string" },
+      "title":                { "type": "string" },
+      "description":          { "type": "string" },
+      "status": {
+        "type": "string",
+        "enum": [
+          "draft", "planned", "plan-approved", "implementing",
+          "implemented", "review-approved", "approved", "committed",
+          "plan-revision-required", "code-revision-required", "blocked", "escalated"
+        ]
+      },
+      "path":                 { "type": "string" },
+      "estimate":             { "type": "string", "enum": ["S", "M", "L", "XL"] },
+      "dependencies":         { "type": "array", "items": { "type": "string" } },
+      "knowledgeUpdates":     { "type": "array" },
+      "planIterations":       { "type": "integer", "minimum": 0 },
+      "codeReviewIterations": { "type": "integer", "minimum": 0 },
+      "assignedModel":        { "type": "string" },
+      "pipeline":             { "type": "string" },
+      "feature_id":           { "type": ["string", "null"] }
+    },
+    "additionalProperties": false
+  },
+  bug: {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "forge/bug.schema.json",
+    "title": "Bug",
+    "type": "object",
+    "required": ["bugId", "title", "severity", "status", "path", "reportedAt"],
+    "properties": {
+      "bugId":                { "type": "string" },
+      "title":                { "type": "string" },
+      "description":          { "type": "string" },
+      "severity":             { "type": "string", "enum": ["critical", "major", "minor"] },
+      "status":               { "type": "string", "enum": ["reported", "triaged", "in-progress", "fixed", "verified"] },
+      "path":                 { "type": "string" },
+      "rootCauseCategory": {
+        "type": "string",
+        "enum": ["validation", "auth", "business-rule", "data-integrity", "race-condition", "integration", "configuration", "regression"]
+      },
+      "similarBugs":          { "type": "array", "items": { "type": "string" } },
+      "checklistItemAdded":   { "type": "boolean" },
+      "businessRuleUpdated":  { "type": "boolean" },
+      "reportedAt":           { "type": "string", "format": "date-time" },
+      "resolvedAt":           { "type": "string", "format": "date-time" }
+    },
+    "additionalProperties": false
+  },
+  event: {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "forge/event.schema.json",
+    "title": "Event",
+    "type": "object",
+    "required": [
+      "eventId", "taskId", "sprintId", "role", "action",
+      "phase", "iteration", "startTimestamp", "endTimestamp", "durationMinutes", "model"
+    ],
+    "properties": {
+      "eventId":         { "type": "string" },
+      "taskId":          { "type": "string" },
+      "sprintId":        { "type": "string" },
+      "role":            { "type": "string" },
+      "action":          { "type": "string" },
+      "phase":           { "type": "string" },
+      "iteration":       { "type": "integer", "minimum": 1 },
+      "startTimestamp":  { "type": "string", "format": "date-time" },
+      "endTimestamp":    { "type": "string", "format": "date-time" },
+      "durationMinutes": { "type": "number", "minimum": 0 },
+      "model":           { "type": "string" },
+      "verdict":            { "type": "string" },
+      "notes":              { "type": "string" },
+      "inputTokens":        { "type": "integer", "minimum": 0 },
+      "outputTokens":       { "type": "integer", "minimum": 0 },
+      "cacheReadTokens":    { "type": "integer", "minimum": 0 },
+      "cacheWriteTokens":   { "type": "integer", "minimum": 0 },
+      "estimatedCostUSD":   { "type": "number",  "minimum": 0 },
+      "tokenSource":        { "type": "string",  "enum": ["reported", "estimated"] }
+    },
+    "additionalProperties": false
+  },
+  feature: {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "forge/feature.schema.json",
+    "title": "Feature",
+    "type": "object",
+    "required": ["id", "title", "status", "created_at"],
+    "properties": {
+      "id":           { "type": "string" },
+      "title":        { "type": "string" },
+      "description":  { "type": "string" },
+      "status": {
+        "type": "string",
+        "enum": ["draft", "active", "shipped", "retired"]
+      },
+      "requirements": { "type": "array", "items": { "type": "string" } },
+      "sprints":      { "type": "array", "items": { "type": "string" } },
+      "tasks":        { "type": "array", "items": { "type": "string" } },
+      "created_at":   { "type": "string", "format": "date-time" },
+      "updated_at":   { "type": "string", "format": "date-time" }
+    },
+    "additionalProperties": false
+  }
+};
 
 // Fields that are legitimately null:
 //   sprintId / taskId  — optional FK (e.g. standalone bug fix has no sprint)
@@ -97,20 +234,6 @@ const FALLBACK = {
 
 const config    = readConfig();
 const storePath = path.join(cwd, config.paths?.store || '.forge/store');
-const schemasPath = path.join(cwd, '.forge', 'schemas');
-
-const schemas = {
-  sprint: loadSchema(schemasPath, 'sprint'),
-  task:   loadSchema(schemasPath, 'task'),
-  bug:    loadSchema(schemasPath, 'bug'),
-  event:  loadSchema(schemasPath, 'event'),
-};
-
-const missingSchemas = Object.entries(schemas).filter(([,v]) => !v).map(([k]) => k);
-if (missingSchemas.length > 0) {
-  console.warn(`Warning: schema file(s) missing for: ${missingSchemas.join(', ')}`);
-  console.warn('Using fallback required-field lists. Run /forge:update-tools to install schemas.\n');
-}
 
 function listJsonFiles(dir) {
   if (!fs.existsSync(dir)) return [];
@@ -190,14 +313,14 @@ for (const file of listJsonFiles(path.join(storePath, 'sprints'))) {
     const prefix = config.project?.prefix;
     if (prefix) sprintIds.add(`${prefix}-${rec.sprintId}`);
   }
-  for (const e of validateRecord(rec, schemas.sprint, FALLBACK.sprint)) err(file, e);
+  for (const e of validateRecord(rec, SCHEMAS.sprint, FALLBACK.sprint)) err(file, e);
 }
 
 for (const file of listJsonFiles(path.join(storePath, 'tasks'))) {
   const rec = readJson(file);
   if (!rec) { err(file, 'invalid JSON'); continue; }
   if (rec.taskId) taskIds.add(rec.taskId);
-  for (const e of validateRecord(rec, schemas.task, FALLBACK.task)) err(file, e);
+  for (const e of validateRecord(rec, SCHEMAS.task, FALLBACK.task)) err(file, e);
 }
 
 for (const file of listJsonFiles(path.join(storePath, 'bugs'))) {
@@ -205,7 +328,7 @@ for (const file of listJsonFiles(path.join(storePath, 'bugs'))) {
   if (!rec) { err(file, 'invalid JSON'); continue; }
   if (FIX_MODE) backfillRecord(file, rec, 'bug');
   if (rec.bugId) bugIds.add(rec.bugId);
-  for (const e of validateRecord(rec, schemas.bug, FALLBACK.bug)) err(file, e);
+  for (const e of validateRecord(rec, SCHEMAS.bug, FALLBACK.bug)) err(file, e);
 }
 
 for (const file of listJsonFiles(path.join(storePath, 'features'))) {
@@ -267,7 +390,7 @@ if (fs.existsSync(eventsRoot)) {
       const rec = readJson(file);
       if (!rec) { err(file, 'invalid JSON'); continue; }
       if (FIX_MODE) backfillRecord(file, rec, 'event');
-      for (const e of validateRecord(rec, schemas.event, FALLBACK.event)) err(file, e);
+      for (const e of validateRecord(rec, SCHEMAS.event, FALLBACK.event)) err(file, e);
       if (rec.taskId && !taskIds.has(rec.taskId) && !bugIds.has(rec.taskId))
         err(file, `taskId "${rec.taskId}" references unknown task or bug`);
       if (rec.sprintId && !sprintIds.has(rec.sprintId) && rec.sprintId !== sprintDir)

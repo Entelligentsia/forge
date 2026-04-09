@@ -34,3 +34,32 @@ stateDiagram-v2
     active --> retired
     shipped --> retired
 ```
+
+## JSON Schema
+
+This block is the canonical machine-readable definition embedded in `validate-store.cjs`.
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "forge/feature.schema.json",
+  "title": "Feature",
+  "type": "object",
+  "required": ["id", "title", "status", "created_at"],
+  "properties": {
+    "id":           { "type": "string" },
+    "title":        { "type": "string" },
+    "description":  { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "active", "shipped", "retired"]
+    },
+    "requirements": { "type": "array", "items": { "type": "string" } },
+    "sprints":      { "type": "array", "items": { "type": "string" } },
+    "tasks":        { "type": "array", "items": { "type": "string" } },
+    "created_at":   { "type": "string", "format": "date-time" },
+    "updated_at":   { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}
+```

@@ -33,7 +33,6 @@ Parse the argument to identify the target category and optional sub-target:
 /forge:regenerate workflows                # atomic workflows + orchestration
 /forge:regenerate commands                 # .claude/commands/ slash command wrappers
 /forge:regenerate templates                # document templates only
-/forge:regenerate tools                    # schemas only (tools ship with plugin)
 /forge:regenerate knowledge-base           # all three sub-targets (merge mode)
 /forge:regenerate knowledge-base architecture
 /forge:regenerate knowledge-base business-domain
@@ -118,19 +117,6 @@ current knowledge base.
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/templates/{filename}.md
    ```
-
----
-
-## Category: `tools` — refresh schemas only
-
-Tools ship with the Forge plugin and are invoked directly from `$FORGE_ROOT/tools/`.
-They are never copied to the project. The `tools` regeneration target only refreshes
-the JSON schemas in `.forge/schemas/`.
-
-Read and follow `$FORGE_ROOT/init/generation/generate-tools.md`.
-
-**When to use:** after a Forge plugin update that changes store schemas
-(the migration entry will list `"tools"` in `regenerate`).
 
 ---
 

@@ -134,8 +134,10 @@ Read `$FORGE_ROOT/init/generation/generate-commands.md` and follow it.
 
 Read `$FORGE_ROOT/init/generation/generate-tools.md` and follow it.
 
-**Input**: `$FORGE_ROOT/schemas/` + `.forge/config.json`
-**Output**: `.forge/schemas/` (four JSON Schema files) + `paths.forgeRoot` written to `.forge/config.json`
+**Input**: `.forge/config.json`
+**Output**: `paths.forgeRoot` written to `.forge/config.json`
+
+> Schema validation is handled internally by `validate-store.cjs` — no schema files are copied to the project.
 
 ---
 

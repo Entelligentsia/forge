@@ -27,8 +27,7 @@ Failed states: `blocked`, `partially-completed`
 
 ## JSON Schema
 
-This block is the canonical machine-readable definition. It is emitted verbatim
-to `.forge/schemas/sprint.schema.json` during init (Phase 8).
+This block is the canonical machine-readable definition embedded in `validate-store.cjs`.
 
 ```json
 {

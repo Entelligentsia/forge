@@ -30,8 +30,7 @@ Example: `20260415T141523000Z_ACME-S02-T03_engineer_implement`
 
 ## JSON Schema
 
-This block is the canonical machine-readable definition. It is emitted verbatim
-to `.forge/schemas/event.schema.json` during init (Phase 8).
+This block is the canonical machine-readable definition embedded in `validate-store.cjs`.
 
 ```json
 {

@@ -119,7 +119,7 @@ Present the update summary:
 ```
 
 If no migration path can be constructed, show available notes and recommend
-`/forge:regenerate workflows tools`.
+`/forge:regenerate workflows`.
 
 Ask the user to choose. If they choose **[2]**, exit.
 
@@ -235,7 +235,7 @@ Walk the migration chain from baseline forward to `LOCAL_VERSION`:
 - Collect the ordered list of migration steps that bridge baseline → current.
 - If no path exists, warn:
   > No migration path found from {baseline} to {LOCAL_VERSION}. Running
-  > `/forge:regenerate workflows tools` is recommended.
+  > `/forge:regenerate workflows` is recommended.
   Then exit.
 
 Aggregate across all steps in the path:
@@ -273,7 +273,7 @@ For each target in the aggregated regeneration list, invoke the equivalent of
 `/forge:regenerate <target>` by reading and following
 `$FORGE_ROOT/commands/regenerate.md` for that specific category.
 
-Run non-knowledge-base targets first (tools, workflows, templates), then
+Run non-knowledge-base targets first (workflows, templates), then
 knowledge-base sub-targets if present.
 
 ---
