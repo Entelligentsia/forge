@@ -6,6 +6,7 @@
   "required": ["taskId", "sprintId", "title", "status", "path"],
   "properties": {
     "taskId":               { "type": "string" },
+    "feature_id":           { "type": ["string", "null"] },
     "sprintId":             { "type": "string" },
     "title":                { "type": "string" },
     "description":          { "type": "string" },

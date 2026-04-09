@@ -1,11 +1,5 @@
-# PROGRESS — FORGE-S02-T03
+# FORGE-S02-T03: Progress
 
-🌱 *Forge Engineer*
-
-**Status:** Completed
-
-Implemented schemas as per specification.
-- Added `feature.schema.json`
-- Modified `sprint.schema.json` properties
-- Modified `task.schema.json` properties
-- Tests passed.
+- `feature.schema.json` created under `forge/schemas/`.
+- Nullable `feature_id` added to sprint and task schemas.
+- Completed pipeline stages and successfully transitioned task out to `committed`.
