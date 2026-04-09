@@ -5,6 +5,11 @@
 // Check store integrity: required fields, types, enums, and referential integrity.
 // Usage: validate-store [--dry-run] [--fix]
 
+process.on('uncaughtException', (error) => {
+  console.error('Fatal validate-store error:', error);
+  process.exit(1);
+});
+
 const fs = require('fs');
 const path = require('path');
 
@@ -61,10 +66,15 @@ function validateRecord(record, schema, fallbackRequired) {
     if (val === null) continue;
 
     if (def.type) {
-      const ok = def.type === 'integer' ? Number.isInteger(val)
-               : def.type === 'number'  ? typeof val === 'number'
-               : def.type === 'array'   ? Array.isArray(val)
-               : typeof val === def.type;
+      const typeMatches = (expected, actualVal) => {
+        return expected === 'integer' ? Number.isInteger(actualVal)
+             : expected === 'number'  ? typeof actualVal === 'number'
+             : expected === 'array'   ? Array.isArray(actualVal)
+             : typeof actualVal === expected;
+      };
+      const ok = Array.isArray(def.type)
+        ? def.type.some(t => typeMatches(t, val))
+        : typeMatches(def.type, val);
       if (!ok) errors.push(`field "${field}": expected ${def.type}, got ${Array.isArray(val) ? 'array' : typeof val}`);
     }
     if (def.enum && !def.enum.includes(val)) {
@@ -168,6 +178,7 @@ function backfillRecord(file, rec, type) {
 const sprintIds = new Set();
 const taskIds   = new Set();
 const bugIds    = new Set();
+const featureIds = new Set();
 
 // --- Pass 1: validate structure, collect IDs ---
 for (const file of listJsonFiles(path.join(storePath, 'sprints'))) {
@@ -197,12 +208,45 @@ for (const file of listJsonFiles(path.join(storePath, 'bugs'))) {
   for (const e of validateRecord(rec, schemas.bug, FALLBACK.bug)) err(file, e);
 }
 
+for (const file of listJsonFiles(path.join(storePath, 'features'))) {
+  const rec = readJson(file);
+  if (!rec) { err(file, 'invalid JSON'); continue; }
+  const featureId = rec.id || path.basename(file, '.json');
+  featureIds.add(featureId);
+}
+
 // --- Pass 2: referential integrity ---
+for (const file of listJsonFiles(path.join(storePath, 'sprints'))) {
+  const rec = readJson(file);
+  if (!rec) continue;
+  if (rec.feature_id && !featureIds.has(rec.feature_id)) {
+    if (FIX_MODE) {
+      rec.feature_id = null;
+      fs.writeFileSync(file, JSON.stringify(rec, null, 2) + '\n', 'utf8');
+      console.log(`FIXED  ${path.relative(cwd, file)}: nullified orphaned feature_id`);
+      fixes++;
+    } else {
+      err(file, `feature_id "${rec.feature_id}" references unknown feature`);
+    }
+  }
+}
+
 for (const file of listJsonFiles(path.join(storePath, 'tasks'))) {
   const rec = readJson(file);
   if (!rec) continue;
   if (rec.sprintId && !sprintIds.has(rec.sprintId))
     err(file, `sprintId "${rec.sprintId}" references unknown sprint`);
+  
+  if (rec.feature_id && !featureIds.has(rec.feature_id)) {
+    if (FIX_MODE) {
+      rec.feature_id = null;
+      fs.writeFileSync(file, JSON.stringify(rec, null, 2) + '\n', 'utf8');
+      console.log(`FIXED  ${path.relative(cwd, file)}: nullified orphaned feature_id`);
+      fixes++;
+    } else {
+      err(file, `feature_id "${rec.feature_id}" references unknown feature`);
+    }
+  }
 }
 
 for (const file of listJsonFiles(path.join(storePath, 'bugs'))) {
