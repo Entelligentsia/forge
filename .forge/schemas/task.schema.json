@@ -24,7 +24,8 @@
     "planIterations":       { "type": "integer", "minimum": 0 },
     "codeReviewIterations": { "type": "integer", "minimum": 0 },
     "assignedModel":        { "type": "string" },
-    "pipeline":             { "type": "string" }
+    "pipeline":             { "type": "string" },
+    "feature_id":           { "type": ["string", "null"] }
   },
   "additionalProperties": false
 }

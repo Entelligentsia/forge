@@ -8,25 +8,25 @@
 
 | Sprint    | Title                                                     | Status               | Tasks |
 | --------- | --------------------------------------------------------- | -------------------- | ----- |
-| FORGE-S02 | Foundational Concepts Documentation + Feature Tier (v1.0) | 📝 planning          | 0/10  |
+| FORGE-S02 | Foundational Concepts Documentation + Feature Tier (v1.0) | 🔵 active            | 3/10  |
 | FORGE-S01 | Token Usage Tracking                                      | ✅ retrospective-done | 8/8   |
 
 ## Task Registry
 
 ### FORGE-S02
 
-| Task                                                 | Title                                                                                                                   | Status     | Estimate |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------- | -------- |
-| [FORGE-S02-T01](../docs/concepts/INDEX.md)           | docs/concepts/ — write all nine conceptual documentation pages                                                          | 📋 planned | L        |
-| [FORGE-S02-T02](../forge/meta/store-schema/INDEX.md) | feature.schema.md — author Feature store-schema documentation                                                           | 📋 planned | S        |
-| [FORGE-S02-T03](../forge/schemas/INDEX.md)           | JSON schemas — add feature.schema.json; add nullable feature_id to sprint and task schemas                              | 📋 planned | S        |
-| [FORGE-S02-T04](../forge/tools/INDEX.md)             | seed-store.cjs — scaffold features/ directory on init                                                                   | 📋 planned | S        |
-| [FORGE-S02-T05](../forge/tools/INDEX.md)             | validate-store.cjs — referential integrity for feature_id on tasks and sprints                                          | 📋 planned | M        |
-| [FORGE-S02-T06](../forge/tools/INDEX.md)             | collate.cjs — generate engineering/features/INDEX.md and cross-link from MASTER_INDEX.md                                | 📋 planned | M        |
-| [FORGE-S02-T07](../forge/meta/workflows/INDEX.md)    | meta-sprint-intake + meta-sprint-plan — feature linkage and feature_id propagation                                      | 📋 planned | M        |
-| [FORGE-S02-T08](../forge/commands/INDEX.md)          | forge:health — per-feature FEAT-ID test coverage reporting                                                              | 📋 planned | M        |
-| [FORGE-S02-T09](../INDEX.md)                         | README + vision alignment — containment diagram, concepts link, absorb default-workflows.md, sync vision/01-OVERVIEW.md | 📋 planned | M        |
-| [FORGE-S02-T10](../forge/.claude-plugin/INDEX.md)    | Release engineering — version bump to v1.0.0, migration entry, security scan                                            | 📋 planned | S        |
+| Task                                                 | Title                                                                                                                   | Status      | Estimate |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------- | -------- |
+| [FORGE-S02-T01](../docs/concepts/INDEX.md)           | docs/concepts/ — write all nine conceptual documentation pages                                                          | ✅ committed | L        |
+| [FORGE-S02-T02](../forge/meta/store-schema/INDEX.md) | feature.schema.md — author Feature store-schema documentation                                                           | ✅ committed | S        |
+| [FORGE-S02-T03](../forge/schemas/INDEX.md)           | JSON schemas — add feature.schema.json; add nullable feature_id to sprint and task schemas                              | ✅ committed | S        |
+| [FORGE-S02-T04](../forge/tools/INDEX.md)             | seed-store.cjs — scaffold features/ directory on init                                                                   | 📋 planned  | S        |
+| [FORGE-S02-T05](../forge/tools/INDEX.md)             | validate-store.cjs — referential integrity for feature_id on tasks and sprints                                          | 📋 planned  | M        |
+| [FORGE-S02-T06](../forge/tools/INDEX.md)             | collate.cjs — generate engineering/features/INDEX.md and cross-link from MASTER_INDEX.md                                | 📋 planned  | M        |
+| [FORGE-S02-T07](../forge/meta/workflows/INDEX.md)    | meta-sprint-intake + meta-sprint-plan — feature linkage and feature_id propagation                                      | 📋 planned  | M        |
+| [FORGE-S02-T08](../forge/commands/INDEX.md)          | forge:health — per-feature FEAT-ID test coverage reporting                                                              | 📋 planned  | M        |
+| [FORGE-S02-T09](../INDEX.md)                         | README + vision alignment — containment diagram, concepts link, absorb default-workflows.md, sync vision/01-OVERVIEW.md | 📋 planned  | M        |
+| [FORGE-S02-T10](../forge/.claude-plugin/INDEX.md)    | Release engineering — version bump to v0.6.0, migration entry, security scan                                            | 📋 planned  | S        |
 
 ### FORGE-S01
 
