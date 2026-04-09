@@ -30,17 +30,20 @@ IS_CANARY = FORGE_ROOT does not contain "/.claude/plugins/cache/"
 
 ## Step 1 — Check for updates
 
-Read the current **local** plugin version:
+Read `$FORGE_ROOT/.claude-plugin/plugin.json`. Extract:
+- `"version"` → `LOCAL_VERSION`
+- `"updateUrl"` → `UPDATE_URL` (fallback: `https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json`)
+- `"migrationsUrl"` → `MIGRATIONS_URL` (fallback: `https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/migrations.json`)
 
-```
-$FORGE_ROOT/.claude-plugin/plugin.json   →   extract "version"   →   LOCAL_VERSION
-```
+These URLs are set by each distribution. `forge@forge` points to the forge repo;
+`forge@skillforge` points to the skillforge repo. Never substitute a different URL —
+always use what the installed plugin declares.
 
-Fetch the **remote** plugin manifest from GitHub to get the latest available version.
+Fetch the **remote** plugin manifest to get the latest available version.
 Use the WebFetch tool (preferred) or `curl` via Bash:
 
 ```
-URL: https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json
+URL: {UPDATE_URL}
 ```
 
 Parse the response JSON and extract the `version` field → `REMOTE_VERSION`.
@@ -90,7 +93,7 @@ Now evaluate — **stop at the first matching row and follow only that row's act
 Fetch the **remote** migrations manifest from GitHub:
 
 ```
-URL: https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/migrations.json
+URL: {MIGRATIONS_URL}
 ```
 
 Parse the response JSON. Walk the migration chain from `LOCAL_VERSION` forward

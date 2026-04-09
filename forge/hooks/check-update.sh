@@ -16,7 +16,11 @@ PLUGIN_CACHE_FILE="$DATA_DIR/update-check-cache.json"
 HAS_FORGE=false
 PROJECT_CACHE_FILE=".forge/update-check-cache.json"
 [ -d ".forge" ] && [ -f ".forge/config.json" ] && HAS_FORGE=true
-REMOTE_URL="https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json"
+# Read update URL from plugin.json — allows each distribution (forge, skillforge, etc.)
+# to point to its own mother repo rather than hardcoding a single URL.
+FALLBACK_UPDATE_URL="https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json"
+REMOTE_URL=$(jq -r '.updateUrl // ""' "$PLUGIN_ROOT/.claude-plugin/plugin.json" 2>/dev/null || echo "")
+[ -z "$REMOTE_URL" ] && REMOTE_URL="$FALLBACK_UPDATE_URL"
 CHECK_INTERVAL=86400  # 24 hours in seconds
 
 main() {

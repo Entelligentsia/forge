@@ -84,4 +84,27 @@ in `docs/`, README updates, or changes that have no effect on installed projects
 - `forge/migrations.json` — migration chain read by `/forge:update`
 - `.claude-plugin/marketplace.json` — marketplace descriptor (repo root)
 - `forge/hooks/check-update.js` and `.sh` — session-start update detector;
-  remote URL must point to `forge/.claude-plugin/plugin.json` on `main`
+  reads `updateUrl` from `forge/.claude-plugin/plugin.json` to determine which
+  remote to poll. Never hardcodes the URL.
+
+## Distribution-aware update URLs
+
+`forge/.claude-plugin/plugin.json` declares two fields that control where
+`/forge:update` checks for new versions:
+
+```json
+"updateUrl":     "https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json",
+"migrationsUrl": "https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/migrations.json"
+```
+
+**When bumping the skillforge submodule**, patch these two fields in the
+skillforge cache's copy of `plugin.json` to point at the skillforge repo:
+
+```json
+"updateUrl":     "https://raw.githubusercontent.com/Entelligentsia/skillforge/main/forge/forge/.claude-plugin/plugin.json",
+"migrationsUrl": "https://raw.githubusercontent.com/Entelligentsia/skillforge/main/forge/forge/migrations.json"
+```
+
+This ensures that a user with `forge@skillforge` enabled only sees an update
+prompt when skillforge publishes a new version — not every time forge main
+advances. A user with `forge@forge` enabled tracks forge main directly.

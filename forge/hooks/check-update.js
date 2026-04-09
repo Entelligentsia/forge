@@ -25,7 +25,16 @@ const pluginCacheFile = path.join(dataDir, 'update-check-cache.json');
 const forgeDir = '.forge';
 const hasForge = fs.existsSync(forgeDir) && fs.existsSync(path.join(forgeDir, 'config.json'));
 const projectCacheFile = path.join(forgeDir, 'update-check-cache.json');
-const remoteUrl = 'https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json';
+// Read update URL from plugin.json — allows each distribution (forge, skillforge, etc.)
+// to point to its own mother repo rather than hardcoding a single URL.
+const FALLBACK_UPDATE_URL = 'https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json';
+function getUpdateUrl() {
+  try {
+    const manifest = JSON.parse(fs.readFileSync(path.join(pluginRoot, '.claude-plugin', 'plugin.json'), 'utf8'));
+    return manifest.updateUrl || FALLBACK_UPDATE_URL;
+  } catch { return FALLBACK_UPDATE_URL; }
+}
+const remoteUrl = getUpdateUrl();
 const checkInterval = 86400; // 24 hours in seconds
 
 fs.mkdirSync(dataDir, { recursive: true });
