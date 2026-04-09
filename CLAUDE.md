@@ -14,6 +14,9 @@ already installed Forge. This includes:
 - New commands or tools
 - Schema changes to `.forge/store/` or `.forge/config.json`
 
+**Invariant: schema change → update concepts diagram:**
+If a schema change affects the lifecycle (state machinery) of a Forge entity (Sprint, Task, Bug, Feature), the corresponding handwritten state diagram in `docs/concepts/*.md` MUST be manually updated to reflect the new state enums.
+
 **Also required with every version bump:**
 
 1. Add a migration entry to `forge/migrations.json` with:
