@@ -44,6 +44,11 @@ three matter most if time runs short.
 
 ### Step 3 — Scope
 
+Ask: **Which Feature does this sprint advance?**
+- If the project has existing features in `.forge/store/features/`, list them by ID and title and prompt for selection.
+- If none exist, or if the sprint starts a brand-new capability, prompt the user to define a new Feature (id `FEAT-NNN`, title, one-sentence description) and write it to `.forge/store/features/FEAT-NNN.json`.
+- The feature link (or `null` if the sprint is standalone) is recorded in `SPRINT_REQUIREMENTS.md` under a new **Feature** field.
+
 Ask: **What specific features, fixes, or changes are you expecting this sprint?**
 
 For each item mentioned:

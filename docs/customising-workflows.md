@@ -1,3 +1,5 @@
+← [Back to Concepts: Extensibility](concepts/extensibility.md)
+
 # Customising Forge Workflows
 
 Forge generates a complete engineering practice from its meta-definitions. Everything it generates can be customised. This guide explains the customisation model, what to change at each layer, and how to keep your customisations in sync as Forge evolves.

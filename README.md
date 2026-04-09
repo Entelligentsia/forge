@@ -174,12 +174,26 @@ Choose the guide that matches your situation:
 |---|---|
 | Onboard an existing codebase into Forge | [Existing project →](docs/existing-project.md) |
 | Start a new project with Forge from day 1 | [New project →](docs/new-project.md) |
-| Understand how the default workflows operate | [Default workflows →](docs/default-workflows.md) |
+| Understand the core concepts | [docs/concepts/index.md](docs/concepts/index.md) |
 | Adapt Forge pipelines and workflows to my team's process | [Customising workflows →](docs/customising-workflows.md) |
 
 ---
 
 ## How it works
+
+Forge operates on a strict containment model: `Project → Features → Sprints → Tasks`.
+
+```mermaid
+graph TD
+    Project(Project) --> Feature
+    Feature(Features) --> Sprint
+    Sprint(Sprints) --> Task
+    Task(Tasks) -. spawn .-> Bug(Bugs)
+    Sprint -. feed .-> Retro(Retrospectives)
+    Retro -. feed .-> KB(Knowledge Base)
+```
+
+The general lifecycle is:
 
 ```
 /forge:init  →  review engineering/  →  /sprint-intake  →  /sprint-plan  →  /run-sprint  →  /retrospective

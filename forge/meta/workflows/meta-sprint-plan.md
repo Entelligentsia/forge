@@ -20,6 +20,7 @@ For each task:
 - Estimated complexity (S/M/L/XL)
 - Dependencies on other tasks
 - Relevant entities and architecture areas
+- `feature_id` propagated from `SPRINT_REQUIREMENTS.md` (nullable)
 
 ### Step 3 — Build Dependency Graph
 - Define task dependencies as edges
@@ -27,8 +28,8 @@ For each task:
 - Compute wave structure for parallel execution
 
 ### Step 4 — Create Sprint Manifest
-- Write sprint JSON to .forge/store/sprints/
-- Write task JSONs to .forge/store/tasks/
+- Write sprint JSON to .forge/store/sprints/ (`feature_id` field if supported by schema — or note that it surfaces via T03)
+- Write task JSONs to .forge/store/tasks/ (include `feature_id` field, nullable)
   - If `config.pipelines` defines named pipelines, check whether each task matches
     a non-default pipeline (by task description, output artifacts, or domain pattern).
     If so, set `task.pipeline` to the matching pipeline name. When uncertain, omit the

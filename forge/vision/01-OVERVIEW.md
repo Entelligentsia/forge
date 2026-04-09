@@ -10,6 +10,8 @@ AI coding assistants are powerful but stateless. They don't know your project's 
 
 Teams that want structured multi-agent workflows (plan → review → implement → review → approve → ship) face a bootstrapping problem: the workflows need deep project knowledge to be useful, but building that knowledge base is a manual, time-consuming process that most teams never start.
 
+Forge introduces a strict containment hierarchy (`Project → Features → Sprints → Tasks`) to solve this.
+
 ## The Solution
 
 Forge eliminates the bootstrapping problem. It:
