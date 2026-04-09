@@ -10,9 +10,12 @@
 |-------|------|----------|-------------|
 | `sprintId` | string | yes | e.g. `S01` |
 | `title` | string | yes | Sprint title |
-| `description` | string | no | Sprint goals |
+| `description` | string | no | Sprint goals (prose) |
+| `goal` | string | no | Sprint goal (single-sentence summary) |
 | `status` | enum | yes | See status values below |
 | `taskIds` | string[] | yes | Ordered list of task IDs in this sprint |
+| `features` | string[] | no | Feature IDs this sprint contributes to |
+| `feature_id` | string\|null | no | Primary feature linkage (nullable FK) |
 | `dependencies` | object | no | Task dependency edges for wave computation |
 | `executionMode` | enum | no | `sequential` / `wave-parallel` / `full-parallel` |
 | `createdAt` | string | yes | ISO 8601 timestamp |
@@ -44,7 +47,10 @@ This block is the canonical machine-readable definition embedded in `validate-st
       "type": "string",
       "enum": ["planning", "active", "completed", "retrospective-done", "blocked", "partially-completed"]
     },
+    "goal":           { "type": "string" },
     "taskIds":        { "type": "array", "items": { "type": "string" } },
+    "features":       { "type": "array", "items": { "type": "string" } },
+    "feature_id":     { "type": ["string", "null"] },
     "dependencies":   { "type": "object" },
     "executionMode":  { "type": "string", "enum": ["sequential", "wave-parallel", "full-parallel"] },
     "createdAt":      { "type": "string", "format": "date-time" },

@@ -178,9 +178,9 @@ const SCHEMAS = {
 const NULLABLE_FK = new Set(['sprintId', 'taskId', 'endTimestamp', 'durationMinutes']);
 
 // --- Validation ---
-function validateRecord(record, schema, fallbackRequired) {
+function validateRecord(record, schema) {
   const errors = [];
-  const required = schema ? (schema.required || []) : fallbackRequired;
+  const required = schema.required || [];
 
   for (const field of required) {
     if (record[field] === undefined || record[field] === '') {
@@ -189,8 +189,6 @@ function validateRecord(record, schema, fallbackRequired) {
       errors.push(`missing required field: "${field}"`);
     }
   }
-
-  if (!schema) return errors;
 
   // Generic property loop — covers ALL schema-defined fields including optional ones.
   // Token fields (inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens,
@@ -224,13 +222,6 @@ function validateRecord(record, schema, fallbackRequired) {
 
   return errors;
 }
-
-const FALLBACK = {
-  sprint: ['sprintId', 'title', 'status'],
-  task:   ['taskId', 'sprintId', 'title', 'status', 'path'],
-  bug:    ['bugId', 'title', 'severity', 'status', 'path', 'reportedAt'],
-  event:  ['eventId', 'sprintId', 'role', 'action', 'startTimestamp', 'endTimestamp', 'durationMinutes'],
-};
 
 const config    = readConfig();
 const storePath = path.join(cwd, config.paths?.store || '.forge/store');
@@ -313,14 +304,14 @@ for (const file of listJsonFiles(path.join(storePath, 'sprints'))) {
     const prefix = config.project?.prefix;
     if (prefix) sprintIds.add(`${prefix}-${rec.sprintId}`);
   }
-  for (const e of validateRecord(rec, SCHEMAS.sprint, FALLBACK.sprint)) err(file, e);
+  for (const e of validateRecord(rec, SCHEMAS.sprint)) err(file, e);
 }
 
 for (const file of listJsonFiles(path.join(storePath, 'tasks'))) {
   const rec = readJson(file);
   if (!rec) { err(file, 'invalid JSON'); continue; }
   if (rec.taskId) taskIds.add(rec.taskId);
-  for (const e of validateRecord(rec, SCHEMAS.task, FALLBACK.task)) err(file, e);
+  for (const e of validateRecord(rec, SCHEMAS.task)) err(file, e);
 }
 
 for (const file of listJsonFiles(path.join(storePath, 'bugs'))) {
@@ -328,7 +319,7 @@ for (const file of listJsonFiles(path.join(storePath, 'bugs'))) {
   if (!rec) { err(file, 'invalid JSON'); continue; }
   if (FIX_MODE) backfillRecord(file, rec, 'bug');
   if (rec.bugId) bugIds.add(rec.bugId);
-  for (const e of validateRecord(rec, SCHEMAS.bug, FALLBACK.bug)) err(file, e);
+  for (const e of validateRecord(rec, SCHEMAS.bug)) err(file, e);
 }
 
 for (const file of listJsonFiles(path.join(storePath, 'features'))) {
@@ -390,7 +381,7 @@ if (fs.existsSync(eventsRoot)) {
       const rec = readJson(file);
       if (!rec) { err(file, 'invalid JSON'); continue; }
       if (FIX_MODE) backfillRecord(file, rec, 'event');
-      for (const e of validateRecord(rec, SCHEMAS.event, FALLBACK.event)) err(file, e);
+      for (const e of validateRecord(rec, SCHEMAS.event)) err(file, e);
       if (rec.taskId && !taskIds.has(rec.taskId) && !bugIds.has(rec.taskId))
         err(file, `taskId "${rec.taskId}" references unknown task or bug`);
       if (rec.sprintId && !sprintIds.has(rec.sprintId) && rec.sprintId !== sprintDir)

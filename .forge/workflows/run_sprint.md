@@ -52,6 +52,27 @@ for each task in dependency_sorted(tasks):
 
   # After the subagent returns, read the task status from disk.
   task_status = read_task_status(task.taskId)   # .forge/store/tasks/{TASK_ID}.json
+
+  # Re-spawn guard: if the subagent returned without reaching a terminal state
+  # (e.g. it produced large output and ran out of context mid-pipeline),
+  # spawn once more with an explicit resume instruction before escalating.
+  if task_status not in ["committed", "abandoned", "escalated"]:
+    spawn_subagent(
+      prompt="Read `.forge/workflows/orchestrate_task.md` and follow it. "
+             "Task ID: {task.taskId}. "
+             "The task is currently at status '{task_status}' — resume from that phase. "
+             "Do not re-run phases that are already complete. "
+             "Also read `engineering/MASTER_INDEX.md` for project state.",
+      description="Resume pipeline for {task.taskId} (was {task_status})",
+      model="sonnet"
+    )
+    task_status = read_task_status(task.taskId)
+    if task_status not in ["committed", "abandoned", "escalated"]:
+      # Two attempts exhausted — escalate and continue with remaining tasks.
+      escalate("Task {task.taskId} did not reach terminal state after re-spawn "
+               "(status: {task_status}). Manual intervention required.")
+      continue
+
   # Terminal: "committed" → success. "escalated" → note and continue.
   # Never halt the whole sprint on one escalation.
 ```

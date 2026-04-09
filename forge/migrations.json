@@ -1,11 +1,19 @@
 {
+  "0.6.1": {
+    "version": "0.6.2",
+    "date": "2026-04-09",
+    "notes": "Housekeeping: sync sprint.schema.md to include goal/features/feature_id fields, remove dead FALLBACK object from validate-store.cjs, add re-spawn guard to run_sprint workflow for subagents that return mid-pipeline.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": ["You can safely delete .forge/schemas/ from existing projects — validate-store.cjs embeds schemas internally since 0.6.1 and no longer reads from that directory"]
+  },
   "0.6.0": {
     "version": "0.6.1",
     "date": "2026-04-09",
     "notes": "Lean migration architecture: eliminate tools regenerate target (schemas now embedded in validate-store), introduce colon-delimited granular regeneration sub-targets for workflows and knowledge-base, retroactively correct 0.6.0 migration entry. No user-facing file regeneration required.",
     "regenerate": [],
     "breaking": false,
-    "manual": []
+    "manual": ["You can safely delete .forge/schemas/ from existing projects — validate-store.cjs now embeds schemas internally and no longer reads from that directory"]
   },
   "0.5.9": {
     "version": "0.6.0",
