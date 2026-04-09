@@ -42,17 +42,10 @@ git -C "$SKILLFORGE_DIR" submodule update --init forge
 git -C "$SKILLFORGE_DIR/forge" fetch --tags
 git -C "$SKILLFORGE_DIR/forge" checkout "$ref"
 
-# --- Patch updateUrl / migrationsUrl ---
-node -e "
-  const fs = require('fs');
-  const file = '$SKILLFORGE_DIR/$PLUGIN_JSON';
-  const p = JSON.parse(fs.readFileSync(file, 'utf8'));
-  p.updateUrl     = '$SKILLFORGE_RAW/.claude-plugin/plugin.json';
-  p.migrationsUrl = '$SKILLFORGE_RAW/migrations.json';
-  fs.writeFileSync(file, JSON.stringify(p, null, 2) + '\n');
-"
-
-# --- Read patched version ---
+# --- Read version from checked-out forge ---
+# No plugin.json patching needed: check-update.js/.sh derive the correct URL
+# from the CLAUDE_PLUGIN_ROOT path pattern at runtime, so the installed
+# plugin.json can always carry the canonical forge URLs.
 version=$(node -e "process.stdout.write(require('$SKILLFORGE_DIR/$PLUGIN_JSON').version)")
 
 # --- Commit ---

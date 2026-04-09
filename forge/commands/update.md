@@ -30,14 +30,17 @@ IS_CANARY = FORGE_ROOT does not contain "/.claude/plugins/cache/"
 
 ## Step 1 — Check for updates
 
-Read `$FORGE_ROOT/.claude-plugin/plugin.json`. Extract:
-- `"version"` → `LOCAL_VERSION`
-- `"updateUrl"` → `UPDATE_URL` (fallback: `https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json`)
-- `"migrationsUrl"` → `MIGRATIONS_URL` (fallback: `https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/migrations.json`)
+Read `$FORGE_ROOT/.claude-plugin/plugin.json`. Extract `"version"` → `LOCAL_VERSION`.
 
-These URLs are set by each distribution. `forge@forge` points to the forge repo;
-`forge@skillforge` points to the skillforge repo. Never substitute a different URL —
-always use what the installed plugin declares.
+Determine the distribution from `FORGE_ROOT` path — the cache path encodes the
+marketplace name and is more reliable than reading fields from `plugin.json`:
+
+| FORGE_ROOT contains | Distribution | UPDATE_URL | MIGRATIONS_URL |
+|---------------------|-------------|------------|----------------|
+| `/cache/skillforge/forge/` | `forge@skillforge` | `https://raw.githubusercontent.com/Entelligentsia/skillforge/main/forge/forge/.claude-plugin/plugin.json` | `https://raw.githubusercontent.com/Entelligentsia/skillforge/main/forge/forge/migrations.json` |
+| anything else | `forge@forge` / canary | read `updateUrl` from `plugin.json`, fallback `https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json` | read `migrationsUrl` from `plugin.json`, fallback `https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/migrations.json` |
+
+Set `UPDATE_URL` and `MIGRATIONS_URL` accordingly before fetching.
 
 Fetch the **remote** plugin manifest to get the latest available version.
 Use the WebFetch tool (preferred) or `curl` via Bash:

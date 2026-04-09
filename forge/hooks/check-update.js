@@ -25,10 +25,20 @@ const pluginCacheFile = path.join(dataDir, 'update-check-cache.json');
 const forgeDir = '.forge';
 const hasForge = fs.existsSync(forgeDir) && fs.existsSync(path.join(forgeDir, 'config.json'));
 const projectCacheFile = path.join(forgeDir, 'update-check-cache.json');
-// Read update URL from plugin.json — allows each distribution (forge, skillforge, etc.)
-// to point to its own mother repo rather than hardcoding a single URL.
+// Determine the correct update-check URL for this distribution.
+// Primary: path-based detection from CLAUDE_PLUGIN_ROOT — reliable because the
+// cache path encodes the marketplace name (e.g. "/cache/skillforge/forge/").
+// Fallback: read updateUrl from plugin.json, then the hardcoded forge default.
+// This means the bump script never needs to patch plugin.json — each distribution
+// is identified at runtime by where Claude Code installed it.
 const FALLBACK_UPDATE_URL = 'https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json';
+const SKILLFORGE_UPDATE_URL = 'https://raw.githubusercontent.com/Entelligentsia/skillforge/main/forge/forge/.claude-plugin/plugin.json';
 function getUpdateUrl() {
+  // Path-based detection: skillforge marketplace installs under "/cache/skillforge/forge/".
+  if (pluginRoot.includes('/cache/skillforge/forge/')) {
+    return SKILLFORGE_UPDATE_URL;
+  }
+  // Otherwise fall back to what plugin.json declares (allows future distributions).
   try {
     const manifest = JSON.parse(fs.readFileSync(path.join(pluginRoot, '.claude-plugin', 'plugin.json'), 'utf8'));
     return manifest.updateUrl || FALLBACK_UPDATE_URL;

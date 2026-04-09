@@ -16,11 +16,18 @@ PLUGIN_CACHE_FILE="$DATA_DIR/update-check-cache.json"
 HAS_FORGE=false
 PROJECT_CACHE_FILE=".forge/update-check-cache.json"
 [ -d ".forge" ] && [ -f ".forge/config.json" ] && HAS_FORGE=true
-# Read update URL from plugin.json — allows each distribution (forge, skillforge, etc.)
-# to point to its own mother repo rather than hardcoding a single URL.
+# Determine the correct update-check URL for this distribution.
+# Primary: path-based detection from CLAUDE_PLUGIN_ROOT — reliable because the
+# cache path encodes the marketplace name (e.g. "/cache/skillforge/forge/").
+# Fallback: read updateUrl from plugin.json, then the hardcoded forge default.
 FALLBACK_UPDATE_URL="https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json"
-REMOTE_URL=$(jq -r '.updateUrl // ""' "$PLUGIN_ROOT/.claude-plugin/plugin.json" 2>/dev/null || echo "")
-[ -z "$REMOTE_URL" ] && REMOTE_URL="$FALLBACK_UPDATE_URL"
+SKILLFORGE_UPDATE_URL="https://raw.githubusercontent.com/Entelligentsia/skillforge/main/forge/forge/.claude-plugin/plugin.json"
+if echo "$PLUGIN_ROOT" | grep -q '/cache/skillforge/forge/'; then
+    REMOTE_URL="$SKILLFORGE_UPDATE_URL"
+else
+    REMOTE_URL=$(jq -r '.updateUrl // ""' "$PLUGIN_ROOT/.claude-plugin/plugin.json" 2>/dev/null || echo "")
+    [ -z "$REMOTE_URL" ] && REMOTE_URL="$FALLBACK_UPDATE_URL"
+fi
 CHECK_INTERVAL=86400  # 24 hours in seconds
 
 main() {
