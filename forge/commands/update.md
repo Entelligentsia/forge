@@ -35,10 +35,21 @@ Read `$FORGE_ROOT/.claude-plugin/plugin.json`. Extract `"version"` → `LOCAL_VE
 Determine the distribution from `FORGE_ROOT` path — the cache path encodes the
 marketplace name and is more reliable than reading fields from `plugin.json`:
 
-| FORGE_ROOT contains | Distribution | UPDATE_URL | MIGRATIONS_URL |
-|---------------------|-------------|------------|----------------|
-| `/cache/skillforge/forge/` | `forge@skillforge` | `https://raw.githubusercontent.com/Entelligentsia/skillforge/main/forge/forge/.claude-plugin/plugin.json` | `https://raw.githubusercontent.com/Entelligentsia/skillforge/main/forge/forge/migrations.json` |
-| anything else | `forge@forge` / canary | read `updateUrl` from `plugin.json`, fallback `https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json` | read `migrationsUrl` from `plugin.json`, fallback `https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/migrations.json` |
+| FORGE_ROOT contains | Distribution |
+|---------------------|-------------|
+| `/cache/skillforge/forge/` | `forge@skillforge` |
+| anything else | `forge@forge` / canary |
+
+For **both** distributions, resolve `UPDATE_URL` and `MIGRATIONS_URL` from the
+installed `plugin.json` — each distribution branch ships its own correct URLs:
+
+```
+UPDATE_URL     = plugin.json → updateUrl,     fallback: https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json
+MIGRATIONS_URL = plugin.json → migrationsUrl, fallback: https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/migrations.json
+```
+
+**Do NOT hardcode per-distribution URLs** — the installed `plugin.json` is the
+authoritative source. Hardcoding breaks when distribution hosting moves.
 
 Set `UPDATE_URL`, `MIGRATIONS_URL`, and `DISTRIBUTION` accordingly before fetching.
 
