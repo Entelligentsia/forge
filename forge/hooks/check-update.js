@@ -2,6 +2,9 @@
 // Forge session-start hook — runs on SessionStart
 // 1. Injects Forge-awareness context if this project has a .forge/ directory.
 // 2. Checks once per day whether a newer version is available.
+// 3. Detects distribution switches (forge@forge ↔ forge@skillforge) and
+//    refreshes paths.forgeRoot in .forge/config.json so subagents always
+//    reference the correct installed plugin path.
 //
 // Uses only Node.js built-ins — no npm dependencies required.
 // Works on Linux, macOS, and Windows wherever Claude Code runs.
@@ -21,24 +24,25 @@ const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || '.';
 const dataDir = process.env.CLAUDE_PLUGIN_DATA || path.join(os.tmpdir(), 'forge-plugin-data');
 // Plugin-level cache: throttle only (lastCheck, remoteVersion) — shared across all projects.
 const pluginCacheFile = path.join(dataDir, 'update-check-cache.json');
-// Project-level cache: migration state (migratedFrom, localVersion) — per project.
+// Project-level cache: migration state (migratedFrom, localVersion, distribution, forgeRoot) — per project.
 const forgeDir = '.forge';
 const hasForge = fs.existsSync(forgeDir) && fs.existsSync(path.join(forgeDir, 'config.json'));
 const projectCacheFile = path.join(forgeDir, 'update-check-cache.json');
+
+// Distribution detection — derived from CLAUDE_PLUGIN_ROOT path at runtime.
+// The cache path encodes the marketplace name, making this more reliable than
+// reading fields from plugin.json (which may be stale after a switch).
+function detectDistribution(root) {
+  return root.includes('/cache/skillforge/forge/') ? 'forge@skillforge' : 'forge@forge';
+}
+const currentDistribution = detectDistribution(pluginRoot);
+
 // Determine the correct update-check URL for this distribution.
-// Primary: path-based detection from CLAUDE_PLUGIN_ROOT — reliable because the
-// cache path encodes the marketplace name (e.g. "/cache/skillforge/forge/").
-// Fallback: read updateUrl from plugin.json, then the hardcoded forge default.
-// This means the bump script never needs to patch plugin.json — each distribution
-// is identified at runtime by where Claude Code installed it.
+// Each distribution's plugin.json carries its own updateUrl pointing at the
+// branch it was installed from (main for forge@forge, release for forge@skillforge),
+// so we read it directly — no hardcoded per-distribution URLs needed.
 const FALLBACK_UPDATE_URL = 'https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json';
-const SKILLFORGE_UPDATE_URL = 'https://raw.githubusercontent.com/Entelligentsia/skillforge/main/forge/forge/.claude-plugin/plugin.json';
 function getUpdateUrl() {
-  // Path-based detection: skillforge marketplace installs under "/cache/skillforge/forge/".
-  if (pluginRoot.includes('/cache/skillforge/forge/')) {
-    return SKILLFORGE_UPDATE_URL;
-  }
-  // Otherwise fall back to what plugin.json declares (allows future distributions).
   try {
     const manifest = JSON.parse(fs.readFileSync(path.join(pluginRoot, '.claude-plugin', 'plugin.json'), 'utf8'));
     return manifest.updateUrl || FALLBACK_UPDATE_URL;
@@ -103,10 +107,55 @@ if (fs.existsSync(pluginCacheFile)) {
   try { pluginCache = JSON.parse(fs.readFileSync(pluginCacheFile, 'utf8')); } catch { pluginCache = null; }
 }
 
-// Project-level cache: migration state (migratedFrom, localVersion) — per project.
+// Project-level cache: migration state — per project.
 let projectCache = null;
 if (hasForge && fs.existsSync(projectCacheFile)) {
   try { projectCache = JSON.parse(fs.readFileSync(projectCacheFile, 'utf8')); } catch { projectCache = null; }
+}
+
+// --- Distribution + forgeRoot sync (always runs before update-check logic) ---
+// Refreshes paths.forgeRoot in config.json and the distribution/forgeRoot fields
+// in the project cache. Handles distribution switches transparently — the user
+// gets a clear message and all path references are corrected before any command runs.
+let distributionSwitchMsg = '';
+if (hasForge && pluginRoot !== '.') {
+  // Keep paths.forgeRoot in .forge/config.json in sync with the active plugin root.
+  // Generated workflows read this to invoke tools without needing CLAUDE_PLUGIN_ROOT.
+  try {
+    const configPath = path.join(forgeDir, 'config.json');
+    const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    if (!cfg.paths) cfg.paths = {};
+    if (cfg.paths.forgeRoot !== pluginRoot) {
+      cfg.paths.forgeRoot = pluginRoot;
+      fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2) + '\n');
+    }
+  } catch { /* non-fatal */ }
+
+  if (projectCache) {
+    const storedRoot = projectCache.forgeRoot;
+    const storedDist = projectCache.distribution;
+    const switched = storedRoot && storedRoot !== pluginRoot;
+
+    // Build distribution switch message when the active plugin path changed and
+    // the distribution name is different (e.g. forge@skillforge → forge@forge).
+    if (switched && storedDist && storedDist !== currentDistribution) {
+      const versionNote = projectCache.localVersion && projectCache.localVersion !== local
+        ? ` Version: ${projectCache.localVersion} → ${local}.`
+        : '';
+      distributionSwitchMsg =
+        `Plugin distribution switched from ${storedDist} to ${currentDistribution}.${versionNote}` +
+        ` paths.forgeRoot updated. Run /forge:update to verify migration state.`;
+    }
+
+    // Sync distribution + forgeRoot into the project cache whenever they drift.
+    if (storedRoot !== pluginRoot || storedDist !== currentDistribution) {
+      try {
+        const updated = { ...projectCache, distribution: currentDistribution, forgeRoot: pluginRoot };
+        fs.writeFileSync(projectCacheFile, JSON.stringify(updated));
+        projectCache = updated; // keep in-memory copy consistent
+      } catch { /* non-fatal */ }
+    }
+  }
 }
 
 const elapsed = pluginCache ? now - (pluginCache.lastCheck || 0) : Infinity;
@@ -118,13 +167,22 @@ if (elapsed < checkInterval) {
   let postInstallMsg = '';
   if (hasForge && projectCache && projectCache.localVersion && projectCache.localVersion !== local) {
     // Record the pre-install version as baseline, update localVersion.
-    const updated = { migratedFrom: projectCache.localVersion, localVersion: local };
+    const updated = {
+      ...projectCache,
+      migratedFrom: projectCache.localVersion,
+      localVersion: local,
+      distribution: currentDistribution,
+      forgeRoot: pluginRoot,
+    };
     try { fs.writeFileSync(projectCacheFile, JSON.stringify(updated)); } catch { /* non-fatal */ }
     // Reset plugin cache lastCheck so we fetch a fresh remote version next session.
     try { fs.writeFileSync(pluginCacheFile, JSON.stringify({ ...pluginCache, lastCheck: 0 })); } catch { /* non-fatal */ }
-    postInstallMsg = `Forge was updated to ${local} (was ${projectCache.localVersion}). Run /forge:update to apply changes to this project.`;
+    // Suppress post-install message when a distribution switch message already covers the event.
+    if (!distributionSwitchMsg) {
+      postInstallMsg = `Forge was updated to ${local} (was ${projectCache.localVersion}). Run /forge:update to review changes and update.`;
+    }
   }
-  const updateMsg = postInstallMsg || buildUpdateMsg((pluginCache && pluginCache.remoteVersion) || '', local);
+  const updateMsg = distributionSwitchMsg || postInstallMsg || buildUpdateMsg((pluginCache && pluginCache.remoteVersion) || '', local);
   emit(forgeContext, updateMsg);
 } else {
   // Plugin cache expired or missing — fetch fresh remote version.
@@ -134,13 +192,23 @@ if (elapsed < checkInterval) {
       try { fs.writeFileSync(pluginCacheFile, JSON.stringify({ lastCheck: now, remoteVersion })); } catch { /* non-fatal */ }
       // Seed project-level cache on first run if not yet present.
       if (hasForge && !projectCache) {
-        try { fs.writeFileSync(projectCacheFile, JSON.stringify({ migratedFrom: local, localVersion: local })); } catch { /* non-fatal */ }
+        try {
+          fs.writeFileSync(projectCacheFile, JSON.stringify({
+            migratedFrom: local, localVersion: local,
+            distribution: currentDistribution, forgeRoot: pluginRoot,
+          }));
+        } catch { /* non-fatal */ }
       } else if (hasForge && projectCache && !projectCache.localVersion) {
-        // Backfill localVersion if missing.
-        try { fs.writeFileSync(projectCacheFile, JSON.stringify({ ...projectCache, localVersion: local })); } catch { /* non-fatal */ }
+        // Backfill localVersion (and distribution/forgeRoot) if missing.
+        try {
+          fs.writeFileSync(projectCacheFile, JSON.stringify({
+            ...projectCache, localVersion: local,
+            distribution: currentDistribution, forgeRoot: pluginRoot,
+          }));
+        } catch { /* non-fatal */ }
       }
     }
-    const updateMsg = buildUpdateMsg(remoteVersion, local);
+    const updateMsg = distributionSwitchMsg || buildUpdateMsg(remoteVersion, local);
     emit(forgeContext, updateMsg);
   });
 }
