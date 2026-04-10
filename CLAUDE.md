@@ -83,28 +83,41 @@ in `docs/`, README updates, or changes that have no effect on installed projects
 - `forge/.claude-plugin/plugin.json` — canonical version source
 - `forge/migrations.json` — migration chain read by `/forge:update`
 - `.claude-plugin/marketplace.json` — marketplace descriptor (repo root)
-- `forge/hooks/check-update.js` and `.sh` — session-start update detector;
+- `forge/hooks/check-update.js` — session-start update detector;
   reads `updateUrl` from `forge/.claude-plugin/plugin.json` to determine which
-  remote to poll. Never hardcodes the URL.
+  remote to poll. Never hardcodes distribution-specific URLs.
 
 ## Distribution-aware update URLs
 
-`forge/.claude-plugin/plugin.json` declares two fields that control where
-`/forge:update` checks for new versions:
+Each distribution branch carries its own `updateUrl` and `migrationsUrl` in
+`forge/.claude-plugin/plugin.json`. `/forge:update` always checks the URL
+declared in the installed `plugin.json` — no patching required.
 
+**`main` branch** (tracks forge@forge, direct installs):
 ```json
 "updateUrl":     "https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json",
 "migrationsUrl": "https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/migrations.json"
 ```
 
-**When bumping the skillforge submodule**, patch these two fields in the
-skillforge cache's copy of `plugin.json` to point at the skillforge repo:
-
+**`release` branch** (tracks forge@skillforge):
 ```json
-"updateUrl":     "https://raw.githubusercontent.com/Entelligentsia/skillforge/main/forge/forge/.claude-plugin/plugin.json",
-"migrationsUrl": "https://raw.githubusercontent.com/Entelligentsia/skillforge/main/forge/forge/migrations.json"
+"updateUrl":     "https://raw.githubusercontent.com/Entelligentsia/forge/release/forge/.claude-plugin/plugin.json",
+"migrationsUrl": "https://raw.githubusercontent.com/Entelligentsia/forge/release/forge/migrations.json"
 ```
 
-This ensures that a user with `forge@skillforge` enabled only sees an update
-prompt when skillforge publishes a new version — not every time forge main
-advances. A user with `forge@forge` enabled tracks forge main directly.
+## Promoting to skillforge
+
+Skillforge uses a `git-subdir` source pointing at the `release` branch of this
+repo. No changes to skillforge are ever needed for a promotion.
+
+To promote a version to skillforge users:
+
+```bash
+git checkout release
+git merge main
+git push origin release
+```
+
+That's it. Users installing via skillforge will get the new version on their
+next install or `/forge:update`. The `release` branch's `updateUrl` ensures
+their update checks track the release branch, not main.

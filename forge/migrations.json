@@ -1,4 +1,28 @@
 {
+  "0.6.7": {
+    "version": "0.6.8",
+    "date": "2026-04-10",
+    "notes": "Switch skillforge distribution to git-subdir from forge release branch; remove hardcoded SKILLFORGE_UPDATE_URL from check-update.js — each branch's plugin.json now carries its own updateUrl.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.6.6": {
+    "version": "0.6.7",
+    "date": "2026-04-10",
+    "notes": "Remove dead Bash hook duplicates: check-update.sh and list-skills.sh deleted; hooks have been JS-only since initial registration in hooks.json.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.6.5": {
+    "version": "0.6.6",
+    "date": "2026-04-10",
+    "notes": "Distribution-aware update-check cache: hooks persist distribution and forgeRoot in .forge/update-check-cache.json and refresh paths.forgeRoot in config.json on every session start; /forge:update refreshes paths.forgeRoot in Step 6 and handles cross-distribution downgrade scenario.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.6.4": {
     "version": "0.6.5",
     "date": "2026-04-10",
