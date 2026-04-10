@@ -40,7 +40,10 @@ marketplace name and is more reliable than reading fields from `plugin.json`:
 | `/cache/skillforge/forge/` | `forge@skillforge` | `https://raw.githubusercontent.com/Entelligentsia/skillforge/main/forge/forge/.claude-plugin/plugin.json` | `https://raw.githubusercontent.com/Entelligentsia/skillforge/main/forge/forge/migrations.json` |
 | anything else | `forge@forge` / canary | read `updateUrl` from `plugin.json`, fallback `https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json` | read `migrationsUrl` from `plugin.json`, fallback `https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/migrations.json` |
 
-Set `UPDATE_URL` and `MIGRATIONS_URL` accordingly before fetching.
+Set `UPDATE_URL`, `MIGRATIONS_URL`, and `DISTRIBUTION` accordingly before fetching.
+
+Also read `distribution` from `.forge/update-check-cache.json` → `PRIOR_DISTRIBUTION`.
+If the file doesn't exist or the field is absent, set `PRIOR_DISTRIBUTION = DISTRIBUTION`.
 
 Fetch the **remote** plugin manifest to get the latest available version.
 Use the WebFetch tool (preferred) or `curl` via Bash:
@@ -258,6 +261,24 @@ If `LOCAL_VERSION` equals baseline, there are no migrations to apply — skip
 to **Step 5**.
 
 Read `$FORGE_ROOT/migrations.json` (local — now updated after install).
+
+Before walking the migration chain, check for a cross-distribution downgrade:
+if `PRIOR_DISTRIBUTION` ≠ `DISTRIBUTION` and baseline appears higher than
+`LOCAL_VERSION` (e.g. baseline is `1.1.0` and `LOCAL_VERSION` is `1.0.5`):
+
+> The migration baseline ({baseline}) was set on **{PRIOR_DISTRIBUTION}** and is
+> higher than the current plugin version ({LOCAL_VERSION} on {DISTRIBUTION}).
+> The {PRIOR_DISTRIBUTION} migration chain does not exist in {DISTRIBUTION}'s
+> migrations.json — walking it would fail.
+>
+> Reset migration baseline to {LOCAL_VERSION} and regenerate workflows to match
+> the current installed version? This is safe — it re-generates files from the
+> installed plugin, discarding the unreachable canary state. [Y/n]
+
+If yes: set `baseline = LOCAL_VERSION`. If baseline now equals `LOCAL_VERSION`,
+there are no migrations to apply — skip directly to **Step 6**.
+
+If no: exit without changes.
 
 Walk the migration chain from baseline forward to `LOCAL_VERSION`:
 - Each entry key is a `from` version; its `version` field is the `to` version.
@@ -506,7 +527,7 @@ If no, note it and continue — the rest of the audit still runs.
 ### 5d — Identify non-built-in phase commands
 
 Built-in command names — skip any phase whose `command` matches one of these:
-`plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`
+`plan`, `review-plan`, `implement`, `review-code`, `validate`, `approve`, `commit`
 
 For each pipeline, read its full definition:
 ```sh
@@ -658,15 +679,30 @@ If "skip all remaining decoration": stop offering decoration for subsequent file
 
 ## Step 6 — Record state and summarise
 
-Write `.forge/update-check-cache.json` to record the completed migration.
-Read the existing file if present, update `migratedFrom` and `localVersion`
-to `LOCAL_VERSION`, and write it back. Use the Write or Edit tool — do not
-run a shell command for this step. The `.forge/` directory always exists at
-this point (it was checked earlier), so no `mkdir -p` is needed.
+**Refresh `paths.forgeRoot` in `.forge/config.json`:**
+
+```sh
+node "$FORGE_ROOT/tools/manage-config.cjs" set paths.forgeRoot "$FORGE_ROOT"
+```
+
+This ensures generated workflows reference the correct tool path after
+distribution switches or reinstalls. `FORGE_ROOT` was captured at the top of
+this command from `CLAUDE_PLUGIN_ROOT` and is always current.
+
+**Write `.forge/update-check-cache.json`** to record the completed migration.
+Read the existing file if present, update `migratedFrom`, `localVersion`,
+`distribution`, and `forgeRoot`, then write it back. Use the Write or Edit
+tool — do not run a shell command for this step. The `.forge/` directory always
+exists at this point (it was checked earlier), so no `mkdir -p` is needed.
 
 If the file does not exist, create it with:
 ```json
-{ "migratedFrom": "<LOCAL_VERSION>", "localVersion": "<LOCAL_VERSION>" }
+{
+  "migratedFrom": "<LOCAL_VERSION>",
+  "localVersion": "<LOCAL_VERSION>",
+  "distribution": "<DISTRIBUTION>",
+  "forgeRoot": "<FORGE_ROOT>"
+}
 ```
 
 Print the final summary:

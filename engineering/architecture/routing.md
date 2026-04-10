@@ -29,14 +29,11 @@ Hooks are registered in `forge/hooks/hooks.json` and execute automatically.
 | `SessionStart` | `hooks/check-update.js` | Inject Forge context; check for newer version; prompt `/forge:update` after install |
 | `PostToolUse` (Bash) | `hooks/triage-error.js` | On non-zero exit from Forge-related commands, suggest `/forge:report-bug` |
 
-**Unregistered (dead code):** `hooks/check-update.sh`, `hooks/list-skills.sh` — functional fallbacks not wired into `hooks.json`.
-
 ## Utilities (not hooks)
 
 | File | Invoked by | Purpose |
 |---|---|---|
 | `hooks/list-skills.js` | `commands/health.md`, `init/sdlc-init.md` | List all installed skills for skill-gap detection |
-| `hooks/list-skills.sh` | — | Bash equivalent of list-skills.js (unused) |
 
 ## Auth
 

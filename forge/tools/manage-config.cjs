@@ -15,7 +15,7 @@ const path = require('path');
 
 const CONFIG_PATH = path.join(process.cwd(), '.forge', 'config.json');
 
-const VALID_ROLES = ['plan', 'review-plan', 'implement', 'review-code', 'approve', 'commit'];
+const VALID_ROLES = ['plan', 'review-plan', 'implement', 'review-code', 'validate', 'approve', 'commit'];
 const VALID_NAME = /^[a-z0-9_-]+$/;
 
 const ROLE_MODEL_DEFAULTS = {
@@ -23,6 +23,7 @@ const ROLE_MODEL_DEFAULTS = {
   'implement': 'sonnet',
   'review-plan': 'opus',
   'review-code': 'opus',
+  'validate': 'opus',
   'approve': 'opus',
   'commit': 'haiku'
 };

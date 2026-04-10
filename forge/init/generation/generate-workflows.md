@@ -7,7 +7,7 @@ persona context, templates, and the knowledge base.
 
 ## Inputs
 
-- `$FORGE_ROOT/meta/workflows/meta-*.md` (13 meta-workflows)
+- `$FORGE_ROOT/meta/workflows/meta-*.md` (16 meta-workflows)
 - Persona context (from Phase 3)
 - Generated templates (from Phase 4)
 - Discovery context (from Phase 1)

@@ -31,6 +31,7 @@ The orchestrator resolves the model for each phase using this priority:
    | `implement` | `sonnet` |
    | `review-plan` | `opus` |
    | `review-code` | `opus` |
+   | `validate` | `opus` |
    | `approve` | `opus` |
    | `commit` | `haiku` |
 
@@ -60,7 +61,7 @@ Each phase in a pipeline has:
 ## Default Pipeline
 
 ```
-plan → review-plan → [loop max 3] → implement → review-implementation → [loop max 3] → approve → writeback → commit
+plan → review-plan → [loop max 3] → implement → review-code → [loop max 3] → validate → [loop max 3] → approve → writeback → commit
 ```
 
 When no `pipelines` section exists in config, the orchestrator uses this
@@ -152,7 +153,7 @@ for each task in dependency_sorted(tasks):
     emit_event(task, phase, action="complete", extra_fields=token_fields)
 
     # --- Non-review phases always advance ---
-    if phase.role not in ("review-plan", "review-code"):
+    if phase.role not in ("review-plan", "review-code", "validate"):
       i += 1
       continue
 
@@ -185,10 +186,11 @@ After each review phase completes, the orchestrator MUST read the verdict
 before branching. Do not infer the verdict from conversation context alone —
 always read the artifact.
 
-| Phase role    | Artifact to read                                      | Verdict field                  |
-|---------------|-------------------------------------------------------|--------------------------------|
-| `review-plan` | `{engineering}/sprints/{sprintDir}/{taskDir}/PLAN_REVIEW.md` | Line matching `**Verdict:**`   |
-| `review-code` | `{engineering}/sprints/{sprintDir}/{taskDir}/CODE_REVIEW.md` | Line matching `**Verdict:**`   |
+| Phase role    | Artifact to read                                                          | Verdict field                |
+|---------------|---------------------------------------------------------------------------|------------------------------|
+| `review-plan` | `{engineering}/sprints/{sprintDir}/{taskDir}/PLAN_REVIEW.md`              | Line matching `**Verdict:**` |
+| `review-code` | `{engineering}/sprints/{sprintDir}/{taskDir}/CODE_REVIEW.md`              | Line matching `**Verdict:**` |
+| `validate`    | `{engineering}/sprints/{sprintDir}/{taskDir}/VALIDATION_REPORT.md`        | Line matching `**Verdict:**` |
 
 The verdict line format is:
 
