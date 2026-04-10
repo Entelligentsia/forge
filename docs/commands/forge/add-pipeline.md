@@ -35,7 +35,7 @@ The command prompts for:
    ```
    <command>  <role>  [model]  [maxIterations]
    ```
-   Valid roles: `plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`
+   Valid roles: `plan`, `review-plan`, `implement`, `review-code`, `validate`, `approve`, `commit`
 
 ### Step 2 — Validate
 
@@ -47,7 +47,7 @@ Before touching the config file:
 | `command` is non-empty | Reject and re-prompt |
 | First phase is a `review-*` role | Warn: review with no preceding phase escalates immediately on first revision |
 | Pipeline name already exists | Ask whether to overwrite or abort |
-| Pipeline name is `default` | Acknowledge: this overrides the hardcoded default for all tasks without a `pipeline` field |
+| Pipeline name is `default` | Warn: `default` is Forge-managed and updated by migrations. To customise the default flow, create a named pipeline as a copy instead — e.g. `/forge:add-pipeline my-default` — and assign it to tasks via their `pipeline` field. Editing `default` directly means your changes will be overwritten on the next migration that updates the default pipeline. |
 
 ### Step 3 — Preview and confirm
 

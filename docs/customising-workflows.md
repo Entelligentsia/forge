@@ -44,7 +44,7 @@ flowchart TD
 
 ### 1. Custom pipelines — route tasks to specialised agents
 
-The default pipeline (plan → review → implement → review → approve → commit) works for general engineering tasks. When you have a recurring specialised task type — generating typed API clients from a spec, running schema migrations, scaffolding integration stubs — the generic pipeline adds friction without value. You can define a dedicated pipeline for it.
+The default pipeline (plan → review-plan → implement → review-code → validate → approve → commit) works for general engineering tasks. When you have a recurring specialised task type — generating typed API clients from a spec, running schema migrations, scaffolding integration stubs — the generic pipeline adds friction without value. You can define a dedicated pipeline for it.
 
 **Example: generating a typed API client from an OpenAPI spec**
 
@@ -94,7 +94,7 @@ Then run `/forge:regenerate workflows` to wire the routing into the generated or
 flowchart LR
     T[Task manifest] --> ORC{Orchestrator}
     ORC -->|task.pipeline = api-client-sync| CP[Custom pipeline\ngenerate → validate → approve → commit]
-    ORC -->|task.pipeline absent| DP[Default pipeline\nplan → review → implement → review → approve → commit]
+    ORC -->|task.pipeline absent| DP[Default pipeline\nplan → review-plan → implement → review-code → validate → approve → commit]
 
     style CP fill:#7b68ee,color:#fff
     style DP fill:#4a90e2,color:#fff
@@ -132,25 +132,29 @@ When Forge regenerates after you've edited a workflow, it will:
 
 ---
 
-### 3. Overriding the default pipeline
+### 3. Customising the default flow
 
-To change the default pipeline for all tasks (not just a specific type), define a `default` entry in `config.pipelines`:
+`config.pipelines.default` is **Forge-managed** — migrations update it when new phases are added (e.g. the QA validate phase in 0.6.9). Do not edit it directly: your changes will be overwritten the next time a migration updates the default pipeline.
+
+**To customise the flow for all tasks**, create a named copy instead:
 
 ```bash
-/forge:add-pipeline default
+/forge:add-pipeline my-default
 ```
+
+Define phases based on the current `default` pipeline, with your modifications. Then assign it to tasks by adding `"pipeline": "my-default"` to their task JSON, or let the sprint planner auto-assign it when descriptions match.
 
 Example — remove the plan review phase for a team that does synchronous planning outside the tool:
 
 ```
 command     role
+plan        plan
 implement   implement
 supervisor  review-code
+validate    validate
 approve     approve
 commit      commit
 ```
-
-This overrides the hardcoded default pipeline for every task that doesn't declare a specific `pipeline` field.
 
 ---
 

@@ -527,7 +527,7 @@ If no, note it and continue — the rest of the audit still runs.
 ### 5d — Identify non-built-in phase commands
 
 Built-in command names — skip any phase whose `command` matches one of these:
-`plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`
+`plan`, `review-plan`, `implement`, `review-code`, `validate`, `approve`, `commit`
 
 For each pipeline, read its full definition:
 ```sh

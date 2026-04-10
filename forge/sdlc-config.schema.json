@@ -128,7 +128,7 @@
                 },
                 "role": {
                   "type": "string",
-                  "enum": ["plan", "review-plan", "implement", "review-code", "approve", "commit"],
+                  "enum": ["plan", "review-plan", "implement", "review-code", "validate", "approve", "commit"],
                   "description": "Semantic role of this phase in the pipeline lifecycle"
                 },
                 "model": {
@@ -156,21 +156,35 @@
       "examples": [
         {
           "default": {
+            "description": "Forge-managed default pipeline. Do not modify — to customise, create a named pipeline as a copy and reference it via task.pipeline.",
             "phases": [
               {"command": "plan", "role": "plan", "model": "sonnet"},
               {"command": "review-plan", "role": "review-plan", "model": "opus"},
+              {"command": "implement", "role": "implement", "model": "sonnet"},
+              {"command": "review-code", "role": "review-code", "model": "opus"},
+              {"command": "validate", "role": "validate", "model": "opus"},
+              {"command": "approve", "role": "approve", "model": "opus"},
+              {"command": "commit", "role": "commit", "model": "haiku"}
+            ]
+          },
+          "hotfix": {
+            "description": "Fast-track pipeline for urgent fixes — skips plan review and QA validation",
+            "phases": [
+              {"command": "plan", "role": "plan", "model": "sonnet"},
               {"command": "implement", "role": "implement", "model": "sonnet"},
               {"command": "review-code", "role": "review-code", "model": "opus"},
               {"command": "approve", "role": "approve", "model": "opus"},
               {"command": "commit", "role": "commit", "model": "haiku"}
             ]
           },
-          "hotfix": {
-            "description": "Fast-track pipeline for urgent fixes — skips plan review",
+          "bug": {
+            "description": "Bug fix pipeline — BUG_ANALYSIS.md drives the plan phase",
             "phases": [
               {"command": "plan", "role": "plan", "model": "sonnet"},
+              {"command": "review-plan", "role": "review-plan", "model": "opus"},
               {"command": "implement", "role": "implement", "model": "sonnet"},
               {"command": "review-code", "role": "review-code", "model": "opus"},
+              {"command": "validate", "role": "validate", "model": "opus"},
               {"command": "approve", "role": "approve", "model": "opus"},
               {"command": "commit", "role": "commit", "model": "haiku"}
             ]

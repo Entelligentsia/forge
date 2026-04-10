@@ -81,8 +81,9 @@ Display the standard phases as a starting point:
 > | 2 | review-plan | `review-plan` | opus |
 > | 3 | implement | `implement` | sonnet |
 > | 4 | review-code | `review-code` | opus |
-> | 5 | approve | `approve` | opus |
-> | 6 | commit | `commit` | haiku |
+> | 5 | validate | `validate` | opus |
+> | 6 | approve | `approve` | opus |
+> | 7 | commit | `commit` | haiku |
 >
 > ── Walk me through phase by phase, or describe your whole pipeline at once.
 

@@ -48,7 +48,7 @@ flowchart TD
 ### Default pipeline
 
 ```
-plan → review-plan → implement → review-code → approve → commit
+plan → review-plan → implement → review-code → validate → approve → commit
 ```
 
 ### Phase execution
@@ -70,6 +70,7 @@ For each phase in the resolved pipeline:
 |---|---|
 | `implement` | Tests pass · build clean · lint clean |
 | `review-code` | Verdict is Approved or Approved with corrections |
+| `validate` | `VALIDATION_REPORT.md` exists with `**Verdict:** Approved` |
 | `approve` | `ARCHITECT_APPROVAL.md` exists with approval status |
 
 ---
@@ -87,12 +88,17 @@ flowchart LR
     I --> RC{review-code}
     RC -->|Revision Required| I
     RC -->|max 3 reached| ESC2([escalate])
-    RC -->|Approved| AP[approve]
+    RC -->|Approved| V{validate}
+    V -->|Revision Required| I
+    V -->|max 3 reached| ESC3([escalate])
+    V -->|Approved| AP[approve]
 
     style ESC1 fill:#e74c3c,color:#fff
     style ESC2 fill:#e74c3c,color:#fff
+    style ESC3 fill:#e74c3c,color:#fff
     style RP fill:#f5a623,color:#000
     style RC fill:#f5a623,color:#000
+    style V fill:#9b59b6,color:#fff
 ```
 
 Escalation means: emit an escalation event, surface the loop exhaustion to the human, and pause. The orchestrator never auto-approves to unblock the pipeline.
@@ -139,12 +145,41 @@ flowchart TD
     GC -->|fail| I
     GC -->|pass| RC{review-code}
     RC -->|Revision Required| I
-    RC -->|Approved| AP[approve]
+    RC -->|Approved| V{validate}
+    V -->|Revision Required| I
+    V -->|Approved| AP[approve]
     AP --> CM([commit])
 
     style RP fill:#f5a623,color:#000
     style RC fill:#f5a623,color:#000
+    style V fill:#9b59b6,color:#fff
     style AP fill:#4a90e2,color:#fff
     style CM fill:#2ecc71,color:#fff
     style GC fill:#95a5a6,color:#fff
+```
+
+---
+
+## Assigning a pipeline to a task
+
+The orchestrator reads `task.pipeline` from the task JSON manifest. Two ways to set it:
+
+**Automatic (during sprint planning):** `/sprint-plan` matches each task description against named pipeline `description` fields in `config.json` and stamps `pipeline` into the task JSON when there is a clear match.
+
+**Manual (after planning):** Edit the task JSON directly:
+
+```json
+// .forge/store/tasks/PROJ-S03-T02.json
+{
+  "taskId": "PROJ-S03-T02",
+  "pipeline": "hotfix"
+}
+```
+
+Then run `/run-task PROJ-S03-T02` — the orchestrator will pick up the `pipeline` field automatically.
+
+To see which pipelines are available:
+
+```bash
+/forge:add-pipeline --list
 ```

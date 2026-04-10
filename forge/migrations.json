@@ -1,4 +1,15 @@
 {
+  "0.6.9": {
+    "version": "0.6.10",
+    "date": "2026-04-10",
+    "notes": "Fix validate-store 'abandoned' enum gap; add meta-review-sprint-completion workflow; add 'validate' role to pipeline schema; update default/bug pipeline examples to include validate phase; document pipeline ownership model (default is Forge-managed, create named copies to customise); document manual pipeline assignment.",
+    "regenerate": ["workflows:architect_review_sprint_completion"],
+    "breaking": false,
+    "manual": [
+      "In .forge/config.json: add a 'validate' phase between 'review-code' and 'approve' in config.pipelines.default (command: 'validate', role: 'validate', model: 'opus'). Also add it to config.pipelines.bug if present. The hotfix pipeline intentionally omits validate.",
+      "In .forge/config.json: add a description to config.pipelines.default: 'Forge-managed default pipeline. Do not modify — to customise, create a named pipeline as a copy.'"
+    ]
+  },
   "0.6.8": {
     "version": "0.6.9",
     "date": "2026-04-10",

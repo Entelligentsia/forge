@@ -46,7 +46,7 @@ const SCHEMAS = {
       "description":    { "type": "string" },
       "status": {
         "type": "string",
-        "enum": ["planning", "active", "completed", "retrospective-done", "blocked", "partially-completed"]
+        "enum": ["planning", "active", "completed", "retrospective-done", "blocked", "partially-completed", "abandoned"]
       },
       "goal":           { "type": "string" },
       "taskIds":        { "type": "array", "items": { "type": "string" } },
@@ -76,7 +76,7 @@ const SCHEMAS = {
         "enum": [
           "draft", "planned", "plan-approved", "implementing",
           "implemented", "review-approved", "approved", "committed",
-          "plan-revision-required", "code-revision-required", "blocked", "escalated"
+          "plan-revision-required", "code-revision-required", "blocked", "escalated", "abandoned"
         ]
       },
       "path":                 { "type": "string" },
