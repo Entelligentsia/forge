@@ -1,4 +1,12 @@
 {
+  "0.6.10": {
+    "version": "0.6.11",
+    "date": "2026-04-10",
+    "notes": "Fix /forge:update: stop hardcoding skillforge distribution URL — always read updateUrl/migrationsUrl from installed plugin.json (fixes 404 on skillforge update check).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.6.9": {
     "version": "0.6.10",
     "date": "2026-04-10",
