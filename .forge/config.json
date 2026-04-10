@@ -6,7 +6,9 @@
     "description": "Self-enhancing AI SDLC plugin for Claude Code — generates project-specific engineering teams from any codebase"
   },
   "stack": {
-    "languages": ["javascript"],
+    "languages": [
+      "javascript"
+    ],
     "framework": "claude-code-plugin",
     "frontendFramework": null,
     "database": null,
@@ -26,10 +28,17 @@
     "workflows": ".forge/workflows",
     "commands": ".claude/commands",
     "templates": ".forge/templates",
-    "customCommands": "engineering/commands"
+    "customCommands": "engineering/commands",
+    "forgeRoot": "/home/boni/.claude/plugins/cache/skillforge/forge/0.6.8"
   },
   "pipeline": {
     "maxReviewIterations": 3
   },
-  "installedSkills": ["agent-sdk-dev", "forge", "frontend-design", "llm-patterns", "security-watchdog"]
+  "installedSkills": [
+    "agent-sdk-dev",
+    "forge",
+    "frontend-design",
+    "llm-patterns",
+    "security-watchdog"
+  ]
 }

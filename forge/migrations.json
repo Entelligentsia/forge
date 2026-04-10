@@ -1,4 +1,12 @@
 {
+  "0.6.8": {
+    "version": "0.6.9",
+    "date": "2026-04-10",
+    "notes": "QA validate phase: new meta-qa-engineer and meta-product-manager personas, meta-validate workflow, validate phase wired into default pipeline in meta-orchestrate; sprint-intake gains PM persona header; update command gains cross-distribution downgrade detection.",
+    "regenerate": ["workflows:orchestrate_task", "workflows:architect_sprint_intake"],
+    "breaking": false,
+    "manual": []
+  },
   "0.6.7": {
     "version": "0.6.8",
     "date": "2026-04-10",

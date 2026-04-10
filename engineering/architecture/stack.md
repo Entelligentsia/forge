@@ -4,7 +4,6 @@
 ## Runtime
 
 - **Node.js** — 18+ (built-in modules only; no npm dependencies in the plugin itself)
-- **Bash** — hook scripts ship a `.sh` fallback alongside the `.js` primary
 
 ## Languages
 
@@ -14,7 +13,6 @@
 | Markdown | All plugin content — commands, workflows, templates, meta-definitions | `forge/commands/`, `forge/meta/`, `forge/init/` |
 | JSON Schema | Store validation, config schema | `forge/schemas/`, `forge/sdlc-config.schema.json` |
 | JSON | Plugin manifest, config, store records, migrations | `forge/.claude-plugin/plugin.json`, `forge/migrations.json` |
-| Bash | Hook fallback (unregistered) | `forge/hooks/check-update.sh`, `forge/hooks/list-skills.sh` |
 
 ## Plugin Manifest
 

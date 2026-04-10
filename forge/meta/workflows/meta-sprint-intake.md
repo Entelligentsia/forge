@@ -1,5 +1,11 @@
 # Meta-Workflow: Sprint Intake
 
+## Persona
+
+📋 **{Project} Product Manager** — I capture what we're building and why. I do not move forward until requirements are clear.
+
+See `meta-product-manager.md` for the full persona definition.
+
 ## Purpose
 
 Interview the user to capture structured sprint requirements before sprint
