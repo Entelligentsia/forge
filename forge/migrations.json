@@ -1,4 +1,12 @@
 {
+  "0.6.12": {
+    "version": "0.6.13",
+    "date": "2026-04-12",
+    "notes": "Implement forge/tools/store.cjs facade for standardized store CRUD operations (Sprints, Tasks, Bugs, Events, Features) and FSImpl backend.",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": []
+  },
   "0.6.11": {
     "version": "0.6.12",
     "date": "2026-04-12",

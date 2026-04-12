@@ -286,6 +286,14 @@ publication. Reports are filed as versioned artifacts in
 
 | Version | Date | Report | Summary |
 |---------|------|--------|---------|
+## Security
+
+Every release is scanned with `/security-watchdog:scan-plugin` before
+publication. Reports are filed as versioned artifacts in
+[`docs/security/`](docs/security/).
+
+| Version | Date | Report | Summary |
+|---------|------|--------|---------|
 | 0.6.12 | 2026-04-12 | [scan-v0.6.12.md](docs/security/scan-v0.6.12.md) | 93 files — 0 critical, 3 warnings (all justified), 0 info — SAFE TO USE |
 | 0.6.11 | 2026-04-10 | [scan-v0.6.11.md](docs/security/scan-v0.6.11.md) | 91 files — 0 critical, 3 warnings (all justified), 0 info — SAFE TO USE |
 | 0.6.10 | 2026-04-10 | [scan-v0.6.10.md](docs/security/scan-v0.6.10.md) | 91 files — 0 critical, 3 warnings (all justified), 3 info (functional bugs fixed) — SAFE TO USE |
@@ -333,3 +341,4 @@ Maintainer Note:
 After saving `assets/forge_social.png`, upload it manually to set the social preview:
 GitHub → Entelligentsia/forge → Settings → Social preview → Edit → Upload image
 -->
+| 0.6.13 | 2026-04-12 | [scan-v0.6.13.md](docs/security/scan-v0.6.13.md) | SAFE TO USE |
