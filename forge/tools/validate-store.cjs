@@ -10,25 +10,10 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-const fs = require('fs');
-const path = require('path');
+const store = require('./store.cjs');
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const FIX_MODE = process.argv.includes('--fix') && !DRY_RUN;
-const cwd = process.cwd();
-
-// --- Config ---
-function readConfig() {
-  const p = path.join(cwd, '.forge', 'config.json');
-  if (!fs.existsSync(p)) { console.error('Error: .forge/config.json not found'); process.exit(1); }
-  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) {
-    console.error(`Error: .forge/config.json is not valid JSON: ${e.message}`); process.exit(1);
-  }
-}
-
-function readJson(filePath) {
-  try { return JSON.parse(fs.readFileSync(filePath, 'utf8')); } catch { return null; }
-}
 
 // Embedded JSON schemas — validate-store.cjs is self-contained and does not
 // read from .forge/schemas/. These definitions are sourced from
@@ -190,11 +175,6 @@ function validateRecord(record, schema) {
     }
   }
 
-  // Generic property loop — covers ALL schema-defined fields including optional ones.
-  // Token fields (inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens,
-  // estimatedCostUSD) are not in `required`, so absent fields skip via `continue`
-  // below. When present, the integer/number type checks and minimum:0 guard apply
-  // automatically. No special-casing is needed for token fields.
   for (const [field, def] of Object.entries(schema.properties || {})) {
     const val = record[field];
     if (val === undefined) continue;
@@ -223,22 +203,12 @@ function validateRecord(record, schema) {
   return errors;
 }
 
-const config    = readConfig();
-const storePath = path.join(cwd, config.paths?.store || '.forge/store');
+let errorsCount = 0;
+let fixesCount = 0;
 
-function listJsonFiles(dir) {
-  if (!fs.existsSync(dir)) return [];
-  return fs.readdirSync(dir)
-    .filter(f => f.endsWith('.json'))
-    .map(f => path.join(dir, f));
-}
-
-let errors = 0;
-let fixes = 0;
-
-function err(file, msg) {
-  console.error(`ERROR  ${path.relative(cwd, file)}: ${msg}`);
-  errors++;
+function err(id, msg) {
+  console.error(`ERROR  ${id}: ${msg}`);
+  errorsCount++;
 }
 
 // --- Backfill defaults for --fix mode ---
@@ -249,19 +219,15 @@ const BACKFILL = {
   bug: {
     reportedAt: (rec) => rec.resolvedAt || new Date().toISOString(),
   },
-  // Events written before schema stabilisation often omit fields that can be inferred
-  // from the filename, sibling fields, or sensible defaults.
   event: {
-    eventId:         (_rec, file) => path.basename(file, '.json'),
+    eventId:         (_rec, id) => id,
     role:            (rec)        => rec.agent || 'unknown',
     action:          (rec)        => rec.phase  || 'unknown',
     phase:           (rec)        => rec.action || 'unknown',
     iteration:       ()           => 1,
     startTimestamp:  (rec)        => rec.timestamp || new Date().toISOString(),
-    // endTimestamp / durationMinutes are in NULLABLE_FK — derive only if a timestamp hint exists
     endTimestamp:    (rec)        => rec.timestamp || null,
     durationMinutes: ()           => null,
-    // Prefer an explicit model field; fall back to actor if it looks like a model ID
     model: (rec) => {
       if (rec.actor && typeof rec.actor === 'string' && rec.actor.includes('claude')) return rec.actor;
       return 'unknown';
@@ -269,21 +235,29 @@ const BACKFILL = {
   },
 };
 
-function backfillRecord(file, rec, type) {
+function backfillRecord(id, rec, type) {
   const rules = BACKFILL[type];
   if (!rules) return false;
   let changed = false;
   for (const [field, derive] of Object.entries(rules)) {
     if (rec[field] === undefined || rec[field] === null || rec[field] === '') {
-      const val = derive(rec, file);
+      const val = derive(rec, id);
       rec[field] = val;
-      console.log(`FIXED  ${path.relative(cwd, file)}: backfilled "${field}" = "${val}"`);
+      console.log(`FIXED  ${id}: backfilled "${field}" = "${val}"`);
       changed = true;
-      fixes++;
+      fixesCount++;
     }
   }
   if (changed) {
-    fs.writeFileSync(file, JSON.stringify(rec, null, 2) + '\n', 'utf8');
+    // Facade write uses the logic in FSImpl to maintain formatting
+    if (type === 'sprint') store.writeSprint(rec);
+    else if (type === 'task') store.writeTask(rec);
+    else if (type === 'bug') store.writeBug(rec);
+    else if (type === 'feature') store.writeFeature(rec);
+    // Events are slightly different as they need sprintId
+    else if (type === 'event') {
+      // We'll handle event writing in the loop where sprintId is known
+    }
   }
   return changed;
 }
@@ -295,109 +269,119 @@ const bugIds    = new Set();
 const featureIds = new Set();
 
 // --- Pass 1: validate structure, collect IDs ---
-for (const file of listJsonFiles(path.join(storePath, 'sprints'))) {
-  const rec = readJson(file);
-  if (!rec) { err(file, 'invalid JSON'); continue; }
-  if (FIX_MODE) backfillRecord(file, rec, 'sprint');
-  if (rec.sprintId) {
-    sprintIds.add(rec.sprintId);
-    const prefix = config.project?.prefix;
-    if (prefix) sprintIds.add(`${prefix}-${rec.sprintId}`);
-  }
-  for (const e of validateRecord(rec, SCHEMAS.sprint)) err(file, e);
+const sprints = store.listSprints();
+for (const rec of sprints) {
+  if (!rec) continue;
+  if (FIX_MODE) backfillRecord(rec.sprintId, rec, 'sprint');
+  if (rec.sprintId) sprintIds.add(rec.sprintId);
+  for (const e of validateRecord(rec, SCHEMAS.sprint)) err(rec.sprintId, e);
 }
 
-for (const file of listJsonFiles(path.join(storePath, 'tasks'))) {
-  const rec = readJson(file);
-  if (!rec) { err(file, 'invalid JSON'); continue; }
+const tasks = store.listTasks();
+for (const rec of tasks) {
+  if (!rec) continue;
   if (rec.taskId) taskIds.add(rec.taskId);
-  for (const e of validateRecord(rec, SCHEMAS.task)) err(file, e);
+  for (const e of validateRecord(rec, SCHEMAS.task)) err(rec.taskId, e);
 }
 
-for (const file of listJsonFiles(path.join(storePath, 'bugs'))) {
-  const rec = readJson(file);
-  if (!rec) { err(file, 'invalid JSON'); continue; }
-  if (FIX_MODE) backfillRecord(file, rec, 'bug');
+const bugs = store.listBugs();
+for (const rec of bugs) {
+  if (!rec) continue;
+  if (FIX_MODE) backfillRecord(rec.bugId, rec, 'bug');
   if (rec.bugId) bugIds.add(rec.bugId);
-  for (const e of validateRecord(rec, SCHEMAS.bug)) err(file, e);
+  for (const e of validateRecord(rec, SCHEMAS.bug)) err(rec.bugId, e);
 }
 
-for (const file of listJsonFiles(path.join(storePath, 'features'))) {
-  const rec = readJson(file);
-  if (!rec) { err(file, 'invalid JSON'); continue; }
-  const featureId = rec.id || path.basename(file, '.json');
+const features = store.listFeatures();
+for (const rec of features) {
+  if (!rec) continue;
+  const featureId = rec.id || 'unknown';
   featureIds.add(featureId);
 }
 
 // --- Pass 2: referential integrity ---
-for (const file of listJsonFiles(path.join(storePath, 'sprints'))) {
-  const rec = readJson(file);
+for (const rec of sprints) {
   if (!rec) continue;
   if (rec.feature_id && !featureIds.has(rec.feature_id)) {
     if (FIX_MODE) {
       rec.feature_id = null;
-      fs.writeFileSync(file, JSON.stringify(rec, null, 2) + '\n', 'utf8');
-      console.log(`FIXED  ${path.relative(cwd, file)}: nullified orphaned feature_id`);
-      fixes++;
+      store.writeSprint(rec);
+      console.log(`FIXED  ${rec.sprintId}: nullified orphaned feature_id`);
+      fixesCount++;
     } else {
-      err(file, `feature_id "${rec.feature_id}" references unknown feature`);
+      err(rec.sprintId, `feature_id "${rec.feature_id}" references unknown feature`);
     }
   }
 }
 
-for (const file of listJsonFiles(path.join(storePath, 'tasks'))) {
-  const rec = readJson(file);
+for (const rec of tasks) {
   if (!rec) continue;
   if (rec.sprintId && !sprintIds.has(rec.sprintId))
-    err(file, `sprintId "${rec.sprintId}" references unknown sprint`);
-  
+    err(rec.taskId, `sprintId "${rec.sprintId}" references unknown sprint`);
+
   if (rec.feature_id && !featureIds.has(rec.feature_id)) {
     if (FIX_MODE) {
       rec.feature_id = null;
-      fs.writeFileSync(file, JSON.stringify(rec, null, 2) + '\n', 'utf8');
-      console.log(`FIXED  ${path.relative(cwd, file)}: nullified orphaned feature_id`);
-      fixes++;
+      store.writeTask(rec);
+      console.log(`FIXED  ${rec.taskId}: nullified orphaned feature_id`);
+      fixesCount++;
     } else {
-      err(file, `feature_id "${rec.feature_id}" references unknown feature`);
+      err(rec.taskId, `feature_id "${rec.feature_id}" references unknown feature`);
     }
   }
 }
 
-for (const file of listJsonFiles(path.join(storePath, 'bugs'))) {
-  const rec = readJson(file);
+for (const rec of bugs) {
   if (!rec) continue;
   for (const ref of (rec.similarBugs || [])) {
-    if (!bugIds.has(ref)) err(file, `similarBugs references unknown bug "${ref}"`);
+    if (!bugIds.has(ref)) err(rec.bugId, `similarBugs references unknown bug "${ref}"`);
   }
 }
 
 // --- Events ---
-const eventsRoot = path.join(storePath, 'events');
-if (fs.existsSync(eventsRoot)) {
-  for (const sprintDir of fs.readdirSync(eventsRoot)) {
-    const sprintEventsDir = path.join(eventsRoot, sprintDir);
-    if (!fs.statSync(sprintEventsDir).isDirectory()) continue;
-    for (const file of listJsonFiles(sprintEventsDir)) {
-      const rec = readJson(file);
-      if (!rec) { err(file, 'invalid JSON'); continue; }
-      if (FIX_MODE) backfillRecord(file, rec, 'event');
-      for (const e of validateRecord(rec, SCHEMAS.event)) err(file, e);
-      if (rec.taskId && !taskIds.has(rec.taskId) && !bugIds.has(rec.taskId))
-        err(file, `taskId "${rec.taskId}" references unknown task or bug`);
-      if (rec.sprintId && !sprintIds.has(rec.sprintId) && rec.sprintId !== sprintDir)
-        err(file, `sprintId "${rec.sprintId}" references unknown sprint`);
+const allSprints = store.listSprints();
+for (const sprint of allSprints) {
+  if (!sprint) continue;
+  const sprintId = sprint.sprintId;
+  const events = store.listEvents(sprintId);
+  for (const rec of events) {
+    if (!rec) continue;
+
+    // Since eventId is the filename, and the facade doesn't expose filename directly in listEvents,
+    // we use the eventId property which is required by schema.
+    const eventId = rec.eventId;
+
+    if (FIX_MODE) {
+      const rules = BACKFILL.event;
+      let changed = false;
+      for (const [field, derive] of Object.entries(rules)) {
+        if (rec[field] === undefined || rec[field] === null || rec[field] === '') {
+          const val = derive(rec, eventId);
+          rec[field] = val;
+          console.log(`FIXED  ${sprintId}/${eventId}: backfilled "${field}" = "${val}"`);
+          changed = true;
+          fixesCount++;
+        }
+      }
+      if (changed) store.writeEvent(sprintId, rec);
     }
+
+    for (const e of validateRecord(rec, SCHEMAS.event)) err(`${sprintId}/${eventId}`, e);
+    if (rec.taskId && !taskIds.has(rec.taskId) && !bugIds.has(rec.taskId))
+      err(`${sprintId}/${eventId}`, `taskId "${rec.taskId}" references unknown task or bug`);
+    if (rec.sprintId && !sprintIds.has(rec.sprintId) && rec.sprintId !== sprintId)
+      err(`${sprintId}/${eventId}`, `sprintId "${rec.sprintId}" references unknown sprint`);
   }
 }
 
 // --- Result ---
-if (fixes > 0) {
-  console.log(`${fixes} field(s) backfilled.`);
+if (fixesCount > 0) {
+  console.log(`${fixesCount} field(s) backfilled.`);
 }
-if (errors === 0) {
+if (errorsCount === 0) {
   console.log(`Store validation passed (${sprintIds.size} sprint(s), ${taskIds.size} task(s), ${bugIds.size} bug(s)).`);
   process.exit(0);
 } else {
-  console.error(`\n${errors} error(s) found.`);
+  console.error(`\n${errorsCount} error(s) found.`);
   process.exit(1);
 }

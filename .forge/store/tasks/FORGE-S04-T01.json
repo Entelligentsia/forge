@@ -3,7 +3,7 @@
   "feature_id": "FEAT-001",
   "sprintId": "FORGE-S04",
   "title": "Implement `forge/tools/store.cjs` facade",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/tools/store.cjs",
   "estimate": "M",
   "dependencies": [],
