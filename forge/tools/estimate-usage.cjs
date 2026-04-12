@@ -12,8 +12,7 @@
 //   estimate-usage --sprint <SPRINT_ID>   Process all events in a sprint directory
 //   estimate-usage [--dry-run]            Log what would be written without modifying files
 
-const fs = require('fs');
-const path = require('path');
+const store = require('./store');
 
 // ---------------------------------------------------------------------------
 // Heuristic tables (documented — these are estimates, not measurements)
@@ -63,43 +62,16 @@ const PHASE_SPLIT = {
 const DEFAULT_PHASE_SPLIT = { input: 0.60, output: 0.40 };
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Heuristic tables (documented — these are estimates, not measurements)
 // ---------------------------------------------------------------------------
 
-function readConfig() {
-  const p = path.join(process.cwd(), '.forge', 'config.json');
-  if (!fs.existsSync(p)) {
-    console.error('Error: .forge/config.json not found');
-    process.exit(1);
-  }
-  try {
-    return JSON.parse(fs.readFileSync(p, 'utf8'));
-  } catch (e) {
-    console.error(`Error: .forge/config.json is not valid JSON: ${e.message}`);
-    process.exit(1);
-  }
-}
-
-function readJson(filePath) {
-  try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  } catch (e) {
-    return null;
-  }
-}
-
-// Substring-based model lookup — longest match wins.
-function lookupByModel(table, defaultValue, modelStr) {
-  if (!modelStr) return defaultValue;
-  let bestKey = null;
-  let bestLen = 0;
-  for (const key of Object.keys(table)) {
-    if (modelStr.includes(key) && key.length > bestLen) {
-      bestKey = key;
-      bestLen = key.length;
-    }
-  }
-  return bestKey !== null ? table[bestKey] : defaultValue;
+function lookupByModel(table, defaultValue, model) {
+  if (!model) return defaultValue;
+  const matches = Object.keys(table).filter(k => model.toLowerCase().includes(k.toLowerCase()));
+  if (matches.length === 0) return defaultValue;
+  // Longest match wins
+  matches.sort((a, b) => b.length - a.length);
+  return table[matches[0]];
 }
 
 function estimateTokens(event) {
@@ -129,10 +101,8 @@ function estimateTokens(event) {
   return { inputTokens, outputTokens, estimatedCostUSD, tokenSource: 'estimated' };
 }
 
-function processEventFile(filePath, dryRun) {
-  const event = readJson(filePath);
+function processEvent(event, dryRun) {
   if (!event) {
-    console.warn(`  [warn] Could not read or parse: ${filePath}`);
     return 'error';
   }
 
@@ -154,26 +124,19 @@ function processEventFile(filePath, dryRun) {
   const updated = Object.assign({}, event, estimates);
 
   if (dryRun) {
-    console.log(`  [dry-run] would write to: ${filePath}`);
+    console.log(`  [dry-run] would update event: ${event.eventId}`);
     console.log(`    inputTokens=${estimates.inputTokens}, outputTokens=${estimates.outputTokens}, estimatedCostUSD=${estimates.estimatedCostUSD}`);
     return 'updated';
   }
 
-  // Atomic write: write to .tmp then rename
-  const tmpPath = filePath + '.tmp';
   try {
-    fs.writeFileSync(tmpPath, JSON.stringify(updated, null, 2) + '\n', 'utf8');
-    fs.renameSync(tmpPath, filePath);
+    store.writeEvent(event.sprintId, updated);
   } catch (e) {
-    // Clean up tmp file if it exists
-    if (fs.existsSync(tmpPath)) {
-      try { fs.unlinkSync(tmpPath); } catch (_) {}
-    }
-    console.error(`  [error] Failed to write ${filePath}: ${e.message}`);
+    console.error(`  [error] Failed to write ${event.eventId}: ${e.message}`);
     return 'error';
   }
 
-  console.log(`  updated: ${path.basename(filePath)} (inputTokens=${estimates.inputTokens}, outputTokens=${estimates.outputTokens}, estimatedCostUSD=${estimates.estimatedCostUSD})`);
+  console.log(`  updated: ${event.eventId} (inputTokens=${estimates.inputTokens}, outputTokens=${estimates.outputTokens}, estimatedCostUSD=${estimates.estimatedCostUSD})`);
   return 'updated';
 }
 
@@ -198,11 +161,7 @@ try {
     process.exit(1);
   }
 
-  const config = readConfig();
-  const storePath = (config.paths && config.paths.store) ? config.paths.store : '.forge/store';
-  const storeDir = path.resolve(process.cwd(), storePath);
-
-  let filesToProcess = [];
+  let eventsToProcess = [];
 
   if (eventIdx !== -1) {
     // Single-event mode
@@ -211,14 +170,30 @@ try {
       console.error('Error: --event requires a file path argument');
       process.exit(1);
     }
+
+    // Use store facade to read the event
+    // Since the facade requires sprintId for events, we attempt to derive it from the path
+    const path = require('path');
     const resolved = path.isAbsolute(eventArg)
       ? eventArg
       : path.resolve(process.cwd(), eventArg);
-    if (!fs.existsSync(resolved)) {
-      console.error(`Error: event file not found: ${resolved}`);
+
+    // The event path is expected to be .forge/store/events/{sprintId}/{eventId}.json
+    const parts = resolved.split(path.sep);
+    const eventStoreIdx = parts.indexOf('events');
+    if (eventStoreIdx === -1 || !parts[eventStoreIdx + 1]) {
+      console.error(`Error: event path must be within the store events directory to use facade: ${resolved}`);
       process.exit(1);
     }
-    filesToProcess = [resolved];
+    const sprintId = parts[eventStoreIdx + 1];
+    const eventId = path.basename(resolved, '.json');
+
+    const eventData = store.getEvent(eventId, sprintId);
+    if (!eventData) {
+      console.error(`Error: event not found via facade: ${resolved}`);
+      process.exit(1);
+    }
+    eventsToProcess = [eventData];
   } else {
     // Sprint batch mode
     const sprintId = args[sprintIdx + 1];
@@ -226,22 +201,24 @@ try {
       console.error('Error: --sprint requires a SPRINT_ID argument');
       process.exit(1);
     }
-    const sprintEventsDir = path.join(storeDir, 'events', sprintId);
-    if (!fs.existsSync(sprintEventsDir)) {
-      console.error(`Error: sprint events directory not found: ${sprintEventsDir}`);
-      process.exit(1);
-    }
-    filesToProcess = fs.readdirSync(sprintEventsDir)
-      .filter(f => f.endsWith('.json') && !f.includes('_sidecar'))
-      .map(f => path.join(sprintEventsDir, f));
+    // listEvents returns all events in the sprint.
+    // We must filter out sidecars (which start with _).
+    // Note: FSImpl.listEvents currently returns JSON objects, not filenames.
+    // The sidecars are read as JSON objects if they end in .json.
+    // We identify sidecars by the absence of eventId or by a specific naming convention.
+    // However, the Store facade's listEvents uses readdirSync and filters by .json.
+    // Sidecars start with '_' in the filename.
+    // To properly filter, we need to be careful.
+    const allEvents = store.listEvents(sprintId);
+    eventsToProcess = allEvents.filter(e => e && e.eventId && !e.eventId.startsWith('_'));
   }
 
   let updated = 0;
   let skipped = 0;
   let errors = 0;
 
-  for (const filePath of filesToProcess) {
-    const result = processEventFile(filePath, DRY_RUN);
+  for (const event of eventsToProcess) {
+    const result = processEvent(event, DRY_RUN);
     if (result === 'updated') updated++;
     else if (result === 'skipped') skipped++;
     else errors++;

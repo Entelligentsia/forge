@@ -3,7 +3,7 @@
   "feature_id": "FEAT-001",
   "sprintId": "FORGE-S04",
   "title": "Port `estimate-usage.cjs` to store facade",
-  "status": "planned",
+  "status": "approved",
   "path": "forge/tools/estimate-usage.cjs",
   "estimate": "S",
   "dependencies": ["FORGE-S04-T01"],
