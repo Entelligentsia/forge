@@ -3,7 +3,7 @@
   "feature_id": "FEAT-001",
   "sprintId": "FORGE-S04",
   "title": "Port `seed-store.cjs` to store facade",
-  "status": "planned",
+  "status": "committed",
   "path": "forge/tools/seed-store.cjs",
   "estimate": "S",
   "dependencies": ["FORGE-S04-T01"],
