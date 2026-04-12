@@ -1,0 +1,11 @@
+{
+  "taskId": "FORGE-S04-T03",
+  "feature_id": "FEAT-001",
+  "sprintId": "FORGE-S04",
+  "title": "Port `collate.cjs` to store facade",
+  "status": "planned",
+  "path": "forge/tools/collate.cjs",
+  "estimate": "M",
+  "dependencies": ["FORGE-S04-T01"],
+  "pipeline": "default"
+}

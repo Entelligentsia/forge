@@ -1,0 +1,11 @@
+{
+  "taskId": "FORGE-S04-T04",
+  "feature_id": "FEAT-001",
+  "sprintId": "FORGE-S04",
+  "title": "Port `seed-store.cjs` to store facade",
+  "status": "planned",
+  "path": "forge/tools/seed-store.cjs",
+  "estimate": "S",
+  "dependencies": ["FORGE-S04-T01"],
+  "pipeline": "default"
+}
