@@ -3,7 +3,7 @@
   "feature_id": "FEAT-001",
   "sprintId": "FORGE-S04",
   "title": "Port `validate-store.cjs` to store facade",
-  "status": "plan-approved",
+  "status": "committed",
   "path": "forge/tools/validate-store.cjs",
   "estimate": "L",
   "dependencies": ["FORGE-S04-T01"],
