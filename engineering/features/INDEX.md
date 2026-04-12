@@ -2,7 +2,9 @@
 
 # Feature Registry
 
-> Generated: 2026-04-09
+> Generated: 2026-04-12
 
-_No features yet._
+| Feature ID              | Title                   | Status    | Sprints   | Tasks |
+| ----------------------- | ----------------------- | --------- | --------- | ----- |
+| [FEAT-001](FEAT-001.md) | Store Abstraction Layer | 🔵 active | FORGE-S04 | —     |
 
