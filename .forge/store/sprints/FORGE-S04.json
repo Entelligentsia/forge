@@ -2,7 +2,7 @@
   "sprintId": "FORGE-S04",
   "feature_id": "FEAT-001",
   "title": "Store Abstraction Layer",
-  "status": "active",
+  "status": "retrospective-done",
   "taskIds": [
     "FORGE-S04-T01",
     "FORGE-S04-T02",
@@ -12,5 +12,5 @@
     "FORGE-S04-T06"
   ],
   "executionMode": "sequential",
-  "createdAt": "2026-04-12T12:00:00Z"
+  "completedAt": "2026-04-12T15:00:00Z"
 }

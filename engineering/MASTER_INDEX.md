@@ -12,7 +12,7 @@
 
 | Sprint    | Title                                                     | Status               | Tasks |
 | --------- | --------------------------------------------------------- | -------------------- | ----- |
-| FORGE-S04 | Store Abstraction Layer                                   | 🔵 active            | 0/6   |
+| FORGE-S04 | Store Abstraction Layer                                   | 🔵 active            | 6/6   |
 | FORGE-S03 | Lean Migration Architecture                               | ✅ retrospective-done | 3/3   |
 | FORGE-S02 | Foundational Concepts Documentation + Feature Tier (v1.0) | ✅ completed          | 10/10 |
 | FORGE-S01 | Token Usage Tracking                                      | ✅ retrospective-done | 8/8   |
@@ -21,14 +21,14 @@
 
 ### FORGE-S04
 
-| Task                                              | Title                                     | Status     | Estimate |
-| ------------------------------------------------- | ----------------------------------------- | ---------- | -------- |
-| [FORGE-S04-T01](../forge/tools/INDEX.md)          | Implement `forge/tools/store.cjs` facade  | 📋 planned | M        |
-| [FORGE-S04-T02](../forge/tools/INDEX.md)          | Port `validate-store.cjs` to store facade | 📋 planned | L        |
-| [FORGE-S04-T03](../forge/tools/INDEX.md)          | Port `collate.cjs` to store facade        | 📋 planned | M        |
-| [FORGE-S04-T04](../forge/tools/INDEX.md)          | Port `seed-store.cjs` to store facade     | 📋 planned | S        |
-| [FORGE-S04-T05](../forge/tools/INDEX.md)          | Port `estimate-usage.cjs` to store facade | 📋 planned | S        |
-| [FORGE-S04-T06](../forge/.claude-plugin/INDEX.md) | Release engineering for FORGE-S04         | 📋 planned | S        |
+| Task                                              | Title                                     | Status      | Estimate |
+| ------------------------------------------------- | ----------------------------------------- | ----------- | -------- |
+| [FORGE-S04-T01](../forge/tools/INDEX.md)          | Implement `forge/tools/store.cjs` facade  | ✅ committed | M        |
+| [FORGE-S04-T02](../forge/tools/INDEX.md)          | Port `validate-store.cjs` to store facade | ✅ committed | L        |
+| [FORGE-S04-T03](../forge/tools/INDEX.md)          | Port `collate.cjs` to store facade        | ✅ committed | M        |
+| [FORGE-S04-T04](../forge/tools/INDEX.md)          | Port `seed-store.cjs` to store facade     | ✅ committed | S        |
+| [FORGE-S04-T05](../forge/tools/INDEX.md)          | Port `estimate-usage.cjs` to store facade | ✅ committed | S        |
+| [FORGE-S04-T06](../forge/.claude-plugin/INDEX.md) | Release engineering for FORGE-S04         | ✅ committed | S        |
 
 ### FORGE-S03
 
