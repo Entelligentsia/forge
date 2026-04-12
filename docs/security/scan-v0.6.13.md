@@ -1,26 +1,41 @@
-## Security Scan — forge:forge — 2026-04-12
+## Security Scan — forge — 2026-04-12
 
-**SHA**: 39582ada643f5a3b9829c6a04cf91e5c682fef4b | **Installed**: 2026-04-09T18:02:54.923Z | **Last updated**: 2026-04-12T10:58:19.350Z
-**Scope**: local | **Install path**: /home/boni/src/forge/forge
+**SHA**: 2c0859d | **Installed**: 2026-04-12 | **Last updated**: 2026-04-12
+**Scope**: forge | **Install path**: /home/boni/src/forge/forge
 
 ### Summary
-1 file scanned | 0 critical | 0 warnings | 0 info
+94 files scanned | 0 critical | 3 warnings | 0 info
 
 ### Findings
 
-#### INFO forge/tools/store.cjs
-- **Check**: A — Hook Scripts / Tool Logic
-- **Issue**: New tool introduced. Logic is deterministic and limited to local filesystem CRUD operations.
-- **Excerpt**: `class Store { constructor(implementation) { this.impl = implementation; } ... }`
-- **Recommendation**: Safe to ignore.
+#### WARNING forge/.claude-plugin/plugin.json:12
+- **Check**: C
+- **Issue**: Outbound updateUrl configured to raw.githubusercontent.com
+- **Excerpt**: "updateUrl": "https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json"
+- **Recommendation**: Safe to ignore; this is the official distribution mechanism for Forge updates.
+
+#### WARNING forge/.claude-plugin/plugin.json:13
+- **Check**: C
+- **Issue**: Outbound migrationsUrl configured to raw.githubusercontent.com
+- **Excerpt**: "migrationsUrl": "https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/migrations.json"
+- **Recommendation**: Safe to ignore; this is the official distribution mechanism for Forge migrations.
+
+#### WARNING forge/hooks/check-update.js:42
+- **Check**: A
+- **Issue**: Network call to GitHub API for update checking
+- **Excerpt**: await fetch(updateUrl)
+- **Recommendation**: Safe to ignore; essential for the plugin's update-check functionality.
 
 ### Clean Areas
-- forge/hooks — no issues detected
-- forge/commands — no issues detected
-- forge/schemas — no issues detected
+- forge/tools/ — no issues detected
+- forge/commands/ — no issues detected
+- forge/hooks/ — no issues detected (except justified update checks)
+- forge/meta/ — no issues detected
 
 ### Verdict
 
 **SAFE TO USE**
 
-The introduced `store.cjs` tool is a pure filesystem facade with no network calls, no credential access, and no dangerous shell execution.
+The plugin follows standard distribution patterns. All network calls are justified for update checks and point to official repositories.
+
+

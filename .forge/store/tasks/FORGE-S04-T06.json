@@ -3,7 +3,7 @@
   "feature_id": "FEAT-001",
   "sprintId": "FORGE-S04",
   "title": "Release engineering for FORGE-S04",
-  "status": "planned",
+  "status": "committed",
   "path": "forge/.claude-plugin/plugin.json",
   "estimate": "S",
   "dependencies": ["FORGE-S04-T02", "FORGE-S04-T03", "FORGE-S04-T04", "FORGE-S04-T05"],
