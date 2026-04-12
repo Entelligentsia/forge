@@ -2,21 +2,33 @@
 
 # Forge — Master Index
 
-> Generated: 2026-04-09
+> Generated: 2026-04-12
 
 ## Feature Registry
 
-_[No features yet ↗](features/INDEX.md)_
+[Browse all 1 features ↗](features/INDEX.md)
 
 ## Sprint Registry
 
 | Sprint    | Title                                                     | Status               | Tasks |
 | --------- | --------------------------------------------------------- | -------------------- | ----- |
+| FORGE-S04 | Store Abstraction Layer                                   | 🔵 active            | 0/6   |
 | FORGE-S03 | Lean Migration Architecture                               | ✅ retrospective-done | 3/3   |
 | FORGE-S02 | Foundational Concepts Documentation + Feature Tier (v1.0) | ✅ completed          | 10/10 |
 | FORGE-S01 | Token Usage Tracking                                      | ✅ retrospective-done | 8/8   |
 
 ## Task Registry
+
+### FORGE-S04
+
+| Task                                              | Title                                     | Status     | Estimate |
+| ------------------------------------------------- | ----------------------------------------- | ---------- | -------- |
+| [FORGE-S04-T01](../forge/tools/INDEX.md)          | Implement `forge/tools/store.cjs` facade  | 📋 planned | M        |
+| [FORGE-S04-T02](../forge/tools/INDEX.md)          | Port `validate-store.cjs` to store facade | 📋 planned | L        |
+| [FORGE-S04-T03](../forge/tools/INDEX.md)          | Port `collate.cjs` to store facade        | 📋 planned | M        |
+| [FORGE-S04-T04](../forge/tools/INDEX.md)          | Port `seed-store.cjs` to store facade     | 📋 planned | S        |
+| [FORGE-S04-T05](../forge/tools/INDEX.md)          | Port `estimate-usage.cjs` to store facade | 📋 planned | S        |
+| [FORGE-S04-T06](../forge/.claude-plugin/INDEX.md) | Release engineering for FORGE-S04         | 📋 planned | S        |
 
 ### FORGE-S03
 
@@ -56,12 +68,13 @@ _[No features yet ↗](features/INDEX.md)_
 
 ## Bug Registry
 
-| Bug                          | Title                                                                                                      | Severity | Status  |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------- | -------- | ------- |
-| [BUG-001](bugs/001/INDEX.md) | Sprint runner accumulates context across tasks — violates light-context principle                          | major    | ✅ fixed |
-| [BUG-002](bugs/002/INDEX.md) | validate-store: referential integrity checks incomplete — bugs, virtual sprints, and nullable foreign keys | major    | ✅ fixed |
-| [BUG-003](bugs/003/INDEX.md) | forge:update: migration 0.3.7→0.3.13 missing data migration for new required schema fields                 | major    | ✅ fixed |
-| [BUG-004](bugs/004/INDEX.md) | validate-store rejects valid null timing fields on start events and has no event backfill                  | major    | ✅ fixed |
-| [BUG-005](bugs/005/INDEX.md) | fix-bug is not an orchestrator — 4 control-flow and schema deviations                                      | major    | ✅ fixed |
-| [BUG-006](bugs/006/INDEX.md) | collate: COST_REPORT.md written to SNN/ stub dirs instead of existing sprint_NN_*/ dirs                    | major    | ✅ fixed |
+| Bug                                                                 | Title                                                                                                       | Severity | Status  |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------- | ------- |
+| [BUG-001](bugs/BUG-001-sprint-runner-context-accumulation/INDEX.md) | Sprint runner accumulates context across tasks — violates light-context principle                           | major    | ✅ fixed |
+| [BUG-002](bugs/BUG-002-validate-store-integrity/INDEX.md)           | validate-store: referential integrity checks incomplete — bugs, virtual sprints, and nullable foreign keys  | major    | ✅ fixed |
+| [BUG-003](bugs/BUG-003-missing-backfill/INDEX.md)                   | forge:update: migration 0.3.7→0.3.13 missing data migration for new required schema fields                  | major    | ✅ fixed |
+| [BUG-004](bugs/BUG-004-event-schema-validation/INDEX.md)            | validate-store rejects valid null timing fields on start events and has no event backfill                   | major    | ✅ fixed |
+| [BUG-005](bugs/BUG-005-fix-bug-orchestrator-deviations/INDEX.md)    | fix-bug is not an orchestrator — 4 control-flow and schema deviations                                       | major    | ✅ fixed |
+| [BUG-006](bugs/BUG-006-collate-cost-report-path/INDEX.md)           | collate: COST_REPORT.md written to SNN/ stub dirs instead of existing sprint_NN_*/ dirs                     | major    | ✅ fixed |
+| [BUG-007](bugs/BUG-007-collate-cost-report-attribution/INDEX.md)    | collate: COST_REPORT.md path fallback fails when sprint.path absent + (unknown) attribution in usage events | major    | ✅ fixed |
 

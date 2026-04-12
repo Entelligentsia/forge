@@ -55,14 +55,26 @@ function statusBadge(status) {
 }
 
 // Resolve a directory name under `base` by trying candidates in order.
-// Returns the first candidate whose directory exists, or the last candidate as fallback.
-// This handles projects that name sprint/task dirs with the full ID (e.g. HEDIS-S01)
-// instead of just the trailing segment (e.g. S01).
+// Returns the first candidate whose directory exists. If none exist,
+// attempts a numeric glob: finds the first alphabetically-sorted dir
+// in `base` whose first integer matches the first integer in the last
+// candidate. Falls back to the last candidate if no match is found.
 function resolveDir(base, ...candidates) {
   for (const c of candidates) {
     if (fs.existsSync(path.join(base, c))) return c;
   }
-  return candidates[candidates.length - 1];
+  // Numeric glob fallback
+  const last = candidates[candidates.length - 1];
+  const numMatch = last.match(/\d+/);
+  if (numMatch && fs.existsSync(base)) {
+    const target = parseInt(numMatch[0], 10);
+    const dirs = fs.readdirSync(base).sort();
+    for (const d of dirs) {
+      const m = d.match(/\d+/);
+      if (m && parseInt(m[0], 10) === target) return d;
+    }
+  }
+  return last;
 }
 
 function padTable(rows) {
@@ -272,9 +284,25 @@ if (SPRINT_ARG && targetSprints.length === 0) {
 function loadSprintEvents(sprintId) {
   const eventsDir = path.join(storeRoot, 'events', sprintId);
   if (!fs.existsSync(eventsDir)) return [];
+  const USAGE_RE = /^\d{8}T\d{9}Z_[A-Z0-9-]+_[a-z-]+_[a-z_-]+$/;
   return fs.readdirSync(eventsDir)
     .filter(f => f.endsWith('.json') && !f.startsWith('_'))
-    .map(f => readJson(path.join(eventsDir, f)))
+    .map(f => {
+      const ev = readJson(path.join(eventsDir, f));
+      if (!ev) return null;
+      // Backfill attribution from filename when absent in JSON
+      if (!ev.taskId || !ev.role) {
+        const base = f.replace(/(_usage)?\.json$/, '');
+        if (USAGE_RE.test(base)) {
+          const parts = base.split('_');
+          // parts[0]=timestamp, parts[1]=taskId, parts[2]=role, rest=action
+          if (!ev.taskId) ev.taskId = parts[1];
+          if (!ev.role)   ev.role   = parts[2];
+          if (!ev.action) ev.action = parts.slice(3).join('_');
+        }
+      }
+      return ev;
+    })
     .filter(Boolean);
 }
 

@@ -1,4 +1,12 @@
 {
+  "0.6.11": {
+    "version": "0.6.12",
+    "date": "2026-04-12",
+    "notes": "Fix collate: resolveDir gains numeric glob fallback for sprint IDs without hyphens (e.g. S31 → sprint_31_slug/); loadSprintEvents backfills taskId/role/action from sidecar filename when JSON lacks attribution fields.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.6.10": {
     "version": "0.6.11",
     "date": "2026-04-10",
