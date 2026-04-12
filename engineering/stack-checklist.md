@@ -44,6 +44,8 @@ consult this before approving any change to `forge/`.
 - [ ] Tool reads `.forge/config.json` for paths rather than hardcoding
 - [ ] `toLocaleString()` calls work without full ICU — consider fallback formatting for minimal Node.js environments
 - [ ] When adding a new file-writing block to `collate.cjs`, check whether the target entity has a `path` field in its store JSON before using `resolveDir` inference (BUG-006)
+- [ ] `resolveDir` numeric glob fallback only applies when no exact candidate exists on disk — verify alphabetical-first-match is acceptable if multiple dirs share the same leading integer (BUG-007)
+- [ ] Event files written by pipeline phases must include full attribution (`taskId`, `role`, `action`, `phase`, `model`) — bare token-only files produce `(unknown)` rows in COST_REPORT (BUG-007)
 
 ## Meta-Workflows
 
