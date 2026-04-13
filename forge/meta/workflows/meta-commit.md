@@ -1,3 +1,10 @@
+---
+requirements:
+  reasoning: Low
+  context: Low
+  speed: High
+---
+
 # Meta-Workflow: Commit Task
 
 ## Persona

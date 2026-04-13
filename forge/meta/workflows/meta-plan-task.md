@@ -1,3 +1,10 @@
+---
+requirements:
+  reasoning: High
+  context: Medium
+  speed: Low
+---
+
 # Meta-Workflow: Plan Task
 
 ## Persona
@@ -22,6 +29,13 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
    - Identify files for modification (Glob, Grep, Read)
    - Map existing patterns in the target area
    - Identify existing tests to be maintained or expanded
+   - Identify whether the change is **material** (triggers version bump) or not:
+     - Bug fixes to any command, hook, tool spec, or workflow → material
+     - Tool-spec changes that alter generated tool behaviour → material
+     - Command-file changes that alter behaviour → material
+     - Hook changes → material
+     - Schema changes to `.forge/store/` or `.forge/config.json` → material
+     - Docs-only changes → NOT material
 
 3. Plan:
    - Generate PLAN.md using the project plan template

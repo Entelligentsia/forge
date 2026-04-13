@@ -1,3 +1,10 @@
+---
+requirements:
+  reasoning: High
+  context: Medium
+  speed: Low
+---
+
 # Meta-Workflow: Review Implementation
 
 ## Persona
@@ -46,7 +53,7 @@ YOU MUST evaluate the code against the approved PLAN.md and the original task pr
 ## Generation Instructions
 
 - **Workflow Structure:** The generated `review_implementation.md` must follow the strict "Algorithm" block format.
-- **Verdict Detection:** The generated workflow MUST enforce the strict `**Verdict:** [Approved | Revision Required]` format. This is critical for orchestrator branching.
+- **Verdict Detection:** The generated workflow MUST enforce the strict `**Verdict:** [Approved | Revision Required]` format.
 - **Context Isolation:** Forbid inline execution of complex code review logic; use the `Agent` tool for sub-tasks.
 - **Project Specifics:**
   - Embed project-specific code quality standards and linting rules.

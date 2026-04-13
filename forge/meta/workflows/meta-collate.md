@@ -1,3 +1,10 @@
+---
+requirements:
+  reasoning: Medium
+  context: Low
+  speed: High
+---
+
 # Meta-Workflow: Collate
 
 ## Persona

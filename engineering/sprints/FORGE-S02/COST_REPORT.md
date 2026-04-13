@@ -2,7 +2,7 @@
 
 # Cost Report — FORGE-S02
 
-> Generated: 2026-04-12
+> Generated: 2026-04-13
 > Sprint: Foundational Concepts Documentation + Feature Tier (v1.0)
 
 _No token data available for this sprint._

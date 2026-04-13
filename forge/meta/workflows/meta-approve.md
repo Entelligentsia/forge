@@ -1,3 +1,10 @@
+---
+requirements:
+  reasoning: High
+  context: Medium
+  speed: Low
+---
+
 # Meta-Workflow: Approve Task
 
 ## Persona

@@ -1,4 +1,4 @@
- # Meta-Workflow: Orchestrate Task
+# Meta-Workflow: Orchestrate Task
 
 ## Persona
 
@@ -30,28 +30,36 @@ The orchestrator resolves the model for each phase using this priority:
 
 1. **`phase.model`** — if the pipeline phase definition in `config.pipelines`
    includes a `model` field, use it (highest priority, allows per-phase override).
-2. **Capability-based match** — if the workflow file for the phase has a `requirements`
-   block in its frontmatter, match these against the Capability Table:
+2. **Capability-Based Match** — if the workflow file for the phase has a `requirements`
+   block in its frontmatter, map these tiers against the Capability Table:
 
+   ### Internal Capability Tiers
+   | Tier | Description | Target Profile |
+   | :--- | :--- | :--- |
+   | **High** | Deep reasoning, complex synthesis, adversarial review | Highest intelligence, max precision |
+   | **Medium** | Standard implementation, iterative refinement | Balanced intelligence and speed |
+   | **Low** | State machine transitions, formatting, simple commits | High speed, low latency, high reliability |
+
+   ### Host-Agnostic Mapping (Current Host: Claude Code)
    | Capability | High | Medium | Low |
-   |------------|------|--------|-----|
-   | Reasoning  | `opus` | `sonnet` | `haiku` |
-   | Speed      | `haiku` | `sonnet` | `opus` |
-   | Context    | `opus` | `sonnet` | `haiku` |
+   | :--- | :--- | :--- | :--- |
+   | **Reasoning** | `claude-3-opus` | `claude-3-5-sonnet` | `claude-3-haiku` |
+   | **Context** | `claude-3-opus` | `claude-3-5-sonnet` | `claude-3-haiku` |
+   | **Speed** | `claude-3-haiku` | `claude-3-5-sonnet` | `claude-3-haiku` |
 
    The orchestrator selects the model that best satisfies the primary requirement
    (Reasoning > Context > Speed). If the preferred model is unavailable, it
    falls back to the next-best match in the table.
-3. **Role-based default** — if no `phase.model` or `requirements` are set, use the role default:
-   | Role | Default Model |
-   |------|---------------|
-   | `plan` | `sonnet` |
-   | `implement` | `sonnet` |
-   | `review-plan` | `opus` |
-   | `review-code` | `opus` |
-   | `validate` | `opus` |
-   | `approve` | `opus` |
-   | `commit` | `haiku` |
+3. **Role-based default** — if no `phase.model` or `requirements` are set, use the role default tier:
+   | Role | Default Tier | Mapping |
+   |------|---------------|---------|
+   | `plan` | Medium | `claude-3-5-sonnet` |
+   | `implement` | Medium | `claude-3-5-sonnet` |
+   | `review-plan` | High | `claude-3-opus` |
+   | `review-code` | High | `claude-3-opus` |
+   | `validate` | High | `claude-3-opus` |
+   | `approve` | High | `claude-3-opus` |
+   | `commit` | Low | `claude-3-haiku` |
 
 The orchestrator itself runs on whichever model it was invoked with (typically
 `sonnet` — it is a lightweight state machine and does not need a heavy model).
@@ -147,7 +155,10 @@ for each task in dependency_sorted(tasks):
     phase = phases[i]
 
     # --- Resolve model for this phase (see Model Resolution) ---
-    phase_model = phase.model or ROLE_MODEL_DEFAULTS[phase.role]
+    # 1. phase.model override
+    # 2. workflow frontmatter 'requirements' -> Capability Table -> Model ID
+    # 3. role default tier -> Capability Table -> Model ID
+    phase_model = resolve_model(phase, workflow_path)
 
     # --- Compute eventId before spawning so the subagent can name its sidecar ---
     start_ts = current_iso_timestamp()       # e.g. "20260415T141523000Z"
@@ -189,7 +200,7 @@ for each task in dependency_sorted(tasks):
     elif verdict == "Revision Required":
       iteration_counts[phase.command] = iteration_counts.get(phase.command, 0) + 1
 
-      if iteration_counts[phase.command] >= phase.maxIterations:   # default 3
+      if iteration_counts[phase.command] >= phase.maxIterations: # default 3
         escalate_to_human(task, phase, reason="max iterations reached")
         break                               # stop processing this task
 
@@ -228,8 +239,8 @@ or
 Parse the value after `**Verdict:**` (trimmed). Any value other than `Approved`
 or `Revision Required` is unrecognised — escalate.
 
-If the artifact does not exist after the review phase completes, treat it as an
-unrecognised verdict and escalate.
+If the artifact does not exist after the review phase completes, treat it as
+an unrecognised verdict and escalate.
 
 ## Escalation Procedure
 
@@ -291,7 +302,8 @@ Every phase emits a structured event to `.forge/store/events/{sprintId}/`.
 
 **Optional fields**: `verdict` (for review phases: `Approved` / `Revision Required`), `notes`,
 `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`
-(token usage merged from the subagent sidecar — present only when the subagent wrote the sidecar).
+(token usage merged from the subagent sidecar — present only when the subagent wrote
+the sidecar).
 
 Use only the field names above — no aliases (`agent`, `status`, `timestamp`, `details`, etc.).
 When in doubt, read `.forge/schemas/event.schema.json` directly.
@@ -305,7 +317,7 @@ When in doubt, read `.forge/schemas/event.schema.json` directly.
   the exact workflow filename and task ID in the prompt. Never invoke phases inline.
 - **Model assignment is mandatory.** Every `spawn_subagent` call in the generated
   orchestrator MUST include a `model` parameter. The generated workflow must:
-  1. Include the Model Resolution section (priority: `phase.model` from config → role default)
+  1. Include the Model Resolution section (priority: `phase.model` from config $\rightarrow$ role default)
   2. Include the role-based default table
   3. Pass `model=phase_model` in every `spawn_subagent()` call in the execution algorithm
   Do NOT generate a "Model Assignments" table without wiring it into the algorithm —

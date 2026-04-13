@@ -1,3 +1,10 @@
+---
+requirements:
+  reasoning: Medium
+  context: Medium
+  speed: Medium
+---
+
 # Meta-Workflow: Update Implementation
 
 ## Persona
