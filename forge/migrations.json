@@ -3,7 +3,7 @@
     "version": "0.7.1",
     "date": "2026-04-13",
     "notes": "Grounding & Descriptive Pathing: transition to ID-description folder naming and explicit absolute path injection in subagent prompts to eliminate model 'path guessing'.",
-    "regenerate": ["workflows"],
+    "regenerate": ["workflows", "commands", "personas", "skills"],
     "breaking": false,
     "manual": []
   },
@@ -11,7 +11,7 @@
     "version": "0.7.0",
     "date": "2026-04-13",
     "notes": "Portability migration: transition from legacy 'model: <id>' fields to structured 'requirements' blocks in generated workflows to support the 3D Agent Model and symmetric injection.",
-    "regenerate": ["workflows", "personas", "skills"],
+    "regenerate": ["workflows", "commands", "personas", "skills"],
     "breaking": true,
     "manual": [
       "Check .forge/config.json for custom 'model' overrides in config.pipelines. If present, manually migrate these to the 'requirements' block format in corresponding workflow artifacts."

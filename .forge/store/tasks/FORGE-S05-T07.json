@@ -1,0 +1,11 @@
+{
+  "taskId": "FORGE-S05-T07",
+  "feature_id": null,
+  "sprintId": "FORGE-S05",
+  "title": "Release Engineering",
+  "status": "committed",
+  "path": "forge/.claude-plugin/plugin.json",
+  "estimate": "S",
+  "dependencies": ["FORGE-S05-T06"],
+  "pipeline": "default"
+}
