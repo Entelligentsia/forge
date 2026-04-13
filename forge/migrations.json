@@ -1,6 +1,25 @@
 {
+  "0.7.0": {
+    "version": "0.7.1",
+    "date": "2026-04-13",
+    "notes": "Grounding & Descriptive Pathing: transition to ID-description folder naming and explicit absolute path injection in subagent prompts to eliminate model 'path guessing'.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.6.13": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "Portability migration: transition from legacy 'model: <id>' fields to structured 'requirements' blocks in generated workflows to support the 3D Agent Model and symmetric injection.",
+    "regenerate": ["workflows", "personas", "skills"],
+    "breaking": true,
+    "manual": [
+      "Check .forge/config.json for custom 'model' overrides in config.pipelines. If present, manually migrate these to the 'requirements' block format in corresponding workflow artifacts."
+    ]
+  },
   "0.6.12": {
     "version": "0.6.13",
+
     "date": "2026-04-12",
     "notes": "Implement forge/tools/store.cjs facade for standardized store CRUD operations (Sprints, Tasks, Bugs, Events, Features) and FSImpl backend.",
     "regenerate": ["tools"],

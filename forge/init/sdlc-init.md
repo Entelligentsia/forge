@@ -90,7 +90,16 @@ Also scaffold: `.forge/store/` directories, `engineering/sprints/`, `engineering
 Read `$FORGE_ROOT/init/generation/generate-personas.md` and follow it.
 
 **Input**: `$FORGE_ROOT/meta/personas/` + discovery context + generated knowledge base
-**Output**: `.forge/personas-context.md` (intermediate; gitignored) — consumed by Phase 5 in the same agent context
+**Output**: `.forge/personas/` (standalone persona files)
+
+---
+
+## Phase 3b — Generate Skills
+
+Read `$FORGE_ROOT/init/generation/generate-skills.md` and follow it.
+
+**Input**: `$FORGE_ROOT/meta/skills/` + `.forge/config.json` (installedSkills) + discovery context + knowledge base
+**Output**: `.forge/skills/` (role-specific skill sets)
 
 ---
 
@@ -107,7 +116,7 @@ Read `$FORGE_ROOT/init/generation/generate-templates.md` and follow it.
 
 Read `$FORGE_ROOT/init/generation/generate-workflows.md` and follow it.
 
-**Input**: `$FORGE_ROOT/meta/workflows/` + `.forge/personas-context.md` + templates + discovery context + knowledge base
+**Input**: `$FORGE_ROOT/meta/workflows/` + `.forge/personas/` + `.forge/skills/` + templates + discovery context + knowledge base
 **Output**: `.forge/workflows/` (14 project-specific workflow files)
 
 ---

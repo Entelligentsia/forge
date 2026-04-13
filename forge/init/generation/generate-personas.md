@@ -13,14 +13,10 @@ the discovery context, and the generated knowledge base.
 
 ## Outputs
 
-Persona context is NOT written as separate files. It is incorporated
-into the generated workflows (Phase 5) as the opening section of each
-workflow that establishes the agent's identity, knowledge, and constraints.
+Personas are written as standalone files in `.forge/personas/`.
+Each file is named after the persona's role (e.g., `.forge/personas/supervisor.md`).
 
-This phase produces an intermediate persona context document at
-`.forge/personas-context.md` (add to `.gitignore`). Phase 5 reads this
-file as its persona input. Phases 3 and 5 must share the same agent
-context — do not spawn a separate agent between them.
+These files are consumed by Phase 5 (Generate Atomic Workflows) to establish the agent's identity, knowledge, and constraints.
 
 ## Instructions
 
@@ -31,7 +27,7 @@ produce a project-specific version that incorporates:
 - The project's actual auth patterns and conventions
 - The project's actual directory structure and paths
 
-**Persona block format** — each generated workflow opens with a single line using the
+**Persona block format** — each persona file opens with a single line using the
 persona's symbol (from its `## Symbol` section) and a quiet first-person announcement.
 Follow the `Persona block format` template in each meta-persona's Generation Instructions,
 substituting `{Project}` with the project's name. The line should be brief, present-tense,
@@ -41,11 +37,11 @@ and speak to what the persona is about to do — not a role description, but a v
 
 Read `.forge/config.json` for `installedSkills`. For each installed skill
 that is relevant to a persona's domain, add an explicit invocation instruction
-to that persona's workflow steps.
+to that persona's context.
 
 Read `$FORGE_ROOT/meta/skill-recommendations.md` for the persona integration
-pattern. Apply it: the instruction must be a YOU MUST directive placed at the
-relevant workflow step (not buried in a notes section).
+pattern. Apply it: the instruction must be a YOU MUST directive placed at
+the relevant persona's context.
 
 Example — if `vue-best-practices` is installed and the persona is Supervisor:
 

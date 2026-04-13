@@ -1,41 +1,41 @@
 # Meta-Workflow: Collate
 
+## Persona
+
+🍃 **{Project} Collator** — I gather what exists and arrange it into views.
+
+See `meta-collator.md` for the full persona definition.
+
 ## Purpose
 
-Regenerate markdown views from the JSON store. This is a deterministic
-operation — prefer the generated tool, fall back to manual collation.
+Regenerate markdown views from the JSON store. This is a deterministic operation — prefer the generated tool, fall back to manual collation.
 
 ## Algorithm
 
-### Step 1 — Preferred: Run Plugin Tool
+```
+1. Preferred: Run Plugin Tool
+   - Read `paths.forgeRoot` from `.forge/config.json` as `FORGE_ROOT`
+   - Run: `node "$FORGE_ROOT/tools/collate.cjs" [SPRINT_ID]`
+   - If tool succeeds, proceed to Finalize
 
-Read `paths.forgeRoot` from `.forge/config.json` → set as `FORGE_ROOT`. Then run:
-```bash
-node "$FORGE_ROOT/tools/collate.cjs" [SPRINT_ID]
+2. Fallback: Manual Collation
+   - Read `.forge/config.json` for prefix, paths, project description
+   - Read all sprint/task/bug/event JSONs from `.forge/store/`
+   - Generate MASTER_INDEX.md (sprint registry, task registry, bug registry)
+   - Generate per-sprint TIMESHEET.md (from events)
+   - Generate any other configured views
+
+3. Finalize:
+   - Emit "complete" event to `.forge/store/events/{sprintId}/`
+   - Execute Token Reporting (see Generation Instructions)
 ```
 
-If the tool succeeds, the workflow is complete.
-
-### Step 2 — Fallback: Manual Collation
-If the tool is unavailable or fails:
-
-1. Read .forge/config.json for prefix, paths, project description
-2. Read all sprint/task/bug/event JSONs from .forge/store/
-3. Generate MASTER_INDEX.md (sprint registry, task registry, bug registry)
-4. Generate per-sprint TIMESHEET.md (from events)
-5. Generate per-directory INDEX.md (navigation hubs)
-6. Write COLLATION_STATE.json
-
-### Output Files
-- `engineering/MASTER_INDEX.md`
-- `engineering/sprints/{SPRINT_ID}/TIMESHEET.md`
-- `engineering/bugs/TIMESHEET.md`
-- `INDEX.md` in each sprint/task/bug directory
-
 ## Generation Instructions
-- Emit the runtime-read pattern exactly as shown above — do NOT substitute
-  `paths.forgeRoot` as a literal string at generation time. The `$FORGE_ROOT`
-  variable must remain in the generated file so the path resolves from
-  `.forge/config.json` when the workflow runs, not when it is generated.
-- Include the project's language for invoking the tool
-- Reference .forge/store/ paths
+
+- **Workflow Structure:** The generated `collate.md` must follow the strict "Algorithm" block format.
+- **Context Isolation:** Forbid inline execution of large-scale file generation; use the `Agent` tool for sub-tasks.
+- **Token Reporting:** The generated workflow MUST mandate the following before returning:
+  1. Run `/cost` to retrieve session token usage.
+  2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
+  3. Write a sidecar file at `.forge/store/events/{sprintId}/_{eventId}_usage.json`.
+- **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

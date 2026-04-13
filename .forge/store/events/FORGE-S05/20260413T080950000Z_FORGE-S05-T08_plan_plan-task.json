@@ -1,0 +1,13 @@
+{
+  "eventId": "20260413T080950000Z_FORGE-S05-T08_plan_plan-task",
+  "taskId": "FORGE-S05-T08",
+  "sprintId": "FORGE-S05",
+  "role": "plan",
+  "action": "plan-task",
+  "phase": "plan",
+  "iteration": 1,
+  "startTimestamp": "2026-04-13T08:00:00Z",
+  "endTimestamp": "2026-04-13T08:09:50Z",
+  "durationMinutes": 9.8,
+  "model": "gemma4:31b-cloud"
+}

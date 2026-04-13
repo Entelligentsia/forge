@@ -32,6 +32,8 @@ with a colon delimiter (both forms are equivalent):
 
 ```
 /forge:regenerate                              # workflows + commands + templates (default)
+/forge:regenerate personas                    # .forge/personas/ persona contexts
+/forge:regenerate skills                        # .forge/skills/ role-specific skills
 /forge:regenerate workflows                    # full workflow rebuild
 /forge:regenerate workflows plan_task          # single workflow file only
 /forge:regenerate workflows:plan_task          # same — colon form (from migration entries)
@@ -49,6 +51,37 @@ When parsing the argument, split on `:` first: if the argument is
 `"workflows:plan_task"`, treat it as category=`workflows`,
 sub-target=`plan_task`. If no `:` is present, the second positional word
 (if any) is the sub-target. The sub-target is always optional.
+
+---
+
+## Category: `personas` — full rebuild
+
+Re-generate `.forge/personas/` from the meta-persona definitions and the current knowledge base.
+
+1. Read `$FORGE_ROOT/meta/personas/` — all meta-persona files
+2. Read the current knowledge base in `engineering/`
+3. Re-generate `.forge/personas/` following `$FORGE_ROOT/init/generation/generate-personas.md`
+4. Before overwriting each file, check manifest status (same pattern as workflows)
+5. After writing each file, record its new hash:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/personas/{filename}.md
+   ```
+
+---
+
+## Category: `skills` — full rebuild
+
+Re-generate `.forge/skills/` from the meta-skill templates and project config.
+
+1. Read `$FORGE_ROOT/meta/skills/` — all meta-skill files
+2. Read `.forge/config.json` for `installedSkills`
+3. Read the current knowledge base in `engineering/`
+4. Re-generate `.forge/skills/` following `$FORGE_ROOT/init/generation/generate-skills.md`
+5. Before overwriting each file, check manifest status
+6. After writing each file, record its new hash:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/skills/{filename}.md
+   ```
 
 ---
 

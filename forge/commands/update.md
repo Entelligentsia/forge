@@ -455,6 +455,33 @@ node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/workflows/{old-nam
 
 Never delete without explicit confirmation.
 
+### 5b-portability — Detect legacy model fields in workflows
+
+This step runs on every update. It scans `.forge/workflows/` for legacy `model: <id>` fields. Since S05, Forge uses a structured `requirements` block to support the 3D Agent Model. Legacy fields are ignored by the new orchestrator but should be migrated during regeneration.
+
+Scan all `.md` files in `.forge/workflows/` for the pattern `^model:\s+.+$` (multiline).
+
+If any files contain legacy `model:` fields:
+
+> △ Legacy model fields detected in {N} workflow(s).
+>
+> These are being replaced by the new "requirements" block format to support Agent Portability (S05).
+>
+> Since you are updating, these will be automatically migrated when `/forge:regenerate workflows` runs (as part of the migration chain).
+>
+> No action is required unless you have custom-authored workflows that are not tracked by Forge. If so, please manually migrate `model: <id>` to:
+>
+> ```markdown
+> ## Requirements
+> - Model: <id>
+> ```
+>
+> Acknowledge? (yes / no)
+
+If the user declines, warn that some workflows may not resolve models correctly until regenerated.
+
+---
+
 ### 5b-rename — Rename retired built-in command names in pipeline config
 
 This step runs on every update. Scan every configured pipeline for phases

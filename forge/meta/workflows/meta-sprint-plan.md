@@ -1,49 +1,53 @@
 # Meta-Workflow: Sprint Plan
 
+## Persona
+
+📋 **{Project} Analyst** — I turn requirements into a structured backlog.
+
+See `meta-analyst.md` for the full persona definition.
+
 ## Purpose
 
-The Architect initialises a new sprint with tasks, estimates, dependencies,
-and a dependency graph.
+Break sprint requirements into a set of estimated tasks with a dependency graph.
 
 ## Algorithm
 
-### Step 1 — Load Context
-- Read `SPRINT_REQUIREMENTS.md` from `engineering/sprints/{SPRINT_ID}/` — this is
-  the primary input. YOU MUST NOT plan tasks without a completed requirements document.
-  If it does not exist, stop and direct the user to run `/sprint-intake` first.
-- Read `MASTER_INDEX.md` for project state
-- Read the previous sprint's retrospective (if exists) for carry-over context
+```
+1. Load Context:
+   - Read SPRINT_REQUIREMENTS.md
+   - Read architecture and domain docs
+   - Read the stack checklist
 
-### Step 2 — Define Tasks
-For each task:
-- Title and description
-- Estimated complexity (S/M/L/XL)
-- Dependencies on other tasks
-- Relevant entities and architecture areas
-- `feature_id` propagated from `SPRINT_REQUIREMENTS.md` (nullable)
+2. Task Decomposition:
+   - Break requirements into atomic tasks
+   - Assign each task to a Feature (if applicable)
+   - Define clear acceptance criteria for each task
+   - Use the `ID-description` format (e.g., `FORGE-S05-agent-runtime-portability`) for sprint and task folders.
 
-### Step 3 — Build Dependency Graph
-- Define task dependencies as edges
-- Validate: no circular dependencies
-- Compute wave structure for parallel execution
+3. Estimation and Sequencing:
+   - Estimate each task (S, M, L) based on complexity
+   - Define the dependency graph (which tasks must precede others)
+   - Identify the critical path
 
-### Step 4 — Create Sprint Manifest
-- Write sprint JSON to .forge/store/sprints/ (`feature_id` field if supported by schema — or note that it surfaces via T03)
-- Write task JSONs to .forge/store/tasks/ (include `feature_id` field, nullable)
-  - If `config.pipelines` defines named pipelines, check whether each task matches
-    a non-default pipeline (by task description, output artifacts, or domain pattern).
-    If so, set `task.pipeline` to the matching pipeline name. When uncertain, omit the
-    field (the orchestrator will use the default pipeline).
-- Create task artifact directories in engineering/sprints/{SPRINT_ID}/
+4. Documentation:
+   - Generate SPRINT_PLAN.md
+   - Update the store: create task manifests for all planned tasks
+   - Set sprint status to `planned`
 
-### Step 5 — Generate Task Prompts
-- Write a task prompt file for each task using the task prompt template
-
-### Step 6 — Collate
-- Run collation to update MASTER_INDEX.md and sprint INDEX.md
+5. Finalize:
+   - Emit "complete" event to `.forge/store/events/{sprintId}/`
+   - Execute Token Reporting (see Generation Instructions)
+```
 
 ## Generation Instructions
-- Use the project's ID format and prefix
-- Reference the project's entity model for task scoping
-- Include the project's operational impact categories
-- Reference the sprint manifest template
+
+- **Workflow Structure:** The generated `sprint_plan.md` must follow the strict "Algorithm" block format.
+- **Context Isolation:** Forbid inline execution of task decomposition or estimation; use the `Agent` tool for sub-tasks.
+- **Project Specifics:**
+  - Use project-specific estimation guidelines.
+  - Reference project's task manifest schema.
+- **Token Reporting:** The generated workflow MUST mandate the following before returning:
+  1. Run `/cost` to retrieve session token usage.
+  2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
+  3. Write a sidecar file at `.forge/store/events/{sprintId}/_{eventId}_usage.json`.
+- **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

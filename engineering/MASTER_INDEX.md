@@ -2,7 +2,7 @@
 
 # Forge — Master Index
 
-> Generated: 2026-04-12
+> Generated: 2026-04-13
 
 ## Feature Registry
 
@@ -12,12 +12,26 @@
 
 | Sprint    | Title                                                     | Status               | Tasks |
 | --------- | --------------------------------------------------------- | -------------------- | ----- |
-| FORGE-S04 | Store Abstraction Layer                                   | 🔵 active            | 6/6   |
+| FORGE-S05 | Agent Definition & Runtime Portability                    | ✅ completed          | 7/8   |
+| FORGE-S04 | Store Abstraction Layer                                   | ✅ retrospective-done | 6/6   |
 | FORGE-S03 | Lean Migration Architecture                               | ✅ retrospective-done | 3/3   |
 | FORGE-S02 | Foundational Concepts Documentation + Feature Tier (v1.0) | ✅ completed          | 10/10 |
 | FORGE-S01 | Token Usage Tracking                                      | ✅ retrospective-done | 8/8   |
 
 ## Task Registry
+
+### FORGE-S05
+
+| Task                                                      | Title                                  | Status      | Estimate |
+| --------------------------------------------------------- | -------------------------------------- | ----------- | -------- |
+| [FORGE-S05-T01](../forge/meta/INDEX.md)                   | Meta-skills framework                  | ✅ committed | M        |
+| [FORGE-S05-T02](../forge/init/INDEX.md)                   | Dual-artifact generation               | ✅ committed | L        |
+| [FORGE-S05-T03](../forge/meta/INDEX.md)                   | Persona & Role alignment               | ✅ committed | S        |
+| [FORGE-S05-T04](../forge/meta/INDEX.md)                   | Workflow purification                  | ✅ committed | M        |
+| [FORGE-S05-T05](../forge/meta/workflows/INDEX.md)         | Symmetric injection & model resolution | ✅ committed | L        |
+| [FORGE-S05-T06](../forge/commands/INDEX.md)               | Portability migration                  | ✅ committed | M        |
+| [FORGE-S05-T07](../forge/.claude-plugin/INDEX.md)         | Release Engineering                    | ✅ committed | S        |
+| [FORGE-S05-T08](sprints/FORGE-S05/FORGE-S05-T08/INDEX.md) | Create task prompt                     | 📋 planned  | S        |
 
 ### FORGE-S04
 

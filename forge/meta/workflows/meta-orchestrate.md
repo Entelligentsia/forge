@@ -1,4 +1,10 @@
-# Meta-Workflow: Orchestrate Task
+ # Meta-Workflow: Orchestrate Task
+
+## Persona
+
+🌊 **{Project} Orchestrator** — I move tasks through their lifecycle. I do not do the work; I watch that it flows.
+
+See `meta-orchestrator.md` for the full persona definition.
 
 ## Purpose
 
@@ -24,7 +30,19 @@ The orchestrator resolves the model for each phase using this priority:
 
 1. **`phase.model`** — if the pipeline phase definition in `config.pipelines`
    includes a `model` field, use it (highest priority, allows per-phase override).
-2. **Role-based default** — if no `phase.model` is set, use the role default:
+2. **Capability-based match** — if the workflow file for the phase has a `requirements`
+   block in its frontmatter, match these against the Capability Table:
+
+   | Capability | High | Medium | Low |
+   |------------|------|--------|-----|
+   | Reasoning  | `opus` | `sonnet` | `haiku` |
+   | Speed      | `haiku` | `sonnet` | `opus` |
+   | Context    | `opus` | `sonnet` | `haiku` |
+
+   The orchestrator selects the model that best satisfies the primary requirement
+   (Reasoning > Context > Speed). If the preferred model is unavailable, it
+   falls back to the next-best match in the table.
+3. **Role-based default** — if no `phase.model` or `requirements` are set, use the role default:
    | Role | Default Model |
    |------|---------------|
    | `plan` | `sonnet` |
@@ -138,8 +156,13 @@ for each task in dependency_sorted(tasks):
 
     # --- Invoke phase as subagent (fresh context per phase) ---
     emit_event(task, phase, eventId=event_id, iteration=iteration_counts.get(phase.command, 0) + 1, action="start")
+    
+    # Symmetric Injection Assembly: Persona -> Skill -> Workflow
+    persona_content = read_file(f".forge/personas/{phase.role}.md")
+    skill_content = read_file(f".forge/skills/{phase.role}-skills.md")
+    
     spawn_subagent(
-      prompt="Read `{phase.workflow}` and follow it. Task ID: {task_id}. Also read `engineering/MASTER_INDEX.md` for project state. Before returning: run /cost, parse token usage, and write sidecar `.forge/store/events/{sprint_id}/_{event_id}_usage.json` with fields: inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD.",
+      prompt=f"{persona_content}\n\n{skill_content}\n\n### Current Working Context\n- Sprint Root: {sprint_root_path}\n- Task Root: {task_root_path}\n- Store Root: {store_root_path}\n\nRead `{phase.workflow}` and follow it. Task ID: {task_id}. Also read `engineering/MASTER_INDEX.md` for project state. Before returning: run /cost, parse token usage, and write sidecar `.forge/store/events/{sprint_id}/_{event_id}_usage.json` with fields: inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD.",
       description="{phase.name} phase for {task_id}",
       model=phase_model
     )
