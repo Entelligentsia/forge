@@ -16,9 +16,9 @@
 
 'use strict';
 
-// On unexpected failure, exit 1 (same as "skill not found") so callers
-// degrade gracefully rather than seeing an unhandled exception crash.
-process.on('uncaughtException', () => process.exit(1));
+// On unexpected failure, exit 0 so hook callers degrade gracefully
+// (assume skill absent / no output) rather than propagating an error.
+process.on('uncaughtException', () => process.exit(0));
 
 const fs = require('fs');
 const path = require('path');

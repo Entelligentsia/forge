@@ -225,3 +225,6 @@ try {
   console.error(`Error seeding store: ${e.message}`);
   process.exit(1);
 }
+
+// Exported for use by other tools (e.g. sprint-intake directory creation).
+module.exports = { deriveSlug };
