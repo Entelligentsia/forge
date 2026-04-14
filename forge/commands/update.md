@@ -28,6 +28,58 @@ IS_CANARY = FORGE_ROOT does not contain "/.claude/plugins/cache/"
 
 ---
 
+## Model-alias auto-suppression pre-check
+
+**Reusable sub-procedure — invoked from Steps 2A, 2B, and 4 after
+aggregating `manual` items.**
+
+When a migration chain includes the 0.6.13→0.7.0 step (or any step whose
+`manual` list contains an item about custom model overrides), this pre-check
+determines whether that manual item is a false positive for the current
+project and removes it if so.
+
+### Procedure
+
+After the aggregation step has produced the `manual` list (and `breaking`
+flag), but **before** displaying the breaking-change block or prompting for
+confirmation:
+
+1. **Identify model-override manual items.** Scan the aggregated `manual`
+   list for any item whose text contains the substring
+   `custom 'model' overrides in config.pipelines`. If none found, skip this
+   entire sub-procedure — nothing to suppress.
+
+2. **Read `.forge/config.json`.** If the file does not exist, or if it
+   contains no `pipelines` key, or if `pipelines` is empty — there are no
+   custom model overrides. Remove the matching manual item(s) and jump to
+   step 4 below.
+
+3. **Scan pipeline phases.** For every pipeline in `config.pipelines`, for
+   every phase that has a `model` field, classify the value:
+   - **Standard Forge aliases:** `sonnet`, `opus`, `haiku`
+   - **Non-standard:** anything else (e.g. raw model IDs like
+     `claude-3-opus`, `claude-sonnet-4-6`, or unknown aliases)
+
+   If **all** `model` values across all pipelines are standard aliases or
+   absent (no `model` field on the phase), the model-override manual item is
+   a false positive. Remove it from `manual`.
+
+   If **any** non-standard `model` value is found, the manual item is
+   legitimate — keep it in `manual` and do not suppress the confirmation.
+
+4. **Re-evaluate `breaking` flag.** After removing model-override items, if
+   `manual` is now empty, set `breaking = false` for the current step's
+   display/confirmation logic. A breaking-change section with zero manual
+   items must not be shown.
+
+### Result
+
+The `manual` list and `breaking` flag are updated in-place. The calling step
+then renders its summary and confirmation prompts using the filtered values —
+no further changes to the step logic are needed.
+
+---
+
 ## Step 1 — Check for updates
 
 Read `$FORGE_ROOT/.claude-plugin/plugin.json`. Extract `"version"` → `LOCAL_VERSION`.
@@ -125,6 +177,10 @@ to `REMOTE_VERSION`. Aggregate across all steps:
 - `breaking: true` if any step is breaking
 - Union of all `manual` items
 
+**Run the Model-alias auto-suppression pre-check** (see section above)
+on the aggregated `manual` list and `breaking` flag before displaying
+the summary below.
+
 Present the update summary:
 
 ```
@@ -207,6 +263,10 @@ Walk the migration chain from `baseline` forward to `LOCAL_VERSION`. Aggregate:
 - Concatenated `notes`
 - `breaking: true` if any step is breaking
 - Union of all `manual` items
+
+**Run the Model-alias auto-suppression pre-check** (see section above)
+on the aggregated `manual` list and `breaking` flag before printing
+the summary below.
 
 Print:
 
@@ -306,6 +366,10 @@ Aggregate across all steps in the path, applying the dominance rule:
 - Concatenated `notes` (one line per step)
 - `breaking: true` if any step is breaking
 - Union of all `manual` items
+
+**Run the Model-alias auto-suppression pre-check** (see section above)
+on the aggregated `manual` list and `breaking` flag before displaying
+the confirmation prompt below.
 
 ### Confirm and regenerate
 

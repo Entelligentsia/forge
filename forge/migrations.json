@@ -1,4 +1,12 @@
 {
+  "0.7.4": {
+    "version": "0.7.5",
+    "date": "2026-04-14",
+    "notes": "Suppress false breaking-change confirmation in forge:update: auto-skip model-override manual step when config.pipelines only uses standard Forge aliases (sonnet, opus, haiku).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.7.3": {
     "version": "0.7.4",
     "date": "2026-04-14",
