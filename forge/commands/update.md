@@ -411,6 +411,20 @@ reading and following `$FORGE_ROOT/commands/regenerate.md`:
 Run non-knowledge-base targets first (workflows, templates, commands), then
 knowledge-base sub-targets if present.
 
+**Sub-target filename resolution:** a sub-target like `architect_sprint_plan`
+maps to the file `.forge/workflows/architect_sprint_plan.md` — append `.md`
+to the sub-target name as written. Do NOT strip any prefix or suffix.
+
+### Iron Laws for Step 4
+
+- YOU MUST NOT call `generation-manifest.cjs record` directly for migration targets.
+  The regenerate command records hashes after writing — calling record on a file that
+  has not been regenerated yet produces a stale hash and silently corrupts the manifest.
+- YOU MUST NOT inline the regeneration. Read `$FORGE_ROOT/commands/regenerate.md`
+  and follow it as the authoritative procedure for every target.
+- YOU MUST NOT declare success if any regeneration step errors. Surface the error
+  to the user and stop. Do not continue to Step 5 with a failed regeneration.
+
 ---
 
 ## Step 5 — Custom pipeline command audit

@@ -612,5 +612,13 @@
     ],
     "breaking": false,
     "manual": []
+  },
+  "0.8.9": {
+    "version": "0.8.10",
+    "date": "2026-04-14",
+    "notes": "Fix forge:update Step 4: Iron Laws block models from calling generation-manifest.cjs record directly (skipping actual regeneration); adds sub-target filename resolution rule to prevent prefix stripping.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
   }
 }
