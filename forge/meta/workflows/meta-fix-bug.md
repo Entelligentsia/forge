@@ -35,9 +35,21 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
      - Verification evidence
 
 5. Finalize:
+   - Execute Token Reporting (see Generation Instructions) — do this
+     first so the sidecar is written before the event directory is purged
+   - Summarise accumulated cost data into the bug artifact:
+     read all events from `.forge/store/events/{bugId}/`, aggregate
+     inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, and
+     estimatedCostUSD across all events that carry token fields, and
+     append a `## Cost Summary` section to the bug's markdown artifact
+     (e.g. `engineering/bugs/{bugDir}/BUG_ANALYSIS.md` or equivalent).
+     Format: one line per phase event, total row at the bottom.
+     If no events carry token data, skip this section silently.
+   - Purge `.forge/store/events/{bugId}/` — delete the entire bug event
+     directory. The cost summary in the bug artifact is the durable record.
    - Update bug status to `fixed`
-   - Emit "complete" event to `.forge/store/events/{sprintId}/`
-   - Execute Token Reporting (see Generation Instructions)
+   - Emit "complete" event to `.forge/store/events/{bugId}/`
+     (tombstone — the only event that will remain after the purge)
 ```
 
 ## Generation Instructions

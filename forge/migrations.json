@@ -1,4 +1,12 @@
 {
+  "0.8.1": {
+    "version": "0.8.2",
+    "date": "2026-04-14",
+    "notes": "Event summarisation and purge at lifecycle close: retrospective now runs collate (materialises COST_REPORT.md) then purges sprint events before emitting the tombstone; fix-bug now summarises token cost into the bug artifact then purges bug events before emitting the tombstone.",
+    "regenerate": ["workflows:retrospective", "workflows:fix_bug"],
+    "breaking": false,
+    "manual": []
+  },
   "0.8.0": {
     "version": "0.8.1",
     "date": "2026-04-14",
