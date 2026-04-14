@@ -1,4 +1,12 @@
 {
+  "0.8.5": {
+    "version": "0.8.6",
+    "date": "2026-04-14",
+    "notes": "forge:update canary detection now uses /.claude/plugins/ prefix — marketplace installs (/.claude/plugins/marketplaces/) no longer misidentified as canary source installs.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.8.4": {
     "version": "0.8.5",
     "date": "2026-04-14",

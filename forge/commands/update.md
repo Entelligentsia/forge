@@ -17,14 +17,16 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 Detect install mode:
 
 ```
-IS_CANARY = FORGE_ROOT does not contain "/.claude/plugins/cache/"
+IS_CANARY = FORGE_ROOT does not contain "/.claude/plugins/"
 ```
 
-- **Marketplace install** (`IS_CANARY = false`): plugin lives in the Claude Code
-  cache and is updated via the plugin manager.
-- **Canary / source install** (`IS_CANARY = true`): plugin is loaded directly
-  from a local source directory. The source is already at the correct version —
-  there is nothing to install. Only migration steps apply.
+- **Managed install** (`IS_CANARY = false`): plugin lives under the Claude Code
+  plugins directory (either `/.claude/plugins/cache/` or
+  `/.claude/plugins/marketplaces/`). Updated via the plugin manager.
+- **Canary / source install** (`IS_CANARY = true`): FORGE_ROOT is outside the
+  Claude Code plugins directory — a local source path (e.g. `/home/user/src/forge/forge`).
+  The source is already at the correct version — there is nothing to install.
+  Only migration steps apply.
 
 ---
 
@@ -90,6 +92,7 @@ marketplace name and is more reliable than reading fields from `plugin.json`:
 | FORGE_ROOT contains | Distribution |
 |---------------------|-------------|
 | `/cache/skillforge/forge/` | `forge@skillforge` |
+| `/marketplaces/skillforge/forge/` | `forge@skillforge` |
 | anything else | `forge@forge` / canary |
 
 For **both** distributions, resolve `UPDATE_URL` and `MIGRATIONS_URL` from the
