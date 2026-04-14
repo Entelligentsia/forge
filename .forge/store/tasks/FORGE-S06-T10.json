@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S06-T10",
-  "feature_id": null,
   "sprintId": "FORGE-S06",
-  "title": "Release engineering — version bump, migration, security scan",
-  "status": "planned",
-  "path": "forge/.claude-plugin/plugin.json",
-  "estimate": "S",
-  "dependencies": ["FORGE-S06-T01", "FORGE-S06-T02", "FORGE-S06-T03", "FORGE-S06-T04", "FORGE-S06-T05", "FORGE-S06-T06", "FORGE-S06-T07", "FORGE-S06-T08", "FORGE-S06-T09"],
-  "pipeline": "default"
+  "title": "Task T10",
+  "status": "approved",
+  "path": "engineering/sprints/FORGE-S06/FORGE-S06-T10-release-engineering"
 }
