@@ -31,8 +31,10 @@ Sub-targets may be passed either as a second positional argument or embedded
 with a colon delimiter (both forms are equivalent):
 
 ```
-/forge:regenerate                              # workflows + commands + templates (default)
-/forge:regenerate personas                    # .forge/personas/ persona contexts
+/forge:regenerate                              # workflows + commands + templates + personas (default)
+/forge:regenerate personas                    # .forge/personas/ — all persona files
+/forge:regenerate personas engineer           # single persona file only
+/forge:regenerate personas:engineer           # same — colon form (from migration entries)
 /forge:regenerate skills                        # .forge/skills/ role-specific skills
 /forge:regenerate workflows                    # full workflow rebuild
 /forge:regenerate workflows plan_task          # single workflow file only
@@ -54,9 +56,16 @@ sub-target=`plan_task`. If no `:` is present, the second positional word
 
 ---
 
-## Category: `personas` — full rebuild
+## Category: `personas` — full rebuild or single file
 
 Re-generate `.forge/personas/` from the meta-persona definitions and the current knowledge base.
+
+**If a sub-target is provided** (e.g. `/forge:regenerate personas engineer`
+or the colon form `personas:engineer`), regenerate only the single persona
+file `.forge/personas/<sub-target>.md` from `$FORGE_ROOT/meta/personas/meta-<sub-target>.md`.
+All other steps below apply to that single file only (manifest check, hash recording).
+
+**If no sub-target** — full rebuild of all persona files:
 
 1. Read `$FORGE_ROOT/meta/personas/` — all meta-persona files
 2. Read the current knowledge base in `engineering/`
@@ -257,7 +266,7 @@ are not yet represented in review checklist items.
 
 ## Default (no argument)
 
-Run `workflows` + `commands` + `templates` in sequence.
+Run `workflows` + `commands` + `templates` + `personas` in sequence.
 
 ## On error
 

@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S06-T03",
-  "feature_id": null,
   "sprintId": "FORGE-S06",
   "title": "Add personas to forge:regenerate defaults",
-  "status": "planned",
-  "path": "forge/commands/regenerate.md",
-  "estimate": "S",
-  "dependencies": ["FORGE-S06-T02"],
-  "pipeline": "default"
+  "status": "approved",
+  "path": "engineering/sprints/FORGE-S06/FORGE-S06-T03-regenerate-personas-default"
 }

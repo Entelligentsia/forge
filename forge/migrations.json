@@ -1,4 +1,18 @@
 {
+  "0.7.8": {
+    "version": "0.7.9",
+    "date": "2026-04-14",
+    "notes": "Add personas to forge:regenerate defaults: default run sequence is now workflows + commands + templates + personas; per-persona sub-target support added (e.g. /forge:regenerate personas engineer or personas:engineer).",
+    "regenerate": [
+      {
+        "target": "personas",
+        "type": "functional",
+        "patch": "personas is now part of the default regeneration run. Run /forge:regenerate personas to generate .forge/personas/ if not already present."
+      }
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.7.7": {
     "version": "0.7.8",
     "date": "2026-04-14",
