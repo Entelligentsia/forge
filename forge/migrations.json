@@ -597,7 +597,7 @@
     "date": "2026-04-14",
     "notes": "Fix sprint-plan: generated workflows now create task folders and TASK_PROMPT.md for each task, so plan_task has a source of truth to read.",
     "regenerate": [
-      "workflows"
+      "workflows:architect_sprint_plan"
     ],
     "breaking": false,
     "manual": []
