@@ -1,4 +1,12 @@
 {
+  "0.7.7": {
+    "version": "0.7.8",
+    "date": "2026-04-14",
+    "notes": "Slug-aware seed-store discovery and path construction: three-tier regex for sprints/tasks/bugs with slug-named directories; populate sprint path field; add deriveSlug() utility; fix bare-task number extraction for T10+ directories; add BUG-NNN-slug partial-prefix bug discovery tier.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.7.6": {
     "version": "0.7.7",
     "date": "2026-04-14",
