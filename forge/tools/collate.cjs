@@ -169,14 +169,26 @@ if (SPRINT_ARG && targetSprints.length === 0) {
     if (tasks.length === 0) continue;
     lines.push(`### ${sprint.sprintId}`, '');
     const rows = [['Task', 'Title', 'Status', 'Estimate']];
-    const sprintDir = resolveDir(path.join(engRoot, 'sprints'), sprint.sprintId, sprint.sprintId.split('-').pop());
+    const sprintDir = sprint.path
+      ? path.basename(sprint.path.replace(/\/$/, ''))
+      : resolveDir(path.join(engRoot, 'sprints'), sprint.sprintId, sprint.sprintId.split('-').pop());
     for (const t of tasks) {
       // Derive task link from t.path if available (most reliable — already has correct dir names).
       // Fall back to filesystem detection against full task ID vs. trailing segment.
       let taskLink;
       if (t.path) {
-        const rel = path.relative(engPath, t.path).replace(/\\/g, '/');
-        taskLink = path.dirname(rel).replace(/\\/g, '/') + '/INDEX.md';
+        // If path is under the engineering root, it IS the task directory — link directly.
+        // Otherwise (e.g. forge/tools/seed-store.cjs), it's a plugin source reference;
+        // strip the filename to get the containing directory.
+        const normalizedPath = t.path.replace(/\\/g, '/').replace(/\/$/, '');
+        const normalizedEngPath = engPath.replace(/\\/g, '/').replace(/\/$/, '');
+        if (normalizedPath.startsWith(normalizedEngPath + '/')) {
+          const rel = path.relative(engPath, t.path).replace(/\\/g, '/');
+          taskLink = rel + '/INDEX.md';
+        } else {
+          const rel = path.relative(engPath, t.path).replace(/\\/g, '/');
+          taskLink = path.dirname(rel).replace(/\\/g, '/') + '/INDEX.md';
+        }
       } else {
         const taskDir = resolveDir(path.join(engRoot, 'sprints', sprintDir), t.taskId, t.taskId.split('-').pop());
         taskLink = `sprints/${sprintDir}/${taskDir}/INDEX.md`;

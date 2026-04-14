@@ -10,44 +10,44 @@
 
 ## Sprint Registry
 
-| Sprint    | Title                                                                                | Status               | Tasks |
-| --------- | ------------------------------------------------------------------------------------ | -------------------- | ----- |
-| FORGE-S06 | Post-0.7 Remediation: Persona Lookup, Store Integrity, Upgrade Friction, Slug Naming | 📝 planning          | 0/10  |
-| FORGE-S05 | Agent Definition & Runtime Portability                                               | ✅ completed          | 7/8   |
-| FORGE-S04 | Store Abstraction Layer                                                              | ✅ retrospective-done | 6/6   |
-| FORGE-S03 | Lean Migration Architecture                                                          | ✅ retrospective-done | 3/3   |
-| FORGE-S02 | Foundational Concepts Documentation + Feature Tier (v1.0)                            | ✅ completed          | 10/10 |
-| FORGE-S01 | Token Usage Tracking                                                                 | ✅ retrospective-done | 8/8   |
+| Sprint    | Title                                                                              | Status      | Tasks |
+| --------- | ---------------------------------------------------------------------------------- | ----------- | ----- |
+| FORGE-S06 | Sprint S06                                                                         | 🔵 active   | 7/10  |
+| FORGE-S05 | Sprint S05                                                                         | 🔵 active   | 0/8   |
+| FORGE-S04 | Sprint S04                                                                         | 📝 planning | 6/6   |
+| FORGE-S03 | Sprint Plan — FORGE-S03: Lean Migration Architecture                               | 🔵 active   | 0/3   |
+| FORGE-S02 | Sprint Plan — FORGE-S02: Foundational Concepts Documentation + Feature Tier (v1.0) | 🔵 active   | 3/10  |
+| FORGE-S01 | Sprint FORGE-S01 — Token Usage Tracking                                            | 🔵 active   | 7/8   |
 
 ## Task Registry
 
 ### FORGE-S06
 
-| Task                                              | Title                                                                         | Status     | Estimate |
-| ------------------------------------------------- | ----------------------------------------------------------------------------- | ---------- | -------- |
-| [FORGE-S06-T01](../forge/meta/workflows/INDEX.md) | Fix orchestrator persona lookup + model announcement                          | 📋 planned | M        |
-| [FORGE-S06-T02](../forge/meta/INDEX.md)           | Purify meta-workflows — remove Persona sections, reassign sprint-intake to PM | 📋 planned | M        |
-| [FORGE-S06-T03](../forge/commands/INDEX.md)       | Add personas to forge:regenerate defaults                                     | 📋 planned | S        |
-| [FORGE-S06-T04](../forge/tools/INDEX.md)          | Fix ghost event files in store.cjs and validate-store.cjs                     | 📋 planned | M        |
-| [FORGE-S06-T05](../forge/commands/INDEX.md)       | Suppress false breaking-change confirmation in forge:update                   | 📋 planned | S        |
-| [FORGE-S06-T06](../forge/schemas/INDEX.md)        | Add `path` field to sprint schema                                             | 📋 planned | S        |
-| [FORGE-S06-T07](../forge/tools/INDEX.md)          | Slug-aware seed-store discovery and path construction                         | 📋 planned | M        |
-| [FORGE-S06-T08](../forge/tools/INDEX.md)          | Update collate path resolution for slug-named directories                     | 📋 planned | S        |
-| [FORGE-S06-T09](../forge/tools/INDEX.md)          | Update validate-store discovery for slug-named directories                    | 📋 planned | M        |
-| [FORGE-S06-T10](../forge/.claude-plugin/INDEX.md) | Release engineering — version bump, migration, security scan                  | 📋 planned | S        |
+| Task                                                                                      | Title                                                                                               | Status           | Estimate |
+| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------- | -------- |
+| [FORGE-S06-T01](sprints/FORGE-S06/FORGE-S06-T01-fix-orchestrator-persona-lookup/INDEX.md) | PLAN — FORGE-S06-T01: Fix orchestrator persona lookup + model announcement                          | ✅ committed      | —        |
+| [FORGE-S06-T02](sprints/FORGE-S06/FORGE-S06-T02-purify-meta-workflows/INDEX.md)           | PLAN — FORGE-S06-T02: Purify meta-workflows — remove Persona sections, reassign sprint-intake to PM | ✅ committed      | —        |
+| [FORGE-S06-T03](sprints/FORGE-S06/FORGE-S06-T03-regenerate-personas-default/INDEX.md)     | Add personas to forge:regenerate defaults                                                           | ✅ committed      | —        |
+| [FORGE-S06-T04](sprints/FORGE-S06/FORGE-S06-T04-fix-ghost-event-files/INDEX.md)           | PLAN — FORGE-S06-T04: Fix ghost event files in store.cjs and validate-store.cjs                     | ✅ committed      | —        |
+| [FORGE-S06-T05](sprints/FORGE-S06/FORGE-S06-T05-suppress-false-breaking-change/INDEX.md)  | PLAN — FORGE-S06-T05: Suppress false breaking-change confirmation in forge:update                   | ✅ committed      | —        |
+| [FORGE-S06-T06](sprints/FORGE-S06/FORGE-S06-T06-add-path-to-sprint-schema/INDEX.md)       | PLAN — FORGE-S06-T06: Add `path` field to sprint schema                                             | ✅ committed      | —        |
+| [FORGE-S06-T07](../forge/tools/INDEX.md)                                                  | Slug-aware seed-store discovery and path construction                                               | ✅ committed      | M        |
+| [FORGE-S06-T08](sprints/FORGE-S06/FORGE-S06-T08-collate-slug-path-resolution/INDEX.md)    | Task T08                                                                                            | 📋 plan-approved | —        |
+| [FORGE-S06-T09](sprints/FORGE-S06/FORGE-S06-T09-validate-store-slug-discovery/INDEX.md)   | Task T09                                                                                            | 📋 planned       | —        |
+| [FORGE-S06-T10](sprints/FORGE-S06/FORGE-S06-T10-release-engineering/INDEX.md)             | Task T10                                                                                            | 📋 planned       | —        |
 
 ### FORGE-S05
 
-| Task                                                      | Title                                  | Status      | Estimate |
-| --------------------------------------------------------- | -------------------------------------- | ----------- | -------- |
-| [FORGE-S05-T01](../forge/meta/INDEX.md)                   | Meta-skills framework                  | ✅ committed | M        |
-| [FORGE-S05-T02](../forge/init/INDEX.md)                   | Dual-artifact generation               | ✅ committed | L        |
-| [FORGE-S05-T03](../forge/meta/INDEX.md)                   | Persona & Role alignment               | ✅ committed | S        |
-| [FORGE-S05-T04](../forge/meta/INDEX.md)                   | Workflow purification                  | ✅ committed | M        |
-| [FORGE-S05-T05](../forge/meta/workflows/INDEX.md)         | Symmetric injection & model resolution | ✅ committed | L        |
-| [FORGE-S05-T06](../forge/commands/INDEX.md)               | Portability migration                  | ✅ committed | M        |
-| [FORGE-S05-T07](../forge/.claude-plugin/INDEX.md)         | Release Engineering                    | ✅ committed | S        |
-| [FORGE-S05-T08](sprints/FORGE-S05/FORGE-S05-T08/INDEX.md) | Create task prompt                     | ✅ approved  | S        |
+| Task                                                                     | Title                                                        | Status     | Estimate |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------ | ---------- | -------- |
+| [FORGE-S05-T01](sprints/FORGE-S05/T01/INDEX.md)                          | Task T1                                                      | 📋 planned | —        |
+| [FORGE-S05-T02](sprints/FORGE-S05/T02/INDEX.md)                          | Task T2                                                      | 📋 planned | —        |
+| [FORGE-S05-T03](sprints/FORGE-S05/T03/INDEX.md)                          | PLAN — FORGE-S05-T03: Persona & Role alignment               | 📋 planned | —        |
+| [FORGE-S05-T04](sprints/FORGE-S05/T04/INDEX.md)                          | Task T4                                                      | 📋 planned | —        |
+| [FORGE-S05-T05](sprints/FORGE-S05/T05/INDEX.md)                          | PLAN — FORGE-S05-T05: Symmetric injection & model resolution | 📋 planned | —        |
+| [FORGE-S05-T06](sprints/FORGE-S05/T06/INDEX.md)                          | PLAN — FORGE-S05-T06: Portability migration                  | 📋 planned | —        |
+| [FORGE-S05-T07](sprints/FORGE-S05/T07/INDEX.md)                          | Task T7                                                      | 📋 planned | —        |
+| [FORGE-S05-T08](sprints/FORGE-S05/FORGE-S05-T08/TASK_PROMPT.md/INDEX.md) | Create task prompt                                           | ✅ approved | S        |
 
 ### FORGE-S04
 
@@ -62,49 +62,56 @@
 
 ### FORGE-S03
 
-| Task                                        | Title                                                                  | Status      | Estimate |
-| ------------------------------------------- | ---------------------------------------------------------------------- | ----------- | -------- |
-| [FORGE-S03-T01](sprints/FORGE-S03/INDEX.md) | Eliminate tools regenerate target and embed store schemas              | ✅ committed | M        |
-| [FORGE-S03-T02](sprints/FORGE-S03/INDEX.md) | Introduce granular migration target format and correct migrations.json | ✅ committed | M        |
-| [FORGE-S03-T03](sprints/FORGE-S03/INDEX.md) | Version bump to 0.6.1 with security scan and release commit            | ✅ committed | S        |
+| Task                                            | Title                                                                                        | Status          | Estimate |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------- | --------------- | -------- |
+| [FORGE-S03-T01](sprints/FORGE-S03/T01/INDEX.md) | PLAN — FORGE-S03-T01: Eliminate tools regenerate target and embed store schemas              | 📋 planned      | —        |
+| [FORGE-S03-T02](sprints/FORGE-S03/T02/INDEX.md) | PLAN — FORGE-S03-T02: Introduce granular migration target format and correct migrations.json | 🔧 implementing | —        |
+| [FORGE-S03-T03](sprints/FORGE-S03/T03/INDEX.md) | PLAN — FORGE-S03-T03: Version bump to 0.6.1 with security scan and release commit            | 🔧 implementing | —        |
 
 ### FORGE-S02
 
-| Task                                                 | Title                                                                                                                   | Status      | Estimate |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------- | -------- |
-| [FORGE-S02-T01](../docs/concepts/INDEX.md)           | docs/concepts/ — write all nine conceptual documentation pages                                                          | ✅ committed | L        |
-| [FORGE-S02-T02](../forge/meta/store-schema/INDEX.md) | feature.schema.md — author Feature store-schema documentation                                                           | ✅ committed | S        |
-| [FORGE-S02-T03](../forge/schemas/INDEX.md)           | JSON schemas — add feature.schema.json; add nullable feature_id to sprint and task schemas                              | ✅ committed | S        |
-| [FORGE-S02-T04](../forge/tools/INDEX.md)             | seed-store.cjs — scaffold features/ directory on init                                                                   | ✅ committed | S        |
-| [FORGE-S02-T05](../forge/tools/INDEX.md)             | validate-store.cjs — referential integrity for feature_id on tasks and sprints                                          | ✅ committed | M        |
-| [FORGE-S02-T06](../forge/tools/INDEX.md)             | collate.cjs — generate engineering/features/INDEX.md and cross-link from MASTER_INDEX.md                                | ✅ committed | M        |
-| [FORGE-S02-T07](../forge/meta/workflows/INDEX.md)    | meta-sprint-intake + meta-sprint-plan — feature linkage and feature_id propagation                                      | ✅ committed | M        |
-| [FORGE-S02-T08](../forge/commands/INDEX.md)          | forge:health — per-feature FEAT-ID test coverage reporting                                                              | ✅ committed | M        |
-| [FORGE-S02-T09](../INDEX.md)                         | README + vision alignment — containment diagram, concepts link, absorb default-workflows.md, sync vision/01-OVERVIEW.md | ✅ committed | M        |
-| [FORGE-S02-T10](../forge/.claude-plugin/INDEX.md)    | Release engineering — version bump to v0.6.0, migration entry, security scan                                            | ✅ committed | S        |
+| Task                                            | Title                                                                                                          | Status         | Estimate |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------- | -------- |
+| [FORGE-S02-T01](sprints/FORGE-S02/T01/INDEX.md) | PLAN — FORGE-S02-T01: docs/concepts/ — write all nine conceptual documentation pages                           | ✅ committed    | —        |
+| [FORGE-S02-T02](sprints/FORGE-S02/T02/INDEX.md) | FORGE-S02-T02: Plan                                                                                            | 📋 planned     | —        |
+| [FORGE-S02-T03](sprints/FORGE-S02/T03/INDEX.md) | FORGE-S02-T03: Plan                                                                                            | ✅ committed    | —        |
+| [FORGE-S02-T04](sprints/FORGE-S02/T04/INDEX.md) | PLAN — FORGE-S02-T04: seed-store.cjs — scaffold features/ directory on init                                    | ✅ committed    | —        |
+| [FORGE-S02-T05](sprints/FORGE-S02/T05/INDEX.md) | PLAN — FORGE-S02-T05: validate-store.cjs — referential integrity for feature_id on tasks and sprints           | 🔧 implemented | —        |
+| [FORGE-S02-T06](sprints/FORGE-S02/T06/INDEX.md) | PLAN — FORGE-S02-T06: collate.cjs — generate engineering/features/INDEX.md and cross-link from MASTER_INDEX.md | 📋 planned     | —        |
+| [FORGE-S02-T07](sprints/FORGE-S02/T07/INDEX.md) | PLAN — FORGE-S02-T07: meta-sprint-intake + meta-sprint-plan — feature linkage and feature_id propagation       | 📋 planned     | —        |
+| [FORGE-S02-T08](sprints/FORGE-S02/T08/INDEX.md) | PLAN — FORGE-S02-T08: forge:health — per-feature FEAT-ID test coverage reporting                               | 📋 planned     | —        |
+| [FORGE-S02-T09](sprints/FORGE-S02/T09/INDEX.md) | PLAN: FORGE-S02-T09                                                                                            | 📋 planned     | —        |
+| [FORGE-S02-T10](sprints/FORGE-S02/T10/INDEX.md) | PLAN — FORGE-S02-T10: Release engineering — version bump to v0.6.0, migration entry, security scan             | 📋 planned     | —        |
 
 ### FORGE-S01
 
-| Task                                              | Title                                                                  | Status      | Estimate |
-| ------------------------------------------------- | ---------------------------------------------------------------------- | ----------- | -------- |
-| [FORGE-S01-T01](../forge/schemas/INDEX.md)        | Event schema — add optional token fields                               | ✅ committed | S        |
-| [FORGE-S01-T02](../forge/tools/INDEX.md)          | validate-store — handle new event token fields                         | ✅ committed | S        |
-| [FORGE-S01-T03](../forge/meta/workflows/INDEX.md) | Orchestrator meta-workflow — subagent self-reporting and sidecar merge | ✅ committed | M        |
-| [FORGE-S01-T04](../forge/tools/INDEX.md)          | estimate-usage.cjs — token estimation fallback tool                    | ✅ committed | M        |
-| [FORGE-S01-T05](../forge/tools/INDEX.md)          | collate.cjs — COST_REPORT.md generation                                | ✅ committed | L        |
-| [FORGE-S01-T06](../forge/meta/workflows/INDEX.md) | Retrospective meta-workflow — cost analysis and baselines              | ✅ committed | M        |
-| [FORGE-S01-T07](../forge/commands/INDEX.md)       | Bug report opt-in — token data in bug reports with user prompt         | ✅ committed | S        |
-| [FORGE-S01-T08](../forge/.claude-plugin/INDEX.md) | Version bump, migration entry, and security scan                       | ✅ committed | S        |
+| Task                                            | Title                                                                                        | Status         | Estimate |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------- | -------- |
+| [FORGE-S01-T01](sprints/FORGE-S01/T01/INDEX.md) | PLAN — FORGE-S01-T01: Event schema — add optional token fields                               | ✅ committed    | —        |
+| [FORGE-S01-T02](sprints/FORGE-S01/T02/INDEX.md) | PLAN — FORGE-S01-T02: validate-store — handle new event token fields                         | ✅ committed    | —        |
+| [FORGE-S01-T03](sprints/FORGE-S01/T03/INDEX.md) | PLAN — FORGE-S01-T03: Orchestrator meta-workflow — subagent self-reporting and sidecar merge | ✅ committed    | —        |
+| [FORGE-S01-T04](sprints/FORGE-S01/T04/INDEX.md) | PLAN — FORGE-S01-T04: estimate-usage.cjs — token estimation fallback tool                    | ✅ committed    | —        |
+| [FORGE-S01-T05](sprints/FORGE-S01/T05/INDEX.md) | PLAN — FORGE-S01-T05: collate.cjs — COST_REPORT.md generation                                | 🔧 implemented | —        |
+| [FORGE-S01-T06](sprints/FORGE-S01/T06/INDEX.md) | PLAN — FORGE-S01-T06: Retrospective meta-workflow — cost analysis and baselines              | ✅ committed    | —        |
+| [FORGE-S01-T07](sprints/FORGE-S01/T07/INDEX.md) | PLAN — FORGE-S01-T07: Bug report opt-in — token data in bug reports with user prompt         | ✅ committed    | —        |
+| [FORGE-S01-T08](sprints/FORGE-S01/T08/INDEX.md) | PLAN — FORGE-S01-T08: Version bump, migration entry, and security scan                       | ✅ committed    | —        |
 
 ## Bug Registry
 
-| Bug                                                                 | Title                                                                                                       | Severity | Status  |
-| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------- | ------- |
-| [BUG-001](bugs/BUG-001-sprint-runner-context-accumulation/INDEX.md) | Sprint runner accumulates context across tasks — violates light-context principle                           | major    | ✅ fixed |
-| [BUG-002](bugs/BUG-002-validate-store-integrity/INDEX.md)           | validate-store: referential integrity checks incomplete — bugs, virtual sprints, and nullable foreign keys  | major    | ✅ fixed |
-| [BUG-003](bugs/BUG-003-missing-backfill/INDEX.md)                   | forge:update: migration 0.3.7→0.3.13 missing data migration for new required schema fields                  | major    | ✅ fixed |
-| [BUG-004](bugs/BUG-004-event-schema-validation/INDEX.md)            | validate-store rejects valid null timing fields on start events and has no event backfill                   | major    | ✅ fixed |
-| [BUG-005](bugs/BUG-005-fix-bug-orchestrator-deviations/INDEX.md)    | fix-bug is not an orchestrator — 4 control-flow and schema deviations                                       | major    | ✅ fixed |
-| [BUG-006](bugs/BUG-006-collate-cost-report-path/INDEX.md)           | collate: COST_REPORT.md written to SNN/ stub dirs instead of existing sprint_NN_*/ dirs                     | major    | ✅ fixed |
-| [BUG-007](bugs/BUG-007-collate-cost-report-attribution/INDEX.md)    | collate: COST_REPORT.md path fallback fails when sprint.path absent + (unknown) attribution in usage events | major    | ✅ fixed |
+| Bug                                                                       | Title                                                                                                       | Severity | Status      |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------- | ----------- |
+| [FORGE-BUG-001](bugs/BUG-001-sprint-runner-context-accumulation/INDEX.md) | PROGRESS — BUG-001: Sprint runner accumulates context across tasks                                          | minor    | 🔴 reported |
+| [FORGE-BUG-002](bugs/BUG-002-validate-store-integrity/INDEX.md)           | PROGRESS — BUG-002: validate-store referential integrity checks incomplete                                  | minor    | 🔴 reported |
+| [FORGE-BUG-003](bugs/BUG-003-missing-backfill/INDEX.md)                   | PROGRESS — BUG-003: forge:update missing data migration for new required schema fields                      | minor    | 🔴 reported |
+| [FORGE-BUG-004](bugs/BUG-004-event-schema-validation/INDEX.md)            | PROGRESS — BUG-004: validate-store rejects valid null timing fields and has no event backfill               | minor    | 🔴 reported |
+| [FORGE-BUG-005](bugs/BUG-005-fix-bug-orchestrator-deviations/INDEX.md)    | PROGRESS — BUG-005: fix-bug is not an orchestrator                                                          | minor    | 🔴 reported |
+| [FORGE-BUG-006](bugs/BUG-006-collate-cost-report-path/INDEX.md)           | PROGRESS — BUG-006: collate COST_REPORT.md written to SNN/ stub dirs                                        | minor    | 🔴 reported |
+| [FORGE-BUG-007](bugs/BUG-007-collate-cost-report-attribution/INDEX.md)    | PLAN — BUG-007: collate COST_REPORT.md path fallback + (unknown) attribution                                | minor    | 🔴 reported |
+| [BUG-001](bugs/BUG-001-sprint-runner-context-accumulation/INDEX.md)       | Sprint runner accumulates context across tasks — violates light-context principle                           | major    | ✅ fixed     |
+| [BUG-002](bugs/BUG-002-validate-store-integrity/INDEX.md)                 | validate-store: referential integrity checks incomplete — bugs, virtual sprints, and nullable foreign keys  | major    | ✅ fixed     |
+| [BUG-003](bugs/BUG-003-missing-backfill/INDEX.md)                         | forge:update: migration 0.3.7→0.3.13 missing data migration for new required schema fields                  | major    | ✅ fixed     |
+| [BUG-004](bugs/BUG-004-event-schema-validation/INDEX.md)                  | validate-store rejects valid null timing fields on start events and has no event backfill                   | major    | ✅ fixed     |
+| [BUG-005](bugs/BUG-005-fix-bug-orchestrator-deviations/INDEX.md)          | fix-bug is not an orchestrator — 4 control-flow and schema deviations                                       | major    | ✅ fixed     |
+| [BUG-006](bugs/BUG-006-collate-cost-report-path/INDEX.md)                 | collate: COST_REPORT.md written to SNN/ stub dirs instead of existing sprint_NN_*/ dirs                     | major    | ✅ fixed     |
+| [BUG-007](bugs/BUG-007-collate-cost-report-attribution/INDEX.md)          | collate: COST_REPORT.md path fallback fails when sprint.path absent + (unknown) attribution in usage events | major    | ✅ fixed     |
 

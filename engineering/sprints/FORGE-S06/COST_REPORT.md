@@ -3,7 +3,7 @@
 # Cost Report — FORGE-S06
 
 > Generated: 2026-04-14
-> Sprint: Post-0.7 Remediation: Persona Lookup, Store Integrity, Upgrade Friction, Slug Naming
+> Sprint: Sprint S06
 
 _No token data available for this sprint._
 

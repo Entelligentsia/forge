@@ -1,4 +1,12 @@
 {
+  "0.7.9": {
+    "version": "0.7.10",
+    "date": "2026-04-14",
+    "notes": "collate: resolve sprint directory names from sprint.path field in MASTER_INDEX task link generation; fix task link resolution for engineering-rooted task paths (directory vs. file path distinction).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.7.8": {
     "version": "0.7.9",
     "date": "2026-04-14",
