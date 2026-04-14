@@ -1,5 +1,49 @@
 # Forge — Project Guidelines for Claude
 
+## Two-Layer Architecture — Read This First
+
+This repo contains two entirely separate things. Confusing them causes wrong edits.
+
+```
+forge/          ← PLUGIN SOURCE. You develop here.
+                  Meta-definitions, hooks, tools, commands, schemas.
+                  Changes here ship to all Forge users on next install.
+
+.forge/         ← DOGFOODING INSTANCE. Generated output. Do not edit directly.
+engineering/    ← DOGFOODING KB. Sprint artifacts for this project's own dev.
+                  Managed by Forge commands (/plan, /implement, /sprint-plan…).
+```
+
+### Decision rule — before touching any file, ask:
+
+> **"Am I fixing/building Forge itself?"** → work in `forge/`
+> **"Am I executing a sprint task for this project?"** → use Forge commands; they write to `engineering/` and `.forge/`
+
+### Hard boundaries
+
+**NEVER** edit `.forge/workflows/`, `.forge/personas/`, or `.forge/skills/` to fix
+a plugin behaviour. The fix goes in `forge/meta/` — `.forge/` is regenerated output.
+
+**NEVER** edit `engineering/` as part of implementing a plugin feature.
+
+**NEVER** regenerate `.forge/` as a side-effect of plugin development work —
+regeneration is a user action (`/forge:regenerate`) that runs after they upgrade.
+
+### Where things live
+
+| You want to… | Edit this |
+|---|---|
+| Fix a workflow bug | `forge/meta/workflows/meta-*.md` |
+| Fix a persona or skill | `forge/meta/personas/` or `forge/meta/skills/` |
+| Fix a hook | `forge/hooks/` |
+| Fix a tool | `forge/tools/` |
+| Add a command | `forge/commands/` |
+| Change a schema | `forge/schemas/` |
+| Update a sprint task (dogfooding) | Use `/plan`, `/implement`, etc. |
+| Check dogfooding project health | `/forge:health` |
+
+---
+
 ## Versioning
 
 **Bump `forge/.claude-plugin/plugin.json` version for every material change.**
@@ -12,7 +56,7 @@ already installed Forge. This includes:
 - Changes to command files (`forge/commands/`) that alter how commands behave
 - Changes to hooks (`forge/hooks/`)
 - New commands or tools
-- Schema changes to `.forge/store/` or `.forge/config.json`
+- Schema changes to `forge/schemas/` (the source schemas that get copied to user projects)
 
 **Invariant: schema change → update concepts diagram:**
 If a schema change affects the lifecycle (state machinery) of a Forge entity (Sprint, Task, Bug, Feature), the corresponding handwritten state diagram in `docs/concepts/*.md` MUST be manually updated to reflect the new state enums.
