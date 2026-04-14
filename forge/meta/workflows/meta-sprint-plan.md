@@ -33,6 +33,10 @@ Break sprint requirements into a set of estimated tasks with a dependency graph.
 4. Documentation:
    - Generate SPRINT_PLAN.md
    - Update the store: create task manifests for all planned tasks
+   - For each task, create its task folder and write TASK_PROMPT.md:
+     * Folder: `engineering/sprints/{sprintId}/{taskId}/`
+     * File: `TASK_PROMPT.md` — populate from `.forge/templates/TASK_PROMPT_TEMPLATE.md`
+       filling in title, objective, acceptance criteria, entities, DSL/CLI changes, and operational impact
    - Set sprint status to `planned`
 
 5. Finalize:
