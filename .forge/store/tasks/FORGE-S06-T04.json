@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S06",
   "title": "Fix ghost event files in store.cjs and validate-store.cjs",
-  "status": "planned",
+  "status": "approved",
   "path": "forge/tools/store.cjs",
   "estimate": "M",
   "dependencies": [],

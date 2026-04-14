@@ -11,6 +11,8 @@ process.on('uncaughtException', (error) => {
 });
 
 const store = require('./store.cjs');
+const fs = require('fs');
+const path = require('path');
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const FIX_MODE = process.argv.includes('--fix') && !DRY_RUN;
@@ -343,12 +345,16 @@ const allSprints = store.listSprints();
 for (const sprint of allSprints) {
   if (!sprint) continue;
   const sprintId = sprint.sprintId;
-  const events = store.listEvents(sprintId);
-  for (const rec of events) {
+  const eventsDir = path.join(store.impl.storeRoot, 'events', sprintId);
+  if (!fs.existsSync(eventsDir)) continue;
+  const eventFiles = fs.readdirSync(eventsDir)
+    .filter(f => f.endsWith('.json') && !f.startsWith('_'));
+
+  for (const eventFile of eventFiles) {
+    const filename = eventFile.slice(0, -5); // strip .json
+    const rec = store.impl._readJson(path.join(eventsDir, eventFile));
     if (!rec) continue;
 
-    // Since eventId is the filename, and the facade doesn't expose filename directly in listEvents,
-    // we use the eventId property which is required by schema.
     const eventId = rec.eventId;
 
     if (FIX_MODE) {
@@ -356,13 +362,38 @@ for (const sprint of allSprints) {
       let changed = false;
       for (const [field, derive] of Object.entries(rules)) {
         if (rec[field] === undefined || rec[field] === null || rec[field] === '') {
-          const val = derive(rec, eventId);
+          const val = derive(rec, filename);
           rec[field] = val;
-          console.log(`FIXED  ${sprintId}/${eventId}: backfilled "${field}" = "${val}"`);
+          console.log(`FIXED  ${sprintId}/${filename}: backfilled "${field}" = "${val}"`);
           changed = true;
           fixesCount++;
         }
       }
+
+      // If the filename doesn't match the canonical eventId, resolve the mismatch.
+      // When the eventId is a valid filename, rename the file to match it.
+      // When the eventId is invalid (contains /, is a placeholder like "temp",
+      // or cannot be a filename), backfill eventId to the filename instead.
+      if (filename !== rec.eventId) {
+        const isValidFilename = (id) => id && !id.includes('/') && !id.includes('\\') && id !== '.';
+        if (isValidFilename(rec.eventId)) {
+          try {
+            store.renameEvent(sprintId, filename, rec.eventId);
+            console.log(`FIXED  ${sprintId}/${filename}: renamed to ${rec.eventId}.json`);
+            fixesCount++;
+          } catch (renameErr) {
+            err(`${sprintId}/${filename}`, `cannot rename to ${rec.eventId}.json: ${renameErr.message}`);
+          }
+        } else {
+          // eventId is invalid for a filename — backfill it to the current filename
+          console.log(`FIXED  ${sprintId}/${filename}: eventId "${rec.eventId}" is not a valid filename, resetting to "${filename}"`);
+          rec.eventId = filename;
+          changed = true;
+          fixesCount++;
+        }
+      }
+
+      // Write the updated record (writeEvent now handles ghost detection internally)
       if (changed) store.writeEvent(sprintId, rec);
     }
 

@@ -1,4 +1,12 @@
 {
+  "0.7.3": {
+    "version": "0.7.4",
+    "date": "2026-04-14",
+    "notes": "Fix ghost event files: store.cjs writeEvent detects and renames mismatched filenames before writing; validate-store --fix renames files instead of creating duplicates on eventId backfill. Collision check prevents silent overwrites.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.7.2": {
     "version": "0.7.3",
     "date": "2026-04-14",

@@ -35,6 +35,7 @@ class Store {
   listEvents(sprintId, filter) { return this.impl.listEvents(sprintId, filter); }
   writeEvent(sprintId, data) { return this.impl.writeEvent(sprintId, data); }
   deleteEvent(id, sprintId) { return this.impl.deleteEvent(id, sprintId); }
+  renameEvent(sprintId, oldFilename, newEventId) { return this.impl.renameEvent(sprintId, oldFilename, newEventId); }
 
   // --- Features ---
   getFeature(id) { return this.impl.getFeature(id); }
@@ -157,7 +158,48 @@ class FSImpl {
       .map(f => this._readJson(path.join(dir, f)))
       .filter(e => !e || (filter ? this._matches(e, filter) : true));
   }
+  /**
+   * Find an event file whose internal eventId matches the given eventId,
+   * but whose filename does not. Returns the mismatched filename (without
+   * .json extension), or null if none found. Skips _-prefixed (ephemeral) files.
+   */
+  _findEventFileByContentId(sprintId, eventId) {
+    const dir = path.join(this.storeRoot, 'events', sprintId);
+    if (!fs.existsSync(dir)) return null;
+    const files = fs.readdirSync(dir).filter(f => f.endsWith('.json') && !f.startsWith('_'));
+    for (const file of files) {
+      const filename = file.slice(0, -5); // strip .json
+      if (filename === eventId) continue; // already canonical
+      const rec = this._readJson(path.join(dir, file));
+      if (rec && rec.eventId === eventId) {
+        return filename;
+      }
+    }
+    return null;
+  }
+  /**
+   * Rename an event file from oldFilename to match newEventId.
+   * Throws if the target file already exists (collision).
+   */
+  renameEvent(sprintId, oldFilename, newEventId) {
+    const dir = path.join(this.storeRoot, 'events', sprintId);
+    const oldPath = path.join(dir, `${oldFilename}.json`);
+    const newPath = path.join(dir, `${newEventId}.json`);
+    if (oldPath === newPath) return; // no-op
+    if (fs.existsSync(newPath)) {
+      throw new Error(`Cannot rename event: target file already exists: ${newPath}`);
+    }
+    if (fs.existsSync(oldPath)) {
+      fs.renameSync(oldPath, newPath);
+    }
+  }
   writeEvent(sprintId, data) {
+    // Detect ghost file: an existing file whose content eventId matches but
+    // whose filename does not. Rename it to the canonical name before writing.
+    const ghostFilename = this._findEventFileByContentId(sprintId, data.eventId);
+    if (ghostFilename !== null) {
+      this.renameEvent(sprintId, ghostFilename, data.eventId);
+    }
     const p = path.join(this.storeRoot, 'events', sprintId, `${data.eventId}.json`);
     return this._writeJson(p, data);
   }
