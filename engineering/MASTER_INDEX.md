@@ -2,7 +2,7 @@
 
 # Forge — Master Index
 
-> Generated: 2026-04-13
+> Generated: 2026-04-14
 
 ## Feature Registry
 
@@ -10,15 +10,31 @@
 
 ## Sprint Registry
 
-| Sprint    | Title                                                     | Status               | Tasks |
-| --------- | --------------------------------------------------------- | -------------------- | ----- |
-| FORGE-S05 | Agent Definition & Runtime Portability                    | ✅ completed          | 7/8   |
-| FORGE-S04 | Store Abstraction Layer                                   | ✅ retrospective-done | 6/6   |
-| FORGE-S03 | Lean Migration Architecture                               | ✅ retrospective-done | 3/3   |
-| FORGE-S02 | Foundational Concepts Documentation + Feature Tier (v1.0) | ✅ completed          | 10/10 |
-| FORGE-S01 | Token Usage Tracking                                      | ✅ retrospective-done | 8/8   |
+| Sprint    | Title                                                                                | Status               | Tasks |
+| --------- | ------------------------------------------------------------------------------------ | -------------------- | ----- |
+| FORGE-S06 | Post-0.7 Remediation: Persona Lookup, Store Integrity, Upgrade Friction, Slug Naming | 📝 planning          | 0/10  |
+| FORGE-S05 | Agent Definition & Runtime Portability                                               | ✅ completed          | 7/8   |
+| FORGE-S04 | Store Abstraction Layer                                                              | ✅ retrospective-done | 6/6   |
+| FORGE-S03 | Lean Migration Architecture                                                          | ✅ retrospective-done | 3/3   |
+| FORGE-S02 | Foundational Concepts Documentation + Feature Tier (v1.0)                            | ✅ completed          | 10/10 |
+| FORGE-S01 | Token Usage Tracking                                                                 | ✅ retrospective-done | 8/8   |
 
 ## Task Registry
+
+### FORGE-S06
+
+| Task                                              | Title                                                                         | Status     | Estimate |
+| ------------------------------------------------- | ----------------------------------------------------------------------------- | ---------- | -------- |
+| [FORGE-S06-T01](../forge/meta/workflows/INDEX.md) | Fix orchestrator persona lookup + model announcement                          | 📋 planned | M        |
+| [FORGE-S06-T02](../forge/meta/INDEX.md)           | Purify meta-workflows — remove Persona sections, reassign sprint-intake to PM | 📋 planned | M        |
+| [FORGE-S06-T03](../forge/commands/INDEX.md)       | Add personas to forge:regenerate defaults                                     | 📋 planned | S        |
+| [FORGE-S06-T04](../forge/tools/INDEX.md)          | Fix ghost event files in store.cjs and validate-store.cjs                     | 📋 planned | M        |
+| [FORGE-S06-T05](../forge/commands/INDEX.md)       | Suppress false breaking-change confirmation in forge:update                   | 📋 planned | S        |
+| [FORGE-S06-T06](../forge/schemas/INDEX.md)        | Add `path` field to sprint schema                                             | 📋 planned | S        |
+| [FORGE-S06-T07](../forge/tools/INDEX.md)          | Slug-aware seed-store discovery and path construction                         | 📋 planned | M        |
+| [FORGE-S06-T08](../forge/tools/INDEX.md)          | Update collate path resolution for slug-named directories                     | 📋 planned | S        |
+| [FORGE-S06-T09](../forge/tools/INDEX.md)          | Update validate-store discovery for slug-named directories                    | 📋 planned | M        |
+| [FORGE-S06-T10](../forge/.claude-plugin/INDEX.md) | Release engineering — version bump, migration, security scan                  | 📋 planned | S        |
 
 ### FORGE-S05
 
@@ -31,7 +47,7 @@
 | [FORGE-S05-T05](../forge/meta/workflows/INDEX.md)         | Symmetric injection & model resolution | ✅ committed | L        |
 | [FORGE-S05-T06](../forge/commands/INDEX.md)               | Portability migration                  | ✅ committed | M        |
 | [FORGE-S05-T07](../forge/.claude-plugin/INDEX.md)         | Release Engineering                    | ✅ committed | S        |
-| [FORGE-S05-T08](sprints/FORGE-S05/FORGE-S05-T08/INDEX.md) | Create task prompt                     | 📋 planned  | S        |
+| [FORGE-S05-T08](sprints/FORGE-S05/FORGE-S05-T08/INDEX.md) | Create task prompt                     | ✅ approved  | S        |
 
 ### FORGE-S04
 

@@ -1,0 +1,28 @@
+{
+  "sprintId": "FORGE-S06",
+  "feature_id": null,
+  "title": "Post-0.7 Remediation: Persona Lookup, Store Integrity, Upgrade Friction, Slug Naming",
+  "status": "active",
+  "taskIds": [
+    "FORGE-S06-T01",
+    "FORGE-S06-T02",
+    "FORGE-S06-T03",
+    "FORGE-S06-T04",
+    "FORGE-S06-T05",
+    "FORGE-S06-T06",
+    "FORGE-S06-T07",
+    "FORGE-S06-T08",
+    "FORGE-S06-T09",
+    "FORGE-S06-T10"
+  ],
+  "dependencies": {
+    "FORGE-S06-T02": ["FORGE-S06-T01"],
+    "FORGE-S06-T03": ["FORGE-S06-T02"],
+    "FORGE-S06-T07": ["FORGE-S06-T06"],
+    "FORGE-S06-T08": ["FORGE-S06-T06"],
+    "FORGE-S06-T09": ["FORGE-S06-T04", "FORGE-S06-T06"],
+    "FORGE-S06-T10": ["FORGE-S06-T01", "FORGE-S06-T02", "FORGE-S06-T03", "FORGE-S06-T04", "FORGE-S06-T05", "FORGE-S06-T06", "FORGE-S06-T07", "FORGE-S06-T08", "FORGE-S06-T09"]
+  },
+  "executionMode": "wave-parallel",
+  "createdAt": "2026-04-14T18:00:00.000Z"
+}

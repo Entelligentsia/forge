@@ -2,7 +2,7 @@
 
 # Feature Registry
 
-> Generated: 2026-04-13
+> Generated: 2026-04-14
 
 | Feature ID              | Title                   | Status    | Sprints   | Tasks |
 | ----------------------- | ----------------------- | --------- | --------- | ----- |

@@ -1,0 +1,11 @@
+{
+  "taskId": "FORGE-S06-T08",
+  "feature_id": null,
+  "sprintId": "FORGE-S06",
+  "title": "Update collate path resolution for slug-named directories",
+  "status": "planned",
+  "path": "forge/tools/collate.cjs",
+  "estimate": "S",
+  "dependencies": ["FORGE-S06-T06"],
+  "pipeline": "default"
+}

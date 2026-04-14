@@ -1,0 +1,13 @@
+{
+  "eventId": "20260414T180000000Z_FORGE-S06_architect_sprint-plan",
+  "taskId": "FORGE-S06",
+  "sprintId": "FORGE-S06",
+  "role": "architect",
+  "action": "sprint-plan",
+  "phase": "sprint-plan",
+  "iteration": 1,
+  "startTimestamp": "2026-04-14T18:00:00.000Z",
+  "endTimestamp": "2026-04-14T18:30:00.000Z",
+  "durationMinutes": 30,
+  "model": "claude-sonnet-4-6"
+}
