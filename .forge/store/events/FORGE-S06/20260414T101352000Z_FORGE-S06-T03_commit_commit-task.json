@@ -7,7 +7,7 @@
   "phase": "commit",
   "iteration": 1,
   "startTimestamp": "2026-04-14T10:13:52.000Z",
-  "endTimestamp": "2026-04-14T10:13:52.000Z",
-  "durationMinutes": 0,
+  "endTimestamp": "2026-04-14T10:14:23.000Z",
+  "durationMinutes": 0.52,
   "model": "claude-sonnet-4-6"
 }
