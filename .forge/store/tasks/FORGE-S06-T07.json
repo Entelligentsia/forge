@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S06",
   "title": "Slug-aware seed-store discovery and path construction",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/tools/seed-store.cjs",
   "estimate": "M",
   "dependencies": ["FORGE-S06-T06"],
