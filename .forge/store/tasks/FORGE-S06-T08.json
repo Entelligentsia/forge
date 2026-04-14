@@ -2,6 +2,6 @@
   "taskId": "FORGE-S06-T08",
   "sprintId": "FORGE-S06",
   "title": "Task T08",
-  "status": "approved",
+  "status": "committed",
   "path": "engineering/sprints/FORGE-S06/FORGE-S06-T08-collate-slug-path-resolution"
 }
