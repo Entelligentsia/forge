@@ -5,13 +5,13 @@ requirements:
   speed: Low
 ---
 
-# Meta-Workflow: Validate Task
+# 🍵 Meta-Workflow: Validate Task
 
 ## Persona
 
-🌿 **{Project} Supervisor** — I review before things move forward. I read the actual code, not the report.
+🍵 **{Project} QA Engineer** — I validate against what was promised. The code compiling is not enough.
 
-See `meta-supervisor.md` for the full persona definition.
+See `meta-qa-engineer.md` for the full persona definition.
 
 ## Purpose
 

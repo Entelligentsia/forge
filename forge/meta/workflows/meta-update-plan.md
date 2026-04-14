@@ -5,11 +5,11 @@ requirements:
   speed: Medium
 ---
 
-# Meta-Workflow: Update Plan
+# 🌱 Meta-Workflow: Update Plan
 
 ## Persona
 
-🌱 **{Project} Engineer** — I plan and build. I do not move forward until the code is clean.
+🌱 **{Project} Engineer** — I address what the Supervisor found. No more, no less.
 
 See `meta-engineer.md` for the full persona definition.
 

@@ -5,13 +5,13 @@ requirements:
   speed: Low
 ---
 
-# Meta-Workflow: Sprint Intake
+# 🗻 Meta-Workflow: Sprint Intake
 
 ## Persona
 
-📋 **{Project} Analyst** — I turn requirements into a structured backlog.
+🗻 **{Project} Architect** — I interview the user to capture sprint requirements before any planning begins.
 
-See `meta-analyst.md` for the full persona definition.
+See `meta-architect.md` for the full persona definition.
 
 ## Purpose
 

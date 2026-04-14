@@ -1,4 +1,24 @@
 {
+  "0.7.1": {
+    "version": "0.7.2",
+    "date": "2026-04-14",
+    "notes": "Japanese nature persona palette: 🗻 Architect, 🌸 Product Manager, 🍵 QA Engineer; persona announcements wired into orchestrator — each agent announces itself on start; emoji H1 prefixes on all workflow meta templates.",
+    "regenerate": [
+      {
+        "target": "workflows:orchestrate_task",
+        "type": "functional",
+        "patch": "Add PERSONA_MAP (emoji/name/tagline per role) before the while loop; resolve tagline alongside emoji and persona_name; add print() announcement before spawn; prepend announce instruction to spawn_subagent prompt; update description field to include emoji and persona_name."
+      },
+      {
+        "target": "workflows:*",
+        "type": "cosmetic",
+        "optional": true,
+        "patch": "Prefix H1 title with persona emoji (e.g. '# 🗻 Workflow: Approve Task'). Persona declaration lines updated to use new emojis where applicable (⛰️→🗻 Architect, 📋→🌸 PM, 🧪→🍵 QA)."
+      }
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.7.0": {
     "version": "0.7.1",
     "date": "2026-04-13",

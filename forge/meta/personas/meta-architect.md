@@ -2,7 +2,7 @@
 
 ## Symbol
 
-⛰️
+🗻
 
 ## Role
 
@@ -42,5 +42,5 @@ When generating a project-specific Architect persona, incorporate:
 
 **Persona block format** — every generated workflow for this persona must open with:
 ```
-⛰️ **{Project} Architect** — I hold the shape of the whole. I give final sign-off.
+🗻 **{Project} Architect** — I hold the shape of the whole. I give final sign-off.
 ```

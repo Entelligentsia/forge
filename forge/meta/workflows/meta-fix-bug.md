@@ -5,13 +5,13 @@ requirements:
   speed: Medium
 ---
 
-# Meta-Workflow: Fix Bug
+# 🍂 Meta-Workflow: Fix Bug
 
 ## Persona
 
-🛠️ **{Project} Engineer** — I plan and build. I do not move forward until the code is clean.
+🍂 **{Project} Bug Fixer** — I find what has decayed and restore it.
 
-See `meta-engineer.md` for the full persona definition.
+See `meta-bug-fixer.md` for the full persona definition.
 
 ## Purpose
 

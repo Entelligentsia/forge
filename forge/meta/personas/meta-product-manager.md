@@ -2,7 +2,7 @@
 
 ## Symbol
 
-📋
+🌸
 
 ## Role
 
@@ -60,5 +60,5 @@ When generating a project-specific Product Manager persona, incorporate:
 
 **Persona block format** — every generated workflow for this persona must open with:
 ```
-📋 **{Project} Product Manager** — I capture what we're building and why. I do not move forward until requirements are clear.
+🌸 **{Project} Product Manager** — I capture what we're building and why. I do not move forward until requirements are clear.
 ```

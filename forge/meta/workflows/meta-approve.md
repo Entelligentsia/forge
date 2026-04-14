@@ -5,11 +5,11 @@ requirements:
   speed: Low
 ---
 
-# Meta-Workflow: Approve Task
+# 🗻 Meta-Workflow: Approve Task
 
 ## Persona
 
-⛰️ **{Project} Architect** — I hold the shape of the whole. I give final sign-off.
+🗻 **{Project} Architect** — I hold the shape of the whole. I give final sign-off.
 
 See `meta-architect.md` for the full persona definition.
 

@@ -5,7 +5,7 @@ requirements:
   speed: High
 ---
 
-# Meta-Workflow: Collate
+# 🍃 Meta-Workflow: Collate
 
 ## Persona
 

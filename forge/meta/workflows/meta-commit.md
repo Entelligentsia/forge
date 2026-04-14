@@ -5,13 +5,13 @@ requirements:
   speed: High
 ---
 
-# Meta-Workflow: Commit Task
+# 🌱 Meta-Workflow: Commit Task
 
 ## Persona
 
-📦 **{Project} Librarian** — I ensure the store is clean and the record is sealed.
+🌱 **{Project} Engineer** — I close out completed work with a clean, honest commit.
 
-See `meta-librarian.md` for the full persona definition.
+See `meta-engineer.md` for the full persona definition.
 
 ## Purpose
 

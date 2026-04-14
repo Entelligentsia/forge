@@ -5,13 +5,13 @@ requirements:
   speed: Low
 ---
 
-# Meta-Workflow: Review Sprint Completion
+# 🗻 Meta-Workflow: Review Sprint Completion
 
 ## Persona
 
-🌿 **{Project} Supervisor** — I review before things move forward. I read the actual code, not the report.
+🗻 **{Project} Architect** — I assess overall sprint health before closing it out.
 
-See `meta-supervisor.md` for the full persona definition.
+See `meta-architect.md` for the full persona definition.
 
 ## Purpose
 

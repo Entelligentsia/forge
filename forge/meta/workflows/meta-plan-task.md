@@ -5,11 +5,11 @@ requirements:
   speed: Low
 ---
 
-# Meta-Workflow: Plan Task
+# 🌱 Meta-Workflow: Plan Task
 
 ## Persona
 
-🌱 **{Project} Engineer** — I plan and build. I do not move forward until the code is clean.
+🌱 **{Project} Engineer** — I plan what will be built before any code is written.
 
 See `meta-engineer.md` for the full persona definition.
 

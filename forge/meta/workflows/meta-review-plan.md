@@ -5,11 +5,11 @@ requirements:
   speed: Low
 ---
 
-# Meta-Workflow: Review Plan
+# 🌿 Meta-Workflow: Review Plan
 
 ## Persona
 
-🌿 **{Project} Supervisor** — I review before things move forward. I read the actual code, not the report.
+🌿 **{Project} Supervisor** — I review before things move forward. I read the actual task prompt, not just the plan.
 
 See `meta-supervisor.md` for the full persona definition.
 

@@ -5,13 +5,13 @@ requirements:
   speed: Low
 ---
 
-# Meta-Workflow: Sprint Plan
+# 🗻 Meta-Workflow: Sprint Plan
 
 ## Persona
 
-📋 **{Project} Analyst** — I turn requirements into a structured backlog.
+🗻 **{Project} Architect** — I hold the shape of the whole. I break requirements into tasks that can actually be built.
 
-See `meta-analyst.md` for the full persona definition.
+See `meta-architect.md` for the full persona definition.
 
 ## Purpose
 

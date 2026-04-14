@@ -1,4 +1,4 @@
-# Meta-Workflow: Orchestrate Task
+# 🌊 Meta-Workflow: Orchestrate Task
 
 ## Persona
 
@@ -146,6 +146,20 @@ handles missing sidecars gracefully (see Execution Algorithm below).
 The orchestrator MUST follow this procedure exactly. Do not deviate.
 
 ```
+# --- Persona symbol lookup (emoji, name, tagline) ---
+PERSONA_MAP = {
+  "plan":        ("🌱", "Engineer",    "I plan what will be built before any code is written."),
+  "implement":   ("🌱", "Engineer",    "I build what was planned. I do not move forward until the code is clean."),
+  "update-plan": ("🌱", "Engineer",    "I address what the Supervisor found. No more, no less."),
+  "update-impl": ("🌱", "Engineer",    "I address what the Supervisor found. No more, no less."),
+  "commit":      ("🌱", "Engineer",    "I close out completed work with a clean, honest commit."),
+  "review-plan": ("🌿", "Supervisor",  "I review before things move forward. I read the actual task prompt, not just the plan."),
+  "review-code": ("🌿", "Supervisor",  "I review before things move forward. I read the actual code, not the report."),
+  "validate":    ("🍵", "QA Engineer", "I validate against what was promised. The code compiling is not enough."),
+  "approve":     ("🗻", "Architect",   "I hold the shape of the whole. I give final sign-off before commit."),
+  "writeback":   ("🍃", "Collator",    "I gather what exists and arrange it into views."),
+}
+
 for each task in dependency_sorted(tasks):
   phases = resolve_pipeline(task)           # from config.pipelines or default
   iteration_counts = {}                     # keyed by phase command name
@@ -165,6 +179,10 @@ for each task in dependency_sorted(tasks):
     event_id = f"{start_ts}_{task_id}_{phase.role}_{phase.action}"
     sidecar_path = f".forge/store/events/{sprint_id}/_{event_id}_usage.json"
 
+    # --- Resolve persona symbol, name, tagline ---
+    emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🌊", "Orchestrator", "I move tasks through their lifecycle."))
+    print(f"\n{emoji} **Forge {persona_name}** — {phase.name} · {task_id}\n")
+
     # --- Invoke phase as subagent (fresh context per phase) ---
     emit_event(task, phase, eventId=event_id, iteration=iteration_counts.get(phase.command, 0) + 1, action="start")
     
@@ -173,8 +191,8 @@ for each task in dependency_sorted(tasks):
     skill_content = read_file(f".forge/skills/{phase.role}-skills.md")
     
     spawn_subagent(
-      prompt=f"{persona_content}\n\n{skill_content}\n\n### Current Working Context\n- Sprint Root: {sprint_root_path}\n- Task Root: {task_root_path}\n- Store Root: {store_root_path}\n\nRead `{phase.workflow}` and follow it. Task ID: {task_id}. Also read `engineering/MASTER_INDEX.md` for project state. Before returning: run /cost, parse token usage, and write sidecar `.forge/store/events/{sprint_id}/_{event_id}_usage.json` with fields: inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD.",
-      description="{phase.name} phase for {task_id}",
+      prompt=f"Your first output — before any tool use or file reads — print this exact line:\n\n{emoji} **Forge {persona_name}** — {tagline}\n\n---\n\n{persona_content}\n\n{skill_content}\n\n### Current Working Context\n- Sprint Root: {sprint_root_path}\n- Task Root: {task_root_path}\n- Store Root: {store_root_path}\n\nRead `{phase.workflow}` and follow it. Task ID: {task_id}. Also read `engineering/MASTER_INDEX.md` for project state. Before returning: run /cost, parse token usage, and write sidecar `.forge/store/events/{sprint_id}/_{event_id}_usage.json` with fields: inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD.",
+      description=f"{emoji} {persona_name} — {phase.name} for {task_id}",
       model=phase_model
     )
     # Subagent reads all context from disk, does its work, writes artifacts/status to disk, then exits.

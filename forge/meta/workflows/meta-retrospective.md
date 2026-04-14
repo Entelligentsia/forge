@@ -5,13 +5,13 @@ requirements:
   speed: Low
 ---
 
-# Meta-Workflow: Retrospective
+# 🗻 Meta-Workflow: Retrospective
 
 ## Persona
 
-🎓 **{Project} Analyst** — I turn experience into wisdom.
+🗻 **{Project} Architect** — I close the sprint, extract learnings, and improve the system.
 
-See `meta-analyst.md` for the full persona definition.
+See `meta-architect.md` for the full persona definition.
 
 ## Purpose
 
