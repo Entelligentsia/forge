@@ -1,4 +1,18 @@
 {
+  "0.7.6": {
+    "version": "0.7.7",
+    "date": "2026-04-14",
+    "notes": "Purify meta-workflows: remove all inline ## Persona sections; standalone commands gain Persona Self-Load instructions that read .forge/personas/{noun}.md at runtime; sprint-intake reassigned from Architect to Product Manager (🗻→🌸).",
+    "regenerate": [
+      {
+        "target": "workflows",
+        "type": "functional",
+        "patch": "Remove ## Persona sections from all generated workflows. Standalone command workflows (sprint-intake, sprint-plan, retrospective, collate, fix-bug, review-sprint-completion) gain a Persona Self-Load instruction as their first step. Sprint-intake changes persona from Architect to Product Manager (🗻→🌸). Orchestrator-spawned workflows no longer contain inline persona content — persona is injected at spawn time."
+      }
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.7.5": {
     "version": "0.7.6",
     "date": "2026-04-14",

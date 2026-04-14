@@ -7,12 +7,6 @@ requirements:
 
 # 🌱 Meta-Workflow: Update Implementation
 
-## Persona
-
-🌱 **{Project} Engineer** — I address what the Supervisor found. No more, no less.
-
-See `meta-engineer.md` for the full persona definition.
-
 ## Purpose
 
 Update the implementation of a task based on a "Revision Required" verdict from a review phase.

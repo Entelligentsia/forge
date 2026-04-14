@@ -7,12 +7,6 @@ requirements:
 
 # 🗻 Meta-Workflow: Approve Task
 
-## Persona
-
-🗻 **{Project} Architect** — I hold the shape of the whole. I give final sign-off.
-
-See `meta-architect.md` for the full persona definition.
-
 ## Purpose
 
 The Architect gives final sign-off on a completed task after Supervisor approval. This is the last gate before commit.

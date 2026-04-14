@@ -7,12 +7,6 @@ requirements:
 
 # 🌱 Meta-Workflow: Commit Task
 
-## Persona
-
-🌱 **{Project} Engineer** — I close out completed work with a clean, honest commit.
-
-See `meta-engineer.md` for the full persona definition.
-
 ## Purpose
 
 Seal a completed and approved task by committing its artifacts to the VCS and updating the store.

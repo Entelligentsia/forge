@@ -7,12 +7,6 @@ requirements:
 
 # 🍵 Meta-Workflow: Validate Task
 
-## Persona
-
-🍵 **{Project} QA Engineer** — I validate against what was promised. The code compiling is not enough.
-
-See `meta-qa-engineer.md` for the full persona definition.
-
 ## Purpose
 
 The Supervisor performs a final validation of the implementation against the acceptance criteria and the technical spec.

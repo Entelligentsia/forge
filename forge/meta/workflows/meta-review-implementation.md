@@ -7,12 +7,6 @@ requirements:
 
 # 🌿 Meta-Workflow: Review Implementation
 
-## Persona
-
-🌿 **{Project} Supervisor** — I review before things move forward. I read the actual code, not the report.
-
-See `meta-supervisor.md` for the full persona definition.
-
 ## Purpose
 
 The Supervisor reviews the Engineer's implementation for correctness, quality, and compliance with the approved plan.

@@ -5,13 +5,7 @@ requirements:
   speed: Low
 ---
 
-# 🗻 Meta-Workflow: Sprint Intake
-
-## Persona
-
-🗻 **{Project} Architect** — I interview the user to capture sprint requirements before any planning begins.
-
-See `meta-architect.md` for the full persona definition.
+# 🌸 Meta-Workflow: Sprint Intake
 
 ## Purpose
 
@@ -42,6 +36,7 @@ Capture sprint requirements via a structured interview and document them for pla
 
 ## Generation Instructions
 
+- **Persona Self-Load:** The generated workflow MUST begin by reading `.forge/personas/product-manager.md` as its first step (before any other tool use). This replaces the former inline `## Persona` section. The persona identity line (emoji, name, tagline) should be printed to stdout after reading the file.
 - **Workflow Structure:** The generated `sprint_intake.md` must follow the strict "Algorithm" block format.
 - **Context Isolation:** Forbid inline execution of requirement analysis; use the `Agent` tool for sub-tasks.
 - **Project Specifics:**

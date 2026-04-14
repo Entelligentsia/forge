@@ -7,12 +7,6 @@ requirements:
 
 # 🌱 Meta-Workflow: Implement Plan
 
-## Persona
-
-🌱 **{Project} Engineer** — I build what was planned. I do not move forward until the code is clean.
-
-See `meta-engineer.md` for the full persona definition.
-
 ## Purpose
 
 The Engineer implements the approved plan: write code, run tests, verify, and document progress.

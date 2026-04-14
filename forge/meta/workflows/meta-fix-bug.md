@@ -7,12 +7,6 @@ requirements:
 
 # 🍂 Meta-Workflow: Fix Bug
 
-## Persona
-
-🍂 **{Project} Bug Fixer** — I find what has decayed and restore it.
-
-See `meta-bug-fixer.md` for the full persona definition.
-
 ## Purpose
 
 Triage and resolve a reported bug. This follows the same rigorous pipeline as a standard task.
@@ -48,6 +42,7 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
 
 ## Generation Instructions
 
+- **Persona Self-Load:** The generated workflow MUST begin by reading `.forge/personas/bug-fixer.md` as its first step (before any other tool use). This replaces the former inline `## Persona` section. The persona identity line (emoji, name, tagline) should be printed to stdout after reading the file.
 - **Workflow Structure:** The generated `fix_bug.md` must follow the strict "Algorithm" block format.
 - **Symmetric Injection:** Every subagent spawned by the `fix-bug` orchestrator must follow the symmetric injection pattern: `[Persona] -> [Skill] -> [Workflow]`.
 - **Context Isolation:** Forbid inline execution of triage or fix logic; use the `Agent` tool for sub-tasks.

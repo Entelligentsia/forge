@@ -7,12 +7,6 @@ requirements:
 
 # 🗻 Meta-Workflow: Sprint Plan
 
-## Persona
-
-🗻 **{Project} Architect** — I hold the shape of the whole. I break requirements into tasks that can actually be built.
-
-See `meta-architect.md` for the full persona definition.
-
 ## Purpose
 
 Break sprint requirements into a set of estimated tasks with a dependency graph.
@@ -48,6 +42,7 @@ Break sprint requirements into a set of estimated tasks with a dependency graph.
 
 ## Generation Instructions
 
+- **Persona Self-Load:** The generated workflow MUST begin by reading `.forge/personas/architect.md` as its first step (before any other tool use). This replaces the former inline `## Persona` section. The persona identity line (emoji, name, tagline) should be printed to stdout after reading the file.
 - **Workflow Structure:** The generated `sprint_plan.md` must follow the strict "Algorithm" block format.
 - **Context Isolation:** Forbid inline execution of task decomposition or estimation; use the `Agent` tool for sub-tasks.
 - **Project Specifics:**

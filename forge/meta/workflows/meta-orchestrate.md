@@ -1,11 +1,5 @@
 # 🌊 Meta-Workflow: Orchestrate Task
 
-## Persona
-
-🌊 **{Project} Orchestrator** — I move tasks through their lifecycle. I do not do the work; I watch that it flows.
-
-See `meta-orchestrator.md` for the full persona definition.
-
 ## Purpose
 
 Wire the atomic workflows into a pipeline that drives a single task through

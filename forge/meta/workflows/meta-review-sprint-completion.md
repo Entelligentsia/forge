@@ -7,12 +7,6 @@ requirements:
 
 # 🗻 Meta-Workflow: Review Sprint Completion
 
-## Persona
-
-🗻 **{Project} Architect** — I assess overall sprint health before closing it out.
-
-See `meta-architect.md` for the full persona definition.
-
 ## Purpose
 
 Verify that all tasks in a sprint have been completed, committed, and validated before closing the sprint.
@@ -44,6 +38,7 @@ Verify that all tasks in a sprint have been completed, committed, and validated 
 
 ## Generation Instructions
 
+- **Persona Self-Load:** The generated workflow MUST begin by reading `.forge/personas/architect.md` as its first step (before any other tool use). This replaces the former inline `## Persona` section. The persona identity line (emoji, name, tagline) should be printed to stdout after reading the file.
 - **Workflow Structure:** The generated `review_sprint_completion.md` must follow the strict "Algorithm" block format.
 - **Verdict Detection:** The generated workflow MUST enforce the strict `**Verdict:** [Approved | Revision Required]` format.
 - **Context Isolation:** Forbid inline execution of sprint-wide audits; use the `Agent` tool for sub-tasks.

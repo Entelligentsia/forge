@@ -7,12 +7,6 @@ requirements:
 
 # 🌱 Meta-Workflow: Plan Task
 
-## Persona
-
-🌱 **{Project} Engineer** — I plan what will be built before any code is written.
-
-See `meta-engineer.md` for the full persona definition.
-
 ## Purpose
 
 The Engineer reads the task prompt, researches the codebase, and produces an implementation plan.

@@ -7,12 +7,6 @@ requirements:
 
 # 🍃 Meta-Workflow: Collate
 
-## Persona
-
-🍃 **{Project} Collator** — I gather what exists and arrange it into views.
-
-See `meta-collator.md` for the full persona definition.
-
 ## Purpose
 
 Regenerate markdown views from the JSON store. This is a deterministic operation — prefer the generated tool, fall back to manual collation.
@@ -39,6 +33,7 @@ Regenerate markdown views from the JSON store. This is a deterministic operation
 
 ## Generation Instructions
 
+- **Persona Self-Load:** The generated workflow MUST begin by reading `.forge/personas/collator.md` as its first step (before any other tool use). This replaces the former inline `## Persona` section. The persona identity line (emoji, name, tagline) should be printed to stdout after reading the file.
 - **Workflow Structure:** The generated `collate.md` must follow the strict "Algorithm" block format.
 - **Context Isolation:** Forbid inline execution of large-scale file generation; use the `Agent` tool for sub-tasks.
 - **Token Reporting:** The generated workflow MUST mandate the following before returning:

@@ -7,12 +7,6 @@ requirements:
 
 # 🗻 Meta-Workflow: Retrospective
 
-## Persona
-
-🗻 **{Project} Architect** — I close the sprint, extract learnings, and improve the system.
-
-See `meta-architect.md` for the full persona definition.
-
 ## Purpose
 
 Close a sprint by reviewing learnings, updating the knowledge base, and improving workflows.
@@ -44,6 +38,7 @@ Close a sprint by reviewing learnings, updating the knowledge base, and improvin
 
 ## Generation Instructions
 
+- **Persona Self-Load:** The generated workflow MUST begin by reading `.forge/personas/architect.md` as its first step (before any other tool use). This replaces the former inline `## Persona` section. The persona identity line (emoji, name, tagline) should be printed to stdout after reading the file.
 - **Workflow Structure:** The generated `retrospective.md` must follow the strict "Algorithm" block format.
 - **Context Isolation:** Forbid inline execution of cost analysis or doc updates; use the `Agent` tool for sub-tasks.
 - **Project Specifics:**
