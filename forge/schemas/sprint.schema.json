@@ -18,6 +18,7 @@
     "executionMode":  { "type": "string", "enum": ["sequential", "wave-parallel", "full-parallel"] },
     "createdAt":      { "type": "string", "format": "date-time" },
     "completedAt":    { "type": "string", "format": "date-time" },
+    "path":           { "type": "string" },
     "humanEstimates": { "type": "object" }
   },
   "additionalProperties": false

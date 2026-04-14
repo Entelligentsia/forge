@@ -41,6 +41,7 @@ const SCHEMAS = {
       "executionMode":  { "type": "string", "enum": ["sequential", "wave-parallel", "full-parallel"] },
       "createdAt":      { "type": "string", "format": "date-time" },
       "completedAt":    { "type": "string", "format": "date-time" },
+      "path":           { "type": "string" },
       "humanEstimates": { "type": "object" },
       "feature_id":     { "type": ["string", "null"] },
       "features":       { "type": "array", "items": { "type": "string" } }
@@ -206,11 +207,17 @@ function validateRecord(record, schema) {
 }
 
 let errorsCount = 0;
+let warningsCount = 0;
 let fixesCount = 0;
 
 function err(id, msg) {
   console.error(`ERROR  ${id}: ${msg}`);
   errorsCount++;
+}
+
+function warn(id, msg) {
+  console.log(`WARN   ${id}: ${msg}`);
+  warningsCount++;
 }
 
 // --- Backfill defaults for --fix mode ---
@@ -277,6 +284,7 @@ for (const rec of sprints) {
   if (FIX_MODE) backfillRecord(rec.sprintId, rec, 'sprint');
   if (rec.sprintId) sprintIds.add(rec.sprintId);
   for (const e of validateRecord(rec, SCHEMAS.sprint)) err(rec.sprintId, e);
+  if (!rec.path) warn(rec.sprintId, 'missing optional field "path"');
 }
 
 const tasks = store.listTasks();
@@ -411,6 +419,7 @@ if (fixesCount > 0) {
 }
 if (errorsCount === 0) {
   console.log(`Store validation passed (${sprintIds.size} sprint(s), ${taskIds.size} task(s), ${bugIds.size} bug(s)).`);
+  if (warningsCount > 0) console.log(`${warningsCount} warning(s).`);
   process.exit(0);
 } else {
   console.error(`\n${errorsCount} error(s) found.`);
