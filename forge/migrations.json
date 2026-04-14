@@ -1,4 +1,18 @@
 {
+  "0.7.2": {
+    "version": "0.7.3",
+    "date": "2026-04-14",
+    "notes": "Fix orchestrator persona lookup: noun-based filenames via ROLE_TO_NOUN (plan->engineer, approve->architect, etc.) instead of role-based; announcement line includes task ID, tagline, and resolved model.",
+    "regenerate": [
+      {
+        "target": "workflows:orchestrate_task",
+        "type": "functional",
+        "patch": "Replace role-based persona/skill file lookups with noun-based lookups via ROLE_TO_NOUN map. Update announcement line to include task ID, tagline, and resolved model."
+      }
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.7.1": {
     "version": "0.7.2",
     "date": "2026-04-14",

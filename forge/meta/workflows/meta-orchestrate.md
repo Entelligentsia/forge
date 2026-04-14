@@ -141,6 +141,31 @@ files prefixed with `_`, so the sidecar will never be treated as a real event re
 unavailable or token data cannot be parsed, skip writing the sidecar silently — the orchestrator
 handles missing sidecars gracefully (see Execution Algorithm below).
 
+## Role-to-Noun Mapping
+
+The orchestrator resolves persona and skill file lookups using **noun-based**
+filenames, not role-literal filenames. A role like `plan` maps to the noun
+`engineer`, so the persona file is `engineer.md`, not `plan.md`.
+
+```
+ROLE_TO_NOUN = {
+  "plan":        "engineer",
+  "implement":   "engineer",
+  "update-plan": "engineer",
+  "update-impl": "engineer",
+  "commit":      "engineer",
+  "review-plan": "supervisor",
+  "review-code": "supervisor",
+  "validate":    "qa-engineer",
+  "approve":     "architect",
+  "writeback":   "collator",
+}
+```
+
+The `.get(key, fallback)` pattern preserves the old role-literal behaviour for
+any role not yet in the table, which is a safe degradation path for custom
+pipeline roles.
+
 ## Execution Algorithm
 
 The orchestrator MUST follow this procedure exactly. Do not deviate.
@@ -181,17 +206,18 @@ for each task in dependency_sorted(tasks):
 
     # --- Resolve persona symbol, name, tagline ---
     emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🌊", "Orchestrator", "I move tasks through their lifecycle."))
-    print(f"\n{emoji} **Forge {persona_name}** — {phase.name} · {task_id}\n")
+    print(f"\n{emoji} **Forge {persona_name}** — {task_id} · {tagline} [{phase_model}]\n")
 
     # --- Invoke phase as subagent (fresh context per phase) ---
     emit_event(task, phase, eventId=event_id, iteration=iteration_counts.get(phase.command, 0) + 1, action="start")
     
     # Symmetric Injection Assembly: Persona -> Skill -> Workflow
-    persona_content = read_file(f".forge/personas/{phase.role}.md")
-    skill_content = read_file(f".forge/skills/{phase.role}-skills.md")
+    persona_noun    = ROLE_TO_NOUN.get(phase.role, phase.role)
+    persona_content = read_file(f".forge/personas/{persona_noun}.md")
+    skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
     
     spawn_subagent(
-      prompt=f"Your first output — before any tool use or file reads — print this exact line:\n\n{emoji} **Forge {persona_name}** — {tagline}\n\n---\n\n{persona_content}\n\n{skill_content}\n\n### Current Working Context\n- Sprint Root: {sprint_root_path}\n- Task Root: {task_root_path}\n- Store Root: {store_root_path}\n\nRead `{phase.workflow}` and follow it. Task ID: {task_id}. Also read `engineering/MASTER_INDEX.md` for project state. Before returning: run /cost, parse token usage, and write sidecar `.forge/store/events/{sprint_id}/_{event_id}_usage.json` with fields: inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD.",
+      prompt=f"Your first output — before any tool use or file reads — print this exact line:\n\n{emoji} **Forge {persona_name}** — {task_id} · {tagline} [{phase_model}]\n\n---\n\n{persona_content}\n\n{skill_content}\n\n### Current Working Context\n- Sprint Root: {sprint_root_path}\n- Task Root: {task_root_path}\n- Store Root: {store_root_path}\n\nRead `{phase.workflow}` and follow it. Task ID: {task_id}. Also read `engineering/MASTER_INDEX.md` for project state. Before returning: run /cost, parse token usage, and write sidecar `.forge/store/events/{sprint_id}/_{event_id}_usage.json` with fields: inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD.",
       description=f"{emoji} {persona_name} — {phase.name} for {task_id}",
       model=phase_model
     )
@@ -345,3 +371,21 @@ When in doubt, read `.forge/schemas/event.schema.json` directly.
   (`inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`)
   into the event record and delete the sidecar; if missing, emit without token fields
   (graceful fallback — no error).
+- **Include the role-to-noun mapping table.** The generated orchestrator MUST include
+  a `ROLE_TO_NOUN` dictionary (or equivalent in the host language) that maps every
+  pipeline phase role to a noun-based persona identifier. This table is used for
+  persona and skill file lookups, not for display. Example:
+
+  | Role | Noun | Persona File | Skill File |
+  |------|------|-------------|------------|
+  | `plan` | `engineer` | `.forge/personas/engineer.md` | `.forge/skills/engineer-skills.md` |
+  | `implement` | `engineer` | `.forge/personas/engineer.md` | `.forge/skills/engineer-skills.md` |
+  | `review-plan` | `supervisor` | `.forge/personas/supervisor.md` | `.forge/skills/supervisor-skills.md` |
+  | `review-code` | `supervisor` | `.forge/personas/supervisor.md` | `.forge/skills/supervisor-skills.md` |
+  | `validate` | `qa-engineer` | `.forge/personas/qa-engineer.md` | `.forge/skills/qa-engineer-skills.md` |
+  | `approve` | `architect` | `.forge/personas/architect.md` | `.forge/skills/architect-skills.md` |
+  | `commit` | `engineer` | `.forge/personas/engineer.md` | `.forge/skills/engineer-skills.md` |
+  | `writeback` | `collator` | `.forge/personas/collator.md` | `.forge/skills/collator-skills.md` |
+
+  Generated lookups must use `{persona_noun}.md` and `{persona_noun}-skills.md`,
+  never `{phase.role}.md` or `{phase.role}-skills.md`.
