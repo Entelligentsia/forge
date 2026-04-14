@@ -43,11 +43,32 @@ wrappers, and unrecognised files must be left completely untouched.
 This ensures renamed workflows (e.g. `engineer_plan_task.md` → `plan_task.md`) cause the command wrappers to be regenerated rather than silently left pointing at a missing file.
 
 Each command file should:
-1. Set appropriate model in frontmatter (sonnet for plan/implement/commit, opus for review-plan/review-code/approve)
+1. Set `effort:` frontmatter according to the table below
 2. Load the corresponding workflow from `.forge/workflows/`
 3. Load `engineering/MASTER_INDEX.md` for context
 4. Pass `$ARGUMENTS` as the task/sprint/bug ID
 5. Be clear, greppable, and self-contained
+
+**Effort levels** — use `effort:` frontmatter (capability request, model-agnostic):
+
+| Command | effort | Rationale |
+|---|---|---|
+| `review-plan.md` | `max` | Architectural gate — needs deepest reasoning |
+| `review-code.md` | `max` | Quality gate — needs deepest reasoning |
+| `approve.md` | `max` | Final approval gate |
+| `plan.md` | `high` | Design work with broad codebase context |
+| `implement.md` | `high` | Non-trivial code generation |
+| `fix-bug.md` | `high` | Diagnosis + fix |
+| `sprint-plan.md` | `high` | Decomposition and dependency analysis |
+| `run-task.md` | `high` | Full task orchestration |
+| `run-sprint.md` | `high` | Multi-task orchestration |
+| `sprint-intake.md` | `high` | Structured requirements elicitation |
+| `retrospective.md` | `medium` | Reflection and summary |
+| `collate.md` | `low` | Mechanical markdown regeneration |
+| `commit.md` | `low` | Staging and committing completed work |
+
+Do **not** include `model:` frontmatter — that directive pins a specific model and is
+not appropriate for user command files.
 
 After writing each command file, record it in the generation manifest:
 ```sh
