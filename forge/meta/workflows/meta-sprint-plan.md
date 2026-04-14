@@ -44,6 +44,21 @@ Break sprint requirements into a set of estimated tasks with a dependency graph.
    - Execute Token Reporting (see Generation Instructions)
 ```
 
+## Anti-Pattern Guard
+
+The generated workflow MUST include the following section verbatim, placed immediately
+after the Purpose heading and before the Algorithm block:
+
+```
+## Iron Laws
+
+- YOU MUST NOT write any code, pseudocode, or implementation sketch.
+- YOU MUST NOT produce a plan of your own before reading this workflow.
+- YOU MUST follow the Algorithm below step by step. Reading it is not optional.
+- If you have already read SPRINT_REQUIREMENTS.md and feel ready to decompose tasks:
+  stop. Return to step 1 of the Algorithm and proceed from there.
+```
+
 ## Generation Instructions
 
 - **Persona Self-Load:** The generated workflow MUST begin by reading `.forge/personas/architect.md` as its first step (before any other tool use). This replaces the former inline `## Persona` section. The persona identity line (emoji, name, tagline) should be printed to stdout after reading the file.

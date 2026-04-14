@@ -44,10 +44,15 @@ This ensures any workflow that has been renamed or replaced causes its command w
 
 Each command file should:
 1. Set `effort:` frontmatter according to the table below
-2. Load the corresponding workflow from `.forge/workflows/`
-3. Load `engineering/MASTER_INDEX.md` for context
-4. Pass `$ARGUMENTS` as the task/sprint/bug ID
-5. Be clear, greppable, and self-contained
+2. Instruct the model to read the workflow **first**, before anything else:
+   `Read .forge/workflows/<workflow>.md and follow it exactly.`
+3. Pass `$ARGUMENTS` as the task/sprint/bug ID
+4. Be clear, greppable, and self-contained
+
+**Do NOT include a `Read engineering/MASTER_INDEX.md` line in the command.**
+The workflow itself loads MASTER_INDEX as its first step — loading it in the command
+gives the model enough context to rationalise skipping the workflow entirely and
+doing the work inline. Workflow first, always.
 
 **Effort levels** — use `effort:` frontmatter (capability request, model-agnostic):
 
