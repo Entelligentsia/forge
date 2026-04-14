@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S06",
   "title": "Fix orchestrator persona lookup + model announcement",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/meta/workflows/meta-orchestrate.md",
   "estimate": "M",
   "dependencies": [],
