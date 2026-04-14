@@ -1,4 +1,12 @@
 {
+  "0.8.2": {
+    "version": "0.8.3",
+    "date": "2026-04-14",
+    "notes": "collate: add --purge-events flag — generates COST_REPORT.md then atomically deletes the event directory; works for both sprint IDs (generates COST_REPORT first) and bug IDs (purge only); retrospective and fix-bug workflows updated to use the flag instead of ad-hoc file deletion.",
+    "regenerate": ["workflows:retrospective", "workflows:fix_bug"],
+    "breaking": false,
+    "manual": []
+  },
   "0.8.1": {
     "version": "0.8.2",
     "date": "2026-04-14",

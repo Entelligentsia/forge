@@ -45,11 +45,14 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
      (e.g. `engineering/bugs/{bugDir}/BUG_ANALYSIS.md` or equivalent).
      Format: one line per phase event, total row at the bottom.
      If no events carry token data, skip this section silently.
-   - Purge `.forge/store/events/{bugId}/` — delete the entire bug event
-     directory. The cost summary in the bug artifact is the durable record.
+   - Run `node "$FORGE_ROOT/tools/collate.cjs" {bugId} --purge-events`
+     This purges `.forge/store/events/{bugId}/` deterministically.
+     The cost summary written to the bug artifact above is the durable
+     record; no COST_REPORT.md is generated for bug IDs (collate skips
+     sprint processing when the ID is not a known sprint).
    - Update bug status to `fixed`
    - Emit "complete" event to `.forge/store/events/{bugId}/`
-     (tombstone — the only event that will remain after the purge)
+     (tombstone — written after the purge; the only event that will remain)
 ```
 
 ## Generation Instructions

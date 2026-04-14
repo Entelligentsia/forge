@@ -32,15 +32,14 @@ Close a sprint by reviewing learnings, updating the knowledge base, and improvin
 4. Finalize:
    - Write SPRINT_RETROSPECTIVE.md
    - Update sprint status to `retrospective-done`
-   - Run `node "$FORGE_ROOT/tools/collate.cjs" {sprintId}` to materialise
-     COST_REPORT.md from all accumulated events before they are purged.
-     If COST_REPORT.md already exists and is current, this is a no-op.
-   - Purge `.forge/store/events/{sprintId}/` — delete the entire sprint
-     event directory. COST_REPORT.md is now the durable record; the raw
-     event files are no longer needed.
+   - Run `node "$FORGE_ROOT/tools/collate.cjs" {sprintId} --purge-events`
+     This single deterministic step: generates COST_REPORT.md from all
+     accumulated events, then deletes `.forge/store/events/{sprintId}/`.
+     COST_REPORT.md is the durable record; the raw event files are not
+     retained after retrospective close.
    - Emit "complete" event to `.forge/store/events/{sprintId}/`
-     (this is the tombstone event written after the purge; it is the only
-     event that will exist in the directory going forward)
+     (tombstone — written after the purge; the only event in the directory
+     going forward)
    - Execute Token Reporting (see Generation Instructions)
 ```
 
