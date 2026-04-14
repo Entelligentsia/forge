@@ -1,4 +1,11 @@
-# Workflow: Fix Bug (Forge Bug-Fix Orchestrator)
+---
+requirements:
+  reasoning: Medium
+  context: Medium
+  speed: Medium
+---
+
+# 🍂 Workflow: Fix Bug (Forge Bug-Fix Orchestrator)
 
 ## Persona
 

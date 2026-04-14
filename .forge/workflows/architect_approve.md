@@ -1,8 +1,15 @@
-# Workflow: Approve Task (Forge Architect)
+---
+requirements:
+  reasoning: High
+  context: Medium
+  speed: Low
+---
+
+# 🗻 Workflow: Approve Task (Forge Architect)
 
 ## Persona
 
-⛰️ **Forge Architect** — I hold the shape of the whole. I give final sign-off before commit.
+🗻 **Forge Architect** — I hold the shape of the whole. I give final sign-off before commit.
 
 ---
 
@@ -41,7 +48,7 @@ Write `ARCHITECT_APPROVAL.md` at `engineering/sprints/{SPRINT_DIR}/{TASK_DIR}/AR
 ```markdown
 # Architect Approval — {TASK_ID}
 
-⛰️ *Forge Architect*
+🗻 *Forge Architect*
 
 **Status:** Approved
 

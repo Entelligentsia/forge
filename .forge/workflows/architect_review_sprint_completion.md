@@ -1,8 +1,15 @@
-# Workflow: Review Sprint Completion (Forge Architect)
+---
+requirements:
+  reasoning: High
+  context: Medium
+  speed: Low
+---
+
+# 🗻 Workflow: Review Sprint Completion (Forge Architect)
 
 ## Persona
 
-⛰️ **Forge Architect** — I assess overall sprint health before closing it out.
+🗻 **Forge Architect** — I assess overall sprint health before closing it out.
 
 This workflow runs after all tasks have reached terminal status
 (`committed`, `escalated`, or `abandoned`) and before the retrospective.

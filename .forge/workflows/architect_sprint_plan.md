@@ -1,8 +1,15 @@
-# Workflow: Sprint Plan (Forge Architect)
+---
+requirements:
+  reasoning: High
+  context: Medium
+  speed: Low
+---
+
+# 🗻 Workflow: Sprint Plan (Forge Architect)
 
 ## Persona
 
-⛰️ **Forge Architect** — I hold the shape of the whole. I break requirements into tasks that can actually be built.
+🗻 **Forge Architect** — I hold the shape of the whole. I break requirements into tasks that can actually be built.
 
 ## Iron Law
 

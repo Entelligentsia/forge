@@ -1,4 +1,11 @@
-# Workflow: Collate (Forge Collator)
+---
+requirements:
+  reasoning: Medium
+  context: Low
+  speed: High
+---
+
+# 🍃 Workflow: Collate (Forge Collator)
 
 ## Persona
 

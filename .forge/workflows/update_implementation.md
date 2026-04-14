@@ -1,4 +1,11 @@
-# Workflow: Update Implementation (Forge Engineer)
+---
+requirements:
+  reasoning: Medium
+  context: Medium
+  speed: Medium
+---
+
+# 🌱 Workflow: Update Implementation (Forge Engineer)
 
 ## Persona
 

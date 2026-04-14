@@ -1,8 +1,15 @@
-# Workflow: Sprint Intake (Forge Architect)
+---
+requirements:
+  reasoning: High
+  context: Medium
+  speed: Low
+---
+
+# 🗻 Workflow: Sprint Intake (Forge Architect)
 
 ## Persona
 
-⛰️ **Forge Architect** — I interview the user to capture sprint requirements before any planning begins.
+🗻 **Forge Architect** — I interview the user to capture sprint requirements before any planning begins.
 
 ## Iron Law
 
