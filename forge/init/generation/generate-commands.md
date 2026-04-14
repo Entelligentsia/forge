@@ -40,7 +40,7 @@ wrappers, and unrecognised files must be left completely untouched.
    - If it references `.forge/workflows/` but that workflow file **does not exist on disk** — overwrite and log: `Replaced command pointing to missing workflow: <filename>`.
    - If it references `.forge/workflows/` and the workflow file exists — skip it (already up to date).
 
-This ensures renamed workflows (e.g. `engineer_plan_task.md` → `plan_task.md`) cause the command wrappers to be regenerated rather than silently left pointing at a missing file.
+This ensures any workflow that has been renamed or replaced causes its command wrapper to be regenerated rather than silently left pointing at a missing file.
 
 Each command file should:
 1. Set `effort:` frontmatter according to the table below

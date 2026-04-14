@@ -36,7 +36,7 @@ wiring in the generated atomic workflows.
    path and the task ID. **The `model` parameter is mandatory.** Example:
    ```
    Use the Agent tool to spawn a subagent:
-     prompt: "Read `.forge/workflows/engineer_plan_task.md` and follow it. Task ID: {TASK_ID}.
+     prompt: "Read `.forge/workflows/plan_task.md` and follow it. Task ID: {TASK_ID}.
               Also read `engineering/MASTER_INDEX.md` for project state."
      description: "plan phase for {TASK_ID}"
      model: phase_model   # resolved from phase.model or role default — NEVER omit

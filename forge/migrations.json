@@ -1,4 +1,12 @@
 {
+  "0.8.4": {
+    "version": "0.8.5",
+    "date": "2026-04-14",
+    "notes": "forge:init now generates workflows with canonical names (plan_task.md, implement_plan.md, review_plan.md, review_code.md, fix_bug.md, commit_task.md, update_plan.md, update_implementation.md) — drops legacy engineer_/supervisor_ prefixes.",
+    "regenerate": ["workflows", "commands"],
+    "breaking": false,
+    "manual": []
+  },
   "0.8.3": {
     "version": "0.8.4",
     "date": "2026-04-14",
