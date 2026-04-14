@@ -6,5 +6,8 @@
   "action": "plan-task",
   "phase": "plan",
   "iteration": 1,
-  "startTimestamp": "2026-04-13T05:55:32.000Z"
+  "startTimestamp": "2026-04-13T05:55:32.000Z",
+  "endTimestamp": null,
+  "durationMinutes": null,
+  "model": "unknown"
 }

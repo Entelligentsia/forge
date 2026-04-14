@@ -1,10 +1,7 @@
 {
   "taskId": "FORGE-S03-T03",
   "sprintId": "FORGE-S03",
-  "title": "Version bump to 0.6.1 with security scan and release commit",
-  "description": "Bump Forge to 0.6.1 following the CLAUDE.md versioning protocol.\n\nSteps:\n1. Update forge/.claude-plugin/plugin.json version to '0.6.1'\n2. Verify forge/migrations.json has the 0.6.0→0.6.1 entry (added in T02)\n3. Run security scan per CLAUDE.md:\n   /security-watchdog:scan-plugin forge:forge --source-path forge/\n   Save full report to docs/security/scan-v0.6.1.md\n4. Add row to Security Scan History table in README.md\n5. Commit all changes with message: 'chore: Release v0.6.1 [FORGE-S03-T03]'",
-  "status": "committed",
-  "estimate": "S",
-  "dependencies": ["FORGE-S03-T01", "FORGE-S03-T02"],
-  "path": "engineering/sprints/FORGE-S03/FORGE-S03-T03"
+  "title": "PLAN — FORGE-S03-T03: Version bump to 0.6.1 with security scan and release commit",
+  "status": "implementing",
+  "path": "engineering/sprints/FORGE-S03/T03"
 }

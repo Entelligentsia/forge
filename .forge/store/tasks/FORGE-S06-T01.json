@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S06-T01",
-  "feature_id": null,
   "sprintId": "FORGE-S06",
-  "title": "Fix orchestrator persona lookup + model announcement",
+  "title": "PLAN — FORGE-S06-T01: Fix orchestrator persona lookup + model announcement",
   "status": "committed",
-  "path": "forge/meta/workflows/meta-orchestrate.md",
-  "estimate": "M",
-  "dependencies": [],
-  "pipeline": "default"
+  "path": "engineering/sprints/FORGE-S06/FORGE-S06-T01-fix-orchestrator-persona-lookup"
 }

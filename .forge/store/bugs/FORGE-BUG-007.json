@@ -1,0 +1,8 @@
+{
+  "bugId": "FORGE-BUG-007",
+  "title": "PLAN — BUG-007: collate COST_REPORT.md path fallback + (unknown) attribution",
+  "severity": "minor",
+  "status": "reported",
+  "path": "engineering/bugs/BUG-007-collate-cost-report-attribution",
+  "reportedAt": "2026-04-14T09:34:30.848Z"
+}

@@ -1,8 +1,7 @@
 {
   "sprintId": "FORGE-S05",
-  "feature_id": null,
-  "title": "Agent Definition & Runtime Portability",
-  "status": "completed",
+  "title": "Sprint S05",
+  "status": "active",
   "taskIds": [
     "FORGE-S05-T01",
     "FORGE-S05-T02",
@@ -10,9 +9,8 @@
     "FORGE-S05-T04",
     "FORGE-S05-T05",
     "FORGE-S05-T06",
-    "FORGE-S05-T07",
-    "FORGE-S05-T08"
+    "FORGE-S05-T07"
   ],
-  "executionMode": "sequential",
-  "createdAt": "2026-04-13T12:00:00Z"
+  "createdAt": "2026-04-14T09:34:30.845Z",
+  "path": "engineering/sprints/FORGE-S05"
 }

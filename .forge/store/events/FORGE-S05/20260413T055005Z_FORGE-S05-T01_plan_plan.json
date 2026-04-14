@@ -1,1 +1,13 @@
-{"eventId":"20260413T055005Z_FORGE-S05-T01_plan_/plan","taskId":"FORGE-S05-T01","sprintId":"FORGE-S05","role":"plan","action":"/plan","phase":"plan","iteration":1,"startTimestamp":"2026-04-13T05:50:05Z"}
+{
+  "eventId": "20260413T055005Z_FORGE-S05-T01_plan_plan",
+  "taskId": "FORGE-S05-T01",
+  "sprintId": "FORGE-S05",
+  "role": "plan",
+  "action": "/plan",
+  "phase": "plan",
+  "iteration": 1,
+  "startTimestamp": "2026-04-13T05:50:05Z",
+  "endTimestamp": null,
+  "durationMinutes": null,
+  "model": "unknown"
+}

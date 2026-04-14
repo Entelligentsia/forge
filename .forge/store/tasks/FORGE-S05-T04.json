@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S05-T04",
-  "feature_id": null,
   "sprintId": "FORGE-S05",
-  "title": "Workflow purification",
-  "status": "committed",
-  "path": "forge/meta/workflows/",
-  "estimate": "M",
-  "dependencies": ["FORGE-S05-T03"],
-  "pipeline": "default"
+  "title": "Task T4",
+  "status": "planned",
+  "path": "engineering/sprints/FORGE-S05/T04"
 }

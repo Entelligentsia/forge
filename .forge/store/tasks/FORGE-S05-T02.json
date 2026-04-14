@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S05-T02",
-  "feature_id": null,
   "sprintId": "FORGE-S05",
-  "title": "Dual-artifact generation",
-  "status": "committed",
-  "path": "forge/init/generation/",
-  "estimate": "L",
-  "dependencies": ["FORGE-S05-T01"],
-  "pipeline": "default"
+  "title": "Task T2",
+  "status": "planned",
+  "path": "engineering/sprints/FORGE-S05/T02"
 }

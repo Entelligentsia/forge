@@ -2,8 +2,8 @@
 
 # Cost Report — FORGE-S03
 
-> Generated: 2026-04-13
-> Sprint: Lean Migration Architecture
+> Generated: 2026-04-14
+> Sprint: Sprint Plan — FORGE-S03: Lean Migration Architecture
 
 _No token data available for this sprint._
 

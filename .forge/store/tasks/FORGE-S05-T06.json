@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S05-T06",
-  "feature_id": null,
   "sprintId": "FORGE-S05",
-  "title": "Portability migration",
-  "status": "committed",
-  "path": "forge/commands/update.md",
-  "estimate": "M",
-  "dependencies": ["FORGE-S05-T05"],
-  "pipeline": "default"
+  "title": "PLAN — FORGE-S05-T06: Portability migration",
+  "status": "planned",
+  "path": "engineering/sprints/FORGE-S05/T06"
 }

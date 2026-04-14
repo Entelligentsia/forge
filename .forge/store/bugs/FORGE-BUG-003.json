@@ -1,0 +1,8 @@
+{
+  "bugId": "FORGE-BUG-003",
+  "title": "PROGRESS — BUG-003: forge:update missing data migration for new required schema fields",
+  "severity": "minor",
+  "status": "reported",
+  "path": "engineering/bugs/BUG-003-missing-backfill",
+  "reportedAt": "2026-04-14T09:34:30.848Z"
+}

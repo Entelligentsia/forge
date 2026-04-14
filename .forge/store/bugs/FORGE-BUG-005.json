@@ -1,0 +1,8 @@
+{
+  "bugId": "FORGE-BUG-005",
+  "title": "PROGRESS — BUG-005: fix-bug is not an orchestrator",
+  "severity": "minor",
+  "status": "reported",
+  "path": "engineering/bugs/BUG-005-fix-bug-orchestrator-deviations",
+  "reportedAt": "2026-04-14T09:34:30.848Z"
+}

@@ -1,10 +1,7 @@
 {
   "taskId": "FORGE-S01-T04",
   "sprintId": "FORGE-S01",
-  "title": "estimate-usage.cjs — token estimation fallback tool",
+  "title": "PLAN — FORGE-S01-T04: estimate-usage.cjs — token estimation fallback tool",
   "status": "committed",
-  "path": "forge/tools/estimate-usage.cjs",
-  "estimate": "M",
-  "dependencies": ["FORGE-S01-T01"],
-  "pipeline": "default"
+  "path": "engineering/sprints/FORGE-S01/T04"
 }

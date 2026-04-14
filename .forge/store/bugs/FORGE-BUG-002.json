@@ -1,0 +1,8 @@
+{
+  "bugId": "FORGE-BUG-002",
+  "title": "PROGRESS — BUG-002: validate-store referential integrity checks incomplete",
+  "severity": "minor",
+  "status": "reported",
+  "path": "engineering/bugs/BUG-002-validate-store-integrity",
+  "reportedAt": "2026-04-14T09:34:30.848Z"
+}

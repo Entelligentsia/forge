@@ -10,31 +10,31 @@
 
 ## Sprint Registry
 
-| Sprint    | Title                                                                              | Status      | Tasks |
-| --------- | ---------------------------------------------------------------------------------- | ----------- | ----- |
-| FORGE-S06 | Sprint S06                                                                         | 🔵 active   | 7/10  |
-| FORGE-S05 | Sprint S05                                                                         | 🔵 active   | 0/8   |
-| FORGE-S04 | Sprint S04                                                                         | 📝 planning | 6/6   |
-| FORGE-S03 | Sprint Plan — FORGE-S03: Lean Migration Architecture                               | 🔵 active   | 0/3   |
-| FORGE-S02 | Sprint Plan — FORGE-S02: Foundational Concepts Documentation + Feature Tier (v1.0) | 🔵 active   | 3/10  |
-| FORGE-S01 | Sprint FORGE-S01 — Token Usage Tracking                                            | 🔵 active   | 7/8   |
+| Sprint    | Title                                                                              | Status               | Tasks |
+| --------- | ---------------------------------------------------------------------------------- | -------------------- | ----- |
+| FORGE-S06 | Sprint S06                                                                         | ✅ retrospective-done | 10/10 |
+| FORGE-S05 | Sprint S05                                                                         | 🔵 active            | 0/8   |
+| FORGE-S04 | Sprint S04                                                                         | 📝 planning          | 6/6   |
+| FORGE-S03 | Sprint Plan — FORGE-S03: Lean Migration Architecture                               | 🔵 active            | 0/3   |
+| FORGE-S02 | Sprint Plan — FORGE-S02: Foundational Concepts Documentation + Feature Tier (v1.0) | 🔵 active            | 3/10  |
+| FORGE-S01 | Sprint FORGE-S01 — Token Usage Tracking                                            | 🔵 active            | 7/8   |
 
 ## Task Registry
 
 ### FORGE-S06
 
-| Task                                                                                      | Title                                                                                               | Status           | Estimate |
-| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------- | -------- |
-| [FORGE-S06-T01](sprints/FORGE-S06/FORGE-S06-T01-fix-orchestrator-persona-lookup/INDEX.md) | PLAN — FORGE-S06-T01: Fix orchestrator persona lookup + model announcement                          | ✅ committed      | —        |
-| [FORGE-S06-T02](sprints/FORGE-S06/FORGE-S06-T02-purify-meta-workflows/INDEX.md)           | PLAN — FORGE-S06-T02: Purify meta-workflows — remove Persona sections, reassign sprint-intake to PM | ✅ committed      | —        |
-| [FORGE-S06-T03](sprints/FORGE-S06/FORGE-S06-T03-regenerate-personas-default/INDEX.md)     | Add personas to forge:regenerate defaults                                                           | ✅ committed      | —        |
-| [FORGE-S06-T04](sprints/FORGE-S06/FORGE-S06-T04-fix-ghost-event-files/INDEX.md)           | PLAN — FORGE-S06-T04: Fix ghost event files in store.cjs and validate-store.cjs                     | ✅ committed      | —        |
-| [FORGE-S06-T05](sprints/FORGE-S06/FORGE-S06-T05-suppress-false-breaking-change/INDEX.md)  | PLAN — FORGE-S06-T05: Suppress false breaking-change confirmation in forge:update                   | ✅ committed      | —        |
-| [FORGE-S06-T06](sprints/FORGE-S06/FORGE-S06-T06-add-path-to-sprint-schema/INDEX.md)       | PLAN — FORGE-S06-T06: Add `path` field to sprint schema                                             | ✅ committed      | —        |
-| [FORGE-S06-T07](../forge/tools/INDEX.md)                                                  | Slug-aware seed-store discovery and path construction                                               | ✅ committed      | M        |
-| [FORGE-S06-T08](sprints/FORGE-S06/FORGE-S06-T08-collate-slug-path-resolution/INDEX.md)    | Task T08                                                                                            | 📋 plan-approved | —        |
-| [FORGE-S06-T09](sprints/FORGE-S06/FORGE-S06-T09-validate-store-slug-discovery/INDEX.md)   | Task T09                                                                                            | 📋 planned       | —        |
-| [FORGE-S06-T10](sprints/FORGE-S06/FORGE-S06-T10-release-engineering/INDEX.md)             | Task T10                                                                                            | 📋 planned       | —        |
+| Task                                                                                      | Title                                                                                               | Status      | Estimate |
+| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------- | -------- |
+| [FORGE-S06-T01](sprints/FORGE-S06/FORGE-S06-T01-fix-orchestrator-persona-lookup/INDEX.md) | PLAN — FORGE-S06-T01: Fix orchestrator persona lookup + model announcement                          | ✅ committed | —        |
+| [FORGE-S06-T02](sprints/FORGE-S06/FORGE-S06-T02-purify-meta-workflows/INDEX.md)           | PLAN — FORGE-S06-T02: Purify meta-workflows — remove Persona sections, reassign sprint-intake to PM | ✅ committed | —        |
+| [FORGE-S06-T03](sprints/FORGE-S06/FORGE-S06-T03-regenerate-personas-default/INDEX.md)     | Add personas to forge:regenerate defaults                                                           | ✅ committed | —        |
+| [FORGE-S06-T04](sprints/FORGE-S06/FORGE-S06-T04-fix-ghost-event-files/INDEX.md)           | PLAN — FORGE-S06-T04: Fix ghost event files in store.cjs and validate-store.cjs                     | ✅ committed | —        |
+| [FORGE-S06-T05](sprints/FORGE-S06/FORGE-S06-T05-suppress-false-breaking-change/INDEX.md)  | PLAN — FORGE-S06-T05: Suppress false breaking-change confirmation in forge:update                   | ✅ committed | —        |
+| [FORGE-S06-T06](sprints/FORGE-S06/FORGE-S06-T06-add-path-to-sprint-schema/INDEX.md)       | PLAN — FORGE-S06-T06: Add `path` field to sprint schema                                             | ✅ committed | —        |
+| [FORGE-S06-T07](../forge/tools/INDEX.md)                                                  | Slug-aware seed-store discovery and path construction                                               | ✅ committed | M        |
+| [FORGE-S06-T08](sprints/FORGE-S06/FORGE-S06-T08-collate-slug-path-resolution/INDEX.md)    | Task T08                                                                                            | ✅ committed | —        |
+| [FORGE-S06-T09](sprints/FORGE-S06/FORGE-S06-T09-validate-store-slug-discovery/INDEX.md)   | Task T09                                                                                            | ✅ committed | —        |
+| [FORGE-S06-T10](sprints/FORGE-S06/FORGE-S06-T10-release-engineering/INDEX.md)             | Task T10                                                                                            | ✅ committed | —        |
 
 ### FORGE-S05
 

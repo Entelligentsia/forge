@@ -1,7 +1,0 @@
-{
-  "eventId": "FORGE-S05-T01-COMMITTED",
-  "taskId": "FORGE-S05-T01",
-  "timestamp": "2026-04-13T06:10:28Z",
-  "event": "committed",
-  "details": "Meta-skills framework implementation reviewed and approved. Meta-templates for Engineer, Supervisor, Architect, Bug-Fixer, and Generic roles created in forge/meta/skills/."
-}

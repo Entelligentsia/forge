@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S06-T02",
-  "feature_id": null,
   "sprintId": "FORGE-S06",
-  "title": "Purify meta-workflows — remove Persona sections, reassign sprint-intake to PM",
+  "title": "PLAN — FORGE-S06-T02: Purify meta-workflows — remove Persona sections, reassign sprint-intake to PM",
   "status": "committed",
-  "path": "forge/meta/workflows",
-  "estimate": "M",
-  "dependencies": ["FORGE-S06-T01"],
-  "pipeline": "default"
+  "path": "engineering/sprints/FORGE-S06/FORGE-S06-T02-purify-meta-workflows"
 }

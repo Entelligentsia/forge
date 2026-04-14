@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S05-T01",
-  "feature_id": null,
   "sprintId": "FORGE-S05",
-  "title": "Meta-skills framework",
-  "status": "committed",
-  "path": "forge/meta/skills/",
-  "estimate": "M",
-  "dependencies": [],
-  "pipeline": "default"
+  "title": "Task T1",
+  "status": "planned",
+  "path": "engineering/sprints/FORGE-S05/T01"
 }

@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S05-T05",
-  "feature_id": null,
   "sprintId": "FORGE-S05",
-  "title": "Symmetric injection & model resolution",
-  "status": "committed",
-  "path": "forge/meta/workflows/meta-orchestrate.md",
-  "estimate": "L",
-  "dependencies": ["FORGE-S05-T04"],
-  "pipeline": "default"
+  "title": "PLAN — FORGE-S05-T05: Symmetric injection & model resolution",
+  "status": "planned",
+  "path": "engineering/sprints/FORGE-S05/T05"
 }

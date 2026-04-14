@@ -1,0 +1,8 @@
+{
+  "bugId": "FORGE-BUG-006",
+  "title": "PROGRESS — BUG-006: collate COST_REPORT.md written to SNN/ stub dirs",
+  "severity": "minor",
+  "status": "reported",
+  "path": "engineering/bugs/BUG-006-collate-cost-report-path",
+  "reportedAt": "2026-04-14T09:34:30.848Z"
+}

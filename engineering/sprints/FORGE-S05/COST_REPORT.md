@@ -2,8 +2,28 @@
 
 # Cost Report — FORGE-S05
 
-> Generated: 2026-04-13
-> Sprint: Agent Definition & Runtime Portability
+> Generated: 2026-04-14
+> Sprint: Sprint S05
 
-_No token data available for this sprint._
+## Per-Task Totals
+
+| Task      | Input Tokens | Output Tokens | Cache Read | Cache Write | Est. Cost USD | Source    |
+| --------- | ------------ | ------------- | ---------- | ----------- | ------------- | --------- |
+| (unknown) | 0            | 0             | 0          | 0           | $0.0000       | (unknown) |
+
+## Per-Role Breakdown
+
+| Role      | Input Tokens | Output Tokens | Cache Read | Cache Write | Est. Cost USD |
+| --------- | ------------ | ------------- | ---------- | ----------- | ------------- |
+| (unknown) | 0            | 0             | 0          | 0           | $0.0000       |
+
+## Revision Waste
+
+_No revision waste in this sprint._
+
+## Model Split
+
+| Model     | Input Tokens | Output Tokens | Cache Read | Cache Write | Est. Cost USD |
+| --------- | ------------ | ------------- | ---------- | ----------- | ------------- |
+| (unknown) | 0            | 0             | 0          | 0           | $0.0000       |
 

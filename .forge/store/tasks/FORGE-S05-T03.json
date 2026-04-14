@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S05-T03",
-  "feature_id": null,
   "sprintId": "FORGE-S05",
-  "title": "Persona & Role alignment",
-  "status": "committed",
-  "path": "forge/meta/personas/",
-  "estimate": "S",
-  "dependencies": ["FORGE-S05-T02"],
-  "pipeline": "default"
+  "title": "PLAN — FORGE-S05-T03: Persona & Role alignment",
+  "status": "planned",
+  "path": "engineering/sprints/FORGE-S05/T03"
 }

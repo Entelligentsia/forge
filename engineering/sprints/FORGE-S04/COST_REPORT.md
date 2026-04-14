@@ -2,8 +2,8 @@
 
 # Cost Report — FORGE-S04
 
-> Generated: 2026-04-13
-> Sprint: Store Abstraction Layer
+> Generated: 2026-04-14
+> Sprint: Sprint S04
 
 _No token data available for this sprint._
 

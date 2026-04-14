@@ -7,5 +7,7 @@
   "phase": "plan",
   "iteration": 1,
   "startTimestamp": "2026-04-13T06:28:36.000Z",
-  "model": "claude-3-5-sonnet-20241022"
+  "model": "claude-3-5-sonnet-20241022",
+  "endTimestamp": null,
+  "durationMinutes": null
 }

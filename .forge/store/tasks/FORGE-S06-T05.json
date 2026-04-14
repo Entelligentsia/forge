@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S06-T05",
-  "feature_id": null,
   "sprintId": "FORGE-S06",
-  "title": "Suppress false breaking-change confirmation in forge:update",
+  "title": "PLAN — FORGE-S06-T05: Suppress false breaking-change confirmation in forge:update",
   "status": "committed",
-  "path": "forge/commands/update.md",
-  "estimate": "S",
-  "dependencies": [],
-  "pipeline": "default"
+  "path": "engineering/sprints/FORGE-S06/FORGE-S06-T05-suppress-false-breaking-change"
 }

@@ -1,8 +1,0 @@
-{
-  "event": "task_committed",
-  "taskId": "FORGE-S05-T06",
-  "sprintId": "FORGE-S05",
-  "timestamp": "2026-04-13T15:00:00Z",
-  "user": "Claude Code",
-  "notes": "Portability migration (FORGE-S05-T06) committed after final pipeline verification."
-}
