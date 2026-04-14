@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S06",
   "title": "Add `path` field to sprint schema",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/schemas/sprint.schema.json",
   "estimate": "S",
   "dependencies": [],
