@@ -17,6 +17,21 @@ const path = require('path');
 const DRY_RUN = process.argv.includes('--dry-run');
 const FIX_MODE = process.argv.includes('--fix') && !DRY_RUN;
 
+// Read engineering root and project prefix from config for filesystem consistency checks
+const CONFIG_PATH = '.forge/config.json';
+let engineeringRoot = 'engineering';
+let projectPrefix = '[A-Z]+';
+try {
+  const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+  if (cfg.paths && cfg.paths.engineering) engineeringRoot = cfg.paths.engineering;
+  if (cfg.project && cfg.project.prefix) projectPrefix = cfg.project.prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+} catch (_) {}
+
+// Slug-aware directory discovery regexes
+const SPRINT_DIR_RE = new RegExp(`^(${projectPrefix}-S\\d+)(-\\S+)?$`);
+const TASK_FULL_RE  = new RegExp(`^(${projectPrefix}-S\\d+-T\\d+)(-\\S+)?$`);
+const TASK_SHORT_RE = /^(T\d+)(-\S+)?$/;
+
 // Embedded JSON schemas — validate-store.cjs is self-contained and does not
 // read from .forge/schemas/. These definitions are sourced from
 // forge/meta/store-schema/*.md and are the canonical machine-readable specs.
@@ -410,6 +425,77 @@ for (const sprint of allSprints) {
       err(`${sprintId}/${eventId}`, `taskId "${rec.taskId}" references unknown task or bug`);
     if (rec.sprintId && !sprintIds.has(rec.sprintId) && rec.sprintId !== sprintId)
       err(`${sprintId}/${eventId}`, `sprintId "${rec.sprintId}" references unknown sprint`);
+  }
+}
+
+// --- Pass 3: Filesystem consistency ---
+// Walk engineering/sprints/ to detect orphaned directories and dangling path fields.
+// All checks here emit warnings (not errors) for backward compatibility.
+const sprintsDir = path.join(engineeringRoot, 'sprints');
+if (fs.existsSync(sprintsDir)) {
+  let sprintEntries;
+  try { sprintEntries = fs.readdirSync(sprintsDir); } catch (_) { sprintEntries = []; }
+
+  for (const entry of sprintEntries) {
+    const entryPath = path.join(sprintsDir, entry);
+    let isDir = false;
+    try { isDir = fs.statSync(entryPath).isDirectory(); } catch (_) {}
+    if (!isDir) continue;
+
+    const sprintMatch = SPRINT_DIR_RE.exec(entry);
+    if (!sprintMatch) continue; // not a recognised sprint directory pattern — skip silently
+    const dirSprintId = sprintMatch[1];
+
+    if (!sprintIds.has(dirSprintId)) {
+      warn(dirSprintId, `directory "${entry}" has no sprint record in store`);
+      continue; // no point walking tasks for an unregistered sprint
+    }
+
+    // Walk for task subdirectories
+    let taskEntries;
+    try { taskEntries = fs.readdirSync(entryPath); } catch (_) { taskEntries = []; }
+
+    for (const taskEntry of taskEntries) {
+      const taskEntryPath = path.join(entryPath, taskEntry);
+      let isTaskDir = false;
+      try { isTaskDir = fs.statSync(taskEntryPath).isDirectory(); } catch (_) {}
+      if (!isTaskDir) continue;
+
+      let dirTaskId = null;
+
+      const taskFullMatch = TASK_FULL_RE.exec(taskEntry);
+      if (taskFullMatch) {
+        dirTaskId = taskFullMatch[1];
+      } else {
+        const taskShortMatch = TASK_SHORT_RE.exec(taskEntry);
+        if (taskShortMatch) {
+          // Construct full task ID from sprint ID + short task number (e.g. T09 → FORGE-S06-T09)
+          dirTaskId = `${dirSprintId}-${taskShortMatch[1]}`;
+        }
+      }
+
+      if (!dirTaskId) continue; // not a recognised task directory pattern — skip silently
+
+      if (!taskIds.has(dirTaskId)) {
+        warn(dirTaskId, `directory "${entry}/${taskEntry}" has no task record in store`);
+      }
+    }
+  }
+}
+
+// path field cross-check for sprints
+for (const rec of sprints) {
+  if (!rec || !rec.path) continue;
+  if (!fs.existsSync(rec.path)) {
+    warn(rec.sprintId, `path "${rec.path}" does not exist on disk`);
+  }
+}
+
+// path field cross-check for tasks
+for (const rec of tasks) {
+  if (!rec || !rec.path) continue;
+  if (!fs.existsSync(rec.path)) {
+    warn(rec.taskId, `path "${rec.path}" does not exist on disk`);
   }
 }
 
