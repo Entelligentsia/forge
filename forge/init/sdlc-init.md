@@ -157,6 +157,9 @@ Read `$FORGE_ROOT/init/smoke-test.md` and follow it.
 Validates structural completeness, referential integrity, tool execution,
 and template coherence. Self-corrects up to once per failing component.
 
+**Output**: `.forge/generation-manifest.json` (file hashes for all generated artifacts),
+`.forge/update-check-cache.json` (migration baseline anchored to the installed version)
+
 ---
 
 ## Report

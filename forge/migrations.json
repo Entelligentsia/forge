@@ -1,4 +1,12 @@
 {
+  "0.8.0": {
+    "version": "0.8.1",
+    "date": "2026-04-14",
+    "notes": "forge:init now writes .forge/update-check-cache.json and .forge/generation-manifest.json in the smoke-test Stamp step — anchors the migration baseline so /forge:update correctly detects workflow drift after upgrades.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.7.11": {
     "version": "0.8.0",
     "date": "2026-04-14",

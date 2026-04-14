@@ -46,6 +46,53 @@ If a check fails:
 3. Re-run the failed check
 4. If still failing, report to user with diagnostic
 
+## Stamp
+
+After all checks pass (or self-correction is complete), write two files that
+anchor this project to the installed Forge version. These are required for
+`/forge:update` to detect workflow drift on future upgrades.
+
+### 1. Generation manifest
+
+Run:
+
+```sh
+node "$FORGE_ROOT/tools/generation-manifest.cjs" record-all
+```
+
+This hashes every generated file in `.forge/workflows/`, `.forge/personas/`,
+`.forge/skills/`, `.forge/templates/`, and `.claude/commands/`, writing
+`.forge/generation-manifest.json`. `/forge:update` reads this to distinguish
+pristine generated files from user-modified ones when offering to clean up
+retired filenames.
+
+### 2. Update-check cache
+
+Read the installed version:
+
+```sh
+node -e "const p=require('$FORGE_ROOT/.claude-plugin/plugin.json'); console.log(p.version);"
+```
+
+Determine distribution from `$FORGE_ROOT` path:
+- Contains `/cache/skillforge/forge/` → `forge@skillforge`
+- Anything else → `forge@forge`
+
+Write `.forge/update-check-cache.json`:
+
+```json
+{
+  "migratedFrom": "<installed_version>",
+  "localVersion": "<installed_version>",
+  "distribution": "<distribution>",
+  "forgeRoot": "<FORGE_ROOT>"
+}
+```
+
+This stamps the init version as the migration baseline. Without it,
+`/forge:update` has no baseline and silently reports "no pending migrations"
+even when workflows are stale.
+
 ## Report
 
 Output a summary:
