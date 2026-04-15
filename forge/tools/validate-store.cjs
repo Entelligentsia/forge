@@ -32,148 +32,64 @@ const SPRINT_DIR_RE = new RegExp(`^(${projectPrefix}-S\\d+)(-\\S+)?$`);
 const TASK_FULL_RE  = new RegExp(`^(${projectPrefix}-S\\d+-T\\d+)(-\\S+)?$`);
 const TASK_SHORT_RE = /^(T\d+)(-\S+)?$/;
 
-// Embedded JSON schemas — validate-store.cjs is self-contained and does not
-// read from .forge/schemas/. These definitions are sourced from
-// forge/meta/store-schema/*.md and are the canonical machine-readable specs.
-const SCHEMAS = {
-  sprint: {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "forge/sprint.schema.json",
-    "title": "Sprint",
-    "type": "object",
-    "required": ["sprintId", "title", "status", "taskIds", "createdAt"],
-    "properties": {
-      "sprintId":       { "type": "string" },
-      "title":          { "type": "string" },
-      "description":    { "type": "string" },
-      "status": {
-        "type": "string",
-        "enum": ["planning", "active", "completed", "retrospective-done", "blocked", "partially-completed", "abandoned"]
-      },
-      "goal":           { "type": "string" },
-      "taskIds":        { "type": "array", "items": { "type": "string" } },
-      "dependencies":   { "type": "object" },
-      "executionMode":  { "type": "string", "enum": ["sequential", "wave-parallel", "full-parallel"] },
-      "createdAt":      { "type": "string", "format": "date-time" },
-      "completedAt":    { "type": "string", "format": "date-time" },
-      "path":           { "type": "string" },
-      "humanEstimates": { "type": "object" },
-      "feature_id":     { "type": ["string", "null"] },
-      "features":       { "type": "array", "items": { "type": "string" } }
-    },
-    "additionalProperties": false
-  },
-  task: {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "forge/task.schema.json",
-    "title": "Task",
-    "type": "object",
-    "required": ["taskId", "sprintId", "title", "status", "path"],
-    "properties": {
-      "taskId":               { "type": "string" },
-      "sprintId":             { "type": "string" },
-      "title":                { "type": "string" },
-      "description":          { "type": "string" },
-      "status": {
-        "type": "string",
-        "enum": [
-          "draft", "planned", "plan-approved", "implementing",
-          "implemented", "review-approved", "approved", "committed",
-          "plan-revision-required", "code-revision-required", "blocked", "escalated", "abandoned"
-        ]
-      },
-      "path":                 { "type": "string" },
-      "estimate":             { "type": "string", "enum": ["S", "M", "L", "XL"] },
-      "dependencies":         { "type": "array", "items": { "type": "string" } },
-      "knowledgeUpdates":     { "type": "array" },
-      "planIterations":       { "type": "integer", "minimum": 0 },
-      "codeReviewIterations": { "type": "integer", "minimum": 0 },
-      "assignedModel":        { "type": "string" },
-      "pipeline":             { "type": "string" },
-      "feature_id":           { "type": ["string", "null"] }
-    },
-    "additionalProperties": false
-  },
-  bug: {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "forge/bug.schema.json",
-    "title": "Bug",
-    "type": "object",
-    "required": ["bugId", "title", "severity", "status", "path", "reportedAt"],
-    "properties": {
-      "bugId":                { "type": "string" },
-      "title":                { "type": "string" },
-      "description":          { "type": "string" },
-      "severity":             { "type": "string", "enum": ["critical", "major", "minor"] },
-      "status":               { "type": "string", "enum": ["reported", "triaged", "in-progress", "fixed", "verified"] },
-      "path":                 { "type": "string" },
-      "rootCauseCategory": {
-        "type": "string",
-        "enum": ["validation", "auth", "business-rule", "data-integrity", "race-condition", "integration", "configuration", "regression"]
-      },
-      "similarBugs":          { "type": "array", "items": { "type": "string" } },
-      "checklistItemAdded":   { "type": "boolean" },
-      "businessRuleUpdated":  { "type": "boolean" },
-      "reportedAt":           { "type": "string", "format": "date-time" },
-      "resolvedAt":           { "type": "string", "format": "date-time" }
-    },
-    "additionalProperties": false
-  },
-  event: {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "forge/event.schema.json",
-    "title": "Event",
-    "type": "object",
-    "required": [
-      "eventId", "taskId", "sprintId", "role", "action",
-      "phase", "iteration", "startTimestamp", "endTimestamp", "durationMinutes", "model"
-    ],
-    "properties": {
-      "eventId":         { "type": "string" },
-      "taskId":          { "type": "string" },
-      "sprintId":        { "type": "string" },
-      "role":            { "type": "string" },
-      "action":          { "type": "string" },
-      "phase":           { "type": "string" },
-      "iteration":       { "type": "integer", "minimum": 1 },
-      "startTimestamp":  { "type": "string", "format": "date-time" },
-      "endTimestamp":    { "type": "string", "format": "date-time" },
-      "durationMinutes": { "type": "number", "minimum": 0 },
-      "model":           { "type": "string" },
-      "verdict":            { "type": "string" },
-      "notes":              { "type": "string" },
-      "inputTokens":        { "type": "integer", "minimum": 0 },
-      "outputTokens":       { "type": "integer", "minimum": 0 },
-      "cacheReadTokens":    { "type": "integer", "minimum": 0 },
-      "cacheWriteTokens":   { "type": "integer", "minimum": 0 },
-      "estimatedCostUSD":   { "type": "number",  "minimum": 0 },
-      "tokenSource":        { "type": "string",  "enum": ["reported", "estimated"] }
-    },
-    "additionalProperties": false
-  },
-  feature: {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "forge/feature.schema.json",
-    "title": "Feature",
-    "type": "object",
-    "required": ["id", "title", "status", "created_at"],
-    "properties": {
-      "id":           { "type": "string" },
-      "title":        { "type": "string" },
-      "description":  { "type": "string" },
-      "status": {
-        "type": "string",
-        "enum": ["draft", "active", "shipped", "retired"]
-      },
-      "requirements": { "type": "array", "items": { "type": "string" } },
-      "sprints":      { "type": "array", "items": { "type": "string" } },
-      "tasks":        { "type": "array", "items": { "type": "string" } },
-      "created_at":   { "type": "string", "format": "date-time" },
-      "updated_at":   { "type": "string", "format": "date-time" }
-    },
-    "additionalProperties": false
-  }
+// Schema loading — validate-store reads schemas from the filesystem at startup.
+// Resolution order per entity type:
+//   1. .forge/schemas/{type}.schema.json  (project-installed copy)
+//   2. forge/schemas/{type}.schema.json   (in-tree source, for dogfooding)
+//   3. Minimal fallback (required fields only, with stderr warning)
+const ENTITY_TYPES = ['sprint', 'task', 'bug', 'event', 'feature'];
+
+const MINIMAL_REQUIRED = {
+  sprint:  ['sprintId', 'title', 'status', 'taskIds', 'createdAt'],
+  task:    ['taskId', 'sprintId', 'title', 'status', 'path'],
+  bug:     ['bugId', 'title', 'severity', 'status', 'path', 'reportedAt'],
+  event:   ['eventId', 'taskId', 'sprintId', 'role', 'action', 'phase', 'iteration', 'startTimestamp', 'endTimestamp', 'durationMinutes', 'model'],
+  feature: ['id', 'title', 'status', 'created_at']
 };
+
+function loadSchemas() {
+  const schemas = {};
+  const projectDir = path.join('.forge', 'schemas');
+  const inTreeDir  = path.join('forge', 'schemas');
+
+  for (const type of ENTITY_TYPES) {
+    const schemaFile = `${type}.schema.json`;
+    let schema = null;
+
+    // Try project-installed schemas first
+    const projectPath = path.join(projectDir, schemaFile);
+    try {
+      if (fs.existsSync(projectPath)) {
+        schema = JSON.parse(fs.readFileSync(projectPath, 'utf8'));
+      }
+    } catch (e) {
+      console.error(`WARN: schema file ${projectPath} exists but could not be parsed: ${e.message}`);
+    }
+
+    // Fall back to in-tree source schemas
+    if (!schema) {
+      const inTreePath = path.join(inTreeDir, schemaFile);
+      try {
+        if (fs.existsSync(inTreePath)) {
+          schema = JSON.parse(fs.readFileSync(inTreePath, 'utf8'));
+        }
+      } catch (e) {
+        console.error(`WARN: schema file ${inTreePath} exists but could not be parsed: ${e.message}`);
+      }
+    }
+
+    if (schema) {
+      schemas[type] = schema;
+    } else {
+      console.error(`WARN: schema file ${schemaFile} not found in ${projectDir} or ${inTreeDir}, using minimal fallback`);
+      schemas[type] = { type: 'object', required: MINIMAL_REQUIRED[type] || [], properties: {} };
+    }
+  }
+
+  return schemas;
+}
+
+const schemas = loadSchemas();
 
 // Fields that are legitimately null:
 //   sprintId / taskId  — optional FK (e.g. standalone bug fix has no sprint)
@@ -298,7 +214,7 @@ for (const rec of sprints) {
   if (!rec) continue;
   if (FIX_MODE) backfillRecord(rec.sprintId, rec, 'sprint');
   if (rec.sprintId) sprintIds.add(rec.sprintId);
-  for (const e of validateRecord(rec, SCHEMAS.sprint)) err(rec.sprintId, e);
+  for (const e of validateRecord(rec, schemas.sprint)) err(rec.sprintId, e);
   if (!rec.path) warn(rec.sprintId, 'missing optional field "path"');
 }
 
@@ -306,7 +222,7 @@ const tasks = store.listTasks();
 for (const rec of tasks) {
   if (!rec) continue;
   if (rec.taskId) taskIds.add(rec.taskId);
-  for (const e of validateRecord(rec, SCHEMAS.task)) err(rec.taskId, e);
+  for (const e of validateRecord(rec, schemas.task)) err(rec.taskId, e);
 }
 
 const bugs = store.listBugs();
@@ -314,7 +230,7 @@ for (const rec of bugs) {
   if (!rec) continue;
   if (FIX_MODE) backfillRecord(rec.bugId, rec, 'bug');
   if (rec.bugId) bugIds.add(rec.bugId);
-  for (const e of validateRecord(rec, SCHEMAS.bug)) err(rec.bugId, e);
+  for (const e of validateRecord(rec, schemas.bug)) err(rec.bugId, e);
 }
 
 const features = store.listFeatures();
@@ -368,14 +284,12 @@ const allSprints = store.listSprints();
 for (const sprint of allSprints) {
   if (!sprint) continue;
   const sprintId = sprint.sprintId;
-  const eventsDir = path.join(store.impl.storeRoot, 'events', sprintId);
-  if (!fs.existsSync(eventsDir)) continue;
-  const eventFiles = fs.readdirSync(eventsDir)
-    .filter(f => f.endsWith('.json') && !f.startsWith('_'));
+  const eventFileEntries = store.listEventFilenames(sprintId)
+    .filter(entry => !entry.id.startsWith('_'));
 
-  for (const eventFile of eventFiles) {
-    const filename = eventFile.slice(0, -5); // strip .json
-    const rec = store.impl._readJson(path.join(eventsDir, eventFile));
+  for (const entry of eventFileEntries) {
+    const filename = entry.id; // filename without .json extension
+    const rec = store.getEvent(filename, sprintId);
     if (!rec) continue;
 
     const eventId = rec.eventId;
@@ -420,7 +334,7 @@ for (const sprint of allSprints) {
       if (changed) store.writeEvent(sprintId, rec);
     }
 
-    for (const e of validateRecord(rec, SCHEMAS.event)) err(`${sprintId}/${eventId}`, e);
+    for (const e of validateRecord(rec, schemas.event)) err(`${sprintId}/${eventId}`, e);
     if (rec.taskId && !taskIds.has(rec.taskId) && !bugIds.has(rec.taskId))
       err(`${sprintId}/${eventId}`, `taskId "${rec.taskId}" references unknown task or bug`);
     if (rec.sprintId && !sprintIds.has(rec.sprintId) && rec.sprintId !== sprintId)
