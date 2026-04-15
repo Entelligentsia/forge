@@ -15,7 +15,27 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
 
 ```
 1. Triage:
-   - Read bug report from store/bugs/
+   - Locate or create the bug record (MANDATORY — do this before anything else):
+     a. Determine the bug ID: if $ARGUMENTS is an existing FORGE-BUG-NNN ID, use it.
+        Otherwise derive the next available ID by listing .forge/store/bugs/.
+     b. If .forge/store/bugs/{BUG_ID}.json does NOT exist:
+        - Derive a short slug from the bug title (kebab-case, ≤ 5 words)
+        - Create the engineering folder:
+            mkdir -p engineering/bugs/{BUG_ID}-{slug}
+        - Write the bug record via store-cli — NEVER write the file directly:
+            node "$FORGE_ROOT/tools/store-cli.cjs" write bug '{
+              "bugId":       "{BUG_ID}",
+              "title":       "<from input>",
+              "description": "<from input>",
+              "severity":    "<assessed: critical|major|minor>",
+              "status":      "reported",
+              "path":        "engineering/bugs/{BUG_ID}-{slug}",
+              "reportedAt":  "<current ISO timestamp>"
+            }'
+        - If $ARGUMENTS contains a GitHub issue URL, include it as "githubIssue"
+          in the JSON above — it is a valid schema field.
+     c. Read the now-guaranteed record:
+            node "$FORGE_ROOT/tools/store-cli.cjs" read bug {BUG_ID} --json
    - Reproduce the bug: create a failing test case or a reproduction script
    - Confirm the root cause via codebase research
 

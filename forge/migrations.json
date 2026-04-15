@@ -1,4 +1,14 @@
 {
+  "0.9.5": {
+    "version": "0.9.6",
+    "date": "2026-04-15",
+    "notes": "Fix fix-bug triage: locate-or-create gate ensures bug record and engineering folder are created via store-cli before any read/classify step — prevents LLM from bypassing store library with direct file writes. Add githubIssue optional URI field to bug.schema.json.",
+    "regenerate": [
+      "workflows:fix_bug"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.4": {
     "version": "0.9.5",
     "date": "2026-04-15",
