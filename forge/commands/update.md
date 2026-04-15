@@ -1,4 +1,5 @@
 ---
+name: update
 description: Check for Forge updates, review changes, install, and apply migrations — all in one command
 ---
 
@@ -82,7 +83,21 @@ no further changes to the step logic are needed.
 
 ---
 
+## Progress Output Format
+
+At the start of each step, emit a banner using this format:
+
+```
+━━━ Step N/6 — <Step Name> ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Use full-width em-dashes to reach 65 characters total.
+
+---
+
 ## Step 1 — Check for updates
+
+Emit: `━━━ Step 1/6 — Check for updates ━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/.claude-plugin/plugin.json`. Extract `"version"` → `LOCAL_VERSION`.
 
@@ -159,6 +174,8 @@ Now evaluate — **stop at the first matching row and follow only that row's act
 ---
 
 ## Step 2A — Plugin update available
+
+Emit: `━━━ Step 2/6 — Plugin update available ━━━━━━━━━━━━━━━━━━━━━━`
 
 > **Only reached when `REMOTE_VERSION` != `LOCAL_VERSION` (row 4 above).**
 
@@ -251,6 +268,8 @@ Wait for the user to confirm the install completed.
 
 ## Step 2B — Project migration pending (plugin already current)
 
+Emit: `━━━ Step 2/6 — Apply project migrations ━━━━━━━━━━━━━━━━━━━━━`
+
 > **Only reached from rows 2 or 3 — the plugin is already at the right version.**
 > **Do NOT show an install prompt here. There is nothing to install.**
 
@@ -307,6 +326,8 @@ Then jump to **Step 4** to execute the regeneration.
 
 ## Step 3 — Verify installation
 
+Emit: `━━━ Step 3/6 — Verify installation ━━━━━━━━━━━━━━━━━━━━━━━━━━`
+
 After the user confirms the install:
 
 Re-read the local plugin version:
@@ -325,6 +346,8 @@ Update `LOCAL_VERSION` to `NEW_LOCAL_VERSION` for subsequent steps.
 ---
 
 ## Step 4 — Apply migrations
+
+Emit: `━━━ Step 4/6 — Apply migrations ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Determine the baseline version:
 - Use `migratedFrom` from `CACHE_FILE` (set in Step 1)
@@ -373,6 +396,25 @@ Aggregate across all steps in the path, applying the dominance rule:
 **Run the Model-alias auto-suppression pre-check** (see section above)
 on the aggregated `manual` list and `breaking` flag before displaying
 the confirmation prompt below.
+
+### Regeneration order
+
+Execute regeneration targets in this order:
+
+| Order | Target | Can run after |
+|-------|--------|---------------|
+| 1 | `tools` | — (independent) |
+| 2 | `workflows` | — (independent) |
+| 3 | `templates` | — (independent) |
+| 4 | `personas` | — (independent) |
+| 5 | `commands` | Must run after `workflows` |
+| 6 | `knowledge-base` sub-targets | — (independent) |
+
+`commands` depends on `workflows` because command wrappers reference workflow
+filenames. All other targets are independent and could run in parallel, but
+are executed sequentially here to keep the output readable.
+
+Only execute targets that appear in the aggregated result — skip absent ones.
 
 ### Confirm and regenerate
 
@@ -436,6 +478,8 @@ to the sub-target name as written. Do NOT strip any prefix or suffix.
 ---
 
 ## Step 5 — Custom pipeline command audit
+
+Emit: `━━━ Step 5/6 — Pipeline audit ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 This step runs whenever pipelines are configured. It detects non-standard phase
 commands and offers targeted, per-item improvements with explicit confirmation
@@ -805,6 +849,8 @@ If "skip all remaining decoration": stop offering decoration for subsequent file
 ---
 
 ## Step 6 — Record state and summarise
+
+Emit: `━━━ Step 6/6 — Record state ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 **Refresh `paths.forgeRoot` in `.forge/config.json`:**
 
