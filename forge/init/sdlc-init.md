@@ -146,7 +146,9 @@ Read `$FORGE_ROOT/init/generation/generate-tools.md` and follow it.
 **Input**: `.forge/config.json`
 **Output**: `paths.forgeRoot` written to `.forge/config.json`
 
-> Schema validation is handled internally by `validate-store.cjs` — no schema files are copied to the project.
+> Schema validation loads schemas from `.forge/schemas/` (project) or
+> `forge/schemas/` (in-tree fallback) at runtime. Run `/forge:update-tools`
+> after init to install project-local schema copies.
 
 ---
 

@@ -6,11 +6,14 @@ Record the plugin root path so generated workflows can invoke tools without
 hardcoding paths.
 
 Forge tools (`collate.cjs`, `manage-config.cjs`, `validate-store.cjs`,
-`seed-store.cjs`, `generation-manifest.cjs`) ship with the plugin and are
-invoked directly via `$FORGE_ROOT/tools/`. They are never copied to the project.
+`seed-store.cjs`, `generation-manifest.cjs`, `store-cli.cjs`,
+`estimate-usage.cjs`) ship with the plugin and are invoked directly via
+`$FORGE_ROOT/tools/`. They are never copied to the project.
 
-Store validation schemas are embedded directly in `validate-store.cjs` — no
-schema files are copied to the project during init.
+Store validation schemas are loaded at runtime from `.forge/schemas/`
+(project-installed) or `forge/schemas/` (in-tree fallback). During init,
+schemas are not copied — they are installed by `/forge:update-tools` after
+init completes, or loaded from the in-tree fallback on first use.
 
 ## Inputs
 
