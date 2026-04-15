@@ -1,4 +1,14 @@
 {
+  "0.9.2": {
+    "version": "0.9.3",
+    "date": "2026-04-15",
+    "notes": "Init phase renumbering — fractional phases (1.5, 3b) replaced with sequential integers (1-11), checkpoint values now integers, banners updated to N/11 format. Existing init-progress.json files with old phase keys will trigger a fresh start (graceful degradation). Run /forge:update to regenerate commands.",
+    "regenerate": [
+      "commands"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.1": {
     "version": "0.9.2",
     "date": "2026-04-15",

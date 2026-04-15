@@ -1,7 +1,7 @@
 # Forge Init — Master Orchestration
 
 You are bootstrapping a complete AI-SDLC instance for the project in the
-current working directory. Execute these 9 phases in order.
+current working directory. Execute these 11 phases in order.
 
 Set `$FORGE_ROOT` to the forge plugin directory (the parent of this file's
 directory — the folder containing `meta/` and `init/`).
@@ -10,7 +10,7 @@ directory — the folder containing `meta/` and `init/`).
 
 ## Phase 1 — Discover
 
-Emit: `━━━ Phase 1/9 — Discover ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 1/11 — Discover ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Also emit: `Running 5 discovery scans in parallel...`
 
@@ -35,9 +35,9 @@ Write `.forge/init-progress.json`:
 
 ---
 
-## Phase 1.5 — Recommend Marketplace Skills
+## Phase 2 — Recommend Marketplace Skills
 
-Emit: `━━━ Phase 1.5/9 — Marketplace Skills ━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 2/11 — Marketplace Skills ━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/meta/skill-recommendations.md` for the full mapping and rationale.
 
@@ -85,14 +85,14 @@ again in the Report with copy-paste install commands.
 
 Write `.forge/init-progress.json`:
 ```json
-{ "lastPhase": "1.5", "timestamp": "<current ISO timestamp>" }
+{ "lastPhase": 2, "timestamp": "<current ISO timestamp>" }
 ```
 
 ---
 
-## Phase 2 — Generate Knowledge Base
+## Phase 3 — Generate Knowledge Base
 
-Emit: `━━━ Phase 2/9 — Knowledge Base ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 3/11 — Knowledge Base ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-knowledge-base.md` and follow it.
 
@@ -103,14 +103,14 @@ Also scaffold: `.forge/store/` directories, `engineering/sprints/`, `engineering
 
 Write `.forge/init-progress.json`:
 ```json
-{ "lastPhase": 2, "timestamp": "<current ISO timestamp>" }
+{ "lastPhase": 3, "timestamp": "<current ISO timestamp>" }
 ```
 
 ---
 
-## Phase 3 — Generate Personas
+## Phase 4 — Generate Personas
 
-Emit: `━━━ Phase 3/9 — Personas ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 4/11 — Personas ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-personas.md` and follow it.
 
@@ -119,14 +119,14 @@ Read `$FORGE_ROOT/init/generation/generate-personas.md` and follow it.
 
 Write `.forge/init-progress.json`:
 ```json
-{ "lastPhase": 3, "timestamp": "<current ISO timestamp>" }
+{ "lastPhase": 4, "timestamp": "<current ISO timestamp>" }
 ```
 
 ---
 
-## Phase 3b — Generate Skills
+## Phase 5 — Generate Skills
 
-Emit: `━━━ Phase 3b/9 — Skills ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 5/11 — Skills ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-skills.md` and follow it.
 
@@ -135,14 +135,14 @@ Read `$FORGE_ROOT/init/generation/generate-skills.md` and follow it.
 
 Write `.forge/init-progress.json`:
 ```json
-{ "lastPhase": "3b", "timestamp": "<current ISO timestamp>" }
+{ "lastPhase": 5, "timestamp": "<current ISO timestamp>" }
 ```
 
 ---
 
-## Phase 4 — Generate Templates
+## Phase 6 — Generate Templates
 
-Emit: `━━━ Phase 4/9 — Templates ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 6/11 — Templates ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-templates.md` and follow it.
 
@@ -151,14 +151,14 @@ Read `$FORGE_ROOT/init/generation/generate-templates.md` and follow it.
 
 Write `.forge/init-progress.json`:
 ```json
-{ "lastPhase": 4, "timestamp": "<current ISO timestamp>" }
+{ "lastPhase": 6, "timestamp": "<current ISO timestamp>" }
 ```
 
 ---
 
-## Phase 5 — Generate Atomic Workflows
+## Phase 7 — Generate Atomic Workflows
 
-Emit: `━━━ Phase 5/9 — Workflows ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 7/11 — Workflows ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-workflows.md` and follow it.
 
@@ -167,14 +167,14 @@ Read `$FORGE_ROOT/init/generation/generate-workflows.md` and follow it.
 
 Write `.forge/init-progress.json`:
 ```json
-{ "lastPhase": 5, "timestamp": "<current ISO timestamp>" }
+{ "lastPhase": 7, "timestamp": "<current ISO timestamp>" }
 ```
 
 ---
 
-## Phase 6 — Generate Orchestration
+## Phase 8 — Generate Orchestration
 
-Emit: `━━━ Phase 6/9 — Orchestration ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 8/11 — Orchestration ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-orchestration.md` and follow it.
 
@@ -183,14 +183,14 @@ Read `$FORGE_ROOT/init/generation/generate-orchestration.md` and follow it.
 
 Write `.forge/init-progress.json`:
 ```json
-{ "lastPhase": 6, "timestamp": "<current ISO timestamp>" }
+{ "lastPhase": 8, "timestamp": "<current ISO timestamp>" }
 ```
 
 ---
 
-## Phase 7 — Generate Commands
+## Phase 9 — Generate Commands
 
-Emit: `━━━ Phase 7/9 — Commands ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 9/11 — Commands ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-commands.md` and follow it.
 
@@ -199,14 +199,14 @@ Read `$FORGE_ROOT/init/generation/generate-commands.md` and follow it.
 
 Write `.forge/init-progress.json`:
 ```json
-{ "lastPhase": 7, "timestamp": "<current ISO timestamp>" }
+{ "lastPhase": 9, "timestamp": "<current ISO timestamp>" }
 ```
 
 ---
 
-## Phase 8 — Install Tools
+## Phase 10 — Install Tools
 
-Emit: `━━━ Phase 8/9 — Tools ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 10/11 — Tools ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-tools.md` and follow it.
 
@@ -215,7 +215,7 @@ Read `$FORGE_ROOT/init/generation/generate-tools.md` and follow it.
 
 Write `.forge/init-progress.json`:
 ```json
-{ "lastPhase": 8, "timestamp": "<current ISO timestamp>" }
+{ "lastPhase": 10, "timestamp": "<current ISO timestamp>" }
 ```
 
 > Schema validation loads schemas from `.forge/schemas/` (project) or
@@ -224,9 +224,9 @@ Write `.forge/init-progress.json`:
 
 ---
 
-## Phase 9 — Smoke Test
+## Phase 11 — Smoke Test
 
-Emit: `━━━ Phase 9/9 — Smoke Test ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 11/11 — Smoke Test ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/smoke-test.md` and follow it.
 
@@ -249,7 +249,7 @@ After all phases complete, report to the user:
 - Smoke test results
 - Confidence rating
 
-**Recommended skills (if any were skipped in Phase 1.5):**
+**Recommended skills (if any were skipped in Phase 2):**
 
 If the skipped-skills list is non-empty, include a section at the end of the
 report. Use this exact format, one line per skill:
