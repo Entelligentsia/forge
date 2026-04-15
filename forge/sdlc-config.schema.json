@@ -217,6 +217,32 @@
           }
         }
       }
+    },
+    "calibrationBaseline": {
+      "type": "object",
+      "description": "Calibration baseline written by /forge:init after skill generation. Records the state at calibration time so /forge:calibrate can detect drift.",
+      "required": ["lastCalibrated", "version", "masterIndexHash", "sprintsCovered"],
+      "additionalProperties": false,
+      "properties": {
+        "lastCalibrated": {
+          "type": "string",
+          "format": "date",
+          "description": "ISO date (YYYY-MM-DD) of the last calibration run"
+        },
+        "version": {
+          "type": "string",
+          "description": "Plugin version string at calibration time (e.g. 0.9.3)"
+        },
+        "masterIndexHash": {
+          "type": "string",
+          "description": "SHA-256 hex digest of the semantic content of engineering/MASTER_INDEX.md at calibration time"
+        },
+        "sprintsCovered": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Sprint IDs whose tasks and outcomes were included in the calibration baseline"
+        }
+      }
     }
   }
 }
