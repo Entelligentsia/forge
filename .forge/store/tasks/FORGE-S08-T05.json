@@ -1,0 +1,13 @@
+{
+  "taskId": "FORGE-S08-T05",
+  "feature_id": null,
+  "sprintId": "FORGE-S08",
+  "title": "Update Step 5 collect-all-then-confirm audit",
+  "status": "approved",
+  "path": "forge/commands/update.md",
+  "estimate": "M",
+  "dependencies": [
+    "FORGE-S08-T04"
+  ],
+  "pipeline": "default"
+}
