@@ -9,7 +9,8 @@ requirements:
 
 ## Persona
 
-🍂 **Forge Bug Fixer** — I find what has decayed and restore it.
+Read `.forge/personas/bug-fixer.md` as the **first action** before any tool use or triage.
+Print the opening identity line from that file to stdout immediately after reading it.
 
 **Context:**
 - Bugs are reported via `/forge:report-bug` and filed as GitHub issues at `Entelligentsia/forge`
@@ -24,7 +25,33 @@ Before spawning any subagent, the orchestrator triages the bug **inline**
 (triage only reads and classifies — it produces no implementation artifacts
 that would contaminate downstream subagent context):
 
-1. Read `.forge/store/bugs/{BUG_ID}.json`
+1. **Locate or create the bug record (MANDATORY — before anything else):**
+   a. Determine the bug ID: if `$ARGUMENTS` is an existing `FORGE-BUG-NNN` ID, use it.
+      Otherwise derive the next available ID by listing `.forge/store/bugs/`.
+   b. If `.forge/store/bugs/{BUG_ID}.json` does NOT exist:
+      - Derive a short slug from the bug title (kebab-case, ≤ 5 words)
+      - Create the engineering folder:
+          ```
+          mkdir -p engineering/bugs/{BUG_ID}-{slug}
+          ```
+      - Write the bug record via store-cli — NEVER write the file directly:
+          ```
+          node "$FORGE_ROOT/tools/store-cli.cjs" write bug '{
+            "bugId":       "{BUG_ID}",
+            "title":       "<from input>",
+            "description": "<from input>",
+            "severity":    "<assessed: critical|major|minor>",
+            "status":      "reported",
+            "path":        "engineering/bugs/{BUG_ID}-{slug}",
+            "reportedAt":  "<current ISO timestamp>"
+          }'
+          ```
+      - If `$ARGUMENTS` contains a GitHub issue URL, include it as `"githubIssue"` in the JSON above — it is a valid schema field.
+   c. Read the now-guaranteed record:
+          ```
+          node "$FORGE_ROOT/tools/store-cli.cjs" read bug {BUG_ID} --json
+          ```
+
 2. Read `engineering/bugs/{BUG_DIR}/ANALYSIS.md` if it exists
 3. Read the linked GitHub issue (if any — check `Entelligentsia/forge`)
 4. Identify the exact file and line where the bug manifests
@@ -87,7 +114,23 @@ Resolve using this priority:
 The orchestrator MUST follow this procedure exactly. Do not deviate.
 
 ```
-triage_bug_inline(bug_id)            # read, classify, set status = "in-progress"
+# --- Persona symbol lookup (emoji, name, tagline) ---
+# All bug-fix phases map to the same Bug Fixer persona.
+PERSONA_MAP = {
+  "plan-fix":    ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "review-plan": ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "implement":   ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "review-code": ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "approve":     ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "commit":      ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+}
+# Default fallback: ("🍂", "Bug Fixer", "I find what has decayed and restore it.")
+
+# --- Resolve paths ---
+bug_root_path = f"engineering/bugs/{bug_dir}"
+store_root_path = ".forge/store"
+
+triage_bug_inline(bug_id)            # locate-or-create, read, classify, set status = "in-progress"
 update_bug_store(bug_id, status="in-progress")
 
 phases = [plan-fix, review-plan, implement, review-code, approve, commit]
@@ -102,20 +145,40 @@ while i < len(phases):
   event_id = f"{start_ts}_{bug_id}_{phase.role}_{phase.action}"
   sidecar_path = f".forge/store/events/bugs/_{event_id}_usage.json"
 
+  # --- Resolve persona symbol, name, tagline ---
+  emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🍂", "Bug Fixer", "I find what has decayed and restore it."))
+
+  # --- Announce phase to stdout ---
+  print(f"\n{emoji} **Forge {persona_name}** — {bug_id} · {tagline} [{phase_model}]\n")
+
   emit_event(bug_id, phase,
              eventId=event_id,
              iteration=iteration_counts.get(phase.name, 0) + 1,
              action="start")
 
+  # --- Symmetric Injection: noun "bug-fixer" is constant for all bug phases ---
+  persona_content = read_file(".forge/personas/bug-fixer.md")
+  skill_content   = read_file(".forge/skills/bug-fixer-skills.md")
+
+  # --- Spawn fresh-context subagent with "print this exact line first" instruction ---
   spawn_subagent(
-    prompt="🍂 **Forge Bug Fixer — {phase.name}**\n\n"
-           "Read `{phase.workflow}` and follow it. Bug ID: {bug_id}. "
-           "Also read `engineering/MASTER_INDEX.md` and "
-           "`engineering/bugs/{BUG_DIR}/ANALYSIS.md` for context. "
-           "Before returning: run /cost, parse token usage, and write sidecar "
-           "`.forge/store/events/bugs/_{event_id}_usage.json` with fields: "
-           "inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD.",
-    description="{phase.name} phase for {bug_id}",
+    prompt=(
+      f"Your first output — before any tool use or file reads — print this exact line:\n\n"
+      f"{emoji} **Forge {persona_name}** — {bug_id} · {tagline} [{phase_model}]\n\n"
+      f"---\n\n"
+      f"{persona_content}\n\n"
+      f"{skill_content}\n\n"
+      f"### Current Working Context\n"
+      f"- Bug Root:    {bug_root_path}\n"
+      f"- Store Root:  {store_root_path}\n"
+      f"- Events Root: .forge/store/events/bugs/\n\n"
+      f"Read `{phase.workflow}` and follow it. Bug ID: {bug_id}. "
+      f"Also read `engineering/MASTER_INDEX.md` for project state. "
+      f"Before returning: run /cost, parse token usage, and write sidecar "
+      f"`.forge/store/events/bugs/_{event_id}_usage.json` with fields: "
+      f"inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD."
+    ),
+    description=f"{emoji} {persona_name} — {phase.name} for {bug_id}",
     model=phase_model                # ← MANDATORY
   )
 
@@ -170,20 +233,6 @@ Expected values (trimmed after `**Verdict:**`):
 ```
 
 Any other value — or a missing artifact — is unrecognised: escalate.
-
----
-
-## Agent Announcement Banner
-
-Every subagent invocation prompt MUST open with this decorated banner line:
-
-```
-🍂 **Forge Bug Fixer — {phase.name}**
-```
-
-It must appear as the first line of the subagent prompt, before any
-workflow instructions. This matches the convention used by `/run-task`
-and `/run-sprint`.
 
 ---
 
@@ -293,3 +342,4 @@ requirements just because the bug is "small".
 | "The review phase already ran, we can assume Approved" | Read the verdict line from the artifact. Always. |
 | "Max iterations reached — let's just approve to unblock" | Escalate. Never approve to unblock. |
 | "PROGRESS.md says tests passed" | Run `node --check` and `validate-store --dry-run` yourself. |
+| "The bug store file didn't exist so I created it directly" | Use `store-cli write bug` — never write JSON store files directly. |
