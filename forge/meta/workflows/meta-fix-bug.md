@@ -68,3 +68,59 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
   3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.
+
+## Announcement Algorithm
+
+The generated `fix_bug.md` MUST include the following verbatim algorithm for phase announcements and symmetric persona/skill injection. This mirrors the pattern from `meta-orchestrate.md`.
+
+```
+# --- Persona symbol lookup (emoji, name, tagline) ---
+# All bug-fix phases map to the same Bug Fixer persona.
+PERSONA_MAP = {
+  "plan-fix":    ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "review-plan": ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "implement":   ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "review-code": ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "approve":     ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "commit":      ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+}
+# Default fallback (covers any custom phases):
+# ("🍂", "Bug Fixer", "I find what has decayed and restore it.")
+
+# --- Before each spawn_subagent call ---
+emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🍂", "Bug Fixer", "I find what has decayed and restore it."))
+print(f"\n{emoji} **Forge {persona_name}** — {bug_id} · {tagline} [{phase_model}]\n")
+
+# --- Symmetric Injection: noun "bug-fixer" is constant for all bug phases ---
+persona_content = read_file(".forge/personas/bug-fixer.md")
+skill_content   = read_file(".forge/skills/bug-fixer-skills.md")
+
+# --- Spawn subagent with "print this exact line first" instruction ---
+spawn_subagent(
+  prompt=(
+    f"Your first output — before any tool use or file reads — print this exact line:\n\n"
+    f"{emoji} **Forge {persona_name}** — {bug_id} · {tagline} [{phase_model}]\n\n"
+    f"---\n\n"
+    f"{persona_content}\n\n"
+    f"{skill_content}\n\n"
+    f"### Current Working Context\n"
+    f"- Bug Root:    {bug_root_path}\n"
+    f"- Store Root:  {store_root_path}\n"
+    f"- Events Root: .forge/store/events/bugs/\n\n"
+    f"Read `{phase.workflow}` and follow it. Bug ID: {bug_id}. "
+    f"Also read `engineering/MASTER_INDEX.md` for project state. "
+    f"Before returning: run /cost, parse token usage, and write sidecar "
+    f"`.forge/store/events/bugs/_{event_id}_usage.json` with fields: "
+    f"inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD."
+  ),
+  description=f"{emoji} {persona_name} — {phase.name} for {bug_id}",
+  model=phase_model
+)
+```
+
+**Key rules for the generated `fix_bug.md`:**
+- `PERSONA_MAP` MUST cover all six phases: `plan-fix`, `review-plan`, `implement`, `review-code`, `approve`, `commit`.
+- The persona noun is always `"bug-fixer"` — never `{phase.role}`. Do not use `{phase.role}.md` lookups.
+- The sidecar path uses `.forge/store/events/bugs/_{event_id}_usage.json` (not `events/{sprint_id}/`).
+- The announcement `print()` line MUST include `{tagline}` and `[{phase_model}]`.
+- The `spawn_subagent` prompt MUST open with the "Your first output — before any tool use or file reads — print this exact line:" instruction.

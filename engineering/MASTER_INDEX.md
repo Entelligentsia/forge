@@ -12,6 +12,7 @@
 
 | Sprint    | Title                                                                              | Status               | Tasks |
 | --------- | ---------------------------------------------------------------------------------- | -------------------- | ----- |
+| FORGE-S09 | Calibration, Guardrails, and Bug Closure                                           | 🔵 active            | 3/9   |
 | FORGE-S08 | CLI Engagement — Interactive Progress and Reduced Friction                         | ✅ retrospective-done | 6/6   |
 | FORGE-S07 | Store Custodian — Deterministic Store Gateway                                      | ✅ retrospective-done | 9/9   |
 | FORGE-S06 | Sprint S06                                                                         | ✅ retrospective-done | 10/10 |
@@ -22,6 +23,20 @@
 | FORGE-S01 | Sprint FORGE-S01 — Token Usage Tracking                                            | ✅ retrospective-done | 8/8   |
 
 ## Task Registry
+
+### FORGE-S09
+
+| Task                                              | Title                                                               | Status      | Estimate |
+| ------------------------------------------------- | ------------------------------------------------------------------- | ----------- | -------- |
+| [FORGE-S09-T01](../forge/commands/INDEX.md)       | Renumber sdlc-init.md phases to sequential integers                 | ✅ committed | M        |
+| [FORGE-S09-T02](../forge/INDEX.md)                | Config schema: add calibrationBaseline + required-field annotations | ✅ committed | S        |
+| [FORGE-S09-T03](../forge/commands/INDEX.md)       | Init: calibration baseline write + incomplete init guard            | 📋 planned  | M        |
+| [FORGE-S09-T04](../forge/commands/INDEX.md)       | Health: KB freshness check + config-completeness check              | 📋 planned  | M        |
+| [FORGE-S09-T05](../forge/commands/INDEX.md)       | Calibrate command — drift detection, categories, surgical patches   | 📋 planned  | L        |
+| [FORGE-S09-T06](../forge/meta/workflows/INDEX.md) | SPRINT_PLAN.md output path in meta-sprint-plan                      | ✅ committed | S        |
+| [FORGE-S09-T07](../forge/commands/INDEX.md)       | Add-task mid-sprint command                                         | 📋 planned  | M        |
+| [FORGE-S09-T08](../.forge/INDEX.md)               | Close BUG-002/003 validate-store pre-existing errors                | 📋 planned  | M        |
+| [FORGE-S09-T09](../forge/.claude-plugin/INDEX.md) | Release engineering — version bump, migration, security scan        | 📋 planned  | S        |
 
 ### FORGE-S08
 
@@ -125,20 +140,21 @@
 
 ## Bug Registry
 
-| Bug                                                                       | Title                                                                                                       | Severity | Status      |
-| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------- | ----------- |
-| [FORGE-BUG-001](bugs/BUG-001-sprint-runner-context-accumulation/INDEX.md) | PROGRESS — BUG-001: Sprint runner accumulates context across tasks                                          | minor    | 🔴 reported |
-| [FORGE-BUG-002](bugs/BUG-002-validate-store-integrity/INDEX.md)           | PROGRESS — BUG-002: validate-store referential integrity checks incomplete                                  | minor    | 🔴 reported |
-| [FORGE-BUG-003](bugs/BUG-003-missing-backfill/INDEX.md)                   | PROGRESS — BUG-003: forge:update missing data migration for new required schema fields                      | minor    | 🔴 reported |
-| [FORGE-BUG-004](bugs/BUG-004-event-schema-validation/INDEX.md)            | PROGRESS — BUG-004: validate-store rejects valid null timing fields and has no event backfill               | minor    | 🔴 reported |
-| [FORGE-BUG-005](bugs/BUG-005-fix-bug-orchestrator-deviations/INDEX.md)    | PROGRESS — BUG-005: fix-bug is not an orchestrator                                                          | minor    | 🔴 reported |
-| [FORGE-BUG-006](bugs/BUG-006-collate-cost-report-path/INDEX.md)           | PROGRESS — BUG-006: collate COST_REPORT.md written to SNN/ stub dirs                                        | minor    | 🔴 reported |
-| [FORGE-BUG-007](bugs/BUG-007-collate-cost-report-attribution/INDEX.md)    | PLAN — BUG-007: collate COST_REPORT.md path fallback + (unknown) attribution                                | minor    | 🔴 reported |
-| [BUG-001](bugs/BUG-001-sprint-runner-context-accumulation/INDEX.md)       | Sprint runner accumulates context across tasks — violates light-context principle                           | major    | ✅ fixed     |
-| [BUG-002](bugs/BUG-002-validate-store-integrity/INDEX.md)                 | validate-store: referential integrity checks incomplete — bugs, virtual sprints, and nullable foreign keys  | major    | ✅ fixed     |
-| [BUG-003](bugs/BUG-003-missing-backfill/INDEX.md)                         | forge:update: migration 0.3.7→0.3.13 missing data migration for new required schema fields                  | major    | ✅ fixed     |
-| [BUG-004](bugs/BUG-004-event-schema-validation/INDEX.md)                  | validate-store rejects valid null timing fields on start events and has no event backfill                   | major    | ✅ fixed     |
-| [BUG-005](bugs/BUG-005-fix-bug-orchestrator-deviations/INDEX.md)          | fix-bug is not an orchestrator — 4 control-flow and schema deviations                                       | major    | ✅ fixed     |
-| [BUG-006](bugs/BUG-006-collate-cost-report-path/INDEX.md)                 | collate: COST_REPORT.md written to SNN/ stub dirs instead of existing sprint_NN_*/ dirs                     | major    | ✅ fixed     |
-| [BUG-007](bugs/BUG-007-collate-cost-report-attribution/INDEX.md)          | collate: COST_REPORT.md path fallback fails when sprint.path absent + (unknown) attribution in usage events | major    | ✅ fixed     |
+| Bug                                                                       | Title                                                                                                       | Severity | Status         |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------- | -------------- |
+| [FORGE-BUG-001](bugs/BUG-001-sprint-runner-context-accumulation/INDEX.md) | PROGRESS — BUG-001: Sprint runner accumulates context across tasks                                          | minor    | 🔴 reported    |
+| [FORGE-BUG-002](bugs/BUG-002-validate-store-integrity/INDEX.md)           | PROGRESS — BUG-002: validate-store referential integrity checks incomplete                                  | minor    | 🔴 reported    |
+| [FORGE-BUG-003](bugs/BUG-003-missing-backfill/INDEX.md)                   | PROGRESS — BUG-003: forge:update missing data migration for new required schema fields                      | minor    | 🔴 reported    |
+| [FORGE-BUG-004](bugs/BUG-004-event-schema-validation/INDEX.md)            | PROGRESS — BUG-004: validate-store rejects valid null timing fields and has no event backfill               | minor    | 🔴 reported    |
+| [FORGE-BUG-005](bugs/BUG-005-fix-bug-orchestrator-deviations/INDEX.md)    | PROGRESS — BUG-005: fix-bug is not an orchestrator                                                          | minor    | 🔴 reported    |
+| [FORGE-BUG-006](bugs/BUG-006-collate-cost-report-path/INDEX.md)           | PROGRESS — BUG-006: collate COST_REPORT.md written to SNN/ stub dirs                                        | minor    | 🔴 reported    |
+| [FORGE-BUG-007](bugs/BUG-007-collate-cost-report-attribution/INDEX.md)    | PLAN — BUG-007: collate COST_REPORT.md path fallback + (unknown) attribution                                | minor    | 🔴 reported    |
+| [FORGE-BUG-008](bugs/BUG-008-subagent-announcements/INDEX.md)             | orchestrate_task / fix_bug: subagent announcements sporadic and lost on regeneration                        | major    | 🔵 in-progress |
+| [BUG-001](bugs/BUG-001-sprint-runner-context-accumulation/INDEX.md)       | Sprint runner accumulates context across tasks — violates light-context principle                           | major    | ✅ fixed        |
+| [BUG-002](bugs/BUG-002-validate-store-integrity/INDEX.md)                 | validate-store: referential integrity checks incomplete — bugs, virtual sprints, and nullable foreign keys  | major    | ✅ fixed        |
+| [BUG-003](bugs/BUG-003-missing-backfill/INDEX.md)                         | forge:update: migration 0.3.7→0.3.13 missing data migration for new required schema fields                  | major    | ✅ fixed        |
+| [BUG-004](bugs/BUG-004-event-schema-validation/INDEX.md)                  | validate-store rejects valid null timing fields on start events and has no event backfill                   | major    | ✅ fixed        |
+| [BUG-005](bugs/BUG-005-fix-bug-orchestrator-deviations/INDEX.md)          | fix-bug is not an orchestrator — 4 control-flow and schema deviations                                       | major    | ✅ fixed        |
+| [BUG-006](bugs/BUG-006-collate-cost-report-path/INDEX.md)                 | collate: COST_REPORT.md written to SNN/ stub dirs instead of existing sprint_NN_*/ dirs                     | major    | ✅ fixed        |
+| [BUG-007](bugs/BUG-007-collate-cost-report-attribution/INDEX.md)          | collate: COST_REPORT.md path fallback fails when sprint.path absent + (unknown) attribution in usage events | major    | ✅ fixed        |
 

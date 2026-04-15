@@ -1,4 +1,17 @@
 {
+  "0.9.4": {
+    "version": "0.9.5",
+    "date": "2026-04-15",
+    "notes": "Fix BUG-008: meta-fix-bug.md gains complete PERSONA_MAP + spawn_subagent announcement algorithm with noun-based persona/skill injection; orchestrate_task.md regenerated with correct ROLE_TO_NOUN lookup and tagline+model in announcement; .forge/personas/ and .forge/skills/ regenerated with noun-based filenames.",
+    "regenerate": [
+      "workflows:fix_bug",
+      "workflows:orchestrate_task",
+      "personas",
+      "skills"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.3": {
     "version": "0.9.4",
     "date": "2026-04-15",

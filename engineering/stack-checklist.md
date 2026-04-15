@@ -50,3 +50,4 @@ consult this before approving any change to `forge/`.
 ## Meta-Workflows
 
 - [ ] Any meta-workflow that describes pipeline steps in prose should be reviewed against `meta-orchestrate.md` — it must generate a true orchestrator (chained Agent tool calls, verdict detection, revision loop) not a human-readable guide (BUG-005)
+- [ ] `meta-fix-bug.md` spawn_subagent block includes PERSONA_MAP, noun-based persona/skill injection (`"bug-fixer"` noun constant), and "Your first output — before any tool use or file reads — print this exact line:" instruction — changes to bug-fix announcements go in `forge/meta/`, never in `.forge/` directly (BUG-008)

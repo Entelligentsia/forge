@@ -90,6 +90,21 @@ The orchestrator MUST follow this procedure exactly. Do not deviate.
 triage_bug_inline(bug_id)            # read, classify, set status = "in-progress"
 update_bug_store(bug_id, status="in-progress")
 
+# --- Persona symbol lookup (emoji, name, tagline) ---
+# All bug-fix phases use the Bug Fixer persona.
+PERSONA_MAP = {
+  "plan-fix":    ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "review-plan": ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "implement":   ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "review-code": ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "approve":     ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "commit":      ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+}
+
+# --- Resolve absolute paths for subagent injection ---
+bug_root_path  = f"engineering/bugs/{bug_dir}"
+store_root_path = ".forge/store"
+
 phases = [plan-fix, review-plan, implement, review-code, approve, commit]
 iteration_counts = {}                # keyed by phase name
 i = 0
@@ -102,29 +117,49 @@ while i < len(phases):
   event_id = f"{start_ts}_{bug_id}_{phase.role}_{phase.action}"
   sidecar_path = f".forge/store/events/bugs/_{event_id}_usage.json"
 
+  # --- Resolve persona symbol, name, tagline ---
+  emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🍂", "Bug Fixer", "I find what has decayed and restore it."))
+
+  # --- Announce phase to stdout ---
+  print(f"\n{emoji} **Forge {persona_name}** — {bug_id} · {tagline} [{phase_model}]\n")
+
   emit_event(bug_id, phase,
              eventId=event_id,
              iteration=iteration_counts.get(phase.name, 0) + 1,
              action="start")
 
+  # --- Symmetric Injection: noun "bug-fixer" is constant for all bug phases ---
+  persona_content = read_file(".forge/personas/bug-fixer.md")
+  skill_content   = read_file(".forge/skills/bug-fixer-skills.md")
+
+  # --- Spawn fresh-context subagent with "print this exact line first" instruction ---
   spawn_subagent(
-    prompt="🍂 **Forge Bug Fixer — {phase.name}**\n\n"
-           "Read `{phase.workflow}` and follow it. Bug ID: {bug_id}. "
-           "Also read `engineering/MASTER_INDEX.md` and "
-           "`engineering/bugs/{BUG_DIR}/ANALYSIS.md` for context. "
-           "Before returning: run /cost, parse token usage, and write sidecar "
-           "`.forge/store/events/bugs/_{event_id}_usage.json` with fields: "
-           "inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD.",
-    description="{phase.name} phase for {bug_id}",
+    prompt=(
+      f"Your first output — before any tool use or file reads — print this exact line:\n\n"
+      f"{emoji} **Forge {persona_name}** — {bug_id} · {tagline} [{phase_model}]\n\n"
+      f"---\n\n"
+      f"{persona_content}\n\n"
+      f"{skill_content}\n\n"
+      f"### Current Working Context\n"
+      f"- Bug Root:    {bug_root_path}\n"
+      f"- Store Root:  {store_root_path}\n"
+      f"- Events Root: .forge/store/events/bugs/\n\n"
+      f"Read `{phase.workflow}` and follow it. Bug ID: {bug_id}. "
+      f"Also read `engineering/MASTER_INDEX.md` for project state. "
+      f"Before returning: run /cost, parse token usage, and write sidecar "
+      f"`.forge/store/events/bugs/_{event_id}_usage.json` with fields: "
+      f"inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD."
+    ),
+    description=f"{emoji} {persona_name} — {phase.name} for {bug_id}",
     model=phase_model                # ← MANDATORY
   )
 
   # --- Sidecar merge (graceful — missing sidecar is not an error) ---
-  token_fields = {}
-  if file_exists(sidecar_path):
-    token_fields = read_json(sidecar_path)
-    delete_file(sidecar_path)
-  emit_event(bug_id, phase, action="complete", extra_fields=token_fields)
+  FORGE_ROOT = resolve_forge_root()
+  run: node "$FORGE_ROOT/tools/store-cli.cjs" merge-sidecar bugs {event_id}
+  # merge-sidecar reads the sidecar, merges token fields into the canonical event, and deletes the sidecar
+  # If the sidecar does not exist, merge-sidecar exits 1 — treat as non-fatal
+  emit_event(bug_id, phase, action="complete")
 
   # --- Non-review phases always advance ---
   if phase.role not in ("review-plan", "review-code"):
@@ -175,15 +210,22 @@ Any other value — or a missing artifact — is unrecognised: escalate.
 
 ## Agent Announcement Banner
 
-Every subagent invocation prompt MUST open with this decorated banner line:
+Every subagent invocation prompt MUST begin with:
 
 ```
-🍂 **Forge Bug Fixer — {phase.name}**
+Your first output — before any tool use or file reads — print this exact line:
+
+🍂 **Forge Bug Fixer** — {bug_id} · I find what has decayed and restore it. [{phase_model}]
 ```
 
-It must appear as the first line of the subagent prompt, before any
-workflow instructions. This matches the convention used by `/run-task`
-and `/run-sprint`.
+The orchestrator also prints the same announcement line to stdout before each
+`spawn_subagent` call, so the phase is visible in orchestrator output:
+
+```
+🍂 **Forge Bug Fixer** — {bug_id} · I find what has decayed and restore it. [{phase_model}]
+```
+
+This matches the convention used by the task orchestrator (`orchestrate_task.md`).
 
 ---
 

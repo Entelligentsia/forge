@@ -1,0 +1,11 @@
+{
+  "bugId": "FORGE-BUG-008",
+  "title": "orchestrate_task / fix_bug: subagent announcements sporadic and lost on regeneration",
+  "description": "Subagent self-announcements fire inconsistently across /run-task, /run-sprint, and /fix-bug pipelines. Three compounding root causes: (1) meta-fix-bug.md lacks complete verbatim PERSONA_MAP + spawn_subagent algorithm; (2) generated orchestrate_task.md is stale — uses role-based persona lookups instead of noun-based; (3) .forge/personas/ has stale role-based filenames. Manual fixes to generated files are silently wiped by /forge:regenerate.",
+  "severity": "major",
+  "status": "in-progress",
+  "path": "engineering/bugs/BUG-008-subagent-announcements",
+  "rootCauseCategory": "business-rule",
+  "similarBugs": ["FORGE-BUG-005"],
+  "reportedAt": "2026-04-15T17:25:36Z"
+}
