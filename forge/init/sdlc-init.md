@@ -10,6 +10,10 @@ directory — the folder containing `meta/` and `init/`).
 
 ## Phase 1 — Discover
 
+Emit: `━━━ Phase 1/9 — Discover ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+
+Also emit: `Running 5 discovery scans in parallel...`
+
 Run the 5 discovery prompts in parallel. Each reads from `$FORGE_ROOT/init/discovery/`.
 
 | Prompt | File | Produces |
@@ -28,12 +32,14 @@ Validate the config against `$FORGE_ROOT/sdlc-config.schema.json`.
 
 ## Phase 1.5 — Recommend Marketplace Skills
 
+Emit: `━━━ Phase 1.5/9 — Marketplace Skills ━━━━━━━━━━━━━━━━━━━━━━━━━━`
+
 Read `$FORGE_ROOT/meta/skill-recommendations.md` for the full mapping and rationale.
 
 Using the stack discovered in Phase 1, look up matching skills from the
 recommendation mapping. For each match:
 
-1. Run `node "$FORGE_ROOT/hooks/list-skills.js"` to get all currently installed
+1. Run `node "$FORGE_ROOT/tools/list-skills.js"` to get all currently installed
    skill names. This reads `~/.claude/plugins/installed_plugins.json` directly —
    user-scope (global) and local-scope skills matching the current project path.
 2. Split matching skills into two buckets:
@@ -76,6 +82,8 @@ again in the Report with copy-paste install commands.
 
 ## Phase 2 — Generate Knowledge Base
 
+Emit: `━━━ Phase 2/9 — Knowledge Base ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+
 Read `$FORGE_ROOT/init/generation/generate-knowledge-base.md` and follow it.
 
 **Input**: discovery context + meta-personas (for understanding what agents need to know)
@@ -87,6 +95,8 @@ Also scaffold: `.forge/store/` directories, `engineering/sprints/`, `engineering
 
 ## Phase 3 — Generate Personas
 
+Emit: `━━━ Phase 3/9 — Personas ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+
 Read `$FORGE_ROOT/init/generation/generate-personas.md` and follow it.
 
 **Input**: `$FORGE_ROOT/meta/personas/` + discovery context + generated knowledge base
@@ -95,6 +105,8 @@ Read `$FORGE_ROOT/init/generation/generate-personas.md` and follow it.
 ---
 
 ## Phase 3b — Generate Skills
+
+Emit: `━━━ Phase 3b/9 — Skills ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-skills.md` and follow it.
 
@@ -105,6 +117,8 @@ Read `$FORGE_ROOT/init/generation/generate-skills.md` and follow it.
 
 ## Phase 4 — Generate Templates
 
+Emit: `━━━ Phase 4/9 — Templates ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+
 Read `$FORGE_ROOT/init/generation/generate-templates.md` and follow it.
 
 **Input**: `$FORGE_ROOT/meta/templates/` + discovery context + knowledge base
@@ -113,6 +127,8 @@ Read `$FORGE_ROOT/init/generation/generate-templates.md` and follow it.
 ---
 
 ## Phase 5 — Generate Atomic Workflows
+
+Emit: `━━━ Phase 5/9 — Workflows ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-workflows.md` and follow it.
 
@@ -123,6 +139,8 @@ Read `$FORGE_ROOT/init/generation/generate-workflows.md` and follow it.
 
 ## Phase 6 — Generate Orchestration
 
+Emit: `━━━ Phase 6/9 — Orchestration ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+
 Read `$FORGE_ROOT/init/generation/generate-orchestration.md` and follow it.
 
 **Input**: `$FORGE_ROOT/meta/workflows/meta-orchestrate.md` + generated atomic workflows
@@ -132,6 +150,8 @@ Read `$FORGE_ROOT/init/generation/generate-orchestration.md` and follow it.
 
 ## Phase 7 — Generate Commands
 
+Emit: `━━━ Phase 7/9 — Commands ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+
 Read `$FORGE_ROOT/init/generation/generate-commands.md` and follow it.
 
 **Input**: generated workflows
@@ -140,6 +160,8 @@ Read `$FORGE_ROOT/init/generation/generate-commands.md` and follow it.
 ---
 
 ## Phase 8 — Install Tools
+
+Emit: `━━━ Phase 8/9 — Tools ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-tools.md` and follow it.
 
@@ -153,6 +175,8 @@ Read `$FORGE_ROOT/init/generation/generate-tools.md` and follow it.
 ---
 
 ## Phase 9 — Smoke Test
+
+Emit: `━━━ Phase 9/9 — Smoke Test ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/smoke-test.md` and follow it.
 
