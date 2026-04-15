@@ -123,20 +123,6 @@ PERSONA_MAP = {
   "writeback":   ("🍃", "Collator",    "I gather what exists and arrange it into views."),
 }
 
-# --- Role-to-noun mapping for persona/skill file lookups (NOT for display) ---
-ROLE_TO_NOUN = {
-  "plan":        "engineer",
-  "implement":   "engineer",
-  "update-plan": "engineer",
-  "update-impl": "engineer",
-  "commit":      "engineer",
-  "review-plan": "supervisor",
-  "review-code": "supervisor",
-  "validate":    "qa-engineer",
-  "approve":     "architect",
-  "writeback":   "collator",
-}
-
 # --- Resolve absolute paths for subagent injection ---
 sprint_root_path = f"engineering/sprints/{sprint_dir}"
 task_root_path   = f"engineering/sprints/{sprint_dir}/{task_dir}"
@@ -161,22 +147,21 @@ while i < len(phases):
   emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🌊", "Orchestrator", "I move tasks through their lifecycle."))
 
   # --- Announce phase to stdout ---
-  print(f"\n{emoji} **Forge {persona_name}** — {task_id} · {tagline} [{phase_model}]\n")
+  print(f"\n{emoji} **Forge {persona_name}** — {phase.name} · {task_id}\n")
 
   emit_event(task, phase, eventId=event_id,
              iteration=iteration_counts.get(phase.command, 0) + 1,
              action="start")
 
-  # --- Symmetric Injection Assembly: Persona -> Skill -> Workflow ---
-  persona_noun    = ROLE_TO_NOUN.get(phase.role, phase.role)
-  persona_content = read_file(f".forge/personas/{persona_noun}.md")      # "" if missing
-  skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md") # "" if missing
+  # --- Read persona and skill context for symmetric injection ---
+  persona_content = read_file(f".forge/personas/{phase.role}.md")        # "" if missing
+  skill_content   = read_file(f".forge/skills/{phase.role}-skills.md")   # "" if missing
 
   # --- Spawn fresh-context subagent (model parameter is MANDATORY) ---
   spawn_subagent(
     prompt=(
       f"Your first output — before any tool use or file reads — print this exact line:\n\n"
-      f"{emoji} **Forge {persona_name}** — {task_id} · {tagline} [{phase_model}]\n\n"
+      f"{emoji} **Forge {persona_name}** — {tagline}\n\n"
       f"---\n\n"
       f"{persona_content}\n\n"
       f"{skill_content}\n\n"
