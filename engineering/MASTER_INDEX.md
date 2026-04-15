@@ -2,7 +2,7 @@
 
 # Forge — Master Index
 
-> Generated: 2026-04-14
+> Generated: 2026-04-15
 
 ## Feature Registry
 
@@ -12,6 +12,7 @@
 
 | Sprint    | Title                                                                              | Status               | Tasks |
 | --------- | ---------------------------------------------------------------------------------- | -------------------- | ----- |
+| FORGE-S07 | Store Custodian — Deterministic Store Gateway                                      | ✅ retrospective-done | 9/9   |
 | FORGE-S06 | Sprint S06                                                                         | ✅ retrospective-done | 10/10 |
 | FORGE-S05 | Sprint S05                                                                         | 🔵 active            | 0/8   |
 | FORGE-S04 | Sprint S04                                                                         | 📝 planning          | 6/6   |
@@ -20,6 +21,20 @@
 | FORGE-S01 | Sprint FORGE-S01 — Token Usage Tracking                                            | 🔵 active            | 7/8   |
 
 ## Task Registry
+
+### FORGE-S07
+
+| Task                                              | Title                                                                                       | Status      | Estimate |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------- | -------- |
+| [FORGE-S07-T01](../forge/schemas/INDEX.md)        | Schema reconciliation — add goal and features to sprint.schema.json                         | ✅ committed | S        |
+| [FORGE-S07-T02](../forge/tools/INDEX.md)          | Store facade extension — writeCollationState, purgeEvents, listEventFilenames               | ✅ committed | M        |
+| [FORGE-S07-T03](../forge/tools/INDEX.md)          | Fix collate.cjs facade bypasses — writeCollationState and purgeEvents                       | ✅ committed | S        |
+| [FORGE-S07-T04](../forge/tools/INDEX.md)          | Refactor validate-store.cjs — remove embedded schemas and fix facade bypass                 | ✅ committed | M        |
+| [FORGE-S07-T05](../forge/tools/INDEX.md)          | Implement store-cli.cjs — deterministic store custodian CLI with validation and transitions | ✅ committed | L        |
+| [FORGE-S07-T06](../forge/meta/skills/INDEX.md)    | Create store custodian skill and tool spec                                                  | ✅ committed | S        |
+| [FORGE-S07-T07](../forge/meta/INDEX.md)           | Migrate all 16 meta-workflows to use store custodian instead of direct store writes         | ✅ committed | XL       |
+| [FORGE-S07-T08](../forge/commands/INDEX.md)       | Update migrate.md command — replace direct store writes with custodian references           | ✅ committed | S        |
+| [FORGE-S07-T09](../forge/.claude-plugin/INDEX.md) | Release engineering — version bump to 0.9.0, migration entry, security scan                 | ✅ committed | S        |
 
 ### FORGE-S06
 

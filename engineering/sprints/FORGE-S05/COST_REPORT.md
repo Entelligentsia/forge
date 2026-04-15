@@ -2,28 +2,8 @@
 
 # Cost Report — FORGE-S05
 
-> Generated: 2026-04-14
+> Generated: 2026-04-15
 > Sprint: Sprint S05
 
-## Per-Task Totals
-
-| Task      | Input Tokens | Output Tokens | Cache Read | Cache Write | Est. Cost USD | Source    |
-| --------- | ------------ | ------------- | ---------- | ----------- | ------------- | --------- |
-| (unknown) | 0            | 0             | 0          | 0           | $0.0000       | (unknown) |
-
-## Per-Role Breakdown
-
-| Role      | Input Tokens | Output Tokens | Cache Read | Cache Write | Est. Cost USD |
-| --------- | ------------ | ------------- | ---------- | ----------- | ------------- |
-| (unknown) | 0            | 0             | 0          | 0           | $0.0000       |
-
-## Revision Waste
-
-_No revision waste in this sprint._
-
-## Model Split
-
-| Model     | Input Tokens | Output Tokens | Cache Read | Cache Write | Est. Cost USD |
-| --------- | ------------ | ------------- | ---------- | ----------- | ------------- |
-| (unknown) | 0            | 0             | 0          | 0           | $0.0000       |
+_No token data available for this sprint._
 

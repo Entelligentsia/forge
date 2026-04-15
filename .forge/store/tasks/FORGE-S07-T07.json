@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S07",
   "title": "Migrate all 16 meta-workflows to use store custodian instead of direct store writes",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/meta/workflows/",
   "estimate": "XL",
   "dependencies": [

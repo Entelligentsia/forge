@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S07",
   "title": "Refactor validate-store.cjs — remove embedded schemas and fix facade bypass",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/tools/validate-store.cjs",
   "estimate": "M",
   "dependencies": ["FORGE-S07-T01", "FORGE-S07-T02"],

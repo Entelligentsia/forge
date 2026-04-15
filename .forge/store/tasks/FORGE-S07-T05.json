@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S07",
   "title": "Implement store-cli.cjs — deterministic store custodian CLI with validation and transitions",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/tools/store-cli.cjs",
   "estimate": "L",
   "dependencies": ["FORGE-S07-T01", "FORGE-S07-T02"],

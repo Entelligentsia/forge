@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S07",
   "title": "Store facade extension — writeCollationState, purgeEvents, listEventFilenames",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/tools/store.cjs",
   "estimate": "M",
   "dependencies": [],
