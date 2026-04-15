@@ -1,4 +1,15 @@
 {
+  "0.9.0": {
+    "version": "0.9.1",
+    "date": "2026-04-15",
+    "notes": "Store Repair command and validate-store JSON output: new /forge:store:repair slash command for diagnosing and repairing corrupted store records, validate-store.cjs gains --json flag for structured output and --fix --dry-run combination for previewing fixes, validate-store tool spec updated with JSON output format and error categories.",
+    "regenerate": [
+      "commands",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.8.10": {
     "version": "0.9.0",
     "date": "2026-04-15",

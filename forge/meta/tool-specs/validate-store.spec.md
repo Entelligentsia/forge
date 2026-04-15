@@ -13,16 +13,104 @@ between sprints/tasks/bugs/events, no orphaned records.
 
 ## Outputs
 
-- Validation report to stdout
+- Validation report to stdout (text or JSON)
 - Exit 0 if valid, 1 if errors found
 
 ## CLI Interface
 
 ```
-<tool> validate-store              # full validation
-<tool> validate-store --dry-run    # same checks, just report
-<tool> validate-store --fix        # auto-fix where possible (add missing defaults)
+<tool> validate-store                     # full validation (text output)
+<tool> validate-store --dry-run           # same checks, just report (text)
+<tool> validate-store --fix               # auto-fix where possible
+<tool> validate-store --fix --dry-run     # preview fixes without writing
+<tool> validate-store --json              # JSON structured output
+<tool> validate-store --dry-run --json    # JSON diagnosis, no fixes
+<tool> validate-store --fix --dry-run --json  # JSON preview of fixes, no writes
+<tool> validate-store --fix --json        # JSON output with fixes applied
 ```
+
+## JSON Output Mode (`--json`)
+
+When `--json` is present, the tool emits a single JSON object to stdout instead
+of human-readable text. The JSON structure:
+
+```json
+{
+  "ok": true,
+  "errors": [
+    {
+      "entity": "sprint",
+      "id": "FORGE-S07",
+      "category": "invalid-enum",
+      "field": "status",
+      "message": "field \"status\": value \"in-progress\" not in [planning, active, ...]",
+      "value": "in-progress",
+      "expected": ["planning", "active", "completed", ...]
+    }
+  ],
+  "warnings": [
+    {
+      "entity": "sprint",
+      "id": "FORGE-S03",
+      "category": "orphan-directory",
+      "field": null,
+      "message": "directory \"FORGE-S03-lean-migration\" has no sprint record in store"
+    }
+  ],
+  "fixes": [
+    {
+      "entity": "sprint",
+      "id": "FORGE-S01",
+      "category": "backfill",
+      "field": "createdAt",
+      "message": "backfilled \"createdAt\" = \"2026-01-15T10:00:00.000Z\"",
+      "applied": true
+    }
+  ],
+  "summary": {
+    "sprints": 7,
+    "tasks": 50,
+    "bugs": 4,
+    "features": 1,
+    "errors": 3,
+    "warnings": 2,
+    "fixes": 1
+  }
+}
+```
+
+### Error Categories
+
+| Category | Description |
+|----------|-------------|
+| `missing-required` | Required field is null, undefined, or empty string |
+| `type-mismatch` | Field value has wrong JSON type (e.g., string where number expected) |
+| `invalid-enum` | Field value is not in the declared enum set |
+| `undeclared-field` | Field not in schema with `additionalProperties: false` |
+| `orphaned-fk` | Foreign key references a non-existent entity |
+| `filename-mismatch` | Event filename does not match its eventId |
+| `minimum-violation` | Numeric value below declared minimum |
+| `orphan-directory` | Filesystem directory has no corresponding store record |
+| `stale-path` | `path` field references a nonexistent directory |
+| `missing-optional` | Optional field is absent (warning, not error) |
+
+### Fix Categories
+
+| Category | Description |
+|----------|-------------|
+| `backfill` | Missing field filled with a derived default |
+| `orphaned-fk` | Orphaned foreign key nullified |
+| `filename-mismatch` | Event file renamed or eventId corrected |
+
+The `applied` field on fixes is `true` when the fix was actually written to disk,
+`false` when `--dry-run` is active (preview only).
+
+### `--fix --dry-run` Combination
+
+When both `--fix` and `--dry-run` are specified, the tool previews what fixes
+*would* be applied without writing anything. Each fix in the JSON output has
+`applied: false`. This is useful for the `/forge:store:repair` skill to assess
+what auto-fixes are available before applying them.
 
 ## Validation Rules
 
@@ -65,6 +153,12 @@ existing feature record.
 ### Status Consistency
 - Task status matches artifact presence (e.g., `committed` tasks should have all artifacts)
 - Sprint status consistent with task statuses
+
+### Undeclared Fields
+
+When a schema has `additionalProperties: false`, any field not in the schema's
+`properties` is reported as an error with category `undeclared-field`. This
+catches fields that were valid in older schema versions but are no longer accepted.
 
 ## Error Handling
 

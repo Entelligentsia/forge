@@ -3,7 +3,7 @@
 
 // Forge tool: validate-store
 // Check store integrity: required fields, types, enums, and referential integrity.
-// Usage: validate-store [--dry-run] [--fix]
+// Usage: validate-store [--dry-run] [--fix] [--json]
 
 process.on('uncaughtException', (error) => {
   console.error('Fatal validate-store error:', error);
@@ -15,7 +15,8 @@ const fs = require('fs');
 const path = require('path');
 
 const DRY_RUN = process.argv.includes('--dry-run');
-const FIX_MODE = process.argv.includes('--fix') && !DRY_RUN;
+const FIX_MODE = process.argv.includes('--fix');
+const JSON_MODE = process.argv.includes('--json');
 
 // Read engineering root and project prefix from config for filesystem consistency checks
 const CONFIG_PATH = '.forge/config.json';
@@ -103,9 +104,9 @@ function validateRecord(record, schema) {
 
   for (const field of required) {
     if (record[field] === undefined || record[field] === '') {
-      errors.push(`missing required field: "${field}"`);
+      errors.push({ category: 'missing-required', field, message: `missing required field: "${field}"`, value: record[field], expected: null });
     } else if (record[field] === null && !NULLABLE_FK.has(field)) {
-      errors.push(`missing required field: "${field}"`);
+      errors.push({ category: 'missing-required', field, message: `missing required field: "${field}"`, value: null, expected: null });
     }
   }
 
@@ -124,13 +125,23 @@ function validateRecord(record, schema) {
       const ok = Array.isArray(def.type)
         ? def.type.some(t => typeMatches(t, val))
         : typeMatches(def.type, val);
-      if (!ok) errors.push(`field "${field}": expected ${def.type}, got ${Array.isArray(val) ? 'array' : typeof val}`);
+      if (!ok) errors.push({ category: 'type-mismatch', field, message: `field "${field}": expected ${def.type}, got ${Array.isArray(val) ? 'array' : typeof val}`, value: val, expected: String(def.type) });
     }
     if (def.enum && !def.enum.includes(val)) {
-      errors.push(`field "${field}": value "${val}" not in [${def.enum.join(', ')}]`);
+      errors.push({ category: 'invalid-enum', field, message: `field "${field}": value "${val}" not in [${def.enum.join(', ')}]`, value: String(val), expected: def.enum });
     }
     if (def.minimum !== undefined && typeof val === 'number' && val < def.minimum) {
-      errors.push(`field "${field}": value ${val} is below minimum ${def.minimum}`);
+      errors.push({ category: 'minimum-violation', field, message: `field "${field}": value ${val} is below minimum ${def.minimum}`, value: val, expected: String(def.minimum) });
+    }
+  }
+
+  // Check for undeclared fields when additionalProperties is false
+  if (schema.additionalProperties === false) {
+    const allowed = new Set([...required, ...Object.keys(schema.properties || {})]);
+    for (const key of Object.keys(record)) {
+      if (!allowed.has(key)) {
+        errors.push({ category: 'undeclared-field', field: key, message: `undeclared field: "${key}"`, value: record[key], expected: null });
+      }
     }
   }
 
@@ -141,14 +152,36 @@ let errorsCount = 0;
 let warningsCount = 0;
 let fixesCount = 0;
 
-function err(id, msg) {
-  console.error(`ERROR  ${id}: ${msg}`);
+// Structured collections for --json mode
+const jsonErrors = [];
+const jsonWarnings = [];
+const jsonFixes = [];
+
+function err(id, msg, category, field, value, expected) {
   errorsCount++;
+  if (JSON_MODE) {
+    jsonErrors.push({ entity: id.split('/')[0].split('-')[0] || 'unknown', id, category: category || 'unknown', field: field || null, message: msg, value: value || null, expected: expected || null });
+  } else {
+    console.error(`ERROR  ${id}: ${msg}`);
+  }
 }
 
-function warn(id, msg) {
-  console.log(`WARN   ${id}: ${msg}`);
+function warn(id, msg, category, field) {
   warningsCount++;
+  if (JSON_MODE) {
+    jsonWarnings.push({ entity: id.split('/')[0].split('-')[0] || 'unknown', id, category: category || 'unknown', field: field || null, message: msg });
+  } else {
+    console.log(`WARN   ${id}: ${msg}`);
+  }
+}
+
+function fixMsg(id, msg, category, field) {
+  fixesCount++;
+  if (JSON_MODE) {
+    jsonFixes.push({ entity: id.split('/')[0].split('-')[0] || 'unknown', id, category: category || 'backfill', field: field || null, message: msg, applied: !DRY_RUN });
+  } else {
+    console.log(`FIXED  ${id}: ${msg}`);
+  }
 }
 
 // --- Backfill defaults for --fix mode ---
@@ -183,12 +216,13 @@ function backfillRecord(id, rec, type) {
     if (rec[field] === undefined || rec[field] === null || rec[field] === '') {
       const val = derive(rec, id);
       rec[field] = val;
-      console.log(`FIXED  ${id}: backfilled "${field}" = "${val}"`);
+      fixMsg(id, `backfilled "${field}" = "${val}"`, 'backfill', field);
       changed = true;
-      fixesCount++;
     }
   }
   if (changed) {
+    // In dry-run mode, preview the fix without writing
+    if (DRY_RUN) return changed;
     // Facade write uses the logic in FSImpl to maintain formatting
     if (type === 'sprint') store.writeSprint(rec);
     else if (type === 'task') store.writeTask(rec);
@@ -214,15 +248,15 @@ for (const rec of sprints) {
   if (!rec) continue;
   if (FIX_MODE) backfillRecord(rec.sprintId, rec, 'sprint');
   if (rec.sprintId) sprintIds.add(rec.sprintId);
-  for (const e of validateRecord(rec, schemas.sprint)) err(rec.sprintId, e);
-  if (!rec.path) warn(rec.sprintId, 'missing optional field "path"');
+  for (const e of validateRecord(rec, schemas.sprint)) err(rec.sprintId, e.message, e.category, e.field, e.value, e.expected);
+  if (!rec.path) warn(rec.sprintId, 'missing optional field "path"', 'missing-optional', 'path');
 }
 
 const tasks = store.listTasks();
 for (const rec of tasks) {
   if (!rec) continue;
   if (rec.taskId) taskIds.add(rec.taskId);
-  for (const e of validateRecord(rec, schemas.task)) err(rec.taskId, e);
+  for (const e of validateRecord(rec, schemas.task)) err(rec.taskId, e.message, e.category, e.field, e.value, e.expected);
 }
 
 const bugs = store.listBugs();
@@ -230,7 +264,7 @@ for (const rec of bugs) {
   if (!rec) continue;
   if (FIX_MODE) backfillRecord(rec.bugId, rec, 'bug');
   if (rec.bugId) bugIds.add(rec.bugId);
-  for (const e of validateRecord(rec, schemas.bug)) err(rec.bugId, e);
+  for (const e of validateRecord(rec, schemas.bug)) err(rec.bugId, e.message, e.category, e.field, e.value, e.expected);
 }
 
 const features = store.listFeatures();
@@ -246,11 +280,10 @@ for (const rec of sprints) {
   if (rec.feature_id && !featureIds.has(rec.feature_id)) {
     if (FIX_MODE) {
       rec.feature_id = null;
-      store.writeSprint(rec);
-      console.log(`FIXED  ${rec.sprintId}: nullified orphaned feature_id`);
-      fixesCount++;
+      if (!DRY_RUN) store.writeSprint(rec);
+      fixMsg(rec.sprintId, `nullified orphaned feature_id "${rec.feature_id}"`, 'orphaned-fk', 'feature_id');
     } else {
-      err(rec.sprintId, `feature_id "${rec.feature_id}" references unknown feature`);
+      err(rec.sprintId, `feature_id "${rec.feature_id}" references unknown feature`, 'orphaned-fk', 'feature_id', rec.feature_id);
     }
   }
 }
@@ -258,16 +291,15 @@ for (const rec of sprints) {
 for (const rec of tasks) {
   if (!rec) continue;
   if (rec.sprintId && !sprintIds.has(rec.sprintId))
-    err(rec.taskId, `sprintId "${rec.sprintId}" references unknown sprint`);
+    err(rec.taskId, `sprintId "${rec.sprintId}" references unknown sprint`, 'orphaned-fk', 'sprintId', rec.sprintId);
 
   if (rec.feature_id && !featureIds.has(rec.feature_id)) {
     if (FIX_MODE) {
       rec.feature_id = null;
-      store.writeTask(rec);
-      console.log(`FIXED  ${rec.taskId}: nullified orphaned feature_id`);
-      fixesCount++;
+      if (!DRY_RUN) store.writeTask(rec);
+      fixMsg(rec.taskId, `nullified orphaned feature_id "${rec.feature_id}"`, 'orphaned-fk', 'feature_id');
     } else {
-      err(rec.taskId, `feature_id "${rec.feature_id}" references unknown feature`);
+      err(rec.taskId, `feature_id "${rec.feature_id}" references unknown feature`, 'orphaned-fk', 'feature_id', rec.feature_id);
     }
   }
 }
@@ -275,7 +307,7 @@ for (const rec of tasks) {
 for (const rec of bugs) {
   if (!rec) continue;
   for (const ref of (rec.similarBugs || [])) {
-    if (!bugIds.has(ref)) err(rec.bugId, `similarBugs references unknown bug "${ref}"`);
+    if (!bugIds.has(ref)) err(rec.bugId, `similarBugs references unknown bug "${ref}"`, 'orphaned-fk', 'similarBugs', ref);
   }
 }
 
@@ -301,9 +333,8 @@ for (const sprint of allSprints) {
         if (rec[field] === undefined || rec[field] === null || rec[field] === '') {
           const val = derive(rec, filename);
           rec[field] = val;
-          console.log(`FIXED  ${sprintId}/${filename}: backfilled "${field}" = "${val}"`);
+          fixMsg(`${sprintId}/${filename}`, `backfilled "${field}" = "${val}"`, 'backfill', field);
           changed = true;
-          fixesCount++;
         }
       }
 
@@ -314,31 +345,31 @@ for (const sprint of allSprints) {
       if (filename !== rec.eventId) {
         const isValidFilename = (id) => id && !id.includes('/') && !id.includes('\\') && id !== '.';
         if (isValidFilename(rec.eventId)) {
-          try {
-            store.renameEvent(sprintId, filename, rec.eventId);
-            console.log(`FIXED  ${sprintId}/${filename}: renamed to ${rec.eventId}.json`);
-            fixesCount++;
-          } catch (renameErr) {
-            err(`${sprintId}/${filename}`, `cannot rename to ${rec.eventId}.json: ${renameErr.message}`);
+          if (!DRY_RUN) {
+            try {
+              store.renameEvent(sprintId, filename, rec.eventId);
+            } catch (renameErr) {
+              err(`${sprintId}/${filename}`, `cannot rename to ${rec.eventId}.json: ${renameErr.message}`, 'filename-mismatch', 'eventId');
+            }
           }
+          fixMsg(`${sprintId}/${filename}`, `renamed to ${rec.eventId}.json`, 'filename-mismatch', 'eventId');
         } else {
           // eventId is invalid for a filename — backfill it to the current filename
-          console.log(`FIXED  ${sprintId}/${filename}: eventId "${rec.eventId}" is not a valid filename, resetting to "${filename}"`);
+          fixMsg(`${sprintId}/${filename}`, `eventId "${rec.eventId}" is not a valid filename, resetting to "${filename}"`, 'filename-mismatch', 'eventId');
           rec.eventId = filename;
           changed = true;
-          fixesCount++;
         }
       }
 
       // Write the updated record (writeEvent now handles ghost detection internally)
-      if (changed) store.writeEvent(sprintId, rec);
+      if (changed && !DRY_RUN) store.writeEvent(sprintId, rec);
     }
 
-    for (const e of validateRecord(rec, schemas.event)) err(`${sprintId}/${eventId}`, e);
+    for (const e of validateRecord(rec, schemas.event)) err(`${sprintId}/${eventId}`, e.message, e.category, e.field, e.value, e.expected);
     if (rec.taskId && !taskIds.has(rec.taskId) && !bugIds.has(rec.taskId))
-      err(`${sprintId}/${eventId}`, `taskId "${rec.taskId}" references unknown task or bug`);
+      err(`${sprintId}/${eventId}`, `taskId "${rec.taskId}" references unknown task or bug`, 'orphaned-fk', 'taskId', rec.taskId);
     if (rec.sprintId && !sprintIds.has(rec.sprintId) && rec.sprintId !== sprintId)
-      err(`${sprintId}/${eventId}`, `sprintId "${rec.sprintId}" references unknown sprint`);
+      err(`${sprintId}/${eventId}`, `sprintId "${rec.sprintId}" references unknown sprint`, 'orphaned-fk', 'sprintId', rec.sprintId);
   }
 }
 
@@ -361,7 +392,7 @@ if (fs.existsSync(sprintsDir)) {
     const dirSprintId = sprintMatch[1];
 
     if (!sprintIds.has(dirSprintId)) {
-      warn(dirSprintId, `directory "${entry}" has no sprint record in store`);
+      warn(dirSprintId, `directory "${entry}" has no sprint record in store`, 'orphan-directory');
       continue; // no point walking tasks for an unregistered sprint
     }
 
@@ -391,7 +422,7 @@ if (fs.existsSync(sprintsDir)) {
       if (!dirTaskId) continue; // not a recognised task directory pattern — skip silently
 
       if (!taskIds.has(dirTaskId)) {
-        warn(dirTaskId, `directory "${entry}/${taskEntry}" has no task record in store`);
+        warn(dirTaskId, `directory "${entry}/${taskEntry}" has no task record in store`, 'orphan-directory');
       }
     }
   }
@@ -401,7 +432,7 @@ if (fs.existsSync(sprintsDir)) {
 for (const rec of sprints) {
   if (!rec || !rec.path) continue;
   if (!fs.existsSync(rec.path)) {
-    warn(rec.sprintId, `path "${rec.path}" does not exist on disk`);
+    warn(rec.sprintId, `path "${rec.path}" does not exist on disk`, 'stale-path', 'path');
   }
 }
 
@@ -409,19 +440,39 @@ for (const rec of sprints) {
 for (const rec of tasks) {
   if (!rec || !rec.path) continue;
   if (!fs.existsSync(rec.path)) {
-    warn(rec.taskId, `path "${rec.path}" does not exist on disk`);
+    warn(rec.taskId, `path "${rec.path}" does not exist on disk`, 'stale-path', 'path');
   }
 }
 
 // --- Result ---
-if (fixesCount > 0) {
-  console.log(`${fixesCount} field(s) backfilled.`);
-}
-if (errorsCount === 0) {
-  console.log(`Store validation passed (${sprintIds.size} sprint(s), ${taskIds.size} task(s), ${bugIds.size} bug(s)).`);
-  if (warningsCount > 0) console.log(`${warningsCount} warning(s).`);
-  process.exit(0);
+if (JSON_MODE) {
+  const result = {
+    ok: errorsCount === 0,
+    errors: jsonErrors,
+    warnings: jsonWarnings,
+    fixes: jsonFixes,
+    summary: {
+      sprints: sprintIds.size,
+      tasks: taskIds.size,
+      bugs: bugIds.size,
+      features: featureIds.size,
+      errors: errorsCount,
+      warnings: warningsCount,
+      fixes: fixesCount
+    }
+  };
+  console.log(JSON.stringify(result, null, 2));
+  process.exit(errorsCount === 0 ? 0 : 1);
 } else {
-  console.error(`\n${errorsCount} error(s) found.`);
-  process.exit(1);
+  if (fixesCount > 0) {
+    console.log(`${fixesCount} field(s) backfilled.`);
+  }
+  if (errorsCount === 0) {
+    console.log(`Store validation passed (${sprintIds.size} sprint(s), ${taskIds.size} task(s), ${bugIds.size} bug(s)).`);
+    if (warningsCount > 0) console.log(`${warningsCount} warning(s).`);
+    process.exit(0);
+  } else {
+    console.error(`\n${errorsCount} error(s) found.`);
+    process.exit(1);
+  }
 }
