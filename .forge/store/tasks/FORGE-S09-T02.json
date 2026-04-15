@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S09",
   "title": "Config schema: add calibrationBaseline + required-field annotations",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/sdlc-config.schema.json",
   "estimate": "S",
   "dependencies": [],
