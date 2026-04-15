@@ -12,6 +12,7 @@
 
 | Sprint    | Title                                                                              | Status               | Tasks |
 | --------- | ---------------------------------------------------------------------------------- | -------------------- | ----- |
+| FORGE-S08 | CLI Engagement — Interactive Progress and Reduced Friction                         | 🔵 active            | 6/6   |
 | FORGE-S07 | Store Custodian — Deterministic Store Gateway                                      | ✅ retrospective-done | 9/9   |
 | FORGE-S06 | Sprint S06                                                                         | ✅ retrospective-done | 10/10 |
 | FORGE-S05 | Sprint S05                                                                         | 🔵 active            | 0/8   |
@@ -21,6 +22,17 @@
 | FORGE-S01 | Sprint FORGE-S01 — Token Usage Tracking                                            | 🔵 active            | 7/8   |
 
 ## Task Registry
+
+### FORGE-S08
+
+| Task                                                                | Title                                                        | Status      | Estimate |
+| ------------------------------------------------------------------- | ------------------------------------------------------------ | ----------- | -------- |
+| [FORGE-S08-T01](../forge/commands/init.md forge/init/INDEX.md)      | Init pre-flight plan + phase progress banners                | ✅ committed | M        |
+| [FORGE-S08-T02](../forge/commands/init.md forge/init/INDEX.md)      | Init checkpoint and resume mechanism                         | ✅ committed | M        |
+| [FORGE-S08-T03](../forge/commands/INDEX.md)                         | Regenerate per-file status lines                             | ✅ committed | S        |
+| [FORGE-S08-T04](../forge/commands/INDEX.md)                         | Update step banners and explicit sequencing                  | ✅ committed | S        |
+| [FORGE-S08-T05](../forge/commands/INDEX.md)                         | Update Step 5 collect-all-then-confirm audit                 | ✅ committed | M        |
+| [FORGE-S08-T06](../forge/.claude-plugin/plugin.json forge/INDEX.md) | Release engineering — version bump, migration, security scan | ✅ committed | S        |
 
 ### FORGE-S07
 

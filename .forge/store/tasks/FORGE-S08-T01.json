@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S08",
   "title": "Init pre-flight plan + phase progress banners",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/commands/init.md forge/init/sdlc-init.md",
   "estimate": "M",
   "dependencies": [],

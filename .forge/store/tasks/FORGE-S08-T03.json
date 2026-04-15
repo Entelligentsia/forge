@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S08",
   "title": "Regenerate per-file status lines",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/commands/regenerate.md",
   "estimate": "S",
   "dependencies": [],

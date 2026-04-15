@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S08",
   "title": "Update Step 5 collect-all-then-confirm audit",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/commands/update.md",
   "estimate": "M",
   "dependencies": [
