@@ -1,0 +1,11 @@
+{
+  "taskId": "FORGE-S07-T08",
+  "feature_id": null,
+  "sprintId": "FORGE-S07",
+  "title": "Update migrate.md command — replace direct store writes with custodian references",
+  "status": "approved",
+  "path": "forge/commands/migrate.md",
+  "estimate": "S",
+  "dependencies": ["FORGE-S07-T05", "FORGE-S07-T06"],
+  "pipeline": "default"
+}
