@@ -6,5 +6,11 @@
   "status": "fixed",
   "path": "engineering/bugs/FORGE-BUG-009-structure-manifest",
   "reportedAt": "2026-04-15T18:00:00.000Z",
-  "githubIssue": "https://github.com/Entelligentsia/forge/issues/40"
+  "githubIssue": "https://github.com/Entelligentsia/forge/issues/40",
+  "rootCauseCategory": "data-integrity",
+  "similarBugs": [
+    "FORGE-BUG-008"
+  ],
+  "checklistItemAdded": true,
+  "resolvedAt": "2026-04-15T19:15:00.000Z"
 }

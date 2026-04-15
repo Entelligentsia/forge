@@ -46,6 +46,8 @@ consult this before approving any change to `forge/`.
 - [ ] When adding a new file-writing block to `collate.cjs`, check whether the target entity has a `path` field in its store JSON before using `resolveDir` inference (BUG-006)
 - [ ] `resolveDir` numeric glob fallback only applies when no exact candidate exists on disk — verify alphabetical-first-match is acceptable if multiple dirs share the same leading integer (BUG-007)
 - [ ] Event files written by pipeline phases must include full attribution (`taskId`, `role`, `action`, `phase`, `model`) — bare token-only files produce `(unknown)` rows in COST_REPORT (BUG-007)
+- [ ] Any regeneration loop that rewrites a full namespace (personas, skills, workflows, commands, templates) must call `generation-manifest.cjs clear-namespace <prefix>` before writing — omitting this causes stale entries that permanently show as "× missing" in `forge:health` (FORGE-BUG-009)
+- [ ] After adding, renaming, or removing any file in `forge/meta/personas/`, `forge/meta/workflows/`, `forge/meta/templates/`, or `forge/schemas/*.schema.json`, run `node forge/tools/build-manifest.cjs --forge-root forge/` and commit the updated `forge/schemas/structure-manifest.json` (FORGE-BUG-009)
 
 ## Meta-Workflows
 
