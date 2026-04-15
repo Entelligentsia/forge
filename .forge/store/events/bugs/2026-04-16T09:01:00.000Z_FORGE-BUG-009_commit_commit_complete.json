@@ -1,0 +1,15 @@
+{
+  "eventId": "FORGE-BUG-009-E-commit-complete",
+  "taskId": "FORGE-BUG-009",
+  "role": "commit",
+  "action": "commit",
+  "phase": "commit",
+  "iteration": 1,
+  "startTimestamp": "2026-04-16T09:00:00.000Z",
+  "endTimestamp": "2026-04-16T09:01:00.000Z",
+  "durationMinutes": 1,
+  "model": "claude-sonnet-4-6",
+  "verdict": "committed",
+  "commitSha": "aab9ca7",
+  "notes": "FORGE-BUG-009 committed: aab9ca7 — fix: add structure manifest and clear-namespace for generation-manifest stale entries"
+}
