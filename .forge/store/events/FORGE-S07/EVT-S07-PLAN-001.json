@@ -1,0 +1,13 @@
+{
+  "eventId": "EVT-S07-PLAN-001",
+  "sprintId": "FORGE-S07",
+  "taskId": null,
+  "role": "plan",
+  "action": "sprint-plan",
+  "phase": "plan",
+  "verdict": "approved",
+  "model": "claude-sonnet-4-6",
+  "startTimestamp": "2026-04-15T00:00:00.000Z",
+  "endTimestamp": "2026-04-15T00:00:00.000Z",
+  "durationMinutes": 0
+}

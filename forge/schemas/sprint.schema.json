@@ -9,6 +9,7 @@
     "feature_id":     { "type": ["string", "null"] },
     "title":          { "type": "string" },
     "description":    { "type": "string" },
+    "goal":            { "type": "string" },
     "status": {
       "type": "string",
       "enum": ["planning", "active", "completed", "retrospective-done", "blocked", "partially-completed", "abandoned"]
@@ -19,7 +20,8 @@
     "createdAt":      { "type": "string", "format": "date-time" },
     "completedAt":    { "type": "string", "format": "date-time" },
     "path":           { "type": "string" },
-    "humanEstimates": { "type": "object" }
+    "humanEstimates": { "type": "object" },
+    "features":       { "type": "array", "items": { "type": "string" } }
   },
   "additionalProperties": false
 }

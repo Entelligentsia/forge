@@ -1,0 +1,11 @@
+{
+  "taskId": "FORGE-S07-T01",
+  "feature_id": null,
+  "sprintId": "FORGE-S07",
+  "title": "Schema reconciliation — add goal and features to sprint.schema.json",
+  "status": "approved",
+  "path": "forge/schemas/sprint.schema.json",
+  "estimate": "S",
+  "dependencies": [],
+  "pipeline": "default"
+}
