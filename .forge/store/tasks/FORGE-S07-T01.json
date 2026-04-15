@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S07",
   "title": "Schema reconciliation — add goal and features to sprint.schema.json",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/schemas/sprint.schema.json",
   "estimate": "S",
   "dependencies": [],
