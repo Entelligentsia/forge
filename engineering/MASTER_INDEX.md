@@ -12,7 +12,7 @@
 
 | Sprint    | Title                                                                              | Status               | Tasks |
 | --------- | ---------------------------------------------------------------------------------- | -------------------- | ----- |
-| FORGE-S08 | CLI Engagement — Interactive Progress and Reduced Friction                         | 🔵 active            | 6/6   |
+| FORGE-S08 | CLI Engagement — Interactive Progress and Reduced Friction                         | ✅ retrospective-done | 6/6   |
 | FORGE-S07 | Store Custodian — Deterministic Store Gateway                                      | ✅ retrospective-done | 9/9   |
 | FORGE-S06 | Sprint S06                                                                         | ✅ retrospective-done | 10/10 |
 | FORGE-S05 | Sprint S05                                                                         | 🔵 active            | 0/8   |
