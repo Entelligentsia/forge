@@ -6,6 +6,7 @@
   "action": "sprint-plan",
   "phase": "plan",
   "verdict": "approved",
+  "iteration": 1,
   "model": "claude-sonnet-4-6",
   "startTimestamp": "2026-04-15T00:00:00.000Z",
   "endTimestamp": "2026-04-15T00:00:00.000Z",

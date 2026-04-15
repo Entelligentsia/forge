@@ -1,0 +1,11 @@
+{
+  "taskId": "FORGE-S07-T06",
+  "feature_id": null,
+  "sprintId": "FORGE-S07",
+  "title": "Create store custodian skill and tool spec",
+  "status": "approved",
+  "path": "forge/meta/skills/meta-store-custodian.md",
+  "estimate": "S",
+  "dependencies": ["FORGE-S07-T05"],
+  "pipeline": "default"
+}
