@@ -171,7 +171,7 @@ URL: {MIGRATIONS_URL}
 Parse the response JSON. Walk the migration chain from `LOCAL_VERSION` forward
 to `REMOTE_VERSION`. Aggregate across all steps:
 - Union of all `regenerate` targets, applying the dominance rule: for each
-  category (`workflows`, `knowledge-base`, `commands`), if any step lists a
+  category (`workflows`, `knowledge-base`, `commands`, `tools`), if any step lists a
   bare category name (e.g. `"workflows"`), that category is flagged for full
   rebuild. If all steps for a category use sub-targets (e.g.
   `"workflows:plan_task"`), collect the union of those sub-targets
@@ -258,7 +258,7 @@ Read `$FORGE_ROOT/migrations.json` (local).
 
 Walk the migration chain from `baseline` forward to `LOCAL_VERSION`. Aggregate:
 - Union of all `regenerate` targets, applying the dominance rule: for each
-  category (`workflows`, `knowledge-base`, `commands`), if any step lists a
+  category (`workflows`, `knowledge-base`, `commands`, `tools`), if any step lists a
   bare category name (e.g. `"workflows"`), that category is flagged for full
   rebuild. If all steps for a category use sub-targets (e.g.
   `"workflows:plan_task"`), collect the union of those sub-targets
@@ -363,7 +363,7 @@ Walk the migration chain from baseline forward to `LOCAL_VERSION`:
   Then exit.
 
 Aggregate across all steps in the path, applying the dominance rule:
-- For each category (`workflows`, `knowledge-base`, `commands`):
+- For each category (`workflows`, `knowledge-base`, `commands`, `tools`):
   - If ANY step has a bare entry for this category → full rebuild for that category.
   - Otherwise → union of all sub-targets across all steps (deduplicated, order preserved).
 - Concatenated `notes` (one line per step)
@@ -408,8 +408,16 @@ reading and following `$FORGE_ROOT/commands/regenerate.md`:
 - If sub-targets collected: invoke `/forge:regenerate <category> <sub-target>`
   for each sub-target in order
 
-Run non-knowledge-base targets first (workflows, templates, commands), then
-knowledge-base sub-targets if present.
+**Category-to-command mapping:** most categories are handled by
+`/forge:regenerate`, but the `tools` category is special. When `tools`
+appears in the aggregated result, invoke `/forge:update-tools` instead of
+`/forge:regenerate tools`. The update-tools command copies JSON schemas from
+`$FORGE_ROOT/schemas/` to `.forge/schemas/` and validates the store. It does
+not use the regeneration framework — tools ship with the plugin and are invoked
+directly via `$FORGE_ROOT/tools/`.
+
+Run non-knowledge-base targets first (workflows, templates, commands, tools),
+then knowledge-base sub-targets if present.
 
 **Sub-target filename resolution:** a sub-target like `architect_sprint_plan`
 maps to the file `.forge/workflows/architect_sprint_plan.md` — append `.md`
