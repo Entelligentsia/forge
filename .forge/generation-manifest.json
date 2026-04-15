@@ -136,33 +136,33 @@
       "generatedByVersion": "1.0"
     },
     ".claude/commands/plan.md": {
-      "hash": "sha256:e148c828717a7e0a67c0699524c08595c5baabfe4c97b3294946ef94fde53336",
-      "generatedAt": "2026-04-14T05:26:26.359Z",
+      "hash": "sha256:249204b04f446fbadee36bebca11bb5b305f0874b3c79d4ed6a0668ea20358e5",
+      "generatedAt": "2026-04-15T12:07:26.680Z",
       "generatedByVersion": "1.0"
     },
     ".claude/commands/review-plan.md": {
-      "hash": "sha256:c26d8af2337851c9a4c3ee069e28be0fccaf39e08bc69640c010d8173aa2fe84",
-      "generatedAt": "2026-04-14T05:26:26.374Z",
+      "hash": "sha256:6fed3f796343f8473cb3cae56ed0a8e552f664d2ba8ab2be05ee7511ab2849dc",
+      "generatedAt": "2026-04-15T12:07:26.722Z",
       "generatedByVersion": "1.0"
     },
     ".claude/commands/review-code.md": {
-      "hash": "sha256:a8ed2883d66db8db8543f2da991acad8b3db2f64defcd12703cc2c0c202071db",
-      "generatedAt": "2026-04-14T05:26:26.390Z",
+      "hash": "sha256:c1d6521ff4b350070161d7352d032ec9bf6b02d0147cc16b152d5c9df44ac33d",
+      "generatedAt": "2026-04-15T12:07:26.708Z",
       "generatedByVersion": "1.0"
     },
     ".claude/commands/implement.md": {
-      "hash": "sha256:b9817e33d54c40c3fb8e34944fdad3431de4d87a8c2914e8bdde0ecebb65a5fc",
-      "generatedAt": "2026-04-14T05:26:26.404Z",
+      "hash": "sha256:c72851ed1f75de6176c172ad311af10cfaee9ecfdf6c8ff42b005023b0e58de0",
+      "generatedAt": "2026-04-15T12:07:26.666Z",
       "generatedByVersion": "1.0"
     },
     ".claude/commands/fix-bug.md": {
-      "hash": "sha256:6a794e41f0288f7fcf7ba114ec810ff276b537724c3544648742a5f150bef08b",
-      "generatedAt": "2026-04-14T05:26:26.419Z",
+      "hash": "sha256:080383f7eac8874a4f9e833455e5dd4f6a037fc8ac59423e8429105c4091da88",
+      "generatedAt": "2026-04-15T12:07:26.651Z",
       "generatedByVersion": "1.0"
     },
     ".claude/commands/commit.md": {
-      "hash": "sha256:94ed92c96f420041fef99c60b201ce3c50f8e042878a89403c6ec9b0dd0ecc07",
-      "generatedAt": "2026-04-14T05:26:26.434Z",
+      "hash": "sha256:8ef03909ec7c7507c7701616b7688125288233d779a2b7ab5f577b04c1453804",
+      "generatedAt": "2026-04-15T12:07:26.636Z",
       "generatedByVersion": "1.0"
     },
     ".forge/personas/plan.md": {
@@ -233,6 +233,41 @@
     ".forge/skills/commit-skills.md": {
       "hash": "sha256:77a686957f01dcce61e1ecfdb09620af436127d30feb06ce728249f423b91ed2",
       "generatedAt": "2026-04-14T05:29:14.651Z",
+      "generatedByVersion": "1.0"
+    },
+    ".claude/commands/approve.md": {
+      "hash": "sha256:000dcfd07534df6c4f72f31672fa46b5eaf33501ff86fc20c40f176cdb2a88fa",
+      "generatedAt": "2026-04-15T12:07:26.602Z",
+      "generatedByVersion": "1.0"
+    },
+    ".claude/commands/collate.md": {
+      "hash": "sha256:f2c639d76eb890dc3037b47c71e2a6564f55dac37589e223c33a932440ec8a54",
+      "generatedAt": "2026-04-15T12:07:26.621Z",
+      "generatedByVersion": "1.0"
+    },
+    ".claude/commands/retrospective.md": {
+      "hash": "sha256:0f5d5d679354c1cf855bdc2f728e63e7c29b6b7c2f123b69a1dcb982f3a25d95",
+      "generatedAt": "2026-04-15T12:07:26.694Z",
+      "generatedByVersion": "1.0"
+    },
+    ".claude/commands/run-sprint.md": {
+      "hash": "sha256:e01f2c8b855f038281acc11ce27a6c6e06c083d156a082366dcd21ef297e55f3",
+      "generatedAt": "2026-04-15T12:07:26.736Z",
+      "generatedByVersion": "1.0"
+    },
+    ".claude/commands/run-task.md": {
+      "hash": "sha256:5ca68e4a9be2acef32c6e88d0f27b45b5623f80876f37ff7d7c30da86170d0a5",
+      "generatedAt": "2026-04-15T12:07:26.749Z",
+      "generatedByVersion": "1.0"
+    },
+    ".claude/commands/sprint-intake.md": {
+      "hash": "sha256:f522ea0c11ad4917b093919ecad7ef8498b3a0b12ad2e0078766bd3381dc65b1",
+      "generatedAt": "2026-04-15T12:07:26.763Z",
+      "generatedByVersion": "1.0"
+    },
+    ".claude/commands/sprint-plan.md": {
+      "hash": "sha256:f62e029a0a73bd3779b2998de37f57dd17686523b97c2fc39dff2e592dd233ca",
+      "generatedAt": "2026-04-15T12:07:26.777Z",
       "generatedByVersion": "1.0"
     }
   }

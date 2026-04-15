@@ -1,6 +1,7 @@
 ---
-description: Implement an approved plan (Engineer persona)
+description: Implement an approved plan
+effort: high
+command_name: implement
 ---
-Read `.forge/workflows/implement_plan.md` and follow it.
-Also read `engineering/MASTER_INDEX.md` for current project state.
+Read `.forge/workflows/implement_plan.md` and follow it exactly.
 Arguments (task ID): $ARGUMENTS

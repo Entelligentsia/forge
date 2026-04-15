@@ -1,6 +1,7 @@
 ---
-description: Triage and fix a Forge bug
+description: Triage and fix a bug
+effort: high
+command_name: fix-bug
 ---
-Read `.forge/workflows/fix_bug.md` and follow it.
-Also read `engineering/MASTER_INDEX.md`.
+Read `.forge/workflows/fix_bug.md` and follow it exactly.
 Arguments (bug ID): $ARGUMENTS

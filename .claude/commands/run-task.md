@@ -1,6 +1,7 @@
 ---
 description: Drive a single task through the full pipeline
+effort: high
+command_name: run-task
 ---
-Read `.forge/workflows/orchestrate_task.md` and follow it.
-Also read `engineering/MASTER_INDEX.md` for current project state.
+Read `.forge/workflows/orchestrate_task.md` and follow it exactly.
 Arguments (task ID): $ARGUMENTS

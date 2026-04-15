@@ -29,7 +29,7 @@
     "commands": ".claude/commands",
     "templates": ".forge/templates",
     "customCommands": "engineering/commands",
-    "forgeRoot": "/home/boni/.claude/plugins/cache/forge/forge/0.8.10"
+    "forgeRoot": "/home/boni/.claude/plugins/cache/forge/forge/0.9.2"
   },
   "pipeline": {
     "maxReviewIterations": 3
@@ -38,7 +38,10 @@
     "agent-sdk-dev",
     "forge",
     "frontend-design",
-    "llm-patterns",
-    "security-watchdog"
+    "plugin-dev",
+    "security-watchdog",
+    "stripe-integration",
+    "typescript-lsp",
+    "vue-best-practices"
   ]
 }

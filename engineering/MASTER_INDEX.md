@@ -19,7 +19,7 @@
 | FORGE-S04 | Sprint S04                                                                         | 📝 planning          | 6/6   |
 | FORGE-S03 | Sprint Plan — FORGE-S03: Lean Migration Architecture                               | 🔵 active            | 0/3   |
 | FORGE-S02 | Sprint Plan — FORGE-S02: Foundational Concepts Documentation + Feature Tier (v1.0) | 🔵 active            | 3/10  |
-| FORGE-S01 | Sprint FORGE-S01 — Token Usage Tracking                                            | 🔵 active            | 7/8   |
+| FORGE-S01 | Sprint FORGE-S01 — Token Usage Tracking                                            | ✅ retrospective-done | 8/8   |
 
 ## Task Registry
 
@@ -112,16 +112,16 @@
 
 ### FORGE-S01
 
-| Task                                            | Title                                                                                        | Status         | Estimate |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------- | -------- |
-| [FORGE-S01-T01](sprints/FORGE-S01/T01/INDEX.md) | PLAN — FORGE-S01-T01: Event schema — add optional token fields                               | ✅ committed    | —        |
-| [FORGE-S01-T02](sprints/FORGE-S01/T02/INDEX.md) | PLAN — FORGE-S01-T02: validate-store — handle new event token fields                         | ✅ committed    | —        |
-| [FORGE-S01-T03](sprints/FORGE-S01/T03/INDEX.md) | PLAN — FORGE-S01-T03: Orchestrator meta-workflow — subagent self-reporting and sidecar merge | ✅ committed    | —        |
-| [FORGE-S01-T04](sprints/FORGE-S01/T04/INDEX.md) | PLAN — FORGE-S01-T04: estimate-usage.cjs — token estimation fallback tool                    | ✅ committed    | —        |
-| [FORGE-S01-T05](sprints/FORGE-S01/T05/INDEX.md) | PLAN — FORGE-S01-T05: collate.cjs — COST_REPORT.md generation                                | 🔧 implemented | —        |
-| [FORGE-S01-T06](sprints/FORGE-S01/T06/INDEX.md) | PLAN — FORGE-S01-T06: Retrospective meta-workflow — cost analysis and baselines              | ✅ committed    | —        |
-| [FORGE-S01-T07](sprints/FORGE-S01/T07/INDEX.md) | PLAN — FORGE-S01-T07: Bug report opt-in — token data in bug reports with user prompt         | ✅ committed    | —        |
-| [FORGE-S01-T08](sprints/FORGE-S01/T08/INDEX.md) | PLAN — FORGE-S01-T08: Version bump, migration entry, and security scan                       | ✅ committed    | —        |
+| Task                                            | Title                                                                                        | Status      | Estimate |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------- | -------- |
+| [FORGE-S01-T01](sprints/FORGE-S01/T01/INDEX.md) | PLAN — FORGE-S01-T01: Event schema — add optional token fields                               | ✅ committed | —        |
+| [FORGE-S01-T02](sprints/FORGE-S01/T02/INDEX.md) | PLAN — FORGE-S01-T02: validate-store — handle new event token fields                         | ✅ committed | —        |
+| [FORGE-S01-T03](sprints/FORGE-S01/T03/INDEX.md) | PLAN — FORGE-S01-T03: Orchestrator meta-workflow — subagent self-reporting and sidecar merge | ✅ committed | —        |
+| [FORGE-S01-T04](sprints/FORGE-S01/T04/INDEX.md) | PLAN — FORGE-S01-T04: estimate-usage.cjs — token estimation fallback tool                    | ✅ committed | —        |
+| [FORGE-S01-T05](sprints/FORGE-S01/T05/INDEX.md) | PLAN — FORGE-S01-T05: collate.cjs — COST_REPORT.md generation                                | ✅ committed | —        |
+| [FORGE-S01-T06](sprints/FORGE-S01/T06/INDEX.md) | PLAN — FORGE-S01-T06: Retrospective meta-workflow — cost analysis and baselines              | ✅ committed | —        |
+| [FORGE-S01-T07](sprints/FORGE-S01/T07/INDEX.md) | PLAN — FORGE-S01-T07: Bug report opt-in — token data in bug reports with user prompt         | ✅ committed | —        |
+| [FORGE-S01-T08](sprints/FORGE-S01/T08/INDEX.md) | PLAN — FORGE-S01-T08: Version bump, migration entry, and security scan                       | ✅ committed | —        |
 
 ## Bug Registry
 

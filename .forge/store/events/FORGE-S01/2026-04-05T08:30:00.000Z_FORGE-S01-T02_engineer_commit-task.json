@@ -1,13 +1,8 @@
 {
-  "timestamp": "2026-04-05T08:30:00.000Z",
   "taskId": "FORGE-S01-T02",
   "sprintId": "FORGE-S01",
   "phase": "commit",
   "action": "engineer_commit-task",
-  "status": "success",
-  "summary": "Task committed: validate-store — clarify token field handling (no code change)",
-  "commitHash": "3489287",
-  "filesChanged": 13,
   "notes": "Comment-only change documenting that existing generic property loop already handles the five optional token fields. No functional logic altered.",
   "eventId": "2026-04-05T08:30:00.000Z_FORGE-S01-T02_engineer_commit-task",
   "role": "unknown",
