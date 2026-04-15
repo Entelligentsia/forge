@@ -77,7 +77,12 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
 
 ## Generation Instructions
 
-- **Persona Self-Load:** The generated workflow MUST begin by reading `.forge/personas/bug-fixer.md` as its first step (before any other tool use). This replaces the former inline `## Persona` section. The persona identity line (emoji, name, tagline) should be printed to stdout after reading the file.
+- **Persona Self-Load:** The generated workflow MUST begin with these two actions (in order):
+  1. Run the identity banner using the Bash tool:
+     ```bash
+     FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" rift
+     ```
+  2. Read `.forge/personas/bug-fixer.md`.
 - **Workflow Structure:** The generated `fix_bug.md` must follow the strict "Algorithm" block format.
 - **Symmetric Injection:** Every subagent spawned by the `fix-bug` orchestrator must follow the symmetric injection pattern: `[Persona] -> [Skill] -> [Workflow]`.
 - **Context Isolation:** Forbid inline execution of triage or fix logic; use the `Agent` tool for sub-tasks.
@@ -94,32 +99,55 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
 The generated `fix_bug.md` MUST include the following verbatim algorithm for phase announcements and symmetric persona/skill injection. This mirrors the pattern from `meta-orchestrate.md`.
 
 ```
-# --- Persona symbol lookup (emoji, name, tagline) ---
-# All bug-fix phases map to the same Bug Fixer persona.
-PERSONA_MAP = {
-  "plan-fix":    ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
-  "review-plan": ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
-  "implement":   ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
-  "review-code": ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
-  "approve":     ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
-  "commit":      ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+# --- Role-to-noun mapping (persona and skill file lookups) ---
+ROLE_TO_NOUN = {
+  "plan-fix":    "bug-fixer",
+  "review-plan": "supervisor",
+  "implement":   "bug-fixer",
+  "review-code": "supervisor",
+  "approve":     "architect",
+  "commit":      "engineer",
 }
-# Default fallback (covers any custom phases):
-# ("🍂", "Bug Fixer", "I find what has decayed and restore it.")
+# Default fallback: "bug-fixer"
 
-# --- Before each spawn_subagent call ---
+# --- Persona symbol lookup (emoji, name, tagline) ---
+PERSONA_MAP = {
+  "plan-fix":    ("🍂", "Bug Fixer",  "I find what has decayed and restore it."),
+  "review-plan": ("🌿", "Supervisor", "I review before things move forward. I read the actual fix, not just the plan."),
+  "implement":   ("🍂", "Bug Fixer",  "I find what has decayed and restore it."),
+  "review-code": ("🌿", "Supervisor", "I review before things move forward. I read the actual code, not the report."),
+  "approve":     ("🗻", "Architect",  "I hold the shape of the whole. I give final sign-off before commit."),
+  "commit":      ("🌱", "Engineer",   "I close out completed work with a clean, honest commit."),
+}
+# Default fallback: ("🍂", "Bug Fixer", "I find what has decayed and restore it.")
+
+# --- Banner identity map (banner name per phase role) ---
+BANNER_MAP = {
+  "plan-fix":    "rift",
+  "review-plan": "oracle",
+  "implement":   "rift",
+  "review-code": "oracle",
+  "approve":     "north",
+  "commit":      "forge",
+}
+# Default fallback: "rift"
+
+# --- Announce phase with identity banner (badge) + bug context ---
 emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🍂", "Bug Fixer", "I find what has decayed and restore it."))
-print(f"\n{emoji} **Forge {persona_name}** — {bug_id} · {tagline} [{phase_model}]\n")
+banner_name = BANNER_MAP.get(phase.role, "rift")
+run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\\'./.forge/config.json\\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name}')
+print(f"  → {bug_id}  [{phase_model}]\n")
 
-# --- Symmetric Injection: noun "bug-fixer" is constant for all bug phases ---
-persona_content = read_file(".forge/personas/bug-fixer.md")
-skill_content   = read_file(".forge/skills/bug-fixer-skills.md")
+# --- Symmetric Injection: noun resolved from ROLE_TO_NOUN ---
+persona_noun    = ROLE_TO_NOUN.get(phase.role, "bug-fixer")
+persona_content = read_file(f".forge/personas/{persona_noun}.md")
+skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
 
 # --- Spawn subagent with "print this exact line first" instruction ---
 spawn_subagent(
   prompt=(
-    f"Your first output — before any tool use or file reads — print this exact line:\n\n"
-    f"{emoji} **Forge {persona_name}** — {bug_id} · {tagline} [{phase_model}]\n\n"
+    f"Your first action — before any file reads or tool use — run this command using the Bash tool to display your identity:\n\n"
+    f"FORGE_ROOT=$(node -e \"console.log(require('./.forge/config.json').paths.forgeRoot)\") && node \"$FORGE_ROOT/tools/banners.cjs\" {banner_name}\n\n"
     f"---\n\n"
     f"{persona_content}\n\n"
     f"{skill_content}\n\n"
@@ -139,8 +167,9 @@ spawn_subagent(
 ```
 
 **Key rules for the generated `fix_bug.md`:**
-- `PERSONA_MAP` MUST cover all six phases: `plan-fix`, `review-plan`, `implement`, `review-code`, `approve`, `commit`.
-- The persona noun is always `"bug-fixer"` — never `{phase.role}`. Do not use `{phase.role}.md` lookups.
+- `ROLE_TO_NOUN` MUST cover all six phases: `plan-fix`, `review-plan`, `implement`, `review-code`, `approve`, `commit`.
+- `PERSONA_MAP` MUST cover the same six phases with the correct emoji/name/tagline per persona (bug-fixer, supervisor, architect, engineer — not all bug-fixer).
+- Persona and skill file lookups MUST use `{persona_noun}.md` and `{persona_noun}-skills.md` from `ROLE_TO_NOUN`, never `{phase.role}.md` or a hardcoded `"bug-fixer"` noun for all phases.
 - The sidecar path uses `.forge/store/events/bugs/_{event_id}_usage.json` (not `events/{sprint_id}/`).
 - The announcement `print()` line MUST include `{tagline}` and `[{phase_model}]`.
 - The `spawn_subagent` prompt MUST open with the "Your first output — before any tool use or file reads — print this exact line:" instruction.

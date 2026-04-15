@@ -179,6 +179,22 @@ PERSONA_MAP = {
   "writeback":   ("🍃", "Collator",    "I gather what exists and arrange it into views."),
 }
 
+# --- Banner identity map (banner name per phase role) ---
+# Maps each role to a banner in forge/tools/banners.cjs.
+# Displayed by the orchestrator (badge) and by the subagent on entry (full).
+BANNER_MAP = {
+  "plan":        "forge",
+  "implement":   "forge",
+  "update-plan": "forge",
+  "update-impl": "forge",
+  "commit":      "forge",
+  "review-plan": "oracle",
+  "review-code": "oracle",
+  "validate":    "lumen",
+  "approve":     "north",
+  "writeback":   "drift",
+}
+
 for each task in dependency_sorted(tasks):
   phases = resolve_pipeline(task)           # from config.pipelines or default
   iteration_counts = {}                     # keyed by phase command name
@@ -198,9 +214,11 @@ for each task in dependency_sorted(tasks):
     event_id = f"{start_ts}_{task_id}_{phase.role}_{phase.action}"
     sidecar_path = f".forge/store/events/{sprint_id}/_{event_id}_usage.json"  # used by merge-sidecar
 
-    # --- Resolve persona symbol, name, tagline ---
+    # --- Announce phase with identity banner (badge) + task context ---
     emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🌊", "Orchestrator", "I move tasks through their lifecycle."))
-    print(f"\n{emoji} **Forge {persona_name}** — {task_id} · {tagline} [{phase_model}]\n")
+    banner_name = BANNER_MAP.get(phase.role, "forge")
+    run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\\'./.forge/config.json\\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name}')
+    print(f"  → {task_id}  [{phase_model}]\n")
 
     # --- Invoke phase as subagent (fresh context per phase) ---
     emit_event(task, phase, eventId=event_id, iteration=iteration_counts.get(phase.command, 0) + 1, action="start")
@@ -211,7 +229,22 @@ for each task in dependency_sorted(tasks):
     skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
     
     spawn_subagent(
-      prompt=f"Your first output — before any tool use or file reads — print this exact line:\n\n{emoji} **Forge {persona_name}** — {task_id} · {tagline} [{phase_model}]\n\n---\n\n{persona_content}\n\n{skill_content}\n\n### Current Working Context\n- Sprint Root: {sprint_root_path}\n- Task Root: {task_root_path}\n- Store Root: {store_root_path}\n\nRead `{phase.workflow}` and follow it. Task ID: {task_id}. Also read `engineering/MASTER_INDEX.md` for project state. Before returning: run /cost, parse token usage, and write the usage sidecar via `/forge:store emit {sprint_id} '{sidecar-json}' --sidecar` with fields: inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD.",
+      prompt=(
+        f"Your first action — before any file reads or tool use — run this command using the Bash tool to display your identity:\n\n"
+        f"FORGE_ROOT=$(node -e \"console.log(require('./.forge/config.json').paths.forgeRoot)\") && node \"$FORGE_ROOT/tools/banners.cjs\" {banner_name}\n\n"
+        f"---\n\n"
+        f"{persona_content}\n\n"
+        f"{skill_content}\n\n"
+        f"### Current Working Context\n"
+        f"- Sprint Root: {sprint_root_path}\n"
+        f"- Task Root:   {task_root_path}\n"
+        f"- Store Root:  {store_root_path}\n\n"
+        f"Read `{phase.workflow}` and follow it. Task ID: {task_id}. "
+        f"Also read `engineering/MASTER_INDEX.md` for project state. "
+        f"Before returning: run /cost, parse token usage, and write the usage sidecar via "
+        f"`/forge:store emit {sprint_id} '{{sidecar-json}}' --sidecar` with fields: "
+        f"inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD."
+      ),
       description=f"{emoji} {persona_name} — {phase.name} for {task_id}",
       model=phase_model
     )
