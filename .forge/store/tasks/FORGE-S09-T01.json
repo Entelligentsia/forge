@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S09",
   "title": "Renumber sdlc-init.md phases to sequential integers",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/commands/init.md",
   "estimate": "M",
   "dependencies": [],
