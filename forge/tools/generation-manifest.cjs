@@ -9,6 +9,8 @@
 //        generation-manifest list [--modified]
 //        generation-manifest status
 //        generation-manifest remove <path>
+//        generation-manifest clear-namespace <prefix>  Remove all entries whose path starts with <prefix>.
+//                                                       prefix must start with .forge/ or .claude/ and end with /
 
 process.on('uncaughtException', (e) => {
   process.stderr.write(`× ${e.message}\n`);
@@ -96,6 +98,8 @@ if (!subcmd) {
     '  list [--modified]    Table of tracked files with status',
     '  status               Summary counts',
     '  remove <path>        Remove a file from tracking',
+    '  clear-namespace <prefix>  Remove all entries whose path starts with <prefix>.',
+    '                            prefix must start with .forge/ or .claude/ and end with /',
   ].join('\n') + '\n');
   process.exit(2);
 }
@@ -266,6 +270,32 @@ if (subcmd === 'remove') {
   delete manifest.files[relPath];
   writeManifest(manifest);
   process.stdout.write(`〇 Removed from tracking: ${relPath}\n`);
+  process.exit(0);
+}
+
+// ── clear-namespace ──────────────────────────────────────────────────────────
+
+if (subcmd === 'clear-namespace') {
+  const prefix = args[0];
+  if (!prefix) {
+    process.stderr.write('Usage: generation-manifest clear-namespace <prefix>\n');
+    process.exit(2);
+  }
+  const validPrefix = (prefix.startsWith('.forge/') || prefix.startsWith('.claude/')) && prefix.endsWith('/');
+  if (!validPrefix) {
+    process.stderr.write('Usage error: prefix must start with .forge/ or .claude/ and end with /\n');
+    process.exit(2);
+  }
+  const manifest = readManifest();
+  const files = manifest.files || {};
+  const keys = Object.keys(files).filter(k => k.startsWith(prefix));
+  if (keys.length === 0) {
+    process.stdout.write(`── No entries matching ${prefix}\n`);
+  } else {
+    for (const k of keys) delete files[k];
+    writeManifest(manifest);
+    process.stdout.write(`〇 Cleared ${keys.length} entries matching ${prefix}\n`);
+  }
   process.exit(0);
 }
 

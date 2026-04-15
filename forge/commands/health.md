@@ -17,8 +17,9 @@ Assess the health and currency of the project's SDLC knowledge base.
 | **Coverage gaps** | Architecture areas with no sub-document |
 | **Writeback backlog** | `[?]` items not yet confirmed by a retrospective |
 | **Store integrity** | Run `node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run` |
-| **Skill gaps** | Marketplace skills relevant to the stack that are not installed |
 | **Modified generated files** | Generated files that have been manually edited since last recorded — run `node "$FORGE_ROOT/tools/generation-manifest.cjs" list --modified` |
+| **Generated file structure** | Files expected by the plugin's structure-manifest that are absent from `.forge/` or `.claude/commands/` |
+| **Skill gaps** | Marketplace skills relevant to the stack that are not installed |
 | **Feature Test Coverage** | Features with zero tagged tests |
 | **Concepts freshness** | `docs/concepts/*.md` pages older than `forge/meta/store-schema/` updates |
 
@@ -57,25 +58,38 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
    > These files were manually edited after generation. Regeneration will warn
    > before overwriting them. Run `/forge:regenerate` to review and update.
    If all files are pristine (or the tool is absent), omit this section.
-7. Check skill gaps: run `node "$FORGE_ROOT/tools/list-skills.js"` to get the live
+7. Check generated file structure:
+   ```sh
+   cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/check-structure.cjs" --path "$PROJECT_ROOT"
+   ```
+   If missing files are reported, include them in the health report under
+   **Generated file structure** with note:
+   > N expected file(s) are missing from generated output. Run `/forge:update` to
+   > regenerate missing files, or `/forge:regenerate <namespace>` for targeted repair.
+   If all files are present (exit 0), emit:
+   > 〇 Generated file structure — all expected files present.
+   If the tool is absent (file not found), skip this check silently.
+   Note: custom `paths.*` overrides in `.forge/config.json` are respected by
+   check-structure.cjs. Projects using default paths will see no difference.
+8. Check skill gaps: run `node "$FORGE_ROOT/tools/list-skills.js"` to get the live
    installed skill list from `~/.claude/plugins/installed_plugins.json` (source of
    truth — not the config, which can be stale). Read `$FORGE_ROOT/meta/skill-recommendations.md`,
    cross-reference the stack against live installed skills, report any uninstalled
    high-confidence recommendations with one-line install instructions. If the live
    list differs from `installedSkills` in config, update config to match.
-8. Check test coverage for active features:
+9. Check test coverage for active features:
    - Read `$PROJECT_ROOT/.forge/store/features/` to find all features with `"status": "active"`.
    - If zero active features exist, skip this check.
    - Otherwise, scan all test directories under `$PROJECT_ROOT` (e.g. `test/`, `tests/`, `spec/`, `__tests__/`) and test files (`*.test.*`, `*.spec.*`) for the `FEAT-NNN` identifier of each active feature.
    - You should account for three tag forms: filename (`feat-NNN-login.test.js`), test name string (`describe('[FEAT-NNN]')`), or docblock comment (`// @feat FEAT-NNN`).
    - For each active feature, report the count of test files or names matching its ID.
    - Warn explicitly: `⚠ FEAT-NNN has 0 tagged tests` if an active feature has zero hits.
-9. Check concepts freshness:
-   - Compare the modification timestamps of files in `$PROJECT_ROOT/docs/concepts/*.md` against the newest schema modification in `$FORGE_ROOT/meta/store-schema/`.
-   - If any concept doc is older than the newest schema change, emit a notice that it may be stale.
-10. Report all findings with actionable recommendations.
+10. Check concepts freshness:
+    - Compare the modification timestamps of files in `$PROJECT_ROOT/docs/concepts/*.md` against the newest schema modification in `$FORGE_ROOT/meta/store-schema/`.
+    - If any concept doc is older than the newest schema change, emit a notice that it may be stale.
+11. Report all findings with actionable recommendations.
     If `--path` was used, open the report with: `Health report for: $PROJECT_ROOT`
-11. Close the report with: `If you've found a bug in Forge itself, run /forge:report-bug`
+12. Close the report with: `If you've found a bug in Forge itself, run /forge:report-bug`
 
 ## Output
 

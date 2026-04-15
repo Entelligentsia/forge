@@ -1,0 +1,100 @@
+{
+  "version": "0.9.8",
+  "generatedAt": "2026-04-15T18:54:50.958Z",
+  "generatedByTool": "build-manifest.cjs",
+  "namespaces": {
+    "personas": {
+      "logicalKey": "personas",
+      "dir": ".forge/personas",
+      "files": [
+        "architect.md",
+        "bug-fixer.md",
+        "collator.md",
+        "engineer.md",
+        "qa-engineer.md",
+        "supervisor.md"
+      ]
+    },
+    "skills": {
+      "logicalKey": "skills",
+      "dir": ".forge/skills",
+      "files": [
+        "architect-skills.md",
+        "bug-fixer-skills.md",
+        "collator-skills.md",
+        "engineer-skills.md",
+        "qa-engineer-skills.md",
+        "supervisor-skills.md"
+      ]
+    },
+    "workflows": {
+      "logicalKey": "workflows",
+      "dir": ".forge/workflows",
+      "files": [
+        "architect_approve.md",
+        "architect_review_sprint_completion.md",
+        "architect_sprint_intake.md",
+        "architect_sprint_plan.md",
+        "collator_agent.md",
+        "commit_task.md",
+        "fix_bug.md",
+        "implement_plan.md",
+        "orchestrate_task.md",
+        "plan_task.md",
+        "quiz_agent.md",
+        "review_code.md",
+        "review_plan.md",
+        "run_sprint.md",
+        "sprint_retrospective.md",
+        "update_implementation.md",
+        "update_plan.md",
+        "validate_task.md"
+      ]
+    },
+    "templates": {
+      "logicalKey": "templates",
+      "dir": ".forge/templates",
+      "files": [
+        "CODE_REVIEW_TEMPLATE.md",
+        "CUSTOM_COMMAND_TEMPLATE.md",
+        "PLAN_REVIEW_TEMPLATE.md",
+        "PLAN_TEMPLATE.md",
+        "PROGRESS_TEMPLATE.md",
+        "RETROSPECTIVE_TEMPLATE.md",
+        "SPRINT_MANIFEST_TEMPLATE.md",
+        "SPRINT_REQUIREMENTS_TEMPLATE.md",
+        "TASK_PROMPT_TEMPLATE.md"
+      ]
+    },
+    "commands": {
+      "logicalKey": "commands",
+      "dir": ".claude/commands",
+      "files": [
+        "approve.md",
+        "collate.md",
+        "commit.md",
+        "fix-bug.md",
+        "implement.md",
+        "plan.md",
+        "retrospective.md",
+        "review-code.md",
+        "review-plan.md",
+        "run-sprint.md",
+        "run-task.md",
+        "sprint-intake.md",
+        "sprint-plan.md"
+      ]
+    },
+    "schemas": {
+      "logicalKey": "schemas",
+      "dir": ".forge/schemas",
+      "files": [
+        "bug.schema.json",
+        "event.schema.json",
+        "feature.schema.json",
+        "sprint.schema.json",
+        "task.schema.json"
+      ]
+    }
+  }
+}

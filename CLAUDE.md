@@ -41,6 +41,7 @@ regeneration is a user action (`/forge:regenerate`) that runs after they upgrade
 | Change a schema | `forge/schemas/` |
 | Update a sprint task (dogfooding) | Use `/plan`, `/implement`, etc. |
 | Check dogfooding project health | `/forge:health` |
+| Rebuild structure manifest | Edit mapping in `forge/tools/build-manifest.cjs`, then `node forge/tools/build-manifest.cjs --forge-root forge/` |
 
 ---
 
@@ -91,9 +92,18 @@ If a schema change affects the lifecycle (state machinery) of a Forge entity (Sp
    `docs/security/scan-v{VERSION}.md` and commit it together with the
    version bump in the same commit or a follow-up `security:` commit.
 
-   Add a row to the Security Scan History table in `README.md` under
-   `## Security`. If that section does not yet exist, create it directly
-   above `## Supported Stacks`:
+   Update the security scan index and README table:
+
+   a. **`docs/security/index.md`** — prepend a new row at the top of the
+      table (below the header). This page holds the complete history.
+
+   b. **`README.md` `## Security` table** — prepend the new row, then
+      remove the oldest row so the table always shows exactly the 3 most
+      recent scans. The line below the table must remain:
+      `[Full scan history →](docs/security/index.md)`
+
+   If the `## Security` section does not yet exist in `README.md`, create
+   it directly above `## Supported Stacks` with this structure:
 
    ```markdown
    ## Security
@@ -104,7 +114,18 @@ If a schema change affects the lifecycle (state machinery) of a Forge entity (Sp
 
    | Version | Date | Report | Summary |
    |---------|------|--------|---------|
+
+   [Full scan history →](docs/security/index.md)
    ```
+
+4. **Run `build-manifest.cjs` after any meta/ file change:**
+   If you add, rename, or remove any file in `forge/meta/personas/`,
+   `forge/meta/workflows/`, `forge/meta/templates/`, or `forge/schemas/*.schema.json`,
+   update the corresponding mapping table in `forge/tools/build-manifest.cjs` and
+   re-run it to regenerate `forge/schemas/structure-manifest.json`. Commit both the
+   updated tool and the updated manifest together.
+   Note: `CUSTOM_COMMAND_TEMPLATE.md` is a one-shot init artifact (no meta source).
+   Do not add a meta source for it — keep its TEMPLATE_MAP entry as `[null, 'CUSTOM_COMMAND_TEMPLATE.md']`.
 
 **What does NOT need a version bump:** documentation-only changes, typo fixes
 in `docs/`, README updates, or changes that have no effect on installed projects.

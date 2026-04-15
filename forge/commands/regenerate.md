@@ -64,6 +64,10 @@ Re-generate `.forge/personas/` from the meta-persona definitions and the current
 **If a sub-target is provided** (e.g. `/forge:regenerate personas engineer`
 or the colon form `personas:engineer`), regenerate only the single persona
 file `.forge/personas/<sub-target>.md` from `$FORGE_ROOT/meta/personas/meta-<sub-target>.md`.
+Before writing, remove any existing manifest entry for this specific file (handles rename case):
+```sh
+node "$FORGE_ROOT/tools/generation-manifest.cjs" remove .forge/personas/<sub-target>.md 2>/dev/null || true
+```
 All other steps below apply to that single file only (manifest check, hash recording).
 
 **If no sub-target** — full rebuild of all persona files:
@@ -71,8 +75,12 @@ All other steps below apply to that single file only (manifest check, hash recor
 1. Read `$FORGE_ROOT/meta/personas/` — all meta-persona files
 2. Read the current knowledge base in `engineering/`
 3. Emit: `Generating personas (<N> files)...`
-4. Re-generate `.forge/personas/` following `$FORGE_ROOT/init/generation/generate-personas.md`
-5. For each file being written:
+4. Clear stale entries for this namespace:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/personas/
+   ```
+5. Re-generate `.forge/personas/` following `$FORGE_ROOT/init/generation/generate-personas.md`
+6. For each file being written:
    - Check manifest status (same pattern as workflows — warn on modified)
    - Emit: `  ⋯ <filename>.md...`
    - Write the file
@@ -85,12 +93,19 @@ All other steps below apply to that single file only (manifest check, hash recor
 
 Re-generate `.forge/skills/` from the meta-skill templates and project config.
 
+Note: `skills` is NOT in the default run (`/forge:regenerate` with no arguments).
+Users must run `/forge:regenerate skills` explicitly to trigger this section.
+
 1. Read `$FORGE_ROOT/meta/skills/` — all meta-skill files
 2. Read `.forge/config.json` for `installedSkills`
 3. Read the current knowledge base in `engineering/`
 4. Emit: `Generating skills (<N> files)...`
-5. Re-generate `.forge/skills/` following `$FORGE_ROOT/init/generation/generate-skills.md`
-6. For each file being written:
+5. Clear stale entries for this namespace:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/skills/
+   ```
+6. Re-generate `.forge/skills/` following `$FORGE_ROOT/init/generation/generate-skills.md`
+7. For each file being written:
    - Check manifest status (same pattern as workflows — warn on modified)
    - Emit: `  ⋯ <filename>.md...`
    - Write the file
@@ -110,6 +125,10 @@ or the colon form `workflows:plan_task`), regenerate only the single workflow
 file `.forge/workflows/<sub-target>.md` instead of the full directory. All
 other steps below apply to that single file only (manifest check, diff prompt,
 hash recording).
+Before writing, remove any existing manifest entry for this specific file (handles rename case):
+```sh
+node "$FORGE_ROOT/tools/generation-manifest.cjs" remove .forge/workflows/<sub-target>.md 2>/dev/null || true
+```
 
 **If no sub-target** — full rebuild of all workflow files:
 
@@ -119,10 +138,14 @@ hash recording).
    domain, stack checklist) — this is the input, not an output
 4. Read `.forge/config.json` for paths, commands, and pipeline configuration
 5. Emit: `Generating workflows (<N> files)...`
-6. Re-generate `.forge/workflows/` following
+6. Clear stale entries for this namespace:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/workflows/
+   ```
+7. Re-generate `.forge/workflows/` following
    `$FORGE_ROOT/init/generation/generate-workflows.md` and
    `$FORGE_ROOT/init/generation/generate-orchestration.md`
-7. For each file being written:
+8. For each file being written:
    - If `MANIFEST_TOOL` is set, check its status:
      ```sh
      node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/workflows/{filename}.md
@@ -154,11 +177,15 @@ Run this when:
 1. Read `.forge/config.json` for paths
 2. Enumerate `.forge/workflows/` to know what workflow files currently exist
 3. Emit: `Generating commands (<N> files)...`
-4. Re-generate `.claude/commands/` following
+4. Clear stale entries for this namespace:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .claude/commands/
+   ```
+5. Re-generate `.claude/commands/` following
    `$FORGE_ROOT/init/generation/generate-commands.md`
    The idempotency check will overwrite any command that references a
    missing or renamed workflow, and skip any that are already correct.
-5. For each file being written:
+6. For each file being written:
    - Emit: `  ⋯ <filename>.md...`
    - Write the file
    - Record hash: `node "$FORGE_ROOT/tools/generation-manifest.cjs" record .claude/commands/{filename}.md`
@@ -180,14 +207,24 @@ current knowledge base.
 1. Read `$FORGE_ROOT/meta/templates/` — all meta-template files
 2. Read the current knowledge base in `engineering/`
 3. Emit: `Generating templates (<N> files)...`
-4. Re-generate `.forge/templates/` following
+4. Clear stale entries for this namespace:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/templates/
+   ```
+5. Re-generate `.forge/templates/` following
    `$FORGE_ROOT/init/generation/generate-templates.md`
-5. For each file being written:
+6. For each file being written:
    - Check manifest status (same pattern as workflows — warn on modified, proceed normally on pristine/untracked)
    - Emit: `  ⋯ <filename>.md...`
    - Write the file
    - Record hash: `node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/templates/{filename}.md`
    - Emit: `  〇 <filename>.md`
+7. Re-record the one-shot init artifact that is not regenerated from a meta file:
+   ```sh
+   if [ -f ".forge/templates/CUSTOM_COMMAND_TEMPLATE.md" ]; then
+     node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/templates/CUSTOM_COMMAND_TEMPLATE.md
+   fi
+   ```
 
 ---
 

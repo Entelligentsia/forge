@@ -1,4 +1,33 @@
 {
+  "0.9.8": {
+    "version": "0.9.9",
+    "date": "2026-04-16",
+    "notes": "Banner library: add forge/tools/banners.cjs (10 agent identities, 3 render modes: full/badge/mark) and forge/tools/banners.sh (bash wrapper). Wire banners into meta personas (Banner field + banner command in Persona block format) and orchestrator announcement algorithms (BANNER_MAP + badge display before each phase spawn). Subagent identity injection now runs the banner command as first action instead of printing a plain text line.",
+    "regenerate": [
+      "workflows",
+      "personas"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.7": {
+    "version": "0.9.8",
+    "date": "2026-04-15",
+    "notes": "Structure manifest: add check-structure.cjs and build-manifest.cjs for deterministic generated-file verification; add clear-namespace to generation-manifest.cjs (with prefix-shape guard); integrate structure check into forge:health and forge:update. Fixes 14 stale generation-manifest entries from role-based naming. CUSTOM_COMMAND_TEMPLATE.md now tracked in structure-manifest (57 expected files, up from 56).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.6": {
+    "version": "0.9.7",
+    "date": "2026-04-16",
+    "notes": "Fix fix-bug persona assignment: plan-fix and implement use bug-fixer, review-plan and review-code use supervisor, approve uses architect, commit uses engineer — mirrors the task orchestrator's role-to-noun separation of concerns. Adds ROLE_TO_NOUN table to the generated fix_bug.md announcement algorithm.",
+    "regenerate": [
+      "workflows:fix_bug"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.5": {
     "version": "0.9.6",
     "date": "2026-04-15",

@@ -1,0 +1,19 @@
+{
+  "eventId": "_2026-04-15T18:38:00.000Z_FORGE-BUG-009_plan_plan-fix_usage",
+  "taskId": "FORGE-BUG-009",
+  "sprintId": "bugs",
+  "role": "bug-fixer",
+  "action": "plan-fix",
+  "phase": "plan",
+  "iteration": 2,
+  "startTimestamp": "2026-04-15T18:38:00.000Z",
+  "endTimestamp": "2026-04-15T18:43:00.000Z",
+  "durationMinutes": 5.0,
+  "model": "claude-sonnet-4-6",
+  "inputTokens": 38200,
+  "outputTokens": 5800,
+  "cacheReadTokens": 142000,
+  "cacheWriteTokens": 12400,
+  "estimatedCostUSD": 0.2215,
+  "tokenSource": "estimated"
+}

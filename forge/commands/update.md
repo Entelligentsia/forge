@@ -465,6 +465,29 @@ then knowledge-base sub-targets if present.
 maps to the file `.forge/workflows/architect_sprint_plan.md` — append `.md`
 to the sub-target name as written. Do NOT strip any prefix or suffix.
 
+### Post-migration structure check
+
+After all regeneration targets complete, run:
+```sh
+node "$FORGE_ROOT/tools/check-structure.cjs" --path .
+```
+
+If exit 0 (all present):
+> 〇 All expected generated files are present.
+
+If exit 1 (gaps remain):
+> △ Structure check: N file(s) still missing after migration:
+>   (list missing files)
+>
+> This may indicate a failed regeneration step. Re-run `/forge:regenerate <namespace>`
+> for each affected namespace, or `/forge:regenerate` to rebuild all targets.
+> Note: skills entries require an explicit `/forge:regenerate skills` — they are not
+> included in the default regenerate run.
+
+Do NOT block migration success on gaps — surface them as a warning only. The user
+is already informed of failed regeneration steps by the Iron Laws above; this check
+is an additional safety net.
+
 ### Iron Laws for Step 4
 
 - YOU MUST NOT call `generation-manifest.cjs record` directly for migration targets.
