@@ -1,0 +1,19 @@
+{
+  "taskId": "FORGE-S09-T09",
+  "feature_id": null,
+  "sprintId": "FORGE-S09",
+  "title": "Release engineering — version bump, migration, security scan",
+  "status": "planned",
+  "path": "forge/.claude-plugin/plugin.json",
+  "estimate": "S",
+  "dependencies": [
+    "FORGE-S09-T01",
+    "FORGE-S09-T02",
+    "FORGE-S09-T03",
+    "FORGE-S09-T04",
+    "FORGE-S09-T05",
+    "FORGE-S09-T06",
+    "FORGE-S09-T07"
+  ],
+  "pipeline": "default"
+}

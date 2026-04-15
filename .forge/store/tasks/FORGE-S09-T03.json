@@ -1,0 +1,11 @@
+{
+  "taskId": "FORGE-S09-T03",
+  "feature_id": null,
+  "sprintId": "FORGE-S09",
+  "title": "Init: calibration baseline write + incomplete init guard",
+  "status": "planned",
+  "path": "forge/commands/init.md",
+  "estimate": "M",
+  "dependencies": ["FORGE-S09-T01", "FORGE-S09-T02"],
+  "pipeline": "default"
+}
