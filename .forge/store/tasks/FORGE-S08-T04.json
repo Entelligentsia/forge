@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S08",
   "title": "Update step banners and explicit sequencing",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/commands/update.md",
   "estimate": "S",
   "dependencies": ["FORGE-S08-T03"],
