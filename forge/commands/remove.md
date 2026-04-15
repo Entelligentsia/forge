@@ -1,4 +1,5 @@
 ---
+name: remove
 description: Use when you want to remove Forge from the current project, with options for what to keep
 ---
 

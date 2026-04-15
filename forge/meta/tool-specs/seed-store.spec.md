@@ -42,10 +42,10 @@ All JSON files use **camelCase** field names to match `validate-store`.
 
 **Bug** (`.forge/store/bugs/<ID>.json`):
 ```json
-{ "bugId": "PREFIX-B01", "title": "...", "severity": "medium", "status": "open" }
+{ "bugId": "PREFIX-B01", "title": "...", "severity": "medium", "status": "reported" }
 ```
 
-Status defaults: sprint → `"active"`, task → `"planned"`, bug → `"open"`.
+Status defaults: sprint → `"active"`, task → `"planned"`, bug → `"reported"`.
 Infer a better status from artifact presence when possible (e.g. PROGRESS.md
 with "committed" → `"committed"`).
 

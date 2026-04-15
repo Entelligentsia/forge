@@ -1,4 +1,5 @@
 ---
+name: store-repair
 description: Diagnose and repair corrupted store records. Use when validate-store reports errors or store data seems wrong.
 ---
 

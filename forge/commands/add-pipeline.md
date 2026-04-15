@@ -1,4 +1,5 @@
 ---
+name: add-pipeline
 description: Conversational pipeline manager — add, customize, view, or remove Forge pipelines and their phase commands
 ---
 

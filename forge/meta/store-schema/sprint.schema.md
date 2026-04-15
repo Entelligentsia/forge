@@ -20,13 +20,14 @@
 | `executionMode` | enum | no | `sequential` / `wave-parallel` / `full-parallel` |
 | `createdAt` | string | yes | ISO 8601 timestamp |
 | `completedAt` | string | no | ISO 8601 timestamp |
+| `path` | string | no | Relative path to sprint artifact directory |
 | `humanEstimates` | object | no | `{ total: "Xh", breakdown: { taskId: "Yh" } }` |
 
 ## Status Values
 
 `planning` → `active` → `completed` → `retrospective-done`
 
-Failed states: `blocked`, `partially-completed`
+Failed states: `blocked`, `partially-completed`, `abandoned`
 
 ## JSON Schema
 
@@ -45,7 +46,7 @@ This block is the canonical machine-readable definition embedded in `validate-st
     "description":    { "type": "string" },
     "status": {
       "type": "string",
-      "enum": ["planning", "active", "completed", "retrospective-done", "blocked", "partially-completed"]
+      "enum": ["planning", "active", "completed", "retrospective-done", "blocked", "partially-completed", "abandoned"]
     },
     "goal":           { "type": "string" },
     "taskIds":        { "type": "array", "items": { "type": "string" } },
@@ -55,6 +56,7 @@ This block is the canonical machine-readable definition embedded in `validate-st
     "executionMode":  { "type": "string", "enum": ["sequential", "wave-parallel", "full-parallel"] },
     "createdAt":      { "type": "string", "format": "date-time" },
     "completedAt":    { "type": "string", "format": "date-time" },
+    "path":           { "type": "string" },
     "humanEstimates": { "type": "object" }
   },
   "additionalProperties": false

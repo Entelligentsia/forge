@@ -1,4 +1,5 @@
 ---
+name: health
 description: Use when you want to check if the engineering knowledge base is stale, has gaps, or has store integrity issues
 ---
 
@@ -56,7 +57,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
    > These files were manually edited after generation. Regeneration will warn
    > before overwriting them. Run `/forge:regenerate` to review and update.
    If all files are pristine (or the tool is absent), omit this section.
-7. Check skill gaps: run `node "$FORGE_ROOT/hooks/list-skills.js"` to get the live
+7. Check skill gaps: run `node "$FORGE_ROOT/tools/list-skills.js"` to get the live
    installed skill list from `~/.claude/plugins/installed_plugins.json` (source of
    truth — not the config, which can be stale). Read `$FORGE_ROOT/meta/skill-recommendations.md`,
    cross-reference the stack against live installed skills, report any uninstalled

@@ -1,4 +1,5 @@
 ---
+name: migrate
 description: Use after forge:init to migrate a pre-existing AI-SDLC store to Forge format — interviews you to define the project-specific mapping
 ---
 

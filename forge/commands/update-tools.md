@@ -1,4 +1,5 @@
 ---
+name: update-tools
 description: Use when you want to refresh .forge/schemas/ to match the currently installed Forge plugin version
 ---
 
