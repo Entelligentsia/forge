@@ -31,7 +31,7 @@ Break sprint requirements into a set of estimated tasks with a dependency graph.
    - Identify the critical path
 
 4. Documentation:
-   - Generate SPRINT_PLAN.md
+   - Write SPRINT_PLAN.md to `engineering/sprints/{sprintId}/SPRINT_PLAN.md`
    - Create each task via `/forge:store write task '{task-json}'`
    - Update the sprint record with all new task IDs via `/forge:store write sprint '{updated-sprint-json}'` (the sprint JSON must include the complete `taskIds` array with all newly created task IDs)
    - For each task, create its task folder and write TASK_PROMPT.md:

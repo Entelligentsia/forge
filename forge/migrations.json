@@ -1,4 +1,14 @@
 {
+  "0.9.3": {
+    "version": "0.9.4",
+    "date": "2026-04-15",
+    "notes": "Fix sprint-plan: SPRINT_PLAN.md now written to explicit path engineering/sprints/{sprintId}/SPRINT_PLAN.md — prevents root-level or missing placement. Run /forge:update and regenerate workflows:architect_sprint_plan.",
+    "regenerate": [
+      "workflows:architect_sprint_plan"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.2": {
     "version": "0.9.3",
     "date": "2026-04-15",

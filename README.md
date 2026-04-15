@@ -286,6 +286,7 @@ publication. Reports are filed as versioned artifacts in
 
 | Version | Date | Report | Summary |
 |---------|------|--------|---------|
+| 0.9.4 | 2026-04-15 | [scan-v0.9.4.md](docs/security/scan-v0.9.4.md) | 106 files — 0 critical, 2 warnings (carry-forward, accepted), 14 info — SAFE TO USE |
 | 0.9.3 | 2026-04-15 | [scan-v0.9.3.md](docs/security/scan-v0.9.3.md) | 106 files — 0 critical, 2 warnings (carry-forward, accepted), 14 info — SAFE TO USE |
 | 0.9.2 | 2026-04-15 | [scan-v0.9.2.md](docs/security/scan-v0.9.2.md) | 106 files — 0 critical, 2 warnings (carry-forward, accepted), 14 info — SAFE TO USE |
 | 0.9.1 | 2026-04-15 | [scan-v0.9.1.md](docs/security/scan-v0.9.1.md) | 106 files — 0 critical, 2 warnings (carry-forward, accepted), 14 info — SAFE TO USE |
