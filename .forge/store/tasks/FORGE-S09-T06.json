@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S09",
   "title": "SPRINT_PLAN.md output path in meta-sprint-plan",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/meta/workflows/meta-sprint-plan.md",
   "estimate": "S",
   "dependencies": [],
