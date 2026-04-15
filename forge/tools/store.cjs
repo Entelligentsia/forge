@@ -42,6 +42,25 @@ class Store {
   listFeatures(filter) { return this.impl.listFeatures(filter); }
   writeFeature(data) { return this.impl.writeFeature(data); }
   deleteFeature(id) { return this.impl.deleteFeature(id); }
+
+  // --- Collation State ---
+  writeCollationState(data) { return this.impl.writeCollationState(data); }
+  readCollationState() { return this.impl.readCollationState(); }
+
+  // --- Event Operations (extended) ---
+  /**
+   * Purge all event files for a sprint directory.
+   * @param {string} sprintId
+   * @param {{ dryRun?: boolean }} opts - dryRun: return file list without deleting
+   * @returns {{ purged: boolean, fileCount: number, files: string[] }}
+   */
+  purgeEvents(sprintId, opts) { return this.impl.purgeEvents(sprintId, opts); }
+  /**
+   * List event filenames for a sprint directory.
+   * @param {string} sprintId
+   * @returns {{ filename: string, id: string }[]}
+   */
+  listEventFilenames(sprintId) { return this.impl.listEventFilenames(sprintId); }
 }
 
 /**
@@ -224,6 +243,58 @@ class FSImpl {
   deleteFeature(id) {
     const p = this._getPath('feature', id);
     if (fs.existsSync(p)) fs.unlinkSync(p);
+  }
+
+  // Collation State
+  writeCollationState(data) {
+    const filePath = path.join(this.storeRoot, 'COLLATION_STATE.json');
+    return this._writeJson(filePath, data);
+  }
+  readCollationState() {
+    const filePath = path.join(this.storeRoot, 'COLLATION_STATE.json');
+    return this._readJson(filePath);
+  }
+
+  // Event Operations (extended)
+  /**
+   * Purge the events directory for a given sprint.
+   * Includes a path-traversal guard: the resolved directory must remain
+   * within the events base directory. Throws on escape attempt.
+   * Note: fileCount reflects .json files only, but the directory is removed
+   * entirely (including any non-.json files).
+   */
+  purgeEvents(sprintId, { dryRun = false } = {}) {
+    const eventsBase = path.resolve(this.storeRoot, 'events');
+    const eventsDir = path.resolve(eventsBase, sprintId);
+    // Guard: resolved path must stay within the events base directory.
+    if (!eventsDir.startsWith(eventsBase + path.sep) && eventsDir !== eventsBase) {
+      throw new Error(`Resolved events path '${eventsDir}' escapes store root — aborting purge`);
+    }
+    if (!fs.existsSync(eventsDir)) {
+      return { purged: false, fileCount: 0, files: [] };
+    }
+    const files = fs.readdirSync(eventsDir).filter(f => f.endsWith('.json'));
+    if (dryRun) {
+      return { purged: false, fileCount: files.length, files };
+    }
+    fs.rmSync(eventsDir, { recursive: true, force: true });
+    return { purged: true, fileCount: files.length, files };
+  }
+
+  /**
+   * List all event filenames for a sprint directory.
+   * Returns { filename, id } objects for ALL .json files including
+   * _-prefixed ephemeral sidecars. Callers filter internally.
+   */
+  listEventFilenames(sprintId) {
+    const dir = path.join(this.storeRoot, 'events', sprintId);
+    if (!fs.existsSync(dir)) return [];
+    return fs.readdirSync(dir)
+      .filter(f => f.endsWith('.json'))
+      .map(f => ({
+        filename: f,
+        id: f.slice(0, -5) // strip .json extension
+      }));
   }
 
   _matches(record, filter) {
