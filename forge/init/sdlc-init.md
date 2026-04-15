@@ -28,6 +28,11 @@ Run the 5 discovery prompts in parallel. Each reads from `$FORGE_ROOT/init/disco
 
 Validate the config against `$FORGE_ROOT/sdlc-config.schema.json`.
 
+Write `.forge/init-progress.json`:
+```json
+{ "lastPhase": 1, "timestamp": "<current ISO timestamp>" }
+```
+
 ---
 
 ## Phase 1.5 — Recommend Marketplace Skills
@@ -78,6 +83,11 @@ Install recommended? [Y/n] Or specify: e.g. "stripe-integration"
 skills are still recorded and wired. All skipped recommendations are surfaced
 again in the Report with copy-paste install commands.
 
+Write `.forge/init-progress.json`:
+```json
+{ "lastPhase": "1.5", "timestamp": "<current ISO timestamp>" }
+```
+
 ---
 
 ## Phase 2 — Generate Knowledge Base
@@ -91,6 +101,11 @@ Read `$FORGE_ROOT/init/generation/generate-knowledge-base.md` and follow it.
 
 Also scaffold: `.forge/store/` directories, `engineering/sprints/`, `engineering/bugs/`.
 
+Write `.forge/init-progress.json`:
+```json
+{ "lastPhase": 2, "timestamp": "<current ISO timestamp>" }
+```
+
 ---
 
 ## Phase 3 — Generate Personas
@@ -101,6 +116,11 @@ Read `$FORGE_ROOT/init/generation/generate-personas.md` and follow it.
 
 **Input**: `$FORGE_ROOT/meta/personas/` + discovery context + generated knowledge base
 **Output**: `.forge/personas/` (standalone persona files)
+
+Write `.forge/init-progress.json`:
+```json
+{ "lastPhase": 3, "timestamp": "<current ISO timestamp>" }
+```
 
 ---
 
@@ -113,6 +133,11 @@ Read `$FORGE_ROOT/init/generation/generate-skills.md` and follow it.
 **Input**: `$FORGE_ROOT/meta/skills/` + `.forge/config.json` (installedSkills) + discovery context + knowledge base
 **Output**: `.forge/skills/` (role-specific skill sets)
 
+Write `.forge/init-progress.json`:
+```json
+{ "lastPhase": "3b", "timestamp": "<current ISO timestamp>" }
+```
+
 ---
 
 ## Phase 4 — Generate Templates
@@ -123,6 +148,11 @@ Read `$FORGE_ROOT/init/generation/generate-templates.md` and follow it.
 
 **Input**: `$FORGE_ROOT/meta/templates/` + discovery context + knowledge base
 **Output**: `.forge/templates/`
+
+Write `.forge/init-progress.json`:
+```json
+{ "lastPhase": 4, "timestamp": "<current ISO timestamp>" }
+```
 
 ---
 
@@ -135,6 +165,11 @@ Read `$FORGE_ROOT/init/generation/generate-workflows.md` and follow it.
 **Input**: `$FORGE_ROOT/meta/workflows/` + `.forge/personas/` + `.forge/skills/` + templates + discovery context + knowledge base
 **Output**: `.forge/workflows/` (14 project-specific workflow files)
 
+Write `.forge/init-progress.json`:
+```json
+{ "lastPhase": 5, "timestamp": "<current ISO timestamp>" }
+```
+
 ---
 
 ## Phase 6 — Generate Orchestration
@@ -145,6 +180,11 @@ Read `$FORGE_ROOT/init/generation/generate-orchestration.md` and follow it.
 
 **Input**: `$FORGE_ROOT/meta/workflows/meta-orchestrate.md` + generated atomic workflows
 **Output**: `.forge/workflows/orchestrate_task.md`, `.forge/workflows/run_sprint.md`
+
+Write `.forge/init-progress.json`:
+```json
+{ "lastPhase": 6, "timestamp": "<current ISO timestamp>" }
+```
 
 ---
 
@@ -157,6 +197,11 @@ Read `$FORGE_ROOT/init/generation/generate-commands.md` and follow it.
 **Input**: generated workflows
 **Output**: `.claude/commands/` (standalone, non-namespaced slash commands)
 
+Write `.forge/init-progress.json`:
+```json
+{ "lastPhase": 7, "timestamp": "<current ISO timestamp>" }
+```
+
 ---
 
 ## Phase 8 — Install Tools
@@ -167,6 +212,11 @@ Read `$FORGE_ROOT/init/generation/generate-tools.md` and follow it.
 
 **Input**: `.forge/config.json`
 **Output**: `paths.forgeRoot` written to `.forge/config.json`
+
+Write `.forge/init-progress.json`:
+```json
+{ "lastPhase": 8, "timestamp": "<current ISO timestamp>" }
+```
 
 > Schema validation loads schemas from `.forge/schemas/` (project) or
 > `forge/schemas/` (in-tree fallback) at runtime. Run `/forge:update-tools`
@@ -185,6 +235,9 @@ and template coherence. Self-corrects up to once per failing component.
 
 **Output**: `.forge/generation-manifest.json` (file hashes for all generated artifacts),
 `.forge/update-check-cache.json` (migration baseline anchored to the installed version)
+
+Delete `.forge/init-progress.json` — init is complete.
+Use the Bash tool: `rm -f .forge/init-progress.json`
 
 ---
 

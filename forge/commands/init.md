@@ -20,6 +20,45 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 
 ## Execute
 
+### Resume Detection
+
+Before showing the pre-flight plan, check for an existing checkpoint:
+
+```sh
+cat .forge/init-progress.json 2>/dev/null
+```
+
+If the file exists and contains a valid `lastPhase` value, emit:
+
+```
+〇 Previous init detected — last completed phase: {lastPhase}
+
+Resume from Phase {nextPhase}? [Y] Start over [n]
+```
+
+Use the following phase-to-resume mapping:
+
+| lastPhase | Resume from (nextPhase) |
+|-----------|-------------------------|
+| 1         | Phase 1.5               |
+| "1.5"     | Phase 2                 |
+| 2         | Phase 3                 |
+| 3         | Phase 3b               |
+| "3b"      | Phase 4                 |
+| 4         | Phase 5                |
+| 5         | Phase 6                |
+| 6         | Phase 7                |
+| 7         | Phase 8                |
+| 8         | Phase 9                |
+
+If the user chooses to resume: skip to the mapped phase in sdlc-init.md.
+If the user chooses to start over: delete `.forge/init-progress.json` (using
+`rm -f .forge/init-progress.json`) and show the pre-flight plan normally.
+
+If the file does not exist, or contains invalid JSON, or contains an
+unrecognized `lastPhase` value: delete the corrupt file and show the
+pre-flight plan normally.
+
 ### Progress Output Format
 
 At the start of every phase, emit a banner using this exact format:
