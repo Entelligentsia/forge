@@ -506,31 +506,29 @@ const stateData = {
   taskCount: allTasks.filter(t => targetSprints.some(s => s.sprintId === t.sprintId)).length,
   bugCount: allBugs.length,
 };
-writeFile(path.join(storeRoot, 'COLLATION_STATE.json'), JSON.stringify(stateData, null, 2) + '\n');
+if (DRY_RUN) {
+  console.log(`[dry-run] would write: ${path.relative(cwd, path.join(storeRoot, 'COLLATION_STATE.json'))}`);
+} else {
+  store.writeCollationState(stateData);
+}
 
 const tag = DRY_RUN ? '[dry-run] ' : '';
 console.log(`${tag}Collated: ${targetSprints.length} sprint(s), ${allBugs.length} bug(s) → MASTER_INDEX.md updated, ${costReportsWritten} COST_REPORT(s) written`);
 
 // --- Purge event directory if requested ---
 if (PURGE_EVENTS) {
-  const eventsBase = path.resolve(storeRoot, 'events');
-  const eventsDir  = path.resolve(eventsBase, SPRINT_ARG);
-  // Guard: resolved path must remain within the events base directory.
-  // path.join resolves ../ sequences, so an untrusted ID like ../../etc
-  // would escape the store root without this check.
-  if (!eventsDir.startsWith(eventsBase + path.sep) && eventsDir !== eventsBase) {
-    console.error(`Error: resolved events path '${eventsDir}' escapes store root — aborting purge`);
-    process.exit(1);
-  }
-  if (!fs.existsSync(eventsDir)) {
-    console.log(`${tag}Purge: no events directory found for '${SPRINT_ARG}' — nothing to delete`);
-  } else {
-    const files = fs.readdirSync(eventsDir).filter(f => f.endsWith('.json'));
-    if (DRY_RUN) {
-      console.log(`[dry-run] would purge: ${path.relative(cwd, eventsDir)}/ (${files.length} file(s))`);
+  const relDir = path.relative(cwd, path.join(storeRoot, 'events', SPRINT_ARG));
+  try {
+    const result = store.purgeEvents(SPRINT_ARG, { dryRun: DRY_RUN });
+    if (result.fileCount === 0) {
+      console.log(`${tag}Purge: no events directory found for '${SPRINT_ARG}' — nothing to delete`);
+    } else if (DRY_RUN) {
+      console.log(`[dry-run] would purge: ${relDir}/ (${result.fileCount} file(s))`);
     } else {
-      fs.rmSync(eventsDir, { recursive: true, force: true });
-      console.log(`Purged: ${path.relative(cwd, eventsDir)}/ (${files.length} event file(s) deleted)`);
+      console.log(`Purged: ${relDir}/ (${result.fileCount} event file(s) deleted)`);
     }
+  } catch (err) {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
   }
 }
