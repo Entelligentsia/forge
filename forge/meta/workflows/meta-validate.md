@@ -32,8 +32,8 @@ The Supervisor performs a final validation of the implementation against the acc
      - If Approved: confirm the task is validated
 
 4. Finalize:
-   - Update task status (e.g., `validated` or `review-pending`)
-   - Emit "complete" event to `.forge/store/events/{sprintId}/`
+   - Update task status via `/forge:store update-status task {taskId} status review-approved` (if Approved) or `/forge:store update-status task {taskId} status code-revision-required` (if Revision Required)
+   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 ```
 
@@ -47,5 +47,5 @@ The Supervisor performs a final validation of the implementation against the acc
 - **Token Reporting:** The generated workflow MUST mandate the following before returning:
   1. Run `/cost` to retrieve session token usage.
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write a sidecar file at `.forge/store/events/{sprintId}/_{eventId}_usage.json`.
+  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

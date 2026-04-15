@@ -50,8 +50,8 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
      The cost summary written to the bug artifact above is the durable
      record; no COST_REPORT.md is generated for bug IDs (collate skips
      sprint processing when the ID is not a known sprint).
-   - Update bug status to `fixed`
-   - Emit "complete" event to `.forge/store/events/{bugId}/`
+   - Update bug status via `/forge:store update-status bug {bugId} status fixed`
+   - Emit the complete event via `/forge:store emit {bugId} '{event-json}'`
      (tombstone — written after the purge; the only event that will remain)
 ```
 
@@ -66,5 +66,5 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
 - **Token Reporting:** The generated workflow MUST mandate the following before returning:
   1. Run `/cost` to retrieve session token usage.
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write a sidecar file at `.forge/store/events/{sprintId}/_{eventId}_usage.json`.
+  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

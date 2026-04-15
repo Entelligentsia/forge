@@ -32,15 +32,16 @@ Break sprint requirements into a set of estimated tasks with a dependency graph.
 
 4. Documentation:
    - Generate SPRINT_PLAN.md
-   - Update the store: create task manifests for all planned tasks
+   - Create each task via `/forge:store write task '{task-json}'`
+   - Update the sprint record with all new task IDs via `/forge:store write sprint '{updated-sprint-json}'` (the sprint JSON must include the complete `taskIds` array with all newly created task IDs)
    - For each task, create its task folder and write TASK_PROMPT.md:
      * Folder: `engineering/sprints/{sprintId}/{taskId}/`
      * File: `TASK_PROMPT.md` — populate from `.forge/templates/TASK_PROMPT_TEMPLATE.md`
        filling in title, objective, acceptance criteria, entities, DSL/CLI changes, and operational impact
-   - Set sprint status to `planned`
+   - Update sprint status via `/forge:store update-status sprint {sprintId} status active`
 
 5. Finalize:
-   - Emit "complete" event to `.forge/store/events/{sprintId}/`
+   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 ```
 
@@ -70,5 +71,5 @@ after the Purpose heading and before the Algorithm block:
 - **Token Reporting:** The generated workflow MUST mandate the following before returning:
   1. Run `/cost` to retrieve session token usage.
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write a sidecar file at `.forge/store/events/{sprintId}/_{eventId}_usage.json`.
+  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

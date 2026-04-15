@@ -115,7 +115,7 @@ Each phase subagent is responsible for reporting its own token usage via a sidec
 1. Run `/cost` to retrieve token usage for the session.
 2. Parse the output for the five fields:
    `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-3. Write a sidecar file at `.forge/store/events/{sprintId}/_{eventId}_usage.json` with the exact format:
+3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar` with the exact format:
    ```json
    {
      "inputTokens": <integer>,
@@ -196,7 +196,7 @@ for each task in dependency_sorted(tasks):
     # --- Compute eventId before spawning so the subagent can name its sidecar ---
     start_ts = current_iso_timestamp()       # e.g. "20260415T141523000Z"
     event_id = f"{start_ts}_{task_id}_{phase.role}_{phase.action}"
-    sidecar_path = f".forge/store/events/{sprint_id}/_{event_id}_usage.json"
+    sidecar_path = f".forge/store/events/{sprint_id}/_{event_id}_usage.json"  # used by merge-sidecar
 
     # --- Resolve persona symbol, name, tagline ---
     emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🌊", "Orchestrator", "I move tasks through their lifecycle."))
@@ -211,18 +211,20 @@ for each task in dependency_sorted(tasks):
     skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
     
     spawn_subagent(
-      prompt=f"Your first output — before any tool use or file reads — print this exact line:\n\n{emoji} **Forge {persona_name}** — {task_id} · {tagline} [{phase_model}]\n\n---\n\n{persona_content}\n\n{skill_content}\n\n### Current Working Context\n- Sprint Root: {sprint_root_path}\n- Task Root: {task_root_path}\n- Store Root: {store_root_path}\n\nRead `{phase.workflow}` and follow it. Task ID: {task_id}. Also read `engineering/MASTER_INDEX.md` for project state. Before returning: run /cost, parse token usage, and write sidecar `.forge/store/events/{sprint_id}/_{event_id}_usage.json` with fields: inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD.",
+      prompt=f"Your first output — before any tool use or file reads — print this exact line:\n\n{emoji} **Forge {persona_name}** — {task_id} · {tagline} [{phase_model}]\n\n---\n\n{persona_content}\n\n{skill_content}\n\n### Current Working Context\n- Sprint Root: {sprint_root_path}\n- Task Root: {task_root_path}\n- Store Root: {store_root_path}\n\nRead `{phase.workflow}` and follow it. Task ID: {task_id}. Also read `engineering/MASTER_INDEX.md` for project state. Before returning: run /cost, parse token usage, and write the usage sidecar via `/forge:store emit {sprint_id} '{sidecar-json}' --sidecar` with fields: inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD.",
       description=f"{emoji} {persona_name} — {phase.name} for {task_id}",
       model=phase_model
     )
     # Subagent reads all context from disk, does its work, writes artifacts/status to disk, then exits.
 
-    # --- Sidecar merge: pick up token usage written by subagent (graceful fallback if missing) ---
-    token_fields = {}
-    if file_exists(sidecar_path):
-        token_fields = read_json(sidecar_path)
-        delete_file(sidecar_path)
-    emit_event(task, phase, action="complete", extra_fields=token_fields)
+    # --- Sidecar merge: merge token usage written by subagent via custodian ---
+    # The subagent wrote the sidecar via /forge:store emit {sprintId} '{sidecar-json}' --sidecar
+    # Merge the sidecar into the canonical event and delete the sidecar file
+    FORGE_ROOT = resolve_forge_root()
+    run: node "$FORGE_ROOT/tools/store-cli.cjs" merge-sidecar {sprint_id} {event_id}
+    # merge-sidecar reads the sidecar, merges token fields into the canonical event, and deletes the sidecar
+    # If the sidecar does not exist, merge-sidecar exits 1 — treat as non-fatal (subagent may have skipped it)
+    emit_event(task, phase, action="complete")
 
     # --- Non-review phases always advance ---
     if phase.role not in ("review-plan", "review-code", "validate"):
@@ -284,7 +286,7 @@ an unrecognised verdict and escalate.
 
 When escalating to the human:
 
-1. Update the task store: set `status` to `escalated`
+1. Update task status via `/forge:store update-status task {taskId} status escalated`
 2. Emit a final event with `verdict: "escalated"` and `notes` explaining the reason
 3. Output a clear message:
    ```
@@ -320,7 +322,7 @@ review phase ran without error. The artifact is the source of truth.
 
 ## Event Emission
 
-Every phase emits a structured event to `.forge/store/events/{sprintId}/`.
+Every phase emits a structured event via `/forge:store emit {sprintId} '{event-json}'`.
 
 **Required fields** (defined in `.forge/schemas/event.schema.json`):
 
@@ -360,11 +362,11 @@ When in doubt, read `.forge/schemas/event.schema.json` directly.
   3. Pass `model=phase_model` in every `spawn_subagent()` call in the execution algorithm
   Do NOT generate a "Model Assignments" table without wiring it into the algorithm —
   that produces dead documentation.
-- **Include the sidecar merge pattern.** After each subagent returns, check for
-  `_{eventId}_usage.json` in the events directory; if found, merge the five token fields
-  (`inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`)
-  into the event record and delete the sidecar; if missing, emit without token fields
-  (graceful fallback — no error).
+- **Include the sidecar merge pattern.** After each subagent returns, run
+  `/forge:store merge-sidecar {sprintId} {eventId}` to merge token fields from the
+  sidecar into the canonical event and delete the sidecar. If the sidecar does not
+  exist (merge-sidecar exits 1), treat as non-fatal and emit the event without token
+  fields (graceful fallback — no error).
 - **Include the role-to-noun mapping table.** The generated orchestrator MUST include
   a `ROLE_TO_NOUN` dictionary (or equivalent in the host language) that maps every
   pipeline phase role to a noun-based persona identifier. This table is used for

@@ -28,11 +28,10 @@ Seal a completed and approved task by committing its artifacts to the VCS and up
    - Co-author with "Claude Opus 4.6 <noreply@anthropic.com>"
 
 4. Store Finalization:
-   - Update task status to `committed`
-   - Update the task's `commit_hash` field in the store
+   - Update task status via `/forge:store update-status task {taskId} status committed`
 
 5. Finalize:
-   - Emit "complete" event to `.forge/store/events/{sprintId}/`
+   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 ```
 
@@ -45,5 +44,5 @@ Seal a completed and approved task by committing its artifacts to the VCS and up
 - **Token Reporting:** The generated workflow MUST mandate the following before returning:
   1. Run `/cost` to retrieve session token usage.
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write a sidecar file at `.forge/store/events/{sprintId}/_{eventId}_usage.json`.
+  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

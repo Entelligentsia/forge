@@ -32,8 +32,8 @@ The Architect gives final sign-off on a completed task after Supervisor approval
      - Follow-up items for future sprints
 
 4. Finalize:
-   - Update task status to `approved`
-   - Emit "complete" event to `.forge/store/events/{sprintId}/`
+   - Update task status via `/forge:store update-status task {taskId} status approved`
+   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 ```
 
@@ -47,5 +47,5 @@ The Architect gives final sign-off on a completed task after Supervisor approval
 - **Token Reporting:** The generated workflow MUST mandate the following before returning:
   1. Run `/cost` to retrieve session token usage.
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write a sidecar file at `.forge/store/events/{sprintId}/_{eventId}_usage.json`.
+  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

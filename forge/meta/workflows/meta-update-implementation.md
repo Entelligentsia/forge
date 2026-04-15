@@ -29,8 +29,8 @@ Update the implementation of a task based on a "Revision Required" verdict from 
    - Update PROGRESS.md with a summary of the revisions
 
 4. Finalize:
-   - Update task status to `implemented`
-   - Emit "complete" event to `.forge/store/events/{sprintId}/`
+   - Update task status via `/forge:store update-status task {taskId} status implemented`
+   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 ```
 
@@ -43,5 +43,5 @@ Update the implementation of a task based on a "Revision Required" verdict from 
 - **Token Reporting:** The generated workflow MUST mandate the following before returning:
   1. Run `/cost` to retrieve session token usage.
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write a sidecar file at `.forge/store/events/{sprintId}/_{eventId}_usage.json`.
+  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.
