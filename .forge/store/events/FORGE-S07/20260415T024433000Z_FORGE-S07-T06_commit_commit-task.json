@@ -3,11 +3,11 @@
   "taskId": "FORGE-S07-T06",
   "sprintId": "FORGE-S07",
   "role": "commit",
-  "action": "/commit",
+  "action": "commit-task",
   "phase": "commit",
   "iteration": 1,
   "startTimestamp": "2026-04-15T02:44:33.000Z",
-  "endTimestamp": "2026-04-15T02:44:33.000Z",
-  "durationMinutes": 0,
+  "endTimestamp": "2026-04-15T02:45:41.000Z",
+  "durationMinutes": 1.13,
   "model": "claude-sonnet-4-6"
 }
