@@ -2,7 +2,7 @@
 
 # Cost Report — FORGE-S05
 
-> Generated: 2026-04-15
+> Generated: 2026-04-16
 > Sprint: Sprint S05
 
 _No token data available for this sprint._

@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S09-T05",
-  "feature_id": null,
   "sprintId": "FORGE-S09",
-  "title": "Calibrate command — drift detection, categories, surgical patches",
+  "title": "PLAN — FORGE-S09-T05: Calibrate command — drift detection, categories, surgical patches",
   "status": "committed",
-  "path": "forge/commands/calibrate.md",
-  "estimate": "L",
-  "dependencies": ["FORGE-S09-T03", "FORGE-S09-T04"],
-  "pipeline": "default"
+  "path": "engineering/sprints/FORGE-S09/FORGE-S09-T05-calibrate-command"
 }

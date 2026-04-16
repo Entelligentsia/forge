@@ -1,9 +1,7 @@
 {
   "sprintId": "FORGE-S07",
-  "feature_id": null,
-  "title": "Store Custodian — Deterministic Store Gateway",
-  "status": "retrospective-done",
-  "completedAt": "2026-04-15T12:00:00.000Z",
+  "title": "Sprint S07",
+  "status": "active",
   "taskIds": [
     "FORGE-S07-T01",
     "FORGE-S07-T02",
@@ -15,7 +13,6 @@
     "FORGE-S07-T08",
     "FORGE-S07-T09"
   ],
-  "executionMode": "sequential",
-  "createdAt": "2026-04-15T00:00:00.000Z",
+  "createdAt": "2026-04-16T02:10:57.100Z",
   "path": "engineering/sprints/FORGE-S07-store-custodian"
 }

@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S09-T06",
-  "feature_id": null,
   "sprintId": "FORGE-S09",
-  "title": "SPRINT_PLAN.md output path in meta-sprint-plan",
+  "title": "PLAN — FORGE-S09-T06: SPRINT_PLAN.md output path in meta-sprint-plan",
   "status": "committed",
-  "path": "forge/meta/workflows/meta-sprint-plan.md",
-  "estimate": "S",
-  "dependencies": [],
-  "pipeline": "default"
+  "path": "engineering/sprints/FORGE-S09/FORGE-S09-T06-sprint-plan-path"
 }

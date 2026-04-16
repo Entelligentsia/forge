@@ -123,6 +123,20 @@ PERSONA_MAP = {
   "writeback":   ("🍃", "Collator",    "I gather what exists and arrange it into views."),
 }
 
+# --- Banner identity map (banner name per phase role) ---
+BANNER_MAP = {
+  "plan":        "forge",
+  "implement":   "forge",
+  "update-plan": "forge",
+  "update-impl": "forge",
+  "commit":      "forge",
+  "review-plan": "oracle",
+  "review-code": "oracle",
+  "validate":    "lumen",
+  "approve":     "north",
+  "writeback":   "drift",
+}
+
 # --- Role-to-noun mapping for persona/skill file lookups (NOT for display) ---
 ROLE_TO_NOUN = {
   "plan":        "engineer",
@@ -157,11 +171,13 @@ while i < len(phases):
   event_id = f"{start_ts}_{task_id}_{phase.role}_{phase.action}"
   sidecar_path = f".forge/store/events/{sprint_id}/_{event_id}_usage.json"
 
-  # --- Resolve persona symbol, name, tagline ---
+  # --- Resolve persona symbol, name, tagline, and banner ---
   emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🌊", "Orchestrator", "I move tasks through their lifecycle."))
+  banner_name = BANNER_MAP.get(phase.role, "forge")
 
-  # --- Announce phase to stdout ---
-  print(f"\n{emoji} **Forge {persona_name}** — {task_id} · {tagline} [{phase_model}]\n")
+  # --- Announce phase: badge banner + task context ---
+  run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name}')
+  print(f"  → {task_id}  [{phase_model}]\n")
 
   emit_event(task, phase, eventId=event_id,
              iteration=iteration_counts.get(phase.command, 0) + 1,
@@ -175,8 +191,8 @@ while i < len(phases):
   # --- Spawn fresh-context subagent (model parameter is MANDATORY) ---
   spawn_subagent(
     prompt=(
-      f"Your first output — before any tool use or file reads — print this exact line:\n\n"
-      f"{emoji} **Forge {persona_name}** — {task_id} · {tagline} [{phase_model}]\n\n"
+      f"Your first action — before any file reads or tool use — run this command using the Bash tool to display your identity:\n\n"
+      f"FORGE_ROOT=$(node -e \"console.log(require('./.forge/config.json').paths.forgeRoot)\") && node \"$FORGE_ROOT/tools/banners.cjs\" {banner_name}\n\n"
       f"---\n\n"
       f"{persona_content}\n\n"
       f"{skill_content}\n\n"
@@ -194,12 +210,12 @@ while i < len(phases):
     model=phase_model                    # ← MANDATORY — never omit
   )
 
-  # --- Sidecar merge (graceful; missing sidecar is NOT an error) ---
-  token_fields = {}
-  if file_exists(sidecar_path):
-    token_fields = read_json(sidecar_path)
-    delete_file(sidecar_path)
-  emit_event(task, phase, action="complete", extra_fields=token_fields)
+  # --- Sidecar merge via store-cli (graceful; exit 1 if sidecar missing is non-fatal) ---
+  FORGE_ROOT = resolve_forge_root()
+  run: node "$FORGE_ROOT/tools/store-cli.cjs" merge-sidecar {sprint_id} {event_id}
+  # merge-sidecar reads the sidecar, merges token fields into the canonical event, deletes the sidecar
+  # If the sidecar does not exist, merge-sidecar exits 1 — treat as non-fatal (no error)
+  emit_event(task, phase, action="complete")
 
   # --- Non-review phases always advance ---
   if phase.role not in ("review-plan", "review-code", "validate"):

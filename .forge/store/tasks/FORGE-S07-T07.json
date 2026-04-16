@@ -1,14 +1,7 @@
 {
   "taskId": "FORGE-S07-T07",
-  "feature_id": null,
   "sprintId": "FORGE-S07",
-  "title": "Migrate all 16 meta-workflows to use store custodian instead of direct store writes",
+  "title": "PLAN — FORGE-S07-T07: Migrate all 16 meta-workflows to store custodian",
   "status": "committed",
-  "path": "forge/meta/workflows/",
-  "estimate": "XL",
-  "dependencies": [
-    "FORGE-S07-T05",
-    "FORGE-S07-T06"
-  ],
-  "pipeline": "default"
+  "path": "engineering/sprints/FORGE-S07-store-custodian/FORGE-S07-T07-workflow-migration"
 }

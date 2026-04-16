@@ -1,7 +1,7 @@
 {
   "taskId": "FORGE-S06-T08",
   "sprintId": "FORGE-S06",
-  "title": "Task T08",
-  "status": "committed",
+  "title": "PLAN — FORGE-S06-T08: Update collate path resolution for slug-named directories",
+  "status": "planned",
   "path": "engineering/sprints/FORGE-S06/FORGE-S06-T08-collate-slug-path-resolution"
 }

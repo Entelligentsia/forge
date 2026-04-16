@@ -1,7 +1,7 @@
 {
   "sprintId": "FORGE-S06",
   "title": "Sprint S06",
-  "status": "retrospective-done",
+  "status": "active",
   "taskIds": [
     "FORGE-S06-T01",
     "FORGE-S06-T02",
@@ -14,7 +14,6 @@
     "FORGE-S06-T09",
     "FORGE-S06-T10"
   ],
-  "createdAt": "2026-04-14T09:34:30.846Z",
-  "path": "engineering/sprints/FORGE-S06",
-  "completedAt": "2026-04-14T10:52:42.513Z"
+  "createdAt": "2026-04-16T02:10:57.096Z",
+  "path": "engineering/sprints/FORGE-S06"
 }

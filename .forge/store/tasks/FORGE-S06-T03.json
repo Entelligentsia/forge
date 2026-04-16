@@ -1,7 +1,7 @@
 {
   "taskId": "FORGE-S06-T03",
   "sprintId": "FORGE-S06",
-  "title": "Add personas to forge:regenerate defaults",
-  "status": "committed",
+  "title": "PLAN — FORGE-S06-T03: Add personas to forge:regenerate defaults",
+  "status": "implementing",
   "path": "engineering/sprints/FORGE-S06/FORGE-S06-T03-regenerate-personas-default"
 }

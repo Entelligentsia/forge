@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S07-T03",
-  "feature_id": null,
   "sprintId": "FORGE-S07",
-  "title": "Fix collate.cjs facade bypasses — writeCollationState and purgeEvents",
-  "status": "committed",
-  "path": "forge/tools/collate.cjs",
-  "estimate": "S",
-  "dependencies": ["FORGE-S07-T02"],
-  "pipeline": "default"
+  "title": "PLAN — FORGE-S07-T03: Fix collate.cjs facade bypasses — writeCollationState and purgeEvents",
+  "status": "planned",
+  "path": "engineering/sprints/FORGE-S07-store-custodian/FORGE-S07-T03-collate-facade-fix"
 }

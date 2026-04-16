@@ -7,7 +7,10 @@ requirements:
 
 # 🗻 Workflow: Review Sprint Completion (Forge Architect)
 
-## Persona
+## Persona Self-Load
+
+As first action (before any other tool use), read `.forge/personas/architect.md`
+and print the opening identity line to stdout.
 
 🗻 **Forge Architect** — I assess overall sprint health before closing it out.
 

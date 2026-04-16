@@ -7,10 +7,14 @@ requirements:
 
 # 🍂 Workflow: Fix Bug (Forge Bug-Fix Orchestrator)
 
-## Persona
+## Persona Self-Load
 
-Read `.forge/personas/bug-fixer.md` as the **first action** before any tool use or triage.
-Print the opening identity line from that file to stdout immediately after reading it.
+As the **first two actions** (in this order):
+1. Run the identity banner using the Bash tool:
+   ```bash
+   FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" rift
+   ```
+2. Read `.forge/personas/bug-fixer.md` and print the opening identity line to stdout.
 
 **Context:**
 - Bugs are reported via `/forge:report-bug` and filed as GitHub issues at `Entelligentsia/forge`
@@ -114,17 +118,38 @@ Resolve using this priority:
 The orchestrator MUST follow this procedure exactly. Do not deviate.
 
 ```
+# --- Role-to-noun mapping (persona and skill file lookups) ---
+ROLE_TO_NOUN = {
+  "plan-fix":    "bug-fixer",
+  "review-plan": "supervisor",
+  "implement":   "bug-fixer",
+  "review-code": "supervisor",
+  "approve":     "architect",
+  "commit":      "engineer",
+}
+# Default fallback: "bug-fixer"
+
 # --- Persona symbol lookup (emoji, name, tagline) ---
-# All bug-fix phases map to the same Bug Fixer persona.
 PERSONA_MAP = {
-  "plan-fix":    ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
-  "review-plan": ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
-  "implement":   ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
-  "review-code": ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
-  "approve":     ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
-  "commit":      ("🍂", "Bug Fixer", "I find what has decayed and restore it."),
+  "plan-fix":    ("🍂", "Bug Fixer",  "I find what has decayed and restore it."),
+  "review-plan": ("🌿", "Supervisor", "I review before things move forward. I read the actual fix, not just the plan."),
+  "implement":   ("🍂", "Bug Fixer",  "I find what has decayed and restore it."),
+  "review-code": ("🌿", "Supervisor", "I review before things move forward. I read the actual code, not the report."),
+  "approve":     ("🗻", "Architect",  "I hold the shape of the whole. I give final sign-off before commit."),
+  "commit":      ("🌱", "Engineer",   "I close out completed work with a clean, honest commit."),
 }
 # Default fallback: ("🍂", "Bug Fixer", "I find what has decayed and restore it.")
+
+# --- Banner identity map (banner name per phase role) ---
+BANNER_MAP = {
+  "plan-fix":    "rift",
+  "review-plan": "oracle",
+  "implement":   "rift",
+  "review-code": "oracle",
+  "approve":     "north",
+  "commit":      "forge",
+}
+# Default fallback: "rift"
 
 # --- Resolve paths ---
 bug_root_path = f"engineering/bugs/{bug_dir}"
@@ -145,26 +170,29 @@ while i < len(phases):
   event_id = f"{start_ts}_{bug_id}_{phase.role}_{phase.action}"
   sidecar_path = f".forge/store/events/bugs/_{event_id}_usage.json"
 
-  # --- Resolve persona symbol, name, tagline ---
+  # --- Resolve persona symbol, name, tagline, and banner ---
   emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🍂", "Bug Fixer", "I find what has decayed and restore it."))
+  banner_name = BANNER_MAP.get(phase.role, "rift")
 
-  # --- Announce phase to stdout ---
-  print(f"\n{emoji} **Forge {persona_name}** — {bug_id} · {tagline} [{phase_model}]\n")
+  # --- Announce phase: badge banner + bug context ---
+  run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name}')
+  print(f"  → {bug_id}  [{phase_model}]\n")
 
   emit_event(bug_id, phase,
              eventId=event_id,
              iteration=iteration_counts.get(phase.name, 0) + 1,
              action="start")
 
-  # --- Symmetric Injection: noun "bug-fixer" is constant for all bug phases ---
-  persona_content = read_file(".forge/personas/bug-fixer.md")
-  skill_content   = read_file(".forge/skills/bug-fixer-skills.md")
+  # --- Symmetric Injection: noun resolved from ROLE_TO_NOUN ---
+  persona_noun    = ROLE_TO_NOUN.get(phase.role, "bug-fixer")
+  persona_content = read_file(f".forge/personas/{persona_noun}.md")
+  skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
 
-  # --- Spawn fresh-context subagent with "print this exact line first" instruction ---
+  # --- Spawn fresh-context subagent with banner-first instruction ---
   spawn_subagent(
     prompt=(
-      f"Your first output — before any tool use or file reads — print this exact line:\n\n"
-      f"{emoji} **Forge {persona_name}** — {bug_id} · {tagline} [{phase_model}]\n\n"
+      f"Your first action — before any file reads or tool use — run this command using the Bash tool to display your identity:\n\n"
+      f"FORGE_ROOT=$(node -e \"console.log(require('./.forge/config.json').paths.forgeRoot)\") && node \"$FORGE_ROOT/tools/banners.cjs\" {banner_name}\n\n"
       f"---\n\n"
       f"{persona_content}\n\n"
       f"{skill_content}\n\n"
@@ -182,12 +210,12 @@ while i < len(phases):
     model=phase_model                # ← MANDATORY
   )
 
-  # --- Sidecar merge (graceful — missing sidecar is not an error) ---
-  token_fields = {}
-  if file_exists(sidecar_path):
-    token_fields = read_json(sidecar_path)
-    delete_file(sidecar_path)
-  emit_event(bug_id, phase, action="complete", extra_fields=token_fields)
+  # --- Sidecar merge via store-cli (graceful — exit 1 if missing is non-fatal) ---
+  FORGE_ROOT = resolve_forge_root()
+  run: node "$FORGE_ROOT/tools/store-cli.cjs" merge-sidecar bugs {event_id}
+  # merge-sidecar reads the sidecar, merges token fields into the canonical event, deletes the sidecar
+  # If the sidecar does not exist, merge-sidecar exits 1 — treat as non-fatal (no error)
+  emit_event(bug_id, phase, action="complete")
 
   # --- Non-review phases always advance ---
   if phase.role not in ("review-plan", "review-code"):

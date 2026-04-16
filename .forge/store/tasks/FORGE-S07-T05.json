@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S07-T05",
-  "feature_id": null,
   "sprintId": "FORGE-S07",
-  "title": "Implement store-cli.cjs — deterministic store custodian CLI with validation and transitions",
+  "title": "PLAN — FORGE-S07-T05: Implement store-cli.cjs — deterministic store custodian CLI",
   "status": "committed",
-  "path": "forge/tools/store-cli.cjs",
-  "estimate": "L",
-  "dependencies": ["FORGE-S07-T01", "FORGE-S07-T02"],
-  "pipeline": "default"
+  "path": "engineering/sprints/FORGE-S07-store-custodian/FORGE-S07-T05-store-custodian-cli"
 }

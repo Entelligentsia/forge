@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S09-T01",
-  "feature_id": null,
   "sprintId": "FORGE-S09",
-  "title": "Renumber sdlc-init.md phases to sequential integers",
+  "title": "PLAN — FORGE-S09-T01: Renumber sdlc-init.md phases to sequential integers",
   "status": "committed",
-  "path": "forge/commands/init.md",
-  "estimate": "M",
-  "dependencies": [],
-  "pipeline": "default"
+  "path": "engineering/sprints/FORGE-S09/FORGE-S09-T01-renumber-phases"
 }

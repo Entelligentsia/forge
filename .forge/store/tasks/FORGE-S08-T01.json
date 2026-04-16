@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S08-T01",
-  "feature_id": null,
   "sprintId": "FORGE-S08",
-  "title": "Init pre-flight plan + phase progress banners",
+  "title": "PLAN — FORGE-S08-T01: Init pre-flight plan + phase progress banners",
   "status": "committed",
-  "path": "forge/commands/init.md forge/init/sdlc-init.md",
-  "estimate": "M",
-  "dependencies": [],
-  "pipeline": "default"
+  "path": "engineering/sprints/FORGE-S08-cli-engagement/FORGE-S08-T01-init-preflight-banners"
 }

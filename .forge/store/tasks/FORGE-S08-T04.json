@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S08-T04",
-  "feature_id": null,
   "sprintId": "FORGE-S08",
-  "title": "Update step banners and explicit sequencing",
+  "title": "PLAN — FORGE-S08-T04: Update step banners and explicit sequencing",
   "status": "committed",
-  "path": "forge/commands/update.md",
-  "estimate": "S",
-  "dependencies": ["FORGE-S08-T03"],
-  "pipeline": "default"
+  "path": "engineering/sprints/FORGE-S08-cli-engagement/FORGE-S08-T04-update-banners-sequencing"
 }

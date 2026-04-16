@@ -1,9 +1,7 @@
 {
   "sprintId": "FORGE-S08",
-  "feature_id": null,
-  "title": "CLI Engagement — Interactive Progress and Reduced Friction",
-  "status": "retrospective-done",
-  "completedAt": "2026-04-15T10:10:00.000Z",
+  "title": "Sprint S08",
+  "status": "completed",
   "taskIds": [
     "FORGE-S08-T01",
     "FORGE-S08-T02",
@@ -12,7 +10,6 @@
     "FORGE-S08-T05",
     "FORGE-S08-T06"
   ],
-  "executionMode": "sequential",
-  "createdAt": "2026-04-15T00:00:00.000Z",
+  "createdAt": "2026-04-16T02:10:57.104Z",
   "path": "engineering/sprints/FORGE-S08-cli-engagement"
 }

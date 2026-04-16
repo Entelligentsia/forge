@@ -1,7 +1,7 @@
 {
   "taskId": "FORGE-S06-T10",
   "sprintId": "FORGE-S06",
-  "title": "Task T10",
+  "title": "PLAN — FORGE-S06-T10: Release engineering — version bump, migration, security scan",
   "status": "committed",
   "path": "engineering/sprints/FORGE-S06/FORGE-S06-T10-release-engineering"
 }

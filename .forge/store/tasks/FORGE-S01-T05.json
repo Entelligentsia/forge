@@ -2,6 +2,6 @@
   "taskId": "FORGE-S01-T05",
   "sprintId": "FORGE-S01",
   "title": "PLAN — FORGE-S01-T05: collate.cjs — COST_REPORT.md generation",
-  "status": "committed",
+  "status": "implemented",
   "path": "engineering/sprints/FORGE-S01/T05"
 }

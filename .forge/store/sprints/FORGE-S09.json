@@ -1,8 +1,7 @@
 {
   "sprintId": "FORGE-S09",
-  "feature_id": null,
-  "title": "Calibration, Guardrails, and Bug Closure",
-  "status": "active",
+  "title": "Sprint S09",
+  "status": "completed",
   "taskIds": [
     "FORGE-S09-T01",
     "FORGE-S09-T02",
@@ -14,7 +13,6 @@
     "FORGE-S09-T08",
     "FORGE-S09-T09"
   ],
-  "executionMode": "sequential",
-  "createdAt": "2026-04-15T00:00:00.000Z",
+  "createdAt": "2026-04-16T02:10:57.107Z",
   "path": "engineering/sprints/FORGE-S09"
 }

@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S07-T02",
-  "feature_id": null,
   "sprintId": "FORGE-S07",
-  "title": "Store facade extension — writeCollationState, purgeEvents, listEventFilenames",
+  "title": "PLAN — FORGE-S07-T02: Store facade extension — writeCollationState, purgeEvents, listEventFilenames",
   "status": "committed",
-  "path": "forge/tools/store.cjs",
-  "estimate": "M",
-  "dependencies": [],
-  "pipeline": "default"
+  "path": "engineering/sprints/FORGE-S07-store-custodian/FORGE-S07-T02-store-facade-extension"
 }

@@ -2,8 +2,8 @@
 
 # Cost Report — FORGE-S08
 
-> Generated: 2026-04-15
-> Sprint: CLI Engagement — Interactive Progress and Reduced Friction
+> Generated: 2026-04-16
+> Sprint: Sprint S08
 
 _No token data available for this sprint._
 
