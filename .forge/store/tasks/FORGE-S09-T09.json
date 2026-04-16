@@ -2,6 +2,6 @@
   "taskId": "FORGE-S09-T09",
   "sprintId": "FORGE-S09",
   "title": "Task T09",
-  "status": "approved",
+  "status": "committed",
   "path": "engineering/sprints/FORGE-S09/FORGE-S09-T09-release-engineering"
 }
