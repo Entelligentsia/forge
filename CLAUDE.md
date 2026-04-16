@@ -75,7 +75,12 @@ If a schema change affects the lifecycle (state machinery) of a Forge entity (Sp
 2. If `"tools"` or `"workflows"` is in `regenerate`, users will need to run
    `/forge:update` after installing — make sure the migration notes are clear.
 
-3. **Run a security scan before pushing.** A version bump means new code is
+3. **All script tests must pass before bumping.** Run
+   `node --test forge/tools/__tests__/*.test.cjs` — if any test fails, the
+   version bump and push are blocked until all tests pass and the failures are
+   resolved.
+
+4. **Run a security scan before pushing.** A version bump means new code is
    being distributed to every user who has Forge installed. Scan the
    **source directory** (`forge/`), not the cached install under
    `~/.claude/plugins/cache/`:
@@ -129,6 +134,44 @@ If a schema change affects the lifecycle (state machinery) of a Forge entity (Sp
 
 **What does NOT need a version bump:** documentation-only changes, typo fixes
 in `docs/`, README updates, or changes that have no effect on installed projects.
+
+---
+
+## Script Test Suite — Mandatory Rules
+
+Every `.cjs` tool in `forge/tools/` has a corresponding test file in
+`forge/tools/__tests__/*.test.cjs`. The suite is run with:
+
+```sh
+node --test forge/tools/__tests__/*.test.cjs
+```
+
+### Before committing any change to `forge/tools/`
+
+1. **All 241 tests must pass.** If any test fails, the commit is blocked.
+   Run the full suite and confirm zero failures before staging changes.
+
+2. **Every change to a `.cjs` script must be preceded by a failing test.**
+   If you are modifying `collate.cjs`, `store-cli.cjs`, `build-manifest.cjs`,
+   or any other tool script, you MUST first write or update the corresponding
+   test that exposes the bug or validates the new behaviour — watch it fail —
+   then make the script change, then watch it pass. No exceptions.
+
+   This means:
+   - **Bug fix:** Write a test that reproduces the bug → see it fail → fix the
+     code → see it pass.
+   - **New feature:** Write a test that defines the expected behaviour → see it
+     fail → implement the feature → see it pass.
+   - **Refactor:** Run existing tests before touching code → refactor → run tests
+     again — they must still pass. If behaviour changes intentionally, write
+     the test for the new behaviour first.
+
+3. **New exports require new tests.** If you add a function to `module.exports`
+   in any tool, add at least one test for it in the matching test file.
+
+4. **Test-only helpers belong in `__tests__/`.** If a test needs shared
+   fixtures or helpers (e.g. `MemoryImpl`), keep them inside
+   `forge/tools/__tests__/` — never in the tool scripts themselves.
 
 ## Official Documentation
 
