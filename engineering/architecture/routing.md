@@ -12,6 +12,7 @@ by Claude Code when the plugin is installed. Each maps to a `/forge:<name>` invo
 |---|---|---|
 | `/forge:init` | `commands/init.md` | Bootstrap complete SDLC instance in a project |
 | `/forge:health` | `commands/health.md` | Detect stale docs, orphaned entities, skill gaps |
+| `/forge:calibrate` | `commands/calibrate.md` | Detect drift, propose regeneration patches, apply approved patches |
 | `/forge:update` | `commands/update.md` | Propagate plugin upgrade into project artifacts |
 | `/forge:update-tools` | `commands/update-tools.md` | Copy latest tools/schemas into project |
 | `/forge:regenerate` | `commands/regenerate.md` | Refresh specific artifact categories |

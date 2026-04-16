@@ -270,6 +270,7 @@ Full lifecycle documentation — inputs, outputs, gate checks, revision loops, a
 |---|---|---|
 | `/forge:init` | Bootstrap a complete SDLC instance from your codebase | [→](docs/commands/forge/init.md) |
 | `/forge:health` | Detect stale docs, orphaned entities, and missing skills | [→](docs/commands/forge/health.md) |
+| `/forge:calibrate` | Detect drift, propose regeneration patches, and apply approved patches | [→](docs/commands/forge/calibrate.md) |
 | `/forge:regenerate [target]` | Refresh workflows, templates, tools, or knowledge-base docs | [→](docs/commands/forge/regenerate.md) |
 | `/forge:update` | Propagate a plugin version upgrade into project artifacts | [→](docs/commands/forge/update.md) |
 | `/forge:add-pipeline [name]` | Add or manage a custom task pipeline in `.forge/config.json` | [→](docs/commands/forge/add-pipeline.md) |
@@ -286,9 +287,9 @@ publication. Reports are filed as versioned artifacts in
 
 | Version | Date | Report | Summary |
 |---------|------|--------|---------|
+| 0.9.12 | 2026-04-16 | [scan-v0.9.12.md](docs/security/scan-v0.9.12.md) | 112 files — 0 critical, 1 warning (accepted), 4 info — SAFE TO USE |
 | 0.9.11 | 2026-04-16 | [scan-v0.9.11.md](docs/security/scan-v0.9.11.md) | 111 files — 0 critical, 1 warning (accepted), 3 info — SAFE TO USE |
 | 0.9.10 | 2026-04-16 | [scan-v0.9.10.md](docs/security/scan-v0.9.10.md) | 113 files — 0 critical, 1 warning (accepted), 3 info — SAFE TO USE |
-| 0.9.9 | 2026-04-16 | [scan-v0.9.9.md](docs/security/scan-v0.9.9.md) | 111 files — 0 critical, 1 warning (accepted), 3 info — SAFE TO USE |
 
 [Full scan history →](docs/security/index.md)
 
