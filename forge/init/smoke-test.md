@@ -13,10 +13,10 @@ Self-correct up to once per failing component.
 - `engineering/architecture/INDEX.md` and sub-docs
 - `engineering/business-domain/INDEX.md` and `entity-model.md`
 - `engineering/stack-checklist.md`
-- All 17 workflows in `.forge/workflows/`
+- All 18 workflows in `.forge/workflows/`
 - All commands in `.claude/commands/`
 - All templates in `.forge/templates/`
-- `.forge/schemas/` (four JSON Schema files)
+- `.forge/schemas/` (all JSON Schema files)
 
 ### 2. Referential — internal links resolve
 

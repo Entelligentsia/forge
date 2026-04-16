@@ -7,7 +7,7 @@ persona context, templates, and the knowledge base.
 
 ## Inputs
 
-- `$FORGE_ROOT/meta/workflows/meta-*.md` (16 meta-workflows)
+- `$FORGE_ROOT/meta/workflows/meta-*.md` (17 atomic meta-workflows)
 - Persona context (from Phase 3)
 - Generated templates (from Phase 4)
 - Discovery context (from Phase 1)
@@ -15,7 +15,7 @@ persona context, templates, and the knowledge base.
 
 ## Outputs
 
-`.forge/workflows/` with 15 project-specific workflow files:
+`.forge/workflows/` with 16 project-specific workflow files:
 - `architect_sprint_intake.md`
 - `architect_sprint_plan.md`
 - `architect_approve.md`
@@ -31,6 +31,7 @@ persona context, templates, and the knowledge base.
 - `collator_agent.md`
 - `sprint_retrospective.md`
 - `quiz_agent.md`
+- `validate_task.md`
 
 ## Instructions
 

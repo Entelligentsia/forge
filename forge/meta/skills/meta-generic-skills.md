@@ -6,7 +6,7 @@ role: Generic
 
 ## Generation Instructions
 
-When generating the project-specific skill set for support roles (e.g., Orchestrator, Collator) in `.forge/skills/generic.md`, the generator must:
+When generating the project-specific skill set for support roles (e.g., Orchestrator, Collator) in `.forge/skills/generic-skills.md`, the generator must:
 1. Cross-reference the `installedSkills` list in `.forge/config.json`.
 2. Map the universal skills listed below to the specific implementation names found in `installedSkills`.
 3. Focus on data aggregation, communication, and process management.

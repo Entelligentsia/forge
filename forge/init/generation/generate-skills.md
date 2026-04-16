@@ -15,7 +15,7 @@ techniques to project-specific tools and contexts.
 ## Outputs
 
 Skill sets are written as standalone files in `.forge/skills/`.
-Each file is named after the role it supports (e.g., `.forge/skills/supervisor-skills.md`).
+Each file uses the `-skills.md` suffix matching the persona role (e.g., `.forge/skills/supervisor-skills.md`).
 
 ## Instructions
 

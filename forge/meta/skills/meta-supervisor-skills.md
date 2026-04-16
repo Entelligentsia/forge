@@ -6,7 +6,7 @@ role: Supervisor
 
 ## Generation Instructions
 
-When generating the project-specific skill set for the Supervisor role in `.forge/skills/supervisor.md`, the generator must:
+When generating the project-specific skill set for the Supervisor role in `.forge/skills/supervisor-skills.md`, the generator must:
 1. Cross-reference the `installedSkills` list in `.forge/config.json`.
 2. Map the universal skills listed below to the specific implementation names found in `installedSkills`.
 3. Include triggers for quality gates, review cycles, and validation checks.

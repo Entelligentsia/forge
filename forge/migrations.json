@@ -1,4 +1,12 @@
 {
+  "0.9.16": {
+    "version": "0.9.17",
+    "date": "2026-04-16",
+    "notes": "Fix file generation integrity: skills included in default regenerate, consistent -skills.md naming, validate_task workflow in generation, all schemas copied by update-tools, hash recording for init and update-tools, post-regeneration structure verification.",
+    "regenerate": ["workflows", "commands", "templates", "personas", "skills", "tools"],
+    "breaking": false,
+    "manual": ["Run /forge:regenerate skills to adopt the new -skills.md naming convention"]
+  },
   "0.9.15": {
     "version": "0.9.16",
     "date": "2026-04-16",

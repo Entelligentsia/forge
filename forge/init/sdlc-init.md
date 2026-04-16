@@ -231,7 +231,7 @@ Emit: `━━━ Phase 7/11 — Workflows ━━━━━━━━━━━━�
 Read `$FORGE_ROOT/init/generation/generate-workflows.md` and follow it.
 
 **Input**: `$FORGE_ROOT/meta/workflows/` + `.forge/personas/` + `.forge/skills/` + templates + discovery context + knowledge base
-**Output**: `.forge/workflows/` (14 project-specific workflow files)
+**Output**: `.forge/workflows/` (16 atomic + 2 orchestration = 18 workflow files)
 
 Write `.forge/init-progress.json`:
 ```json

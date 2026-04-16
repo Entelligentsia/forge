@@ -62,6 +62,18 @@ node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run
 
 If it exits non-zero, report the error. Do not proceed to Phase 9 until this passes.
 
+### Step 4 — Record hashes
+
+Record all generated artifacts in the generation manifest so health checks
+can detect later modifications:
+
+```sh
+for f in .forge/schemas/*.schema.json; do
+  node "$FORGE_ROOT/tools/generation-manifest.cjs" record "$f"
+done
+node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/config.json
+```
+
 ## Notes
 
 - `paths.forgeRoot` is refreshed by `/forge:update` at each upgrade, so the

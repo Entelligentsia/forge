@@ -12,10 +12,127 @@
 // Emits source-missing warnings for map entries whose source file is absent.
 // Exits 0 always (warnings are non-fatal).
 
-try {
-  const fs = require('fs');
-  const path = require('path');
+const fs = require('fs');
+const path = require('path');
 
+// ── Static mapping tables ─────────────────────────────────────────────────────
+
+// 1. Personas — meta-{name}.md → .forge/personas/{name}.md
+//    Exclusions: meta-orchestrator.md, meta-product-manager.md
+//    (no generated persona output for these)
+const PERSONA_MAP = [
+  ['meta-architect.md',    'architect.md'],
+  ['meta-bug-fixer.md',    'bug-fixer.md'],
+  ['meta-collator.md',     'collator.md'],
+  ['meta-engineer.md',     'engineer.md'],
+  ['meta-qa-engineer.md',  'qa-engineer.md'],
+  ['meta-supervisor.md',   'supervisor.md'],
+];
+
+// 2. Skills — explicit source → output mapping
+//    All output files use the -skills.md suffix for consistency.
+const SKILL_MAP = [
+  ['meta-architect-skills.md',   'architect-skills.md'],
+  ['meta-bug-fixer-skills.md',   'bug-fixer-skills.md'],
+  ['meta-collator-skills.md',    'collator-skills.md'],
+  ['meta-engineer-skills.md',    'engineer-skills.md'],
+  ['meta-qa-engineer-skills.md', 'qa-engineer-skills.md'],
+  ['meta-supervisor-skills.md',  'supervisor-skills.md'],
+  ['meta-generic-skills.md',     'generic-skills.md'],
+  ['meta-store-custodian.md',    'store-custodian-skills.md'],
+];
+
+// 3. Workflows — explicit source → output mapping (irregular names)
+const WORKFLOW_MAP = [
+  ['meta-approve.md',                  'architect_approve.md'],
+  ['meta-collate.md',                  'collator_agent.md'],
+  ['meta-commit.md',                   'commit_task.md'],
+  ['meta-fix-bug.md',                  'fix_bug.md'],
+  ['meta-implement.md',                'implement_plan.md'],
+  ['meta-orchestrate.md',              'orchestrate_task.md'],
+  ['meta-plan-task.md',                'plan_task.md'],
+  ['meta-retrospective.md',            'sprint_retrospective.md'],
+  ['meta-review-implementation.md',    'review_code.md'],
+  ['meta-review-plan.md',              'review_plan.md'],
+  ['meta-review-sprint-completion.md', 'architect_review_sprint_completion.md'],
+  ['meta-sprint-intake.md',            'architect_sprint_intake.md'],
+  ['meta-sprint-plan.md',              'architect_sprint_plan.md'],
+  ['meta-update-implementation.md',    'update_implementation.md'],
+  ['meta-update-plan.md',              'update_plan.md'],
+  ['meta-validate.md',                 'validate_task.md'],
+  [null,                               'quiz_agent.md'],   // orchestration-generated
+  [null,                               'run_sprint.md'],   // orchestration-generated
+];
+
+// 4. Templates — explicit mapping
+//    CUSTOM_COMMAND_TEMPLATE.md is a one-shot init artifact (no meta source).
+//    Source is null — same pattern as orchestration-generated workflows.
+const TEMPLATE_MAP = [
+  ['meta-code-review.md',         'CODE_REVIEW_TEMPLATE.md'],
+  ['meta-plan.md',                'PLAN_TEMPLATE.md'],
+  ['meta-plan-review.md',         'PLAN_REVIEW_TEMPLATE.md'],
+  ['meta-progress.md',            'PROGRESS_TEMPLATE.md'],
+  ['meta-retrospective.md',       'RETROSPECTIVE_TEMPLATE.md'],
+  ['meta-sprint-manifest.md',     'SPRINT_MANIFEST_TEMPLATE.md'],
+  ['meta-sprint-requirements.md', 'SPRINT_REQUIREMENTS_TEMPLATE.md'],
+  ['meta-task-prompt.md',         'TASK_PROMPT_TEMPLATE.md'],
+  [null,                          'CUSTOM_COMMAND_TEMPLATE.md'],  // one-shot init artifact
+];
+
+// 5. Commands — from generate-commands.md explicit list
+const COMMAND_NAMES = [
+  'sprint-intake.md', 'plan.md', 'review-plan.md', 'implement.md',
+  'review-code.md', 'fix-bug.md', 'sprint-plan.md', 'run-task.md',
+  'run-sprint.md', 'collate.md', 'retrospective.md', 'approve.md', 'commit.md',
+];
+
+// ── Reverse-drift detection ───────────────────────────────────────────────────
+
+function checkReverseDrift(metaDir, map, label) {
+  const referencedSources = new Set(map.filter(([src]) => src !== null).map(([src]) => src));
+  let files = [];
+  try {
+    files = fs.readdirSync(metaDir).filter(f => f.startsWith('meta-') && f.endsWith('.md'));
+  } catch {}
+  const warnings = [];
+  for (const f of files) {
+    if (!referencedSources.has(f)) {
+      warnings.push({ file: f, dir: metaDir, label });
+    }
+  }
+  return warnings;
+}
+
+// ── Source verification ───────────────────────────────────────────────────────
+
+function verifySources(metaDir, map, label) {
+  const missing = [];
+  for (const [src] of map) {
+    if (!src) continue;
+    const srcPath = path.join(metaDir, src);
+    if (!fs.existsSync(srcPath)) {
+      missing.push({ source: src, dir: metaDir, label });
+    }
+  }
+  return missing;
+}
+
+// ── Exports ────────────────────────────────────────────────────────────────────
+
+module.exports = {
+  PERSONA_MAP,
+  SKILL_MAP,
+  WORKFLOW_MAP,
+  TEMPLATE_MAP,
+  COMMAND_NAMES,
+  checkReverseDrift,
+  verifySources,
+};
+
+// ── CLI ────────────────────────────────────────────────────────────────────────
+
+if (require.main === module) {
+try {
   // ── Parse arguments ──────────────────────────────────────────────────────────
 
   const argv = process.argv.slice(2);
@@ -44,66 +161,29 @@ try {
     }
   } catch {}
 
-  // ── Static mapping tables ─────────────────────────────────────────────────────
+  // ── Reverse-drift detection ───────────────────────────────────────────────────
 
-  // 1. Personas — meta-{name}.md → .forge/personas/{name}.md
-  //    Exclusions: meta-orchestrator.md, meta-product-manager.md, meta-supervisor.md
-  //    (no generated persona output for these)
-  const PERSONA_MAP = [
-    ['meta-architect.md',    'architect.md'],
-    ['meta-bug-fixer.md',    'bug-fixer.md'],
-    ['meta-collator.md',     'collator.md'],
-    ['meta-engineer.md',     'engineer.md'],
-    ['meta-qa-engineer.md',  'qa-engineer.md'],
-    ['meta-supervisor.md',   'supervisor.md'],
+  const driftWarnings = [
+    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'personas'), PERSONA_MAP, 'PERSONA_MAP'),
+    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'skills'), SKILL_MAP, 'SKILL_MAP'),
+    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'workflows'), WORKFLOW_MAP, 'WORKFLOW_MAP'),
+    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'templates'), TEMPLATE_MAP, 'TEMPLATE_MAP'),
   ];
+  for (const w of driftWarnings) {
+    process.stdout.write(`△ Reverse-drift warning: ${path.relative(process.cwd(), path.join(w.dir, w.file))} found in meta/ but is not referenced by ${w.label}. Add it to the mapping table or confirm it intentionally has no generated output.\n`);
+  }
 
-  // 2. Skills — derived from PERSONA_MAP output names
-  const SKILL_NAMES = PERSONA_MAP.map(([, out]) => out.replace('.md', '-skills.md'));
+  // ── Source verification ───────────────────────────────────────────────────────
 
-  // 3. Workflows — explicit source → output mapping (irregular names)
-  const WORKFLOW_MAP = [
-    ['meta-approve.md',                  'architect_approve.md'],
-    ['meta-collate.md',                  'collator_agent.md'],
-    ['meta-commit.md',                   'commit_task.md'],
-    ['meta-fix-bug.md',                  'fix_bug.md'],
-    ['meta-implement.md',                'implement_plan.md'],
-    ['meta-orchestrate.md',              'orchestrate_task.md'],
-    ['meta-plan-task.md',                'plan_task.md'],
-    ['meta-retrospective.md',            'sprint_retrospective.md'],
-    ['meta-review-implementation.md',    'review_code.md'],
-    ['meta-review-plan.md',              'review_plan.md'],
-    ['meta-review-sprint-completion.md', 'architect_review_sprint_completion.md'],
-    ['meta-sprint-intake.md',            'architect_sprint_intake.md'],
-    ['meta-sprint-plan.md',              'architect_sprint_plan.md'],
-    ['meta-update-implementation.md',    'update_implementation.md'],
-    ['meta-update-plan.md',              'update_plan.md'],
-    ['meta-validate.md',                 'validate_task.md'],
-    [null,                               'quiz_agent.md'],   // orchestration-generated
-    [null,                               'run_sprint.md'],   // orchestration-generated
+  const sourceMissing = [
+    ...verifySources(path.join(forgeRoot, 'meta', 'personas'), PERSONA_MAP, 'PERSONA_MAP'),
+    ...verifySources(path.join(forgeRoot, 'meta', 'skills'), SKILL_MAP, 'SKILL_MAP'),
+    ...verifySources(path.join(forgeRoot, 'meta', 'workflows'), WORKFLOW_MAP, 'WORKFLOW_MAP'),
+    ...verifySources(path.join(forgeRoot, 'meta', 'templates'), TEMPLATE_MAP, 'TEMPLATE_MAP'),
   ];
-
-  // 4. Templates — explicit mapping
-  //    CUSTOM_COMMAND_TEMPLATE.md is a one-shot init artifact (no meta source).
-  //    Source is null — same pattern as orchestration-generated workflows.
-  const TEMPLATE_MAP = [
-    ['meta-code-review.md',         'CODE_REVIEW_TEMPLATE.md'],
-    ['meta-plan.md',                'PLAN_TEMPLATE.md'],
-    ['meta-plan-review.md',         'PLAN_REVIEW_TEMPLATE.md'],
-    ['meta-progress.md',            'PROGRESS_TEMPLATE.md'],
-    ['meta-retrospective.md',       'RETROSPECTIVE_TEMPLATE.md'],
-    ['meta-sprint-manifest.md',     'SPRINT_MANIFEST_TEMPLATE.md'],
-    ['meta-sprint-requirements.md', 'SPRINT_REQUIREMENTS_TEMPLATE.md'],
-    ['meta-task-prompt.md',         'TASK_PROMPT_TEMPLATE.md'],
-    [null,                          'CUSTOM_COMMAND_TEMPLATE.md'],  // one-shot init artifact
-  ];
-
-  // 5. Commands — from generate-commands.md explicit list
-  const COMMAND_NAMES = [
-    'sprint-intake.md', 'plan.md', 'review-plan.md', 'implement.md',
-    'review-code.md', 'fix-bug.md', 'sprint-plan.md', 'run-task.md',
-    'run-sprint.md', 'collate.md', 'retrospective.md', 'approve.md', 'commit.md',
-  ];
+  for (const m of sourceMissing) {
+    process.stdout.write(`△ Source missing: ${m.label} entry "${m.source}" — file not found at ${path.relative(process.cwd(), path.join(m.dir, m.source))}\n`);
+  }
 
   // ── Schema files — discover from forge/schemas/ ───────────────────────────────
 
@@ -116,41 +196,6 @@ try {
   } catch (e) {
     process.stderr.write(`△ Could not read schemas dir: ${e.message}\n`);
   }
-
-  // ── Reverse-drift detection ───────────────────────────────────────────────────
-
-  function checkReverseDrift(metaDir, map, label) {
-    const referencedSources = new Set(map.filter(([src]) => src !== null).map(([src]) => src));
-    let files = [];
-    try {
-      files = fs.readdirSync(metaDir).filter(f => f.startsWith('meta-') && f.endsWith('.md'));
-    } catch {}
-    for (const f of files) {
-      if (!referencedSources.has(f)) {
-        process.stdout.write(`△ Reverse-drift warning: ${path.relative(process.cwd(), path.join(metaDir, f))} found in meta/ but is not referenced by ${label}. Add it to the mapping table or confirm it intentionally has no generated output.\n`);
-      }
-    }
-  }
-
-  checkReverseDrift(path.join(forgeRoot, 'meta', 'personas'), PERSONA_MAP, 'PERSONA_MAP');
-  checkReverseDrift(path.join(forgeRoot, 'meta', 'workflows'), WORKFLOW_MAP, 'WORKFLOW_MAP');
-  checkReverseDrift(path.join(forgeRoot, 'meta', 'templates'), TEMPLATE_MAP, 'TEMPLATE_MAP');
-
-  // ── Source verification ───────────────────────────────────────────────────────
-
-  function verifySources(metaDir, map, label) {
-    for (const [src] of map) {
-      if (!src) continue;
-      const srcPath = path.join(metaDir, src);
-      if (!fs.existsSync(srcPath)) {
-        process.stdout.write(`△ Source missing: ${label} entry "${src}" — file not found at ${path.relative(process.cwd(), srcPath)}\n`);
-      }
-    }
-  }
-
-  verifySources(path.join(forgeRoot, 'meta', 'personas'), PERSONA_MAP, 'PERSONA_MAP');
-  verifySources(path.join(forgeRoot, 'meta', 'workflows'), WORKFLOW_MAP, 'WORKFLOW_MAP');
-  verifySources(path.join(forgeRoot, 'meta', 'templates'), TEMPLATE_MAP, 'TEMPLATE_MAP');
 
   // ── Build manifest ────────────────────────────────────────────────────────────
 
@@ -167,7 +212,7 @@ try {
       skills: {
         logicalKey: 'skills',
         dir: '.forge/skills',
-        files: SKILL_NAMES.slice().sort(),
+        files: SKILL_MAP.map(([, out]) => out).sort(),
       },
       workflows: {
         logicalKey: 'workflows',
@@ -218,3 +263,4 @@ try {
   process.stderr.write(`× build-manifest fatal: ${err.message}\n${err.stack}\n`);
   process.exit(1);
 }
+} // end if (require.main === module)

@@ -87,7 +87,7 @@ to confirm or specify a start phase:
   7     Workflows             — atomic workflow files → ~14 files
   8     Orchestration         — pipeline wiring → 2 workflows
   9     Commands              — slash command wrappers → 5-8 commands
-  10    Tools                 — JSON schema copy + store validation → 5-8 schemas + tools
+  10    Tools                 — config update + schema copy + hash recording → schemas + config
   11    Smoke Test            — validate and self-correct → manifest + cache
 
 Start from Phase 1? [Y] or specify phase: ___

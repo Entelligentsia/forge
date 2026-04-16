@@ -6,39 +6,25 @@
 // Enforces schema validation on write and status transition rules.
 // Usage: node store-cli.cjs <command> <args>
 
-process.on('uncaughtException', (error) => {
-  console.error('Fatal store-cli error:', error);
-  process.exit(1);
-});
+let _store;
+function _getStore() { return _store || (_store = require('./store.cjs')); }
 
-try {
-const fs = require('fs');
-const path = require('path');
-const store = require('./store.cjs');
+let _schemas;
+function _getSchemas() {
+  if (_schemas) return _schemas;
+  const fs = require('fs');
+  const path = require('path');
 
-const DRY_RUN = process.argv.includes('--dry-run');
+  const ENTITY_TYPES = ['sprint', 'task', 'bug', 'event', 'feature'];
 
-// ---------------------------------------------------------------------------
-// Schema loading — same resolution as validate-store.cjs
-// ---------------------------------------------------------------------------
+  const MINIMAL_REQUIRED = {
+    sprint:  ['sprintId', 'title', 'status', 'taskIds', 'createdAt'],
+    task:    ['taskId', 'sprintId', 'title', 'status', 'path'],
+    bug:     ['bugId', 'title', 'severity', 'status', 'path', 'reportedAt'],
+    event:   ['eventId', 'taskId', 'sprintId', 'role', 'action', 'phase', 'iteration', 'startTimestamp', 'endTimestamp', 'durationMinutes', 'model'],
+    feature: ['id', 'title', 'status', 'created_at']
+  };
 
-const ENTITY_TYPES = ['sprint', 'task', 'bug', 'event', 'feature'];
-
-const MINIMAL_REQUIRED = {
-  sprint:  ['sprintId', 'title', 'status', 'taskIds', 'createdAt'],
-  task:    ['taskId', 'sprintId', 'title', 'status', 'path'],
-  bug:     ['bugId', 'title', 'severity', 'status', 'path', 'reportedAt'],
-  event:   ['eventId', 'taskId', 'sprintId', 'role', 'action', 'phase', 'iteration', 'startTimestamp', 'endTimestamp', 'durationMinutes', 'model'],
-  feature: ['id', 'title', 'status', 'created_at']
-};
-
-// Fields that may legitimately be null (nullable FKs / optional timing)
-const NULLABLE_FIELDS = new Set([
-  'sprintId', 'taskId', 'endTimestamp', 'durationMinutes',
-  'feature_id', 'description', 'completedAt', 'resolvedAt'
-]);
-
-function loadSchemas() {
   const schemas = {};
   const projectDir   = path.join('.forge', 'schemas');
   const inTreeDir    = path.join('forge', 'schemas');
@@ -86,14 +72,29 @@ function loadSchemas() {
     }
   }
 
-  return schemas;
+  _schemas = schemas;
+  return _schemas;
 }
 
-const schemas = loadSchemas();
+// ---------------------------------------------------------------------------
+// Schema loading — same resolution as validate-store.cjs
+// ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// Validation
-// ---------------------------------------------------------------------------
+const ENTITY_TYPES = ['sprint', 'task', 'bug', 'event', 'feature'];
+
+const MINIMAL_REQUIRED = {
+  sprint:  ['sprintId', 'title', 'status', 'taskIds', 'createdAt'],
+  task:    ['taskId', 'sprintId', 'title', 'status', 'path'],
+  bug:     ['bugId', 'title', 'severity', 'status', 'path', 'reportedAt'],
+  event:   ['eventId', 'taskId', 'sprintId', 'role', 'action', 'phase', 'iteration', 'startTimestamp', 'endTimestamp', 'durationMinutes', 'model'],
+  feature: ['id', 'title', 'status', 'created_at']
+};
+
+// Fields that may legitimately be null (nullable FKs / optional timing)
+const NULLABLE_FIELDS = new Set([
+  'sprintId', 'taskId', 'endTimestamp', 'durationMinutes',
+  'feature_id', 'description', 'completedAt', 'resolvedAt'
+]);
 
 function validateRecord(record, schema) {
   const errors = [];
@@ -229,6 +230,26 @@ function isLegalTransition(entityType, field, currentValue, newValue) {
 
   return allowed.includes(newValue);
 }
+
+module.exports = { isLegalTransition, validateRecord, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, ENTITY_TYPES, MINIMAL_REQUIRED, NULLABLE_FIELDS };
+
+// ---------------------------------------------------------------------------
+// CLI
+// ---------------------------------------------------------------------------
+if (require.main === module) {
+
+process.on('uncaughtException', (error) => {
+  console.error('Fatal store-cli error:', error);
+  process.exit(1);
+});
+
+try {
+const fs = require('fs');
+const path = require('path');
+const store = _getStore();
+const schemas = _getSchemas();
+
+const DRY_RUN = process.argv.includes('--dry-run');
 
 // ---------------------------------------------------------------------------
 // Entity ID field mapping
@@ -813,3 +834,5 @@ switch (command) {
   console.error(err.message);
   process.exit(1);
 }
+
+} // end if (require.main === module)

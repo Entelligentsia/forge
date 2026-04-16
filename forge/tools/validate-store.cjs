@@ -5,51 +5,25 @@
 // Check store integrity: required fields, types, enums, and referential integrity.
 // Usage: validate-store [--dry-run] [--fix] [--json]
 
-process.on('uncaughtException', (error) => {
-  console.error('Fatal validate-store error:', error);
-  process.exit(1);
-});
+let _store;
+function _getStore() { return _store || (_store = require('./store.cjs')); }
 
-const store = require('./store.cjs');
-const fs = require('fs');
-const path = require('path');
+let _schemas;
+function _getSchemas() {
+  if (_schemas) return _schemas;
+  const fs = require('fs');
+  const path = require('path');
 
-const DRY_RUN = process.argv.includes('--dry-run');
-const FIX_MODE = process.argv.includes('--fix');
-const JSON_MODE = process.argv.includes('--json');
+  const ENTITY_TYPES = ['sprint', 'task', 'bug', 'event', 'feature'];
 
-// Read engineering root and project prefix from config for filesystem consistency checks
-const CONFIG_PATH = '.forge/config.json';
-let engineeringRoot = 'engineering';
-let projectPrefix = '[A-Z]+';
-try {
-  const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-  if (cfg.paths && cfg.paths.engineering) engineeringRoot = cfg.paths.engineering;
-  if (cfg.project && cfg.project.prefix) projectPrefix = cfg.project.prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-} catch (_) {}
+  const MINIMAL_REQUIRED = {
+    sprint:  ['sprintId', 'title', 'status', 'taskIds', 'createdAt'],
+    task:    ['taskId', 'sprintId', 'title', 'status', 'path'],
+    bug:     ['bugId', 'title', 'severity', 'status', 'path', 'reportedAt'],
+    event:   ['eventId', 'taskId', 'sprintId', 'role', 'action', 'phase', 'iteration', 'startTimestamp', 'endTimestamp', 'durationMinutes', 'model'],
+    feature: ['id', 'title', 'status', 'created_at']
+  };
 
-// Slug-aware directory discovery regexes
-const SPRINT_DIR_RE = new RegExp(`^(${projectPrefix}-S\\d+)(-\\S+)?$`);
-const TASK_FULL_RE  = new RegExp(`^(${projectPrefix}-S\\d+-T\\d+)(-\\S+)?$`);
-const TASK_SHORT_RE = /^(T\d+)(-\S+)?$/;
-
-// Schema loading — validate-store reads schemas from the filesystem at startup.
-// Resolution order per entity type:
-//   1. .forge/schemas/{type}.schema.json  (project-installed copy)
-//   2. forge/schemas/{type}.schema.json   (in-tree source, for dogfooding)
-//   3. $FORGE_ROOT/schemas/{type}.schema.json  (plugin-installed, for production)
-//   4. Minimal fallback (required fields only, with stderr warning)
-const ENTITY_TYPES = ['sprint', 'task', 'bug', 'event', 'feature'];
-
-const MINIMAL_REQUIRED = {
-  sprint:  ['sprintId', 'title', 'status', 'taskIds', 'createdAt'],
-  task:    ['taskId', 'sprintId', 'title', 'status', 'path'],
-  bug:     ['bugId', 'title', 'severity', 'status', 'path', 'reportedAt'],
-  event:   ['eventId', 'taskId', 'sprintId', 'role', 'action', 'phase', 'iteration', 'startTimestamp', 'endTimestamp', 'durationMinutes', 'model'],
-  feature: ['id', 'title', 'status', 'created_at']
-};
-
-function loadSchemas() {
   const schemas = {};
   const projectDir   = path.join('.forge', 'schemas');
   const inTreeDir    = path.join('forge', 'schemas');
@@ -103,10 +77,23 @@ function loadSchemas() {
     }
   }
 
-  return schemas;
+  _schemas = schemas;
+  return _schemas;
 }
 
-const schemas = loadSchemas();
+// ---------------------------------------------------------------------------
+// Constants (exported for testing)
+// ---------------------------------------------------------------------------
+
+const ENTITY_TYPES = ['sprint', 'task', 'bug', 'event', 'feature'];
+
+const MINIMAL_REQUIRED = {
+  sprint:  ['sprintId', 'title', 'status', 'taskIds', 'createdAt'],
+  task:    ['taskId', 'sprintId', 'title', 'status', 'path'],
+  bug:     ['bugId', 'title', 'severity', 'status', 'path', 'reportedAt'],
+  event:   ['eventId', 'taskId', 'sprintId', 'role', 'action', 'phase', 'iteration', 'startTimestamp', 'endTimestamp', 'durationMinutes', 'model'],
+  feature: ['id', 'title', 'status', 'created_at']
+};
 
 // Fields that are legitimately null:
 //   sprintId / taskId  — optional FK (e.g. standalone bug fix has no sprint)
@@ -164,6 +151,66 @@ function validateRecord(record, schema) {
   return errors;
 }
 
+// --- Backfill defaults for --fix mode ---
+const BACKFILL = {
+  sprint: {
+    createdAt: (rec) => rec.completedAt || rec.startDate || rec.endDate || new Date().toISOString(),
+  },
+  bug: {
+    reportedAt: (rec) => rec.resolvedAt || new Date().toISOString(),
+  },
+  event: {
+    eventId:         (_rec, id) => id,
+    role:            (rec)        => rec.agent || 'unknown',
+    action:          (rec)        => rec.phase  || 'unknown',
+    phase:           (rec)        => rec.action || 'unknown',
+    iteration:       ()           => 1,
+    startTimestamp:  (rec)        => rec.timestamp || new Date().toISOString(),
+    endTimestamp:    (rec)        => rec.timestamp || null,
+    durationMinutes: ()           => null,
+    model: (rec) => {
+      if (rec.actor && typeof rec.actor === 'string' && rec.actor.includes('claude')) return rec.actor;
+      return 'unknown';
+    },
+  },
+};
+
+module.exports = { validateRecord, MINIMAL_REQUIRED, NULLABLE_FK, BACKFILL, ENTITY_TYPES };
+
+// ---------------------------------------------------------------------------
+// CLI
+// ---------------------------------------------------------------------------
+if (require.main === module) {
+
+process.on('uncaughtException', (error) => {
+  console.error('Fatal validate-store error:', error);
+  process.exit(1);
+});
+
+const fs = require('fs');
+const path = require('path');
+const store = _getStore();
+const schemas = _getSchemas();
+
+const DRY_RUN = process.argv.includes('--dry-run');
+const FIX_MODE = process.argv.includes('--fix');
+const JSON_MODE = process.argv.includes('--json');
+
+// Read engineering root and project prefix from config for filesystem consistency checks
+const CONFIG_PATH = '.forge/config.json';
+let engineeringRoot = 'engineering';
+let projectPrefix = '[A-Z]+';
+try {
+  const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+  if (cfg.paths && cfg.paths.engineering) engineeringRoot = cfg.paths.engineering;
+  if (cfg.project && cfg.project.prefix) projectPrefix = cfg.project.prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+} catch (_) {}
+
+// Slug-aware directory discovery regexes
+const SPRINT_DIR_RE = new RegExp(`^(${projectPrefix}-S\\d+)(-\\S+)?$`);
+const TASK_FULL_RE  = new RegExp(`^(${projectPrefix}-S\\d+-T\\d+)(-\\S+)?$`);
+const TASK_SHORT_RE = /^(T\d+)(-\S+)?$/;
+
 let errorsCount = 0;
 let warningsCount = 0;
 let fixesCount = 0;
@@ -199,30 +246,6 @@ function fixMsg(id, msg, category, field) {
     console.log(`FIXED  ${id}: ${msg}`);
   }
 }
-
-// --- Backfill defaults for --fix mode ---
-const BACKFILL = {
-  sprint: {
-    createdAt: (rec) => rec.completedAt || rec.startDate || rec.endDate || new Date().toISOString(),
-  },
-  bug: {
-    reportedAt: (rec) => rec.resolvedAt || new Date().toISOString(),
-  },
-  event: {
-    eventId:         (_rec, id) => id,
-    role:            (rec)        => rec.agent || 'unknown',
-    action:          (rec)        => rec.phase  || 'unknown',
-    phase:           (rec)        => rec.action || 'unknown',
-    iteration:       ()           => 1,
-    startTimestamp:  (rec)        => rec.timestamp || new Date().toISOString(),
-    endTimestamp:    (rec)        => rec.timestamp || null,
-    durationMinutes: ()           => null,
-    model: (rec) => {
-      if (rec.actor && typeof rec.actor === 'string' && rec.actor.includes('claude')) return rec.actor;
-      return 'unknown';
-    },
-  },
-};
 
 function backfillRecord(id, rec, type) {
   const rules = BACKFILL[type];
@@ -492,3 +515,5 @@ if (JSON_MODE) {
     process.exit(1);
   }
 }
+
+} // end if (require.main === module)

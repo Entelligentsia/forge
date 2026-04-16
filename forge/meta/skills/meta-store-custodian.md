@@ -8,11 +8,11 @@ role: Shared
 
 When generating project-specific skills during `/forge:regenerate skills`, the
 generator must include the Store Custodian skill as a standalone skill file in
-`.forge/skills/store-custodian.md`. Unlike role-specific skills, this skill is
+`.forge/skills/store-custodian-skills.md`. Unlike role-specific skills, this skill is
 cross-cutting and is invoked by any persona that needs to read or modify the
 JSON store. Do NOT duplicate this content into each role's skill set.
 
-1. Copy this skill verbatim into `.forge/skills/store-custodian.md`.
+1. Copy this skill verbatim into `.forge/skills/store-custodian-skills.md`.
 2. Interpolate `FORGE_ROOT` resolution instructions if the project has a
    configured `paths.forgeRoot` in `.forge/config.json`.
 3. Ensure the invocation patterns table is preserved exactly.

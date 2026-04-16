@@ -303,5 +303,7 @@ class FSImpl {
   }
 }
 
-// Export a singleton instance for the plugin
+// Export a singleton instance for the plugin, plus classes for testing
 module.exports = new Store(new FSImpl());
+module.exports.Store = Store;
+module.exports.FSImpl = FSImpl;

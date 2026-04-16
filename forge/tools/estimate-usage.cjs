@@ -12,7 +12,8 @@
 //   estimate-usage --sprint <SPRINT_ID>   Process all events in a sprint directory
 //   estimate-usage [--dry-run]            Log what would be written without modifying files
 
-const store = require('./store');
+let store;
+function _getStore() { return store || (store = require('./store')); }
 
 // ---------------------------------------------------------------------------
 // Heuristic tables (documented — these are estimates, not measurements)
@@ -130,7 +131,7 @@ function processEvent(event, dryRun) {
   }
 
   try {
-    store.writeEvent(event.sprintId, updated);
+    _getStore().writeEvent(event.sprintId, updated);
   } catch (e) {
     console.error(`  [error] Failed to write ${event.eventId}: ${e.message}`);
     return 'error';
@@ -141,9 +142,27 @@ function processEvent(event, dryRun) {
 }
 
 // ---------------------------------------------------------------------------
-// Main
+// Exports for testing
 // ---------------------------------------------------------------------------
 
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    lookupByModel,
+    estimateTokens,
+    TOKENS_PER_MINUTE,
+    PRICE_PER_1M,
+    PHASE_SPLIT,
+    DEFAULT_TOKENS_PER_MINUTE,
+    DEFAULT_PRICE_PER_1M,
+    DEFAULT_PHASE_SPLIT,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Main (CLI mode only)
+// ---------------------------------------------------------------------------
+
+if (require.main === module) {
 try {
   const args = process.argv.slice(2);
   const DRY_RUN = args.includes('--dry-run');
@@ -188,7 +207,7 @@ try {
     const sprintId = parts[eventStoreIdx + 1];
     const eventId = path.basename(resolved, '.json');
 
-    const eventData = store.getEvent(eventId, sprintId);
+    const eventData = _getStore().getEvent(eventId, sprintId);
     if (!eventData) {
       console.error(`Error: event not found via facade: ${resolved}`);
       process.exit(1);
@@ -209,7 +228,7 @@ try {
     // However, the Store facade's listEvents uses readdirSync and filters by .json.
     // Sidecars start with '_' in the filename.
     // To properly filter, we need to be careful.
-    const allEvents = store.listEvents(sprintId);
+    const allEvents = _getStore().listEvents(sprintId);
     eventsToProcess = allEvents.filter(e => e && e.eventId && !e.eventId.startsWith('_'));
   }
 
@@ -231,3 +250,4 @@ try {
   console.error(`Fatal error: ${err.message}`);
   process.exit(1);
 }
+} // end if (require.main === module)

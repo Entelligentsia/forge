@@ -6,7 +6,7 @@ role: Engineer
 
 ## Generation Instructions
 
-When generating the project-specific skill set for the Engineer role in `.forge/skills/engineer.md`, the generator must:
+When generating the project-specific skill set for the Engineer role in `.forge/skills/engineer-skills.md`, the generator must:
 1. Cross-reference the `installedSkills` list in `.forge/config.json`.
 2. Map the universal skills listed below to the specific implementation names found in `installedSkills`.
 3. Interpolate any project-specific tool names or internal CLI commands used for build, test, and deployment.

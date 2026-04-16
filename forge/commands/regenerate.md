@@ -93,9 +93,6 @@ All other steps below apply to that single file only (manifest check, hash recor
 
 Re-generate `.forge/skills/` from the meta-skill templates and project config.
 
-Note: `skills` is NOT in the default run (`/forge:regenerate` with no arguments).
-Users must run `/forge:regenerate skills` explicitly to trigger this section.
-
 1. Read `$FORGE_ROOT/meta/skills/` — all meta-skill files
 2. Read `.forge/config.json` for `installedSkills`
 3. Read the current knowledge base in `engineering/`
@@ -322,10 +319,23 @@ are not yet represented in review checklist items.
 
 ## Default (no argument)
 
-Run `workflows` + `commands` + `templates` + `personas` in sequence.
+Run `workflows` + `commands` + `templates` + `personas` + `skills` in sequence.
 
 ## On error
 
 If any step above fails unexpectedly, describe what went wrong and ask:
 
 > "This looks like a Forge bug. Would you like to file a report to help improve it? Run `/forge:report-bug` — I'll pre-fill the report from this conversation."
+
+---
+
+## Post-regeneration verification
+
+After all requested targets have been regenerated, verify structural completeness:
+
+```sh
+node "$FORGE_ROOT/tools/check-structure.cjs" --path .
+```
+
+- If exit 0: emit `〇 All expected generated files are present.`
+- If exit 1: list the missing files by namespace and suggest running `/forge:regenerate <namespace>` for the affected category or categories.

@@ -12,7 +12,6 @@ const path = require('path');
 const Store = require('./store.cjs');
 
 const DRY_RUN = process.argv.includes('--dry-run');
-const cwd = process.cwd();
 
 /**
  * Convert a title string to a lower-kebab-case slug, truncated to 30 chars.
@@ -26,6 +25,15 @@ function deriveSlug(title) {
     .slice(0, 30)
     .replace(/-+$/g, '');       // trim trailing hyphens after truncation
 }
+
+// ── Exports for testing ────────────────────────────────────────────────────────
+
+module.exports = { deriveSlug };
+
+// ── CLI (only when run directly) ──────────────────────────────────────────────
+
+if (require.main === module) {
+const cwd = process.cwd();
 
 function extractTitle(dir, fallback) {
   for (const file of ['PLAN.md', 'PROGRESS.md', 'INDEX.md', 'README.md']) {
@@ -226,5 +234,4 @@ try {
   process.exit(1);
 }
 
-// Exported for use by other tools (e.g. sprint-intake directory creation).
-module.exports = { deriveSlug };
+} // end if (require.main === module)

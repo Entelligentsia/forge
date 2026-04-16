@@ -1,6 +1,6 @@
 {
-  "version": "0.9.16",
-  "generatedAt": "2026-04-16T05:24:18.060Z",
+  "version": "0.9.17",
+  "generatedAt": "2026-04-16T06:59:17.581Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -23,7 +23,9 @@
         "bug-fixer-skills.md",
         "collator-skills.md",
         "engineer-skills.md",
+        "generic-skills.md",
         "qa-engineer-skills.md",
+        "store-custodian-skills.md",
         "supervisor-skills.md"
       ]
     },

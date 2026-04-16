@@ -12,11 +12,6 @@
 //        generation-manifest clear-namespace <prefix>  Remove all entries whose path starts with <prefix>.
 //                                                       prefix must start with .forge/ or .claude/ and end with /
 
-process.on('uncaughtException', (e) => {
-  process.stderr.write(`× ${e.message}\n`);
-  process.exit(1);
-});
-
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -34,6 +29,18 @@ function normalize(content) {
 function hashContent(content) {
   return 'sha256:' + crypto.createHash('sha256').update(normalize(content), 'utf8').digest('hex');
 }
+
+// ── exports (for testing) ────────────────────────────────────────────────────
+
+module.exports = { normalize, hashContent, MANIFEST_PATH };
+
+// ── CLI guard ────────────────────────────────────────────────────────────────
+
+if (require.main === module) {
+process.on('uncaughtException', (e) => {
+  process.stderr.write(`× ${e.message}\n`);
+  process.exit(1);
+});
 
 function readManifest() {
   if (!fs.existsSync(MANIFEST_PATH)) return { files: {} };
@@ -301,3 +308,4 @@ if (subcmd === 'clear-namespace') {
 
 process.stderr.write(`× Unknown subcommand: ${subcmd}\n`);
 process.exit(2);
+} // end if (require.main === module)

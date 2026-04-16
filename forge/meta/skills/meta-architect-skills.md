@@ -6,7 +6,7 @@ role: Architect
 
 ## Generation Instructions
 
-When generating the project-specific skill set for the Architect role in `.forge/skills/architect.md`, the generator must:
+When generating the project-specific skill set for the Architect role in `.forge/skills/architect-skills.md`, the generator must:
 1. Cross-reference the `installedSkills` list in `.forge/config.json`.
 2. Map the universal skills listed below to the specific implementation names found in `installedSkills`.
 3. Focus on high-level analysis, system design, and strategic planning tools.

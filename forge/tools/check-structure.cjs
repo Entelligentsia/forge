@@ -14,10 +14,97 @@
 // Exit 0: all expected files present (or only extras found without --strict)
 // Exit 1: any missing files detected; also exit 1 if extras found with --strict
 
-try {
-  const fs = require('fs');
-  const path = require('path');
+const fs = require('fs');
+const path = require('path');
 
+// ── Per-namespace verification logic ──────────────────────────────────────────
+//
+// Returns { present, missing, extra, total } without calling process.exit.
+// - present: number of expected files found
+// - missing: array of { nsKey, dir, filename }
+// - extra:   array of { nsKey, dir, filename } (populated only when strict=true)
+// - total:   total number of expected files across all namespaces
+
+function checkNamespaces(manifest, projectRoot, options = {}) {
+  const { strict = false, configPaths = null } = options;
+
+  // Resolve config path overrides
+  let resolvedConfigPaths;
+  if (configPaths !== null) {
+    resolvedConfigPaths = configPaths;
+  } else {
+    resolvedConfigPaths = {};
+    const configFile = path.join(projectRoot, '.forge', 'config.json');
+    if (fs.existsSync(configFile)) {
+      try {
+        const cfg = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+        resolvedConfigPaths = (cfg && cfg.paths) ? cfg.paths : {};
+      } catch {
+        // unparseable — use defaults
+      }
+    }
+  }
+
+  let totalPresent = 0;
+  let totalExpected = 0;
+  const allMissing = [];
+  const allExtra = [];
+
+  for (const [nsKey, ns] of Object.entries(manifest.namespaces)) {
+    const logicalKey = ns.logicalKey || nsKey;
+    const resolvedDir = (resolvedConfigPaths[logicalKey] && typeof resolvedConfigPaths[logicalKey] === 'string')
+      ? resolvedConfigPaths[logicalKey]
+      : ns.dir;
+    const absDir = path.join(projectRoot, resolvedDir);
+
+    const expected = ns.files || [];
+    totalExpected += expected.length;
+
+    const present = [];
+    const missing = [];
+    for (const filename of expected) {
+      const fullPath = path.join(absDir, filename);
+      if (fs.existsSync(fullPath)) {
+        present.push(filename);
+      } else {
+        missing.push({ nsKey, dir: resolvedDir, filename });
+      }
+    }
+
+    totalPresent += present.length;
+    allMissing.push(...missing);
+
+    if (strict) {
+      if (fs.existsSync(absDir)) {
+        try {
+          const expectedSet = new Set(expected);
+          const found = fs.readdirSync(absDir);
+          for (const f of found) {
+            if (!expectedSet.has(f)) {
+              allExtra.push({ nsKey, dir: resolvedDir, filename: f });
+            }
+          }
+        } catch {}
+      }
+    }
+  }
+
+  return {
+    present: totalPresent,
+    missing: allMissing,
+    extra: allExtra,
+    total: totalExpected,
+  };
+}
+
+// ── Exports ────────────────────────────────────────────────────────────────────
+
+module.exports = { checkNamespaces };
+
+// ── CLI ────────────────────────────────────────────────────────────────────────
+
+if (require.main === module) {
+try {
   // ── Parse arguments ──────────────────────────────────────────────────────────
 
   const argv = process.argv.slice(2);
@@ -48,105 +135,74 @@ try {
     process.exit(1);
   }
 
-  // ── Load .forge/config.json for path overrides ───────────────────────────────
+  // ── Check namespaces ─────────────────────────────────────────────────────────
 
-  let configPaths = {};
-  const configFile = path.join(projectRoot, '.forge', 'config.json');
-  if (fs.existsSync(configFile)) {
-    try {
-      const cfg = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-      configPaths = (cfg && cfg.paths) ? cfg.paths : {};
-    } catch {
-      process.stdout.write(`△ .forge/config.json not found or unreadable — using manifest default paths\n`);
-    }
-  } else {
-    process.stdout.write(`△ .forge/config.json not found or unreadable — using manifest default paths\n`);
+  const result = checkNamespaces(manifest, projectRoot, { strict });
+
+  // ── Format output ────────────────────────────────────────────────────────────
+
+  // Group results by namespace for display
+  const byNs = {};
+  for (const m of result.missing) {
+    if (!byNs[m.nsKey]) byNs[m.nsKey] = { present: 0, missing: [], extra: [] };
+    byNs[m.nsKey].missing.push(m.filename);
+  }
+  for (const e of result.extra) {
+    if (!byNs[e.nsKey]) byNs[e.nsKey] = { present: 0, missing: [], extra: [] };
+    byNs[e.nsKey].extra.push(e.filename);
   }
 
-  // ── Check each namespace ──────────────────────────────────────────────────────
+  // Count present per namespace
+  for (const [nsKey, ns] of Object.entries(manifest.namespaces)) {
+    if (!byNs[nsKey]) byNs[nsKey] = { present: 0, missing: [], extra: [] };
+    const total = (ns.files || []).length;
+    const missingCount = byNs[nsKey].missing.length;
+    byNs[nsKey].present = total - missingCount;
+  }
 
-  let totalExpected = 0;
-  let totalPresent = 0;
-  let totalMissing = 0;
-  let totalExtra = 0;
-  let anyMissing = false;
-  let anyExtra = false;
   const lines = [];
+  let anyMissing = result.missing.length > 0;
+  let anyExtra = result.extra.length > 0;
 
   for (const [nsKey, ns] of Object.entries(manifest.namespaces)) {
     const logicalKey = ns.logicalKey || nsKey;
-    // Config override: if config.paths[logicalKey] is set, use it
-    const resolvedDir = (configPaths[logicalKey] && typeof configPaths[logicalKey] === 'string')
-      ? configPaths[logicalKey]
-      : ns.dir;
-    const absDir = path.join(projectRoot, resolvedDir);
+    const info = byNs[nsKey] || { present: 0, missing: [], extra: [] };
+    const total = (ns.files || []).length;
+    const dir = ns.dir;
 
-    const expected = ns.files || [];
-    totalExpected += expected.length;
-
-    const missing = [];
-    const present = [];
-    for (const filename of expected) {
-      const fullPath = path.join(absDir, filename);
-      if (fs.existsSync(fullPath)) {
-        present.push(filename);
-      } else {
-        missing.push(filename);
-      }
-    }
-
-    totalPresent += present.length;
-    totalMissing += missing.length;
-
-    let extra = [];
-    if (strict) {
-      if (fs.existsSync(absDir)) {
-        try {
-          const expectedSet = new Set(expected);
-          const found = fs.readdirSync(absDir);
-          extra = found.filter(f => !expectedSet.has(f));
-          totalExtra += extra.length;
-        } catch {}
-      }
-    }
-
-    if (missing.length === 0 && extra.length === 0) {
-      lines.push(`〇 ${resolvedDir}/ — ${present.length}/${expected.length} present`);
+    if (info.missing.length === 0 && info.extra.length === 0) {
+      lines.push(`〇 ${dir}/ — ${info.present}/${total} present`);
     } else {
-      if (missing.length > 0) {
-        anyMissing = true;
-        lines.push(`× ${resolvedDir}/ — ${present.length}/${expected.length} present, ${missing.length} missing:`);
-        for (const f of missing) {
+      if (info.missing.length > 0) {
+        lines.push(`× ${dir}/ — ${info.present}/${total} present, ${info.missing.length} missing:`);
+        for (const f of info.missing) {
           lines.push(`    × ${f}`);
         }
       }
-      if (extra.length > 0) {
-        anyExtra = true;
-        if (missing.length === 0) {
-          lines.push(`△ ${resolvedDir}/ — ${present.length}/${expected.length} present, ${extra.length} extra:`);
+      if (info.extra.length > 0) {
+        if (info.missing.length === 0) {
+          lines.push(`△ ${dir}/ — ${info.present}/${total} present, ${info.extra.length} extra:`);
         }
-        for (const f of extra) {
+        for (const f of info.extra) {
           lines.push(`    △ ${f} (not in manifest)`);
         }
       }
     }
   }
 
-  // ── Output ────────────────────────────────────────────────────────────────────
-
   for (const line of lines) {
     process.stdout.write(line + '\n');
   }
 
   if (!anyMissing && !anyExtra) {
-    process.stdout.write(`〇 Structure check: all ${totalExpected} expected files present.\n`);
+    process.stdout.write(`〇 Structure check: all ${result.total} expected files present.\n`);
     process.exit(0);
   }
 
-  const parts = [`${totalPresent} present`];
-  if (totalMissing > 0) parts.push(`${totalMissing} missing`);
-  if (strict && totalExtra > 0) parts.push(`${totalExtra} extra`);
-  process.stdout.write(`── Structure check: ${parts.join(', ')} (of ${totalExpected} expected)\n`);
+  const parts = [`${result.present} present`];
+  if (result.missing.length > 0) parts.push(`${result.missing.length} missing`);
+  if (strict && result.extra.length > 0) parts.push(`${result.extra.length} extra`);
+  process.stdout.write(`── Structure check: ${parts.join(', ')} (of ${result.total} expected)\n`);
 
   if (anyMissing) {
     process.exit(1);
@@ -162,3 +218,4 @@ try {
   process.stderr.write(`× check-structure fatal: ${err.message}\n${err.stack}\n`);
   process.exit(1);
 }
+} // end if (require.main === module)
