@@ -1,4 +1,12 @@
 {
+  "0.9.18": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "Tomoshibi agent (灯): first named agent — ensures CLAUDE.md, AGENTS.md, and other coding-agent instruction files link to the Forge KB and workflows; KB folder name user-configurable at init pre-flight (paths.engineering); forge:init gains Phase 12, forge:update gains Step 7, meta-collate Finalize invokes Tomoshibi post-collation.",
+    "regenerate": ["workflows:collator_agent"],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.17": {
     "version": "0.9.18",
     "date": "2026-04-16",

@@ -88,7 +88,7 @@ no further changes to the step logic are needed.
 At the start of each step, emit a banner using this format:
 
 ```
-━━━ Step N/6 — <Step Name> ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━ Step N/7 — <Step Name> ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 Use full-width em-dashes to reach 65 characters total.
@@ -97,7 +97,7 @@ Use full-width em-dashes to reach 65 characters total.
 
 ## Step 1 — Check for updates
 
-Emit: `━━━ Step 1/6 — Check for updates ━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Step 1/7 — Check for updates ━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/.claude-plugin/plugin.json`. Extract `"version"` → `LOCAL_VERSION`.
 
@@ -175,7 +175,7 @@ Now evaluate — **stop at the first matching row and follow only that row's act
 
 ## Step 2A — Plugin update available
 
-Emit: `━━━ Step 2/6 — Plugin update available ━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Step 2/7 — Plugin update available ━━━━━━━━━━━━━━━━━━━━━━`
 
 > **Only reached when `REMOTE_VERSION` != `LOCAL_VERSION` (row 4 above).**
 
@@ -268,7 +268,7 @@ Wait for the user to confirm the install completed.
 
 ## Step 2B — Project migration pending (plugin already current)
 
-Emit: `━━━ Step 2/6 — Apply project migrations ━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Step 2/7 — Apply project migrations ━━━━━━━━━━━━━━━━━━━━━`
 
 > **Only reached from rows 2 or 3 — the plugin is already at the right version.**
 > **Do NOT show an install prompt here. There is nothing to install.**
@@ -326,7 +326,7 @@ Then jump to **Step 4** to execute the regeneration.
 
 ## Step 3 — Verify installation
 
-Emit: `━━━ Step 3/6 — Verify installation ━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Step 3/7 — Verify installation ━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 After the user confirms the install:
 
@@ -364,7 +364,7 @@ path) — skip the re-derivation and keep the original value.
 
 ## Step 4 — Apply migrations
 
-Emit: `━━━ Step 4/6 — Apply migrations ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Step 4/7 — Apply migrations ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Determine the baseline version:
 - Use `migratedFrom` from `CACHE_FILE` (set in Step 1)
@@ -519,7 +519,7 @@ is an additional safety net.
 
 ## Step 5 — Pipeline and configuration audit
 
-Emit: `━━━ Step 5/6 — Pipeline audit ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Step 5/7 — Pipeline audit ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Runs on every update. Collects all findings first, then presents a single
 consolidated prompt. **Nothing is written without the user saying yes.**
@@ -868,7 +868,7 @@ Proceed to **Step 6**.
 
 ## Step 6 — Record state and summarise
 
-Emit: `━━━ Step 6/6 — Record state ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Step 6/7 — Record state ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 **Refresh `paths.forgeRoot` in `.forge/config.json`:**
 
@@ -921,6 +921,19 @@ Print the final summary:
    • Generated workflows and tools are ready to use
    {if files missing:}• Run /forge:add-pipeline to create missing command file(s){end if}
 ```
+
+---
+
+## Step 7 — Link KB to Agent Instruction Files
+
+Emit: `━━━ Step 7/7 — Tomoshibi ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+
+Invoke Tomoshibi to ensure every coding-agent instruction file in the project
+has up-to-date links to the Forge knowledge base and generated workflow entry points.
+
+Use the Agent tool:
+- description: "灯 Tomoshibi — link KB to agent instruction files"
+- prompt: "You are Tomoshibi, Forge's KB visibility agent. Read `$FORGE_ROOT/agents/tomoshibi.md` and follow it exactly."
 
 ---
 

@@ -11,6 +11,14 @@ wiring in the generated atomic workflows.
 - Generated atomic workflows (from Phase 5) — their exact filenames
 - `.forge/config.json` — commands, paths, pipeline configuration
 
+## Setup
+
+Read the configured KB path:
+
+```sh
+KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo "engineering"`
+```
+
 ## Outputs
 
 - `.forge/workflows/orchestrate_task.md` — single-task pipeline (run-task)
@@ -37,7 +45,7 @@ wiring in the generated atomic workflows.
    ```
    Use the Agent tool to spawn a subagent:
      prompt: "Read `.forge/workflows/plan_task.md` and follow it. Task ID: {TASK_ID}.
-              Also read `engineering/MASTER_INDEX.md` for project state."
+              Also read `{KB_PATH}/MASTER_INDEX.md` for project state."
      description: "plan phase for {TASK_ID}"
      model: phase_model   # resolved from phase.model or role default — NEVER omit
    ```

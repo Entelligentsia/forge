@@ -50,6 +50,7 @@ Use the following phase-to-resume mapping:
 | 8         | Phase 9                 |
 | 9         | Phase 10                |
 | 10        | Phase 11                |
+| 11        | Phase 12                |
 
 If the user chooses to resume: skip to the mapped phase in sdlc-init.md.
 If the user chooses to start over: delete `.forge/init-progress.json` (using
@@ -64,10 +65,10 @@ pre-flight plan normally.
 At the start of every phase, emit a banner using this exact format:
 
 ```
-━━━ Phase N/11 — <Phase Name> ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━ Phase N/12 — <Phase Name> ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-Use full-width em-dashes to reach 65 characters total. All phase numbers are integers 1-11.
+Use full-width em-dashes to reach 65 characters total. All phase numbers are integers 1-12.
 
 ### Pre-flight Plan
 
@@ -77,7 +78,7 @@ to confirm or specify a start phase:
 ```
 ## Forge Init — <project-name>
 
-11 phases will run in this session:
+12 phases will run in this session:
   1     Discover              — 5 parallel scans → 1 config
   2     Marketplace Skills    — match stack to plugins → 0-3 installs
   3     Knowledge Base        — architecture + domain docs → ~8 docs
@@ -89,17 +90,18 @@ to confirm or specify a start phase:
   9     Commands              — slash command wrappers → 5-8 commands
   10    Tools                 — config update + schema copy + hash recording → schemas + config
   11    Smoke Test            — validate and self-correct → manifest + cache
+  12    Tomoshibi             — link KB to agent instruction files → CLAUDE.md, AGENTS.md, etc.
 
 Start from Phase 1? [Y] or specify phase: ___
 ```
 
 If the user specifies a valid phase identifier, skip all earlier phases and begin
-there. Valid inputs are: `1` through `11`.
-Any other input (including `0`, `12`, or non-numeric text) triggers a re-prompt
+there. Valid inputs are: `1` through `12`.
+Any other input (including `0`, `13`, or non-numeric text) triggers a re-prompt
 with the same list.
 
 Read `$FORGE_ROOT/init/sdlc-init.md` — that document is your complete orchestration.
-Follow it exactly. It defines 11 phases:
+Follow it exactly. It defines 12 phases:
 
 1. **Discover** — scan the project (5 parallel discovery prompts)
 2. **Marketplace Skills** — match stack to plugins → 0-3 installs
@@ -112,9 +114,11 @@ Follow it exactly. It defines 11 phases:
 9. **Generate Commands** — standalone slash commands in `.claude/commands/`
 10. **Generate Tools** — deterministic tools in the project's language
 11. **Smoke Test** — validate and self-correct
+12. **Tomoshibi** — link KB to agent instruction files
 
 The current working directory is the target project. All generated artifacts go into
-`.forge/`, `engineering/`, and `.claude/commands/` in the project.
+`.forge/`, the configured KB folder (default: `engineering/`), and `.claude/commands/`
+in the project.
 
 ## Arguments
 

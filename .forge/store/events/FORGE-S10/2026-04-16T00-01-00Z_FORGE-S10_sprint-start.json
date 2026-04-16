@@ -1,0 +1,7 @@
+{
+  "eventId": "2026-04-16T00-01-00Z_FORGE-S10_sprint-start",
+  "sprintId": "FORGE-S10",
+  "action": "sprint-start",
+  "timestamp": "2026-04-16T00:01:00.000Z",
+  "model": "claude-sonnet-4-6"
+}

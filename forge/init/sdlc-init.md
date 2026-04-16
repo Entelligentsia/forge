@@ -1,16 +1,47 @@
 # Forge Init — Master Orchestration
 
 You are bootstrapping a complete AI-SDLC instance for the project in the
-current working directory. Execute these 11 phases in order.
+current working directory. Execute these 12 phases in order.
 
 Set `$FORGE_ROOT` to the forge plugin directory (the parent of this file's
 directory — the folder containing `meta/` and `init/`).
 
 ---
 
+## Pre-flight — Knowledge Base Folder
+
+Before Phase 1 begins, ask the user where to create the knowledge base folder:
+
+```
+━━━ Knowledge Base Folder ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Forge will create a folder for architecture docs, sprints, bugs, and features.
+Default name: engineering/
+
+Does "engineering" conflict with an existing folder in this project? [n/Y]
+If yes, enter your preferred name (e.g. ai-docs, .forge-kb, docs/ai): ___
+```
+
+- If the user accepts the default (types `n` or presses Enter): no config write needed.
+  `paths.engineering` defaults to `"engineering"` in the schema.
+- If the user provides a custom name: write it immediately:
+  ```sh
+  node "$FORGE_ROOT/tools/manage-config.cjs" set paths.engineering "{chosen_name}"
+  ```
+  Note: folder name must not contain spaces.
+
+After this question (and any config write), resolve `KB_PATH` for use in all
+subsequent phases:
+
+```sh
+KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo "engineering"`
+```
+
+---
+
 ## Phase 1 — Discover
 
-Emit: `━━━ Phase 1/11 — Discover ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 1/12 — Discover ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Also emit: `Running 5 discovery scans in parallel...`
 
@@ -37,7 +68,7 @@ Write `.forge/init-progress.json`:
 
 ## Phase 2 — Recommend Marketplace Skills
 
-Emit: `━━━ Phase 2/11 — Marketplace Skills ━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 2/12 — Marketplace Skills ━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/meta/skill-recommendations.md` for the full mapping and rationale.
 
@@ -92,14 +123,14 @@ Write `.forge/init-progress.json`:
 
 ## Phase 3 — Generate Knowledge Base
 
-Emit: `━━━ Phase 3/11 — Knowledge Base ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 3/12 — Knowledge Base ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-knowledge-base.md` and follow it.
 
 **Input**: discovery context + meta-personas (for understanding what agents need to know)
-**Output**: `engineering/architecture/`, `engineering/business-domain/`, `engineering/stack-checklist.md`
+**Output**: `{KB_PATH}/architecture/`, `{KB_PATH}/business-domain/`, `{KB_PATH}/stack-checklist.md`
 
-Also scaffold: `.forge/store/` directories, `engineering/sprints/`, `engineering/bugs/`.
+Also scaffold: `.forge/store/` directories, `{KB_PATH}/sprints/`, `{KB_PATH}/bugs/`.
 
 Write `.forge/init-progress.json`:
 ```json
@@ -110,7 +141,7 @@ Write `.forge/init-progress.json`:
 
 ## Phase 4 — Generate Personas
 
-Emit: `━━━ Phase 4/11 — Personas ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 4/12 — Personas ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-personas.md` and follow it.
 
@@ -126,7 +157,7 @@ Write `.forge/init-progress.json`:
 
 ## Phase 5 — Generate Skills
 
-Emit: `━━━ Phase 5/11 — Skills ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 5/12 — Skills ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-skills.md` and follow it.
 
@@ -172,12 +203,12 @@ the project at calibration time so `/forge:calibrate` can detect drift later.
 
 1. Read `.forge/config.json` to get the current config.
 2. Read `$FORGE_ROOT/.claude-plugin/plugin.json` to get `version`.
-3. Read `engineering/MASTER_INDEX.md` and compute a SHA-256 hash of the semantic content:
+3. Read `{KB_PATH}/MASTER_INDEX.md` and compute a SHA-256 hash of the semantic content:
    - Strip blank lines and lines that start with `<!--` (comment lines).
    - Hash the remaining lines joined with newline.
-   - Command:
+   - Command (substitute actual KB_PATH value for `{KB_PATH}`):
      ```
-     node -e "const crypto=require('crypto'),fs=require('fs'); const lines=fs.readFileSync('engineering/MASTER_INDEX.md','utf8').split('\n').filter(l=>l.trim()&&!l.trim().startsWith('<!--')); console.log(crypto.createHash('sha256').update(lines.join('\n')).digest('hex'))"
+     node -e "const crypto=require('crypto'),fs=require('fs'); const lines=fs.readFileSync('{KB_PATH}/MASTER_INDEX.md','utf8').split('\n').filter(l=>l.trim()&&!l.trim().startsWith('<!--')); console.log(crypto.createHash('sha256').update(lines.join('\n')).digest('hex'))"
      ```
 4. List completed sprint IDs from `.forge/store/sprints/` — sprints whose `status` is
    `"done"` or `"retrospective-done"`. For a fresh init this will be empty.
@@ -210,7 +241,7 @@ Write `.forge/init-progress.json`:
 
 ## Phase 6 — Generate Templates
 
-Emit: `━━━ Phase 6/11 — Templates ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 6/12 — Templates ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-templates.md` and follow it.
 
@@ -226,7 +257,7 @@ Write `.forge/init-progress.json`:
 
 ## Phase 7 — Generate Atomic Workflows
 
-Emit: `━━━ Phase 7/11 — Workflows ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 7/12 — Workflows ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-workflows.md` and follow it.
 
@@ -242,7 +273,7 @@ Write `.forge/init-progress.json`:
 
 ## Phase 8 — Generate Orchestration
 
-Emit: `━━━ Phase 8/11 — Orchestration ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 8/12 — Orchestration ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-orchestration.md` and follow it.
 
@@ -258,7 +289,7 @@ Write `.forge/init-progress.json`:
 
 ## Phase 9 — Generate Commands
 
-Emit: `━━━ Phase 9/11 — Commands ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 9/12 — Commands ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-commands.md` and follow it.
 
@@ -274,7 +305,7 @@ Write `.forge/init-progress.json`:
 
 ## Phase 10 — Install Tools
 
-Emit: `━━━ Phase 10/11 — Tools ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 10/12 — Tools ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/generation/generate-tools.md` and follow it.
 
@@ -294,7 +325,7 @@ Write `.forge/init-progress.json`:
 
 ## Phase 11 — Smoke Test
 
-Emit: `━━━ Phase 11/11 — Smoke Test ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 11/12 — Smoke Test ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
 Read `$FORGE_ROOT/init/smoke-test.md` and follow it.
 
@@ -303,6 +334,31 @@ and template coherence. Self-corrects up to once per failing component.
 
 **Output**: `.forge/generation-manifest.json` (file hashes for all generated artifacts),
 `.forge/update-check-cache.json` (migration baseline anchored to the installed version)
+
+Write `.forge/init-progress.json`:
+```json
+{ "lastPhase": 11, "timestamp": "<current ISO timestamp>" }
+```
+
+---
+
+## Phase 12 — Link KB to Agent Instruction Files
+
+Emit: `━━━ Phase 12/12 — Tomoshibi ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+
+Invoke Tomoshibi to ensure every coding-agent instruction file in the project
+has up-to-date links to the Forge knowledge base and generated workflow entry points.
+
+Use the Agent tool:
+- description: "灯 Tomoshibi — link KB to agent instruction files"
+- prompt: "You are Tomoshibi, Forge's KB visibility agent. Read `$FORGE_ROOT/agents/tomoshibi.md` and follow it exactly."
+
+After Tomoshibi completes, emit a one-line rename note:
+
+```
+〇 To rename the KB folder later: (a) rename the folder on disk, (b) run
+  node "$FORGE_ROOT/tools/manage-config.cjs" set paths.engineering <new-name>
+```
 
 Delete `.forge/init-progress.json` — init is complete.
 Use the Bash tool: `rm -f .forge/init-progress.json`
@@ -339,6 +395,6 @@ Rules:
 - Order by confidence: High → Medium → Low.
 - Do not repeat skills that are already installed.
 
-**Next step:** review `engineering/` docs, then run `/sprint-plan`
+**Next step:** review `{KB_PATH}/` docs, then run `/sprint-plan`
 
 If you encountered any problems during this init run, file them with `/forge:report-bug` — it gathers context automatically and opens an issue in the Forge repository.

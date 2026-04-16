@@ -60,7 +60,7 @@ Where:
 - `{{argument_line}}` — one of: `Task ID: $ARGUMENTS`, `Sprint ID: $ARGUMENTS`, `Bug ID: $ARGUMENTS`, or `Arguments: $ARGUMENTS`
 
 **Do NOT deviate from this template.** Specifically:
-- Do NOT include a `Read engineering/MASTER_INDEX.md` line. The workflow loads MASTER_INDEX as its first step — pre-loading it gives the model enough context to rationalise skipping the workflow entirely and doing the work inline. Workflow first, always.
+- Do NOT include a `Read {KB_PATH}/MASTER_INDEX.md` line. The workflow loads MASTER_INDEX as its first step — pre-loading it gives the model enough context to rationalise skipping the workflow entirely and doing the work inline. Workflow first, always.
 - Do NOT include `description:` frontmatter (the `effort:` field replaces it).
 - Do NOT include `model:` frontmatter (use `effort:` instead — model-agnostic).
 - Do NOT add numbered step lists, explanations, or any content beyond the template.

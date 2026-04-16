@@ -5,14 +5,22 @@
 Validate the generated SDLC instance before handing off to the developer.
 Self-correct up to once per failing component.
 
+## Setup
+
+Read the configured KB path:
+
+```sh
+KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo "engineering"`
+```
+
 ## Checks
 
 ### 1. Structural — all expected files exist
 
 - `.forge/config.json`
-- `engineering/architecture/INDEX.md` and sub-docs
-- `engineering/business-domain/INDEX.md` and `entity-model.md`
-- `engineering/stack-checklist.md`
+- `{KB_PATH}/architecture/INDEX.md` and sub-docs
+- `{KB_PATH}/business-domain/INDEX.md` and `entity-model.md`
+- `{KB_PATH}/stack-checklist.md`
 - All 18 workflows in `.forge/workflows/`
 - All commands in `.claude/commands/`
 - All templates in `.forge/templates/`
@@ -31,7 +39,7 @@ Self-correct up to once per failing component.
 
 ### 4. Template coherence
 
-- Templates reference entities that exist in `engineering/business-domain/entity-model.md`
+- Templates reference entities that exist in `{KB_PATH}/business-domain/entity-model.md`
 
 ### 5. Config validation
 
@@ -101,4 +109,4 @@ Output a summary:
 - Smoke test: pass/fail per check, any self-corrections applied
 - Confidence rating (percentage)
 - Lines marked `[?]` that need human verification
-- Next step: review `engineering/` docs, then run `/sprint-plan`
+- Next step: review `{KB_PATH}/` docs, then run `/sprint-plan`

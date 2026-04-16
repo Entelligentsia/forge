@@ -29,6 +29,13 @@ Regenerate markdown views from the JSON store. This is a deterministic operation
 3. Finalize:
    - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
+   - Invoke Tomoshibi via Agent tool to refresh KB and workflow links in agent
+     instruction files:
+     ```
+     Use the Agent tool:
+       description: "灯 Tomoshibi — link KB to agent instruction files"
+       prompt: "You are Tomoshibi, Forge's KB visibility agent. Read `$FORGE_ROOT/agents/tomoshibi.md` and follow it exactly."
+     ```
 ```
 
 ## Generation Instructions
