@@ -5,6 +5,40 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.11.3] — 2026-04-16
+
+**Parallelise init and regenerate across all generation phases.**
+
+`/forge:init` and `/forge:regenerate` were bottlenecked by sequential LLM
+generation passes in every phase. Applied the Phase 7 fan-out pattern
+(one Agent call, all subagents in parallel) to every phase that generates
+independent files:
+
+- **Phase 3 (KB)** — 7 leaf docs now fan out in parallel (stack, processes,
+  database, routing, deployment, entity-model, stack-checklist); index files
+  and MASTER_INDEX generated sequentially after.
+- **Phase 4 (Personas)** — 7 persona files fanned out in parallel.
+- **Phases 5+6** — skills and templates now spawn in a *single* Agent call
+  (all skill + all template subagents together) after Phase 4. The
+  completeness guard runs before the fan-out; calibration baseline writes
+  after.
+- **Phases 8+9** — orchestration and commands spawn in a single Agent call
+  after Phase 7.
+
+`/forge:regenerate` gains the same treatment: `workflows` now uses
+`build-init-context.cjs` + `workflow-gen-plan.json` fan-out; `personas`,
+`skills`, and `templates` each fan out; the default (no-argument) run
+uses 4 dependency-ordered parallel steps instead of 5 sequential category
+passes.
+
+New per-subagent rulebook files added to `forge/init/generation/`:
+`generate-persona.md`, `generate-skill.md`, `generate-template.md`,
+`generate-kb-doc.md`.
+
+**Regenerate:** none — existing generated artifacts are unchanged.
+
+---
+
 ## [0.11.2] — 2026-04-16
 
 **Fix: restore requirements frontmatter in generated workflows.**

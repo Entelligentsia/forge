@@ -1,4 +1,12 @@
 {
+  "0.11.2": {
+    "version": "0.11.3",
+    "date": "2026-04-16",
+    "notes": "Parallelise init and regenerate: Phase 3 KB fan-out (7 parallel docs), Phase 4 personas fan-out, Phases 5+6 skills+templates parallel, Phases 8+9 orchestration+commands parallel. Regenerate workflows now uses build-init-context.cjs fan-out. Regenerate default runs 4 parallel steps instead of 5 sequential categories. New per-subagent rulebooks: generate-persona.md, generate-skill.md, generate-template.md, generate-kb-doc.md.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.11.1": {
     "version": "0.11.2",
     "date": "2026-04-16",
