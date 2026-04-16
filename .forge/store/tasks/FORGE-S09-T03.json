@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S09",
   "title": "Init: calibration baseline write + incomplete init guard",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/commands/init.md",
   "estimate": "M",
   "dependencies": [
