@@ -10,19 +10,26 @@
 
 ## Sprint Registry
 
-| Sprint    | Title                                                                              | Status      | Tasks |
-| --------- | ---------------------------------------------------------------------------------- | ----------- | ----- |
-| FORGE-S09 | Sprint S09                                                                         | ✅ completed | 9/9   |
-| FORGE-S08 | Sprint S08                                                                         | ✅ completed | 6/6   |
-| FORGE-S07 | Sprint S07                                                                         | 🔵 active   | 8/9   |
-| FORGE-S06 | Sprint S06                                                                         | 🔵 active   | 7/10  |
-| FORGE-S05 | Sprint S05                                                                         | 🔵 active   | 0/8   |
-| FORGE-S04 | Sprint S04                                                                         | 📝 planning | 6/6   |
-| FORGE-S03 | Sprint Plan — FORGE-S03: Lean Migration Architecture                               | 🔵 active   | 0/3   |
-| FORGE-S02 | Sprint Plan — FORGE-S02: Foundational Concepts Documentation + Feature Tier (v1.0) | 🔵 active   | 3/10  |
-| FORGE-S01 | Sprint FORGE-S01 — Token Usage Tracking                                            | 🔵 active   | 7/8   |
+| Sprint    | Title                                                                              | Status               | Tasks |
+| --------- | ---------------------------------------------------------------------------------- | -------------------- | ----- |
+| FORGE-S10 | Sprint S10 — Tomoshibi: KB Visibility Agent + Configurable KB Path                 | ✅ retrospective-done | 1/1   |
+| FORGE-S09 | Sprint S09                                                                         | ✅ completed          | 9/9   |
+| FORGE-S08 | Sprint S08                                                                         | ✅ completed          | 6/6   |
+| FORGE-S07 | Sprint S07                                                                         | 🔵 active            | 8/9   |
+| FORGE-S06 | Sprint S06                                                                         | 🔵 active            | 7/10  |
+| FORGE-S05 | Sprint S05                                                                         | 🔵 active            | 0/8   |
+| FORGE-S04 | Sprint S04                                                                         | 📝 planning          | 6/6   |
+| FORGE-S03 | Sprint Plan — FORGE-S03: Lean Migration Architecture                               | 🔵 active            | 0/3   |
+| FORGE-S02 | Sprint Plan — FORGE-S02: Foundational Concepts Documentation + Feature Tier (v1.0) | 🔵 active            | 3/10  |
+| FORGE-S01 | Sprint FORGE-S01 — Token Usage Tracking                                            | 🔵 active            | 7/8   |
 
 ## Task Registry
+
+### FORGE-S10
+
+| Task                                                                        | Title                                                      | Status      | Estimate |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------- | -------- |
+| [FORGE-S10-T01](sprints/FORGE-S10/FORGE-S10-T01-tomoshibi-kb-path/INDEX.md) | Tomoshibi agent + KB path configurability + workflow links | ✅ committed | L        |
 
 ### FORGE-S09
 
