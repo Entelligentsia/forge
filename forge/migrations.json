@@ -1,4 +1,12 @@
 {
+  "0.9.10": {
+    "version": "0.9.11",
+    "date": "2026-04-16",
+    "notes": "Health: add config-completeness check (validates .forge/config.json required fields, exits early if incomplete) and KB freshness check (compares MASTER_INDEX.md hash against calibrationBaseline, categorizes drift as technical or business).",
+    "regenerate": ["commands"],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.9": {
     "version": "0.9.10",
     "date": "2026-04-16",

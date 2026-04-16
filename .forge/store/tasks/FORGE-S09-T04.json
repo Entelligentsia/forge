@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S09",
   "title": "Health: KB freshness check + config-completeness check",
-  "status": "planned",
+  "status": "approved",
   "path": "forge/commands/health.md",
   "estimate": "M",
   "dependencies": ["FORGE-S09-T02"],

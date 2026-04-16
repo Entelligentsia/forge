@@ -11,6 +11,8 @@ Assess the health and currency of the project's SDLC knowledge base.
 
 | Check | What It Detects |
 |-------|----------------|
+| **Config completeness** | Missing required fields in `.forge/config.json` — blocks further checks if incomplete |
+| **KB freshness** | Hash mismatch between current `MASTER_INDEX.md` and calibration baseline — detects technical or business drift |
 | **Stale docs** | Architecture sub-docs not updated in N sprints |
 | **Orphaned entities** | Entities in code (ORM models, types) not in `engineering/business-domain/entity-model.md` |
 | **Unused checklist items** | Stack-checklist items never triggered in reviews |
@@ -39,17 +41,49 @@ All file paths below are relative to `PROJECT_ROOT`. All shell tool invocations 
 cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
 ```
 
-1. Read `$PROJECT_ROOT/.forge/config.json` for paths and `installedSkills`.
+1. **Config-completeness check** — Read `$PROJECT_ROOT/.forge/config.json`.
    If it does not exist, stop and tell the user to run `/forge:init` in that directory first.
-2. Read the knowledge base files in `$PROJECT_ROOT/engineering/`
-3. Read the store in `$PROJECT_ROOT/.forge/store/` for sprint/task history
-4. Scan the codebase for entities not in the knowledge base (Grep for model/type definitions)
-5. Run store validation:
+   If it exists, validate it against `$FORGE_ROOT/sdlc-config.schema.json`:
+   - Read the schema and extract all `required` fields at each level (top-level and nested objects).
+   - Required top-level fields: `version`, `project`, `stack`, `commands`, `paths`.
+   - Nested required fields: `project.prefix`, `project.name`, `commands.test`, `paths.engineering`, `paths.store`, `paths.workflows`, `paths.commands`, `paths.templates`.
+   - For each required field, verify it exists in the config and has a non-empty value.
+   - If all required fields are present and non-empty, emit:
+     > 〇 Config complete — all required fields present.
+   - If any required fields are missing or empty, list each missing field by path (e.g. `project.prefix`, `commands.test`) with a short description, then **exit early** with:
+     > △ Config incomplete — missing required fields:
+     >   · `project.prefix` — short project prefix (e.g. ACME)
+     >   · `commands.test` — test command (e.g. npm test)
+     >
+     > Run `/forge:init` to complete configuration.
+     Do **not** cascade into subsequent checks that may fail on incomplete config.
+2. **KB freshness check** — Read `calibrationBaseline` from `$PROJECT_ROOT/.forge/config.json`.
+   - If `calibrationBaseline` is absent, emit:
+     > △ No calibration baseline found — run `/forge:init` to establish one.
+     Skip the freshness check and proceed to step 3.
+   - If `calibrationBaseline` exists, compute the current hash of `MASTER_INDEX.md` using the same algorithm as `/forge:init`:
+     ```sh
+     cd "$PROJECT_ROOT" && node -e "const crypto=require('crypto'),fs=require('fs'); const cfg=JSON.parse(fs.readFileSync('.forge/config.json','utf8')); const engPath=(cfg.paths&&cfg.paths.engineering)||'engineering'; const lines=fs.readFileSync(engPath+'/MASTER_INDEX.md','utf8').split('\n').filter(l=>l.trim()&&!l.trim().startsWith('<!--')); console.log(crypto.createHash('sha256').update(lines.join('\n')).digest('hex'))"
+     ```
+   - Compare the computed hash against `calibrationBaseline.masterIndexHash`:
+     - If they match, emit:
+       > 〇 KB fresh — no drift since last calibration (last calibrated: `calibrationBaseline.lastCalibrated`, version: `calibrationBaseline.version`)
+     - If they differ, read `$PROJECT_ROOT/engineering/MASTER_INDEX.md` and categorize the drift based on which sections have changed. Categorize sections as follows:
+       - **Technical sections**: stack, routing, database, deployment, processes, architecture, schemas, conventions, stack-checklist
+       - **Business sections**: entity-model, domain, features, acceptance criteria, business-domain
+       If changes are only in technical sections: emit "technical". If only in business sections: emit "business". If in both: emit "technical + business".
+       Emit:
+       > △ KB drifted — <category> changes detected since last calibration (last calibrated: `calibrationBaseline.lastCalibrated`)
+       >   Run `/forge:calibrate` to re-align the knowledge base.
+3. Read the knowledge base files in `$PROJECT_ROOT/engineering/`
+4. Read the store in `$PROJECT_ROOT/.forge/store/` for sprint/task history
+5. Scan the codebase for entities not in the knowledge base (Grep for model/type definitions)
+6. Run store validation:
    ```sh
    cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run
    ```
    Include the result in the report.
-6. Check modified generated files:
+7. Check modified generated files:
    ```sh
    cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/generation-manifest.cjs" list --modified
    ```
@@ -58,7 +92,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
    > These files were manually edited after generation. Regeneration will warn
    > before overwriting them. Run `/forge:regenerate` to review and update.
    If all files are pristine (or the tool is absent), omit this section.
-7. Check generated file structure:
+8. Check generated file structure:
    ```sh
    cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/check-structure.cjs" --path "$PROJECT_ROOT"
    ```
@@ -71,25 +105,25 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
    If the tool is absent (file not found), skip this check silently.
    Note: custom `paths.*` overrides in `.forge/config.json` are respected by
    check-structure.cjs. Projects using default paths will see no difference.
-8. Check skill gaps: run `node "$FORGE_ROOT/tools/list-skills.js"` to get the live
+9. Check skill gaps: run `node "$FORGE_ROOT/tools/list-skills.js"` to get the live
    installed skill list from `~/.claude/plugins/installed_plugins.json` (source of
    truth — not the config, which can be stale). Read `$FORGE_ROOT/meta/skill-recommendations.md`,
    cross-reference the stack against live installed skills, report any uninstalled
    high-confidence recommendations with one-line install instructions. If the live
    list differs from `installedSkills` in config, update config to match.
-9. Check test coverage for active features:
-   - Read `$PROJECT_ROOT/.forge/store/features/` to find all features with `"status": "active"`.
-   - If zero active features exist, skip this check.
-   - Otherwise, scan all test directories under `$PROJECT_ROOT` (e.g. `test/`, `tests/`, `spec/`, `__tests__/`) and test files (`*.test.*`, `*.spec.*`) for the `FEAT-NNN` identifier of each active feature.
-   - You should account for three tag forms: filename (`feat-NNN-login.test.js`), test name string (`describe('[FEAT-NNN]')`), or docblock comment (`// @feat FEAT-NNN`).
-   - For each active feature, report the count of test files or names matching its ID.
-   - Warn explicitly: `⚠ FEAT-NNN has 0 tagged tests` if an active feature has zero hits.
-10. Check concepts freshness:
+10. Check test coverage for active features:
+    - Read `$PROJECT_ROOT/.forge/store/features/` to find all features with `"status": "active"`.
+    - If zero active features exist, skip this check.
+    - Otherwise, scan all test directories under `$PROJECT_ROOT` (e.g. `test/`, `tests/`, `spec/`, `__tests__/`) and test files (`*.test.*`, `*.spec.*`) for the `FEAT-NNN` identifier of each active feature.
+    - You should account for three tag forms: filename (`feat-NNN-login.test.js`), test name string (`describe('[FEAT-NNN]')`), or docblock comment (`// @feat FEAT-NNN`).
+    - For each active feature, report the count of test files or names matching its ID.
+    - Warn explicitly: `⚠ FEAT-NNN has 0 tagged tests` if an active feature has zero hits.
+11. Check concepts freshness:
     - Compare the modification timestamps of files in `$PROJECT_ROOT/docs/concepts/*.md` against the newest schema modification in `$FORGE_ROOT/meta/store-schema/`.
     - If any concept doc is older than the newest schema change, emit a notice that it may be stale.
-11. Report all findings with actionable recommendations.
+12. Report all findings with actionable recommendations.
     If `--path` was used, open the report with: `Health report for: $PROJECT_ROOT`
-12. Close the report with: `If you've found a bug in Forge itself, run /forge:report-bug`
+13. Close the report with: `If you've found a bug in Forge itself, run /forge:report-bug`
 
 ## Output
 
