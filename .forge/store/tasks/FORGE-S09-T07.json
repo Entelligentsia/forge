@@ -3,7 +3,7 @@
   "feature_id": null,
   "sprintId": "FORGE-S09",
   "title": "Add-task mid-sprint command",
-  "status": "planned",
+  "status": "approved",
   "path": "forge/commands/add-task.md",
   "estimate": "M",
   "dependencies": [],

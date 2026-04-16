@@ -1,4 +1,12 @@
 {
+  "0.9.12": {
+    "version": "0.9.13",
+    "date": "2026-04-16",
+    "notes": "Add-task: add /forge:add-task command for adding tasks to existing sprints mid-flight — mini intake interview, sequential ID assignment, store write, and collate.",
+    "regenerate": ["commands"],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.11": {
     "version": "0.9.12",
     "date": "2026-04-16",
