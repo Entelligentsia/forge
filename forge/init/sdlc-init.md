@@ -125,12 +125,79 @@ Write `.forge/init-progress.json`:
 
 Emit: `━━━ Phase 3/12 — Knowledge Base ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
-Read `$FORGE_ROOT/init/generation/generate-knowledge-base.md` and follow it.
+### Step 3a — Scaffold directories
 
-**Input**: discovery context + meta-personas (for understanding what agents need to know)
-**Output**: `{KB_PATH}/architecture/`, `{KB_PATH}/business-domain/`, `{KB_PATH}/stack-checklist.md`
+Create the directory structure (these are fast Bash operations, no LLM needed):
 
-Also scaffold: `.forge/store/` directories, `{KB_PATH}/sprints/`, `{KB_PATH}/bugs/`.
+```sh
+mkdir -p "{KB_PATH}/architecture" "{KB_PATH}/business-domain" \
+         "{KB_PATH}/sprints" "{KB_PATH}/bugs" "{KB_PATH}/tools" \
+         ".forge/store/sprints" ".forge/store/tasks" \
+         ".forge/store/bugs" ".forge/store/events"
+touch "{KB_PATH}/sprints/.gitkeep" "{KB_PATH}/bugs/.gitkeep" \
+      ".forge/store/sprints/.gitkeep" ".forge/store/tasks/.gitkeep" \
+      ".forge/store/bugs/.gitkeep" ".forge/store/events/.gitkeep"
+```
+
+### Step 3b — Read rulebook and fan-out (parallel)
+
+Read `$FORGE_ROOT/init/generation/generate-kb-doc.md` once (the per-subagent rulebook).
+
+**Spawn ALL leaf docs in a SINGLE Agent tool message** (one call, all parallel):
+
+| description | output_path | discovery_focus |
+|---|---|---|
+| `Generate KB: stack.md` | `{KB_PATH}/architecture/stack.md` | Languages, frameworks, runtime, versions |
+| `Generate KB: processes.md` | `{KB_PATH}/architecture/processes.md` | Services, build/deploy topology |
+| `Generate KB: database.md` | `{KB_PATH}/architecture/database.md` | Entities, relationships, field types |
+| `Generate KB: routing.md` | `{KB_PATH}/architecture/routing.md` | API surface, route groups, auth strategy |
+| `Generate KB: deployment.md` | `{KB_PATH}/architecture/deployment.md` | Environments, CI/CD, infra targets |
+| `Generate KB: entity-model.md` | `{KB_PATH}/business-domain/entity-model.md` | Full entity inventory with fields |
+| `Generate KB: stack-checklist.md` | `{KB_PATH}/stack-checklist.md` | Review checklist items from stack + testing discovery |
+
+Prompt template for each subagent:
+```
+Read and follow the rulebook below exactly.
+
+--- RULEBOOK ---
+<contents of $FORGE_ROOT/init/generation/generate-kb-doc.md>
+--- END RULEBOOK ---
+
+Project brief (for entity names and paths):
+--- BRIEF ---
+<contents of .forge/init-context.md if already built, otherwise use discovery summary below>
+--- END BRIEF ---
+
+Discovery context (everything found in Phase 1):
+--- DISCOVERY ---
+<inline the full discovery context from Phase 1>
+--- END DISCOVERY ---
+
+Doc spec:
+  output_path: {output_path}
+  focus: {discovery_focus}
+  KB_PATH: {KB_PATH}
+  FORGE_ROOT: {FORGE_ROOT}
+```
+
+Wait for all 7 subagents to return.
+
+### Step 3c — Generate index files and MASTER_INDEX (sequential)
+
+After all leaf docs are written:
+
+1. **`{KB_PATH}/architecture/INDEX.md`** — list and link to the 5 architecture docs
+2. **`{KB_PATH}/business-domain/INDEX.md`** — list and link to entity-model.md
+3. **`{KB_PATH}/MASTER_INDEX.md`** — scaffold with section headings linking to both
+   INDEX files and stack-checklist; include `## Domain Entities` section listing
+   discovered entities (one per line, for `build-init-context.cjs` to parse)
+
+Generate these sequentially (each builds on what's already on disk).
+
+### Step 3d — Retry any failed docs
+
+If any Step 3b subagent returned `FAILED:`, re-spawn only those in a single Agent call.
+Any still failing after one retry: halt and surface the id list.
 
 Write `.forge/init-progress.json`:
 ```json
@@ -139,14 +206,65 @@ Write `.forge/init-progress.json`:
 
 ---
 
-## Phase 4 — Generate Personas
+## Phase 4 — Generate Personas (parallel)
 
-Emit: `━━━ Phase 4/12 — Personas ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 4/12 — Personas (parallel) ━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
-Read `$FORGE_ROOT/init/generation/generate-personas.md` and follow it.
+### Step 4a — Build the project brief (if not already built)
 
-**Input**: `$FORGE_ROOT/meta/personas/` + discovery context + generated knowledge base
-**Output**: `.forge/personas/` (standalone persona files)
+If `.forge/init-context.md` does not yet exist (Phase 3 ran before templates existed):
+```sh
+node "$FORGE_ROOT/tools/build-init-context.cjs" \
+  --config    .forge/config.json \
+  --personas  .forge/personas \
+  --templates .forge/templates \
+  --kb        "$KB_PATH" \
+  --out       .forge/init-context.md \
+  --json-out  .forge/init-context.json
+```
+(At this point templates and personas dirs are empty; the brief will have stub
+entries — that is fine for persona generation. The brief is rebuilt fully in Phase 7a.)
+
+### Step 4b — Enumerate meta-personas
+
+```sh
+ls "$FORGE_ROOT/meta/personas/meta-"*.md
+```
+
+This produces a list of meta-persona files. Exclude `README.md`.
+Each file `meta-{role}.md` maps to output `.forge/personas/{role}.md`.
+
+### Step 4c — Fan-out (parallel)
+
+Read `$FORGE_ROOT/init/generation/generate-persona.md` once (the per-subagent rulebook).
+
+**Spawn ALL persona subagents in a SINGLE Agent tool message**:
+
+```
+description: "Generate persona: {role}"
+prompt: |
+  Read and follow the rulebook below exactly.
+
+  --- RULEBOOK ---
+  <contents of $FORGE_ROOT/init/generation/generate-persona.md>
+  --- END RULEBOOK ---
+
+  Project brief (authoritative for names, commands, skill wiring):
+  --- BRIEF ---
+  <contents of .forge/init-context.md>
+  --- END BRIEF ---
+
+  Meta-persona source (your generation algorithm):
+  --- META ---
+  <contents of $FORGE_ROOT/meta/personas/meta-{role}.md>
+  --- END META ---
+
+  Your output file: .forge/personas/{role}.md
+  FORGE_ROOT: {FORGE_ROOT}
+```
+
+Wait for all subagents to return. Retry failures once in a single Agent call.
+Any still failing: halt with id list.
 
 Write `.forge/init-progress.json`:
 ```json
@@ -155,98 +273,107 @@ Write `.forge/init-progress.json`:
 
 ---
 
-## Phase 5 — Generate Skills
+## Phases 5 + 6 — Generate Skills and Templates (parallel phases)
 
-Emit: `━━━ Phase 5/12 — Skills ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phases 5+6/12 — Skills + Templates (parallel) ━━━━━━━━━━━━━━`
 
-Read `$FORGE_ROOT/init/generation/generate-skills.md` and follow it.
+### Step 5/6-pre — Completeness Guard
 
-**Input**: `$FORGE_ROOT/meta/skills/` + `.forge/config.json` (installedSkills) + discovery context + knowledge base
-**Output**: `.forge/skills/` (role-specific skill sets)
-
-### Completeness Guard
-
-After skill generation completes, verify that all required config fields are present
-and non-empty in `.forge/config.json`. This prevents an eager model from producing
-a partial config that would break downstream phases.
+Before spawning any subagents, verify all required config fields are present
+and non-empty in `.forge/config.json`:
 
 1. Read the current `.forge/config.json`.
-2. Check every field listed in `$FORGE_ROOT/sdlc-config.schema.json`'s top-level `required` array:
-   `["version", "project", "stack", "commands", "paths"]`.
-3. For each required field, also check the nested `required` sub-fields:
+2. Check top-level `required`: `["version", "project", "stack", "commands", "paths"]`.
+3. Check nested required sub-fields:
    - `project.required`: `["prefix", "name"]`
    - `commands.required`: `["test"]`
    - `paths.required`: `["engineering", "store", "workflows", "commands", "templates"]`
-4. A field is considered "missing or empty" if it is absent, `null`, an empty string `""`,
-   or an empty object `{}` (for object-type fields).
-5. If all required fields are present and non-empty → proceed.
-6. If any field is missing or empty → halt. Display a prompt:
+4. Missing or empty = absent, `null`, `""`, or `{}`.
+5. All present → proceed. Any missing → halt:
 
 ```
 △ Init Completeness Guard — missing required config fields:
   · project.prefix — short project prefix (e.g. ACME)
   · commands.test  — test command (e.g. npm test)
 
-Provide values for each missing field, then re-run Phase 5 or
-type each value now to continue:
+Provide values for each missing field, then continue:
 ```
 
-The guard emits a clear human-readable message listing every missing field with a short
-hint. It does not write a partial config. After the user provides values, re-check
-before proceeding.
+After the user provides values, re-check before proceeding.
 
-### Write Calibration Baseline
+### Step 5/6-a — Fan-out both phases simultaneously
 
-After the completeness guard passes, compute the calibration baseline and write
-`calibrationBaseline` into `.forge/config.json`. The baseline records the state of
-the project at calibration time so `/forge:calibrate` can detect drift later.
+Read the rulebooks once each:
+- `$FORGE_ROOT/init/generation/generate-skill.md`
+- `$FORGE_ROOT/init/generation/generate-template.md`
 
-1. Read `.forge/config.json` to get the current config.
-2. Read `$FORGE_ROOT/.claude-plugin/plugin.json` to get `version`.
-3. Read `{KB_PATH}/MASTER_INDEX.md` and compute a SHA-256 hash of the semantic content:
-   - Strip blank lines and lines that start with `<!--` (comment lines).
-   - Hash the remaining lines joined with newline.
-   - Command (substitute actual KB_PATH value for `{KB_PATH}`):
-     ```
-     node -e "const crypto=require('crypto'),fs=require('fs'); const lines=fs.readFileSync('{KB_PATH}/MASTER_INDEX.md','utf8').split('\n').filter(l=>l.trim()&&!l.trim().startsWith('<!--')); console.log(crypto.createHash('sha256').update(lines.join('\n')).digest('hex'))"
-     ```
-4. List completed sprint IDs from `.forge/store/sprints/` — sprints whose `status` is
-   `"done"` or `"retrospective-done"`. For a fresh init this will be empty.
-   - Command:
-     ```
-     node -e "const fs=require('fs'),p='.forge/store/sprints'; try{const files=fs.readdirSync(p).filter(f=>f.endsWith('.json')); const done=files.map(f=>JSON.parse(fs.readFileSync(p+'/'+f,'utf8'))).filter(s=>['done','retrospective-done'].includes(s.status)).map(s=>s.sprintId); console.log(JSON.stringify(done));}catch(e){console.log('[]')}"
-     ```
-5. Compute today's ISO date (`YYYY-MM-DD`):
-   - Command: `date -u +"%Y-%m-%d"`
-6. Build the `calibrationBaseline` object:
-   ```json
-   {
-     "lastCalibrated": "<ISO date from step 5>",
-     "version": "<plugin version from step 2>",
-     "masterIndexHash": "<SHA-256 from step 3>",
-     "sprintsCovered": <array from step 4>
-   }
+Read the brief: `.forge/init-context.md`
+
+Enumerate:
+- Skills: `ls "$FORGE_ROOT/meta/skills/meta-"*.md` → each `meta-{role}-skills.md` maps to `.forge/skills/{role}-skills.md`
+- Templates: `ls "$FORGE_ROOT/meta/templates/meta-"*.md` → each maps to the output filename defined in `generate-templates.md`
+
+**Spawn ALL skill and template subagents in a SINGLE Agent tool message**
+(skills + templates together — one tool call):
+
+For each skill `meta-{role}-skills.md`:
+```
+description: "Generate skill: {role}"
+prompt: |
+  Read and follow the rulebook below exactly.
+  --- RULEBOOK ---
+  <contents of $FORGE_ROOT/init/generation/generate-skill.md>
+  --- END RULEBOOK ---
+  --- BRIEF ---
+  <contents of .forge/init-context.md>
+  --- END BRIEF ---
+  --- META ---
+  <contents of $FORGE_ROOT/meta/skills/meta-{role}-skills.md>
+  --- END META ---
+  Your output file: .forge/skills/{role}-skills.md
+  FORGE_ROOT: {FORGE_ROOT}
+```
+
+For each template `meta-{stem}.md`:
+```
+description: "Generate template: {output_filename}"
+prompt: |
+  Read and follow the rulebook below exactly.
+  --- RULEBOOK ---
+  <contents of $FORGE_ROOT/init/generation/generate-template.md>
+  --- END RULEBOOK ---
+  --- BRIEF ---
+  <contents of .forge/init-context.md>
+  --- END BRIEF ---
+  --- META ---
+  <contents of $FORGE_ROOT/meta/templates/meta-{stem}.md>
+  --- END META ---
+  Your output file: .forge/templates/{output_filename}
+  FORGE_ROOT: {FORGE_ROOT}
+```
+
+Wait for all subagents to return. Retry failures once (skills and templates separately).
+Any still failing after retry: halt with id list.
+
+### Step 5/6-b — Write Calibration Baseline
+
+After all subagents complete, compute and write `calibrationBaseline` into
+`.forge/config.json`:
+
+1. Read `$FORGE_ROOT/.claude-plugin/plugin.json` → `version`.
+2. Hash `{KB_PATH}/MASTER_INDEX.md` (strip blank lines + `<!--` lines, SHA-256):
+   ```sh
+   node -e "const crypto=require('crypto'),fs=require('fs'); const lines=fs.readFileSync('{KB_PATH}/MASTER_INDEX.md','utf8').split('\n').filter(l=>l.trim()&&!l.trim().startsWith('<!--')); console.log(crypto.createHash('sha256').update(lines.join('\n')).digest('hex'))"
    ```
-7. Write the updated config back to `.forge/config.json` — merge `calibrationBaseline`
-   into the existing config object (do not overwrite other fields).
-   - Use `node -e "..."` with `fs.readFileSync` / `JSON.parse` / `JSON.stringify` / `fs.writeFileSync`
-   - Pattern: read → parse → assign `config.calibrationBaseline = {...}` → stringify → write.
-
-Write `.forge/init-progress.json`:
-```json
-{ "lastPhase": 5, "timestamp": "<current ISO timestamp>" }
-```
-
----
-
-## Phase 6 — Generate Templates
-
-Emit: `━━━ Phase 6/12 — Templates ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
-
-Read `$FORGE_ROOT/init/generation/generate-templates.md` and follow it.
-
-**Input**: `$FORGE_ROOT/meta/templates/` + discovery context + knowledge base
-**Output**: `.forge/templates/`
+3. List done sprint IDs from `.forge/store/sprints/` (empty on fresh init):
+   ```sh
+   node -e "const fs=require('fs'),p='.forge/store/sprints'; try{const files=fs.readdirSync(p).filter(f=>f.endsWith('.json')); const done=files.map(f=>JSON.parse(fs.readFileSync(p+'/'+f,'utf8'))).filter(s=>['done','retrospective-done'].includes(s.status)).map(s=>s.sprintId); console.log(JSON.stringify(done));}catch(e){console.log('[]')}"
+   ```
+4. Today's ISO date: `date -u +"%Y-%m-%d"`
+5. Merge into config:
+   ```sh
+   node -e "const fs=require('fs'); const cfg=JSON.parse(fs.readFileSync('.forge/config.json','utf8')); cfg.calibrationBaseline={lastCalibrated:'<date>',version:'<ver>',masterIndexHash:'<hash>',sprintsCovered:<array>}; fs.writeFileSync('.forge/config.json',JSON.stringify(cfg,null,2)+'\n')"
+   ```
 
 Write `.forge/init-progress.json`:
 ```json
@@ -255,46 +382,137 @@ Write `.forge/init-progress.json`:
 
 ---
 
-## Phase 7 — Generate Atomic Workflows
+## Phase 7 — Generate Atomic Workflows (parallel)
 
-Emit: `━━━ Phase 7/12 — Workflows ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 7/12 — Workflows (parallel) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
-Read `$FORGE_ROOT/init/generation/generate-workflows.md` and follow it.
+### Step 7a — Build the project brief
 
-**Input**: `$FORGE_ROOT/meta/workflows/` + `.forge/personas/` + `.forge/skills/` + templates + discovery context + knowledge base
-**Output**: `.forge/workflows/` (16 atomic + 2 orchestration = 18 workflow files)
+Assert `.forge/personas/` contains at least one `.md` file (excluding README.md).
+If empty, halt: `△ Phase 4 output missing — no persona files found in .forge/personas/.`
+
+Run:
+```sh
+node "$FORGE_ROOT/tools/build-init-context.cjs" \
+  --config    .forge/config.json \
+  --personas  .forge/personas \
+  --templates .forge/templates \
+  --kb        "$KB_PATH" \
+  --out       .forge/init-context.md \
+  --json-out  .forge/init-context.json
+```
+
+The script prints a `〇 Brief written — N personas, M templates, K architecture docs` line on success.
+If it exits non-zero, halt and surface the error.
+
+### Step 7b — Read the fan-out plan
+
+```sh
+cat "$FORGE_ROOT/init/workflow-gen-plan.json"
+```
+
+This gives 16 `{id, meta, persona}` entries.
+
+### Step 7c — Check resume state
+
+```sh
+cat .forge/init-progress.json 2>/dev/null
+```
+
+If `phase7.workflows` exists in the file, filter the fan-out list to entries
+whose id is **not** `"done"`. Emit: `〇 Resuming Phase 7 — N remaining workflows`
+
+### Step 7d — Fan-out (parallel)
+
+Read `.forge/init-context.md` once (inline it into each subagent prompt).
+Read the rulebook: `$FORGE_ROOT/init/generation/generate-workflows.md` once.
+For each entry, read its meta-workflow and persona file.
+
+**Spawn ALL remaining subagents in a SINGLE Agent tool message** (one tool call
+with all parallel invocations). For each entry `{id, meta, persona}`:
+
+```
+description: "Generate workflow: {id}"
+prompt: |
+  Read and follow the rulebook below exactly.
+
+  --- RULEBOOK ---
+  <contents of $FORGE_ROOT/init/generation/generate-workflows.md>
+  --- END RULEBOOK ---
+
+  Project brief (authoritative — use for ALL names and substitutions):
+  --- BRIEF ---
+  <contents of .forge/init-context.md>
+  --- END BRIEF ---
+
+  Meta-workflow source (your generation algorithm):
+  --- META ---
+  <contents of $FORGE_ROOT/meta/workflows/{meta}>
+  --- END META ---
+
+  Primary persona (embed verbatim as the opening section of your output):
+  --- PERSONA ---
+  <contents of .forge/personas/{persona}.md>
+  --- END PERSONA ---
+
+  Your output file: .forge/workflows/{id}.md
+  FORGE_ROOT: {FORGE_ROOT}
+```
+
+Wait for all subagents to return.
+
+### Step 7e — Collect, retry, validate
+
+For each returned result:
+- Starts with `done:` → mark id as `"done"` in `phase7.workflows` map
+- Starts with `FAILED:` → mark id as `"failed"`, record reason
+
+If any `"failed"`:
+- Emit: `△ N workflows failed — retrying once: <id-list>`
+- Spawn the failed subagents again in a **SINGLE** Agent tool message (same prompts).
+- Collect results. Any still failing after one retry:
+  - Write `.forge/init-progress.json` with `phase7.workflows` map.
+  - Halt: `× Phase 7 incomplete — <id-list>. Fix the reported issues, then resume.`
+
+After all succeed, verify every id has a non-empty `.forge/workflows/{id}.md` on disk.
+Any missing file is treated as a failure and surfaced.
 
 Write `.forge/init-progress.json`:
 ```json
-{ "lastPhase": 7, "timestamp": "<current ISO timestamp>" }
+{ "lastPhase": 7, "timestamp": "<current ISO timestamp>", "phase7": { "<id>": "done", ... } }
 ```
+
+**Output**: `.forge/workflows/` — 16 atomic workflow files
 
 ---
 
-## Phase 8 — Generate Orchestration
+## Phases 8 + 9 — Generate Orchestration and Commands (parallel phases)
 
-Emit: `━━━ Phase 8/12 — Orchestration ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phases 8+9/12 — Orchestration + Commands (parallel) ━━━━━━━━`
 
-Read `$FORGE_ROOT/init/generation/generate-orchestration.md` and follow it.
+Both phases depend only on Phase 7 output. Spawn them simultaneously.
 
-**Input**: `$FORGE_ROOT/meta/workflows/meta-orchestrate.md` + generated atomic workflows
-**Output**: `.forge/workflows/orchestrate_task.md`, `.forge/workflows/run_sprint.md`
+**Spawn BOTH in a SINGLE Agent tool message**:
 
-Write `.forge/init-progress.json`:
-```json
-{ "lastPhase": 8, "timestamp": "<current ISO timestamp>" }
+```
+description: "Generate orchestration workflows"
+prompt: |
+  Read $FORGE_ROOT/init/generation/generate-orchestration.md and follow it
+  exactly. FORGE_ROOT: {FORGE_ROOT}
+  Input: $FORGE_ROOT/meta/workflows/meta-orchestrate.md + .forge/workflows/
+  Output: .forge/workflows/orchestrate_task.md and .forge/workflows/run_sprint.md
 ```
 
----
+```
+description: "Generate commands"
+prompt: |
+  Read $FORGE_ROOT/init/generation/generate-commands.md and follow it exactly.
+  FORGE_ROOT: {FORGE_ROOT}
+  Input: .forge/workflows/ (enumerate existing workflow files) + .forge/config.json
+  Output: .claude/commands/ (13 command wrapper files)
+```
 
-## Phase 9 — Generate Commands
-
-Emit: `━━━ Phase 9/12 — Commands ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
-
-Read `$FORGE_ROOT/init/generation/generate-commands.md` and follow it.
-
-**Input**: generated workflows
-**Output**: `.claude/commands/` (standalone, non-namespaced slash commands)
+Wait for both to return. If either fails, retry that subagent once.
 
 Write `.forge/init-progress.json`:
 ```json

@@ -68,93 +68,102 @@ Before writing, remove any existing manifest entry for this specific file (handl
 ```sh
 node "$FORGE_ROOT/tools/generation-manifest.cjs" remove .forge/personas/<sub-target>.md 2>/dev/null || true
 ```
-All other steps below apply to that single file only (manifest check, hash recording).
+Generate the single file (no fan-out needed for one file). All manifest and hash
+steps below apply to that single file.
 
-**If no sub-target** — full rebuild of all persona files:
+**If no sub-target** — full rebuild, fanned out in parallel:
 
-1. Read `$FORGE_ROOT/meta/personas/` — all meta-persona files
-2. Read the current knowledge base in `engineering/`
-3. Emit: `Generating personas (<N> files)...`
-4. Clear stale entries for this namespace:
+1. Build the project brief:
+   ```sh
+   node "$FORGE_ROOT/tools/build-init-context.cjs" \
+     --config .forge/config.json --personas .forge/personas \
+     --templates .forge/templates --kb "$(node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo engineering)" \
+     --out .forge/init-context.md --json-out .forge/init-context.json
+   ```
+2. Enumerate `$FORGE_ROOT/meta/personas/meta-*.md` (exclude README.md).
+3. Emit: `Generating personas (<N> files in parallel)...`
+4. Clear stale entries:
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/personas/
    ```
-5. Re-generate `.forge/personas/` following `$FORGE_ROOT/init/generation/generate-personas.md`
-6. For each file being written:
-   - Check manifest status (same pattern as workflows — warn on modified)
-   - Emit: `  ⋯ <filename>.md...`
-   - Write the file
-   - Record hash: `node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/personas/{filename}.md`
-   - Emit: `  〇 <filename>.md`
+5. **Spawn ALL persona subagents in a SINGLE Agent tool message** using
+   `$FORGE_ROOT/init/generation/generate-persona.md` as the per-subagent rulebook
+   (same fan-out pattern as `/forge:init` Phase 4).
+6. Collect results. For each `done:` result → emit `  〇 <filename>.md`.
+   Retry failures once. Any still failing: surface the id list.
+7. Emit `  〇 personas — <N> files written`
 
 ---
 
-## Category: `skills` — full rebuild
+## Category: `skills` — full rebuild (parallel)
 
 Re-generate `.forge/skills/` from the meta-skill templates and project config.
 
-1. Read `$FORGE_ROOT/meta/skills/` — all meta-skill files
-2. Read `.forge/config.json` for `installedSkills`
-3. Read the current knowledge base in `engineering/`
-4. Emit: `Generating skills (<N> files)...`
-5. Clear stale entries for this namespace:
+1. Build the project brief (same command as in `personas` above).
+2. Enumerate `$FORGE_ROOT/meta/skills/meta-*-skills.md`.
+3. Emit: `Generating skills (<N> files in parallel)...`
+4. Clear stale entries:
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/skills/
    ```
-6. Re-generate `.forge/skills/` following `$FORGE_ROOT/init/generation/generate-skills.md`
-7. For each file being written:
-   - Check manifest status (same pattern as workflows — warn on modified)
-   - Emit: `  ⋯ <filename>.md...`
-   - Write the file
-   - Record hash: `node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/skills/{filename}.md`
-   - Emit: `  〇 <filename>.md`
+5. **Spawn ALL skill subagents in a SINGLE Agent tool message** using
+   `$FORGE_ROOT/init/generation/generate-skill.md` as the per-subagent rulebook.
+6. Collect results. Retry failures once. Any still failing: surface the id list.
+7. For each completed file, check manifest (warn on modified), emit `  〇 <filename>.md`.
 
 ---
 
 ## Category: `workflows` — full rebuild or single file
 
 Re-generate `.forge/workflows/` from the meta-workflow definitions and the
-current knowledge base. Covers both atomic workflows (Phase 5) and
-orchestration (Phase 6).
+current knowledge base. Covers both atomic workflows and orchestration.
 
 **If a sub-target is provided** (e.g. `/forge:regenerate workflows plan_task`
 or the colon form `workflows:plan_task`), regenerate only the single workflow
-file `.forge/workflows/<sub-target>.md` instead of the full directory. All
-other steps below apply to that single file only (manifest check, diff prompt,
-hash recording).
-Before writing, remove any existing manifest entry for this specific file (handles rename case):
+file `.forge/workflows/<sub-target>.md`. Before writing, remove any existing
+manifest entry for this specific file:
 ```sh
 node "$FORGE_ROOT/tools/generation-manifest.cjs" remove .forge/workflows/<sub-target>.md 2>/dev/null || true
 ```
+Generate the single file (no fan-out needed). Check manifest (warn on modified),
+write, record hash.
 
-**If no sub-target** — full rebuild of all workflow files:
+**If no sub-target** — full rebuild using the same parallel fan-out as `/forge:init` Phase 7:
 
-1. Read `$FORGE_ROOT/meta/workflows/` — all meta-workflow files
-2. Read `$FORGE_ROOT/meta/workflows/meta-orchestrate.md`
-3. Read the current knowledge base in `engineering/` (architecture, business
-   domain, stack checklist) — this is the input, not an output
-4. Read `.forge/config.json` for paths, commands, and pipeline configuration
-5. Emit: `Generating workflows (<N> files)...`
-6. Clear stale entries for this namespace:
+1. Build the project brief:
+   ```sh
+   node "$FORGE_ROOT/tools/build-init-context.cjs" \
+     --config .forge/config.json --personas .forge/personas \
+     --templates .forge/templates \
+     --kb "$(node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo engineering)" \
+     --out .forge/init-context.md --json-out .forge/init-context.json
+   ```
+2. Read `$FORGE_ROOT/init/workflow-gen-plan.json` (16-entry fan-out table).
+3. Emit: `Generating workflows (16 atomic + orchestration, parallel)...`
+4. Check each file for manual modifications before clearing:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/workflows/{filename}.md
+   ```
+   For any exit 1 (modified): warn `△ .forge/workflows/{filename}.md has been manually
+   modified. Overwriting will discard your changes. Proceed? (yes / no / show diff)`
+   Collect answers before proceeding.
+5. Clear stale entries:
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/workflows/
    ```
-7. Re-generate `.forge/workflows/` following
-   `$FORGE_ROOT/init/generation/generate-workflows.md` and
-   `$FORGE_ROOT/init/generation/generate-orchestration.md`
-8. For each file being written:
-   - If `MANIFEST_TOOL` is set, check its status:
-     ```sh
-     node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/workflows/{filename}.md
-     ```
-     - Exit 0 (pristine) or exit 2 (untracked) → show diff and prompt as normal
-     - Exit 1 (modified) → show diff **and** surface a clear warning:
-       > △ `.forge/workflows/{filename}.md` has been manually modified.
-       > Overwriting will discard your changes. Proceed? (yes / no / show diff)
-   - Emit: `  ⋯ <filename>.md...`
-   - Write the file
-   - Record hash: `node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/workflows/{filename}.md`
-   - Emit: `  〇 <filename>.md`
+6. **Spawn all 16 atomic workflow subagents in a SINGLE Agent tool message** using
+   `$FORGE_ROOT/init/generation/generate-workflows.md` as the per-subagent rulebook
+   (same fan-out pattern as `/forge:init` Phase 7d).
+7. Collect results. Retry failures once in a single Agent call.
+8. **Then spawn orchestration subagent**:
+   ```
+   Read $FORGE_ROOT/init/generation/generate-orchestration.md and follow it.
+   FORGE_ROOT: {FORGE_ROOT}
+   Input: $FORGE_ROOT/meta/workflows/meta-orchestrate.md + .forge/workflows/
+   Output: .forge/workflows/orchestrate_task.md and .forge/workflows/run_sprint.md
+   ```
+9. For each written file: record hash `node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/workflows/{filename}.md`
+10. Emit `  〇 workflows — 18 files written`
 
 **Do NOT touch:** `.claude/commands/`, `.forge/config.json`, or any knowledge base file.
 
@@ -196,27 +205,24 @@ separately by Step 5b-pre in `/forge:update` — not here.
 
 ---
 
-## Category: `templates` — full rebuild
+## Category: `templates` — full rebuild (parallel)
 
 Re-generate `.forge/templates/` from the meta-template definitions and the
 current knowledge base.
 
-1. Read `$FORGE_ROOT/meta/templates/` — all meta-template files
-2. Read the current knowledge base in `engineering/`
-3. Emit: `Generating templates (<N> files)...`
-4. Clear stale entries for this namespace:
+1. Build the project brief (same command as in `personas` above).
+2. Enumerate `$FORGE_ROOT/meta/templates/meta-*.md`.
+3. Emit: `Generating templates (<N> files in parallel)...`
+4. Check each file for manual modifications (warn on modified, same pattern as workflows).
+5. Clear stale entries:
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/templates/
    ```
-5. Re-generate `.forge/templates/` following
-   `$FORGE_ROOT/init/generation/generate-templates.md`
-6. For each file being written:
-   - Check manifest status (same pattern as workflows — warn on modified, proceed normally on pristine/untracked)
-   - Emit: `  ⋯ <filename>.md...`
-   - Write the file
-   - Record hash: `node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/templates/{filename}.md`
-   - Emit: `  〇 <filename>.md`
-7. Re-record the one-shot init artifact that is not regenerated from a meta file:
+6. **Spawn ALL template subagents in a SINGLE Agent tool message** using
+   `$FORGE_ROOT/init/generation/generate-template.md` as the per-subagent rulebook.
+7. Collect results. Retry failures once. Any still failing: surface the id list.
+8. For each written file: record hash, emit `  〇 <filename>.md`.
+9. Re-record the one-shot init artifact not regenerated from a meta file:
    ```sh
    if [ -f ".forge/templates/CUSTOM_COMMAND_TEMPLATE.md" ]; then
      node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/templates/CUSTOM_COMMAND_TEMPLATE.md
@@ -319,7 +325,31 @@ are not yet represented in review checklist items.
 
 ## Default (no argument)
 
-Run `workflows` + `commands` + `templates` + `personas` + `skills` in sequence.
+Run all five categories respecting dependencies — with maximum parallelism:
+
+1. **Build brief** (once, synchronous):
+   ```sh
+   node "$FORGE_ROOT/tools/build-init-context.cjs" \
+     --config .forge/config.json --personas .forge/personas \
+     --templates .forge/templates \
+     --kb "$(node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo engineering)" \
+     --out .forge/init-context.md --json-out .forge/init-context.json
+   ```
+
+2. **Personas + Templates in parallel** (both need only KB, not each other):
+   Spawn persona fan-out and template fan-out in a **SINGLE Agent tool message**
+   (all persona subagents + all template subagents together). Wait for all to return.
+
+3. **Skills + Workflows in parallel** (skills need personas; workflows need personas + templates — both now ready):
+   Spawn skill fan-out and workflow fan-out (16 atomic) in a **SINGLE Agent tool message**.
+   Wait for all to return.
+
+4. **Orchestration + Commands in parallel** (both need workflows — now ready):
+   Spawn orchestration and commands subagents in a **SINGLE Agent tool message**.
+   Wait for both.
+
+This runs in 4 serial steps instead of 5 sequential category passes, with all
+fan-outs parallelised within each step.
 
 ## On error
 

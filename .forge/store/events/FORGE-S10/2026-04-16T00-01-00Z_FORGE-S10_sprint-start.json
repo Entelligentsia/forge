@@ -1,7 +1,13 @@
 {
   "eventId": "2026-04-16T00-01-00Z_FORGE-S10_sprint-start",
   "sprintId": "FORGE-S10",
+  "taskId": null,
+  "role": "unknown",
   "action": "sprint-start",
-  "timestamp": "2026-04-16T00:01:00.000Z",
+  "phase": "sprint-start",
+  "iteration": 1,
+  "startTimestamp": "2026-04-16T00:01:00.000Z",
+  "endTimestamp": "2026-04-16T00:01:00.000Z",
+  "durationMinutes": null,
   "model": "claude-sonnet-4-6"
 }

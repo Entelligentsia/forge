@@ -1,4 +1,44 @@
 {
+  "0.11.2": {
+    "version": "0.11.3",
+    "date": "2026-04-16",
+    "notes": "Parallelise init and regenerate: Phase 3 KB fan-out (7 parallel docs), Phase 4 personas fan-out, Phases 5+6 skills+templates parallel, Phases 8+9 orchestration+commands parallel. Regenerate workflows now uses build-init-context.cjs fan-out. Regenerate default runs 4 parallel steps instead of 5 sequential categories. New per-subagent rulebooks: generate-persona.md, generate-skill.md, generate-template.md, generate-kb-doc.md.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.11.1": {
+    "version": "0.11.2",
+    "date": "2026-04-16",
+    "notes": "Fix generate-workflows.md: preserve meta-workflow requirements frontmatter in generated output (needed for runtime model selection); fix self-check to look for persona symbol after closing --- rather than at absolute line 1.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.11.0": {
+    "version": "0.11.1",
+    "date": "2026-04-16",
+    "notes": "Fix Phase 7 fan-out: extractPersonaSymbol now handles first-line emoji format; generate-workflows.md strips meta YAML frontmatter; workflow-gen-plan.json corrects architect_sprint_intake persona to product-manager.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.10.1": {
+    "version": "0.11.0",
+    "date": "2026-04-16",
+    "notes": "Phase 7 of /forge:init now fans out all 16 atomic workflow generations in parallel via Agent subagents; adds build-init-context.cjs (deterministic project brief) and workflow-gen-plan.json (fan-out table).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.10.0": {
+    "version": "0.10.1",
+    "date": "2026-04-16",
+    "notes": "Fix: quiz_agent.md was missing from new inits — add meta-quiz-agent.md so Phase 7 generates the KB knowledge-check workflow.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.18": {
     "version": "0.10.0",
     "date": "2026-04-16",

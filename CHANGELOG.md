@@ -5,6 +5,119 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.11.3] — 2026-04-16
+
+**Parallelise init and regenerate across all generation phases.**
+
+`/forge:init` and `/forge:regenerate` were bottlenecked by sequential LLM
+generation passes in every phase. Applied the Phase 7 fan-out pattern
+(one Agent call, all subagents in parallel) to every phase that generates
+independent files:
+
+- **Phase 3 (KB)** — 7 leaf docs now fan out in parallel (stack, processes,
+  database, routing, deployment, entity-model, stack-checklist); index files
+  and MASTER_INDEX generated sequentially after.
+- **Phase 4 (Personas)** — 7 persona files fanned out in parallel.
+- **Phases 5+6** — skills and templates now spawn in a *single* Agent call
+  (all skill + all template subagents together) after Phase 4. The
+  completeness guard runs before the fan-out; calibration baseline writes
+  after.
+- **Phases 8+9** — orchestration and commands spawn in a single Agent call
+  after Phase 7.
+
+`/forge:regenerate` gains the same treatment: `workflows` now uses
+`build-init-context.cjs` + `workflow-gen-plan.json` fan-out; `personas`,
+`skills`, and `templates` each fan out; the default (no-argument) run
+uses 4 dependency-ordered parallel steps instead of 5 sequential category
+passes.
+
+New per-subagent rulebook files added to `forge/init/generation/`:
+`generate-persona.md`, `generate-skill.md`, `generate-template.md`,
+`generate-kb-doc.md`.
+
+**Regenerate:** none — existing generated artifacts are unchanged.
+
+---
+
+## [0.11.2] — 2026-04-16
+
+**Fix: restore requirements frontmatter in generated workflows.**
+
+v0.11.1 incorrectly stripped the YAML `requirements:` frontmatter block from
+generated workflow files. This block is not a leak — it carries
+`reasoning`/`context`/`speed` fields used for runtime model selection and must
+be preserved verbatim at the top of each generated workflow. The root cause was
+a misdiagnosis: the actual bug was the self-check rule "first non-blank line
+must be the persona symbol", which fails when frontmatter is correctly present.
+Corrected both: `generate-workflows.md` now instructs subagents to copy the
+frontmatter block then embed the persona after the closing `---`, and the
+self-check now looks for the persona symbol as the first non-blank line *after*
+the frontmatter, not the absolute first line.
+
+**Regenerate:** `workflows`
+
+---
+
+## [0.11.1] — 2026-04-16
+
+**Fix Phase 7 fan-out: persona symbol extraction, frontmatter leak, and intake persona.**
+
+Three bugs found during smoke-test of v0.11.0 init on a real project:
+
+1. `extractPersonaSymbol` in `build-init-context.cjs` returned `·` for all
+   generated personas — the function only recognised YAML `symbol:` frontmatter.
+   Generated personas use a first-line emoji format (`🗻 **Name** — tagline`).
+   Fixed with Unicode `\p{Emoji_Presentation}` regex on the first non-blank line.
+
+2. `generate-workflows.md` did not strip YAML frontmatter from meta-workflows
+   before embedding content. Some meta-workflows begin with a `requirements:` /
+   `reasoning:` block (`---` … `---`) that leaked into generated output, placing
+   the persona section at line 8 instead of line 1 and breaking self-check.
+   Fixed with an explicit strip rule in the per-subagent rulebook.
+
+3. `workflow-gen-plan.json` had `"persona": "architect"` for `architect_sprint_intake`,
+   but `meta-sprint-intake.md` explicitly instructs subagents to load
+   `product-manager.md`. Corrected to `"persona": "product-manager"`.
+
+**Regenerate:** `workflows`
+
+---
+
+## [0.11.0] — 2026-04-16
+
+**Phase 7 workflow fan-out with minimal context brief.**
+
+`/forge:init` Phase 7 now generates all 16 atomic workflow files in parallel
+using fanned-out Agent subagents — one subagent per workflow — instead of a
+single serial pass. A compact project brief (`.forge/init-context.md`, ≤3 KB)
+is materialised once from deterministic sources before the fan-out, replacing
+repeated full-context re-derivation across 16 serial model turns. Each subagent
+reads only its own brief + meta-workflow + persona file, writes one file, and
+self-validates before returning. Reduces Phase 7 wall time from ~15–20 min to
+~1–2 min for typical projects. The fan-out table lives in
+`forge/init/workflow-gen-plan.json`; the brief builder is
+`forge/tools/build-init-context.cjs` (21 tests).
+
+**Regenerate:** none — this change only affects new inits; existing generated
+artifacts are unchanged.
+
+---
+
+## [0.10.1] — 2026-04-16
+
+**Fix: `quiz_agent.md` missing from new inits.**
+
+`quiz_agent.md` (the project KB knowledge-check workflow) was listed as a Phase 7
+output in `generate-workflows.md` but had no meta-workflow source, so
+`/forge:init` silently skipped it. Added `forge/meta/workflows/meta-quiz-agent.md`
+with generation instructions that produce project-specific quiz questions from the
+generated KB (architecture docs, domain entities, stack conventions). Wired into
+`build-manifest.cjs` and `structure-manifest.json`.
+
+**Regenerate:** `workflows`
+
+---
+
 ## [0.10.0] — 2026-04-16
 
 **Tomoshibi (灯) agent + KB path configurability.**

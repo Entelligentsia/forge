@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const banners = require('../banners.cjs');
 
 describe('banners.cjs', () => {
-  const KNOWN_NAMES = ['ember', 'tide', 'oracle', 'rift', 'bloom', 'north', 'lumen', 'forge', 'drift', 'void'];
+  const KNOWN_NAMES = ['ember', 'tide', 'oracle', 'rift', 'bloom', 'north', 'lumen', 'forge', 'drift', 'void', 'entelligentsia'];
 
   test('render returns a string for every known banner', () => {
     for (const name of KNOWN_NAMES) {
