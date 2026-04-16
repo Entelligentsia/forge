@@ -1,7 +1,13 @@
 {
-  "eventType": "task-dispatch",
+  "eventId": "20260416T025000000Z_FORGE-S09-T09_task-dispatch",
   "sprintId": "FORGE-S09",
   "taskId": "FORGE-S09-T09",
-  "timestamp": "2026-04-16T02:50:00.000Z",
-  "phase": "from-planned"
+  "role": "unknown",
+  "action": "from-planned",
+  "phase": "from-planned",
+  "iteration": 1,
+  "startTimestamp": "2026-04-16T02:50:00.000Z",
+  "endTimestamp": "2026-04-16T02:50:00.000Z",
+  "durationMinutes": null,
+  "model": "unknown"
 }

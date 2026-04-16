@@ -1,8 +1,13 @@
 {
-  "eventType": "sprint-complete",
+  "eventId": "20260416T030000000Z_FORGE-S09_sprint-complete",
   "sprintId": "FORGE-S09",
-  "timestamp": "2026-04-16T03:00:00.000Z",
-  "committed": ["FORGE-S09-T01", "FORGE-S09-T02", "FORGE-S09-T03", "FORGE-S09-T04", "FORGE-S09-T05", "FORGE-S09-T06", "FORGE-S09-T07", "FORGE-S09-T08", "FORGE-S09-T09"],
-  "escalated": [],
-  "abandoned": []
+  "taskId": null,
+  "role": "orchestrator",
+  "action": "sprint-complete",
+  "phase": "sprint-complete",
+  "iteration": 1,
+  "startTimestamp": "2026-04-16T03:00:00.000Z",
+  "endTimestamp": "2026-04-16T03:00:00.000Z",
+  "durationMinutes": null,
+  "model": "unknown"
 }
