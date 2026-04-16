@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S09-T08",
-  "feature_id": null,
   "sprintId": "FORGE-S09",
-  "title": "Close BUG-002/003 validate-store pre-existing errors",
-  "status": "planned",
-  "path": ".forge/store",
-  "estimate": "M",
-  "dependencies": [],
-  "pipeline": "default"
+  "title": "Task T08",
+  "status": "approved",
+  "path": "engineering/sprints/FORGE-S09/FORGE-S09-T08-close-bugs"
 }

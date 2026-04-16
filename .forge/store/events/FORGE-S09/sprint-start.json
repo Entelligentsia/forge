@@ -1,6 +1,13 @@
 {
-  "event": "sprint-start",
+  "eventId": "sprint-start",
+  "taskId": null,
   "sprintId": "FORGE-S09",
-  "timestamp": "2026-04-16T00:00:00.000Z",
-  "tasksToRun": ["FORGE-S09-T03", "FORGE-S09-T04", "FORGE-S09-T07", "FORGE-S09-T08", "FORGE-S09-T05", "FORGE-S09-T09"]
+  "role": "unknown",
+  "action": "unknown",
+  "phase": "unknown",
+  "iteration": 1,
+  "startTimestamp": "2026-04-16T00:00:00.000Z",
+  "endTimestamp": "2026-04-16T00:00:00.000Z",
+  "durationMinutes": null,
+  "model": "unknown"
 }

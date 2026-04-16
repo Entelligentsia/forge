@@ -1,7 +1,13 @@
 {
-  "eventType": "task-dispatch",
-  "sprintId": "FORGE-S09",
+  "eventId": "20260416T020100000Z_FORGE-S09-T03_task-dispatch",
   "taskId": "FORGE-S09-T03",
-  "timestamp": "2026-04-16T02:01:00.000Z",
-  "phase": "resume-from-plan-approved"
+  "sprintId": "FORGE-S09",
+  "role": "unknown",
+  "action": "resume-from-plan-approved",
+  "phase": "resume-from-plan-approved",
+  "iteration": 1,
+  "startTimestamp": "2026-04-16T02:01:00.000Z",
+  "endTimestamp": "2026-04-16T02:01:00.000Z",
+  "durationMinutes": null,
+  "model": "unknown"
 }
