@@ -1,4 +1,12 @@
 {
+  "0.9.13": {
+    "version": "0.9.14",
+    "date": "2026-04-16",
+    "notes": "Sprint S09 cap release: init phase renumbering (T01), calibrationBaseline + required-field config schema (T02), init completeness guard + calibration baseline write (T03), health config-completeness + KB freshness checks (T04), calibrate command — drift detection + surgical patches (T05), sprint-plan SPRINT_PLAN.md output path (T06), add-task mid-sprint command (T07), BUG-008 persona/persona injection fix, BUG-009 structure manifest + clear-namespace, banner library with agent identity. Run /forge:update after installing.",
+    "regenerate": ["commands", "workflows", "personas"],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.12": {
     "version": "0.9.13",
     "date": "2026-04-16",
