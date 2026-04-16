@@ -255,19 +255,107 @@ Write `.forge/init-progress.json`:
 
 ---
 
-## Phase 7 — Generate Atomic Workflows
+## Phase 7 — Generate Atomic Workflows (parallel)
 
-Emit: `━━━ Phase 7/12 — Workflows ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Emit: `━━━ Phase 7/12 — Workflows (parallel) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
 
-Read `$FORGE_ROOT/init/generation/generate-workflows.md` and follow it.
+### Step 7a — Build the project brief
 
-**Input**: `$FORGE_ROOT/meta/workflows/` + `.forge/personas/` + `.forge/skills/` + templates + discovery context + knowledge base
-**Output**: `.forge/workflows/` (16 atomic + 2 orchestration = 18 workflow files)
+Assert `.forge/personas/` contains at least one `.md` file (excluding README.md).
+If empty, halt: `△ Phase 4 output missing — no persona files found in .forge/personas/.`
+
+Run:
+```sh
+node "$FORGE_ROOT/tools/build-init-context.cjs" \
+  --config    .forge/config.json \
+  --personas  .forge/personas \
+  --templates .forge/templates \
+  --kb        "$KB_PATH" \
+  --out       .forge/init-context.md \
+  --json-out  .forge/init-context.json
+```
+
+The script prints a `〇 Brief written — N personas, M templates, K architecture docs` line on success.
+If it exits non-zero, halt and surface the error.
+
+### Step 7b — Read the fan-out plan
+
+```sh
+cat "$FORGE_ROOT/init/workflow-gen-plan.json"
+```
+
+This gives 16 `{id, meta, persona}` entries.
+
+### Step 7c — Check resume state
+
+```sh
+cat .forge/init-progress.json 2>/dev/null
+```
+
+If `phase7.workflows` exists in the file, filter the fan-out list to entries
+whose id is **not** `"done"`. Emit: `〇 Resuming Phase 7 — N remaining workflows`
+
+### Step 7d — Fan-out (parallel)
+
+Read `.forge/init-context.md` once (inline it into each subagent prompt).
+Read the rulebook: `$FORGE_ROOT/init/generation/generate-workflows.md` once.
+For each entry, read its meta-workflow and persona file.
+
+**Spawn ALL remaining subagents in a SINGLE Agent tool message** (one tool call
+with all parallel invocations). For each entry `{id, meta, persona}`:
+
+```
+description: "Generate workflow: {id}"
+prompt: |
+  Read and follow the rulebook below exactly.
+
+  --- RULEBOOK ---
+  <contents of $FORGE_ROOT/init/generation/generate-workflows.md>
+  --- END RULEBOOK ---
+
+  Project brief (authoritative — use for ALL names and substitutions):
+  --- BRIEF ---
+  <contents of .forge/init-context.md>
+  --- END BRIEF ---
+
+  Meta-workflow source (your generation algorithm):
+  --- META ---
+  <contents of $FORGE_ROOT/meta/workflows/{meta}>
+  --- END META ---
+
+  Primary persona (embed verbatim as the opening section of your output):
+  --- PERSONA ---
+  <contents of .forge/personas/{persona}.md>
+  --- END PERSONA ---
+
+  Your output file: .forge/workflows/{id}.md
+  FORGE_ROOT: {FORGE_ROOT}
+```
+
+Wait for all subagents to return.
+
+### Step 7e — Collect, retry, validate
+
+For each returned result:
+- Starts with `done:` → mark id as `"done"` in `phase7.workflows` map
+- Starts with `FAILED:` → mark id as `"failed"`, record reason
+
+If any `"failed"`:
+- Emit: `△ N workflows failed — retrying once: <id-list>`
+- Spawn the failed subagents again in a **SINGLE** Agent tool message (same prompts).
+- Collect results. Any still failing after one retry:
+  - Write `.forge/init-progress.json` with `phase7.workflows` map.
+  - Halt: `× Phase 7 incomplete — <id-list>. Fix the reported issues, then resume.`
+
+After all succeed, verify every id has a non-empty `.forge/workflows/{id}.md` on disk.
+Any missing file is treated as a failure and surfaced.
 
 Write `.forge/init-progress.json`:
 ```json
-{ "lastPhase": 7, "timestamp": "<current ISO timestamp>" }
+{ "lastPhase": 7, "timestamp": "<current ISO timestamp>", "phase7": { "<id>": "done", ... } }
 ```
+
+**Output**: `.forge/workflows/` — 16 atomic workflow files
 
 ---
 

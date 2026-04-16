@@ -85,7 +85,7 @@ to confirm or specify a start phase:
   4     Personas              — project-specific agent identities → 3-5 personas
   5     Skills                — role-specific skill sets → 3-5 skill files
   6     Templates             — document formats → 5-8 templates
-  7     Workflows             — atomic workflow files → ~14 files
+  7     Workflows             — 16 files generated in parallel → ~1-2 min
   8     Orchestration         — pipeline wiring → 2 workflows
   9     Commands              — slash command wrappers → 5-8 commands
   10    Tools                 — config update + schema copy + hash recording → schemas + config

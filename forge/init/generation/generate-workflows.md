@@ -1,79 +1,72 @@
-# Generation: Atomic Workflows
+# Workflow Generation — Per-Subagent Instructions
 
-## Purpose
+You are generating **ONE** workflow file. You have been given three inputs:
 
-Generate project-specific workflow files from meta-workflows, incorporating
-persona context, templates, and the knowledge base.
+1. A **project brief** (`.forge/init-context.md`) — authoritative for all names,
+   paths, and placeholder values
+2. A **meta-workflow source** — your generation algorithm and Generation Instructions
+3. A **persona file** (already generated) — embed verbatim as the opening section
+
+Your job is to produce exactly one file and return a one-line status.
+
+---
 
 ## Inputs
 
-- `$FORGE_ROOT/meta/workflows/meta-*.md` (17 atomic meta-workflows)
-- Persona context (from Phase 3)
-- Generated templates (from Phase 4)
-- Discovery context (from Phase 1)
-- Generated knowledge base (from Phase 2)
+Read these three sources before writing anything:
 
-## Outputs
+- `.forge/init-context.md` — the project brief (passed inline in your prompt)
+- `$FORGE_ROOT/meta/workflows/{meta}` — the meta-workflow for your assigned workflow
+- `.forge/personas/{persona}.md` — the persona file for your assigned role
 
-`.forge/workflows/` with 16 project-specific workflow files:
-- `architect_sprint_intake.md`
-- `architect_sprint_plan.md`
-- `architect_approve.md`
-- `architect_review_sprint_completion.md`
-- `plan_task.md`
-- `implement_plan.md`
-- `update_plan.md`
-- `update_implementation.md`
-- `fix_bug.md`
-- `commit_task.md`
-- `review_plan.md`
-- `review_code.md`
-- `collator_agent.md`
-- `sprint_retrospective.md`
-- `quiz_agent.md`
-- `validate_task.md`
+---
 
-## Instructions
+## Rules
 
-For each meta-workflow:
-1. Read its Algorithm and Generation Instructions
-2. Embed the project-specific persona as the opening section
-3. Replace all placeholders with concrete project values:
-   - `{SYNTAX_CHECK}` → project's syntax checker
-   - `{TEST_COMMAND}` → project's test runner
-   - `{BUILD_COMMAND}` → project's build step
-4. Reference architecture sub-docs by their actual names
-5. Reference entities by their actual names
-6. Reference templates by their actual paths in `.forge/templates/`
-7. Include the Knowledge Writeback step in every workflow
-8. Include the Event Emission step in every workflow
+1. **Write EXACTLY ONE file:** `.forge/workflows/{id}.md`
 
-After writing each workflow file, record it in the generation manifest:
-```sh
-node {paths.tools}/generation-manifest.cjs record {paths.workflows}/{filename}.md
-```
+2. **Opening section** — embed the persona file content verbatim as the first
+   section of the generated workflow. Do not paraphrase or summarise.
 
-This must happen immediately after the file is written, before moving to the
-next workflow. If `generation-manifest.cjs` is not yet installed, skip silently
-and note that `/forge:update-tools` should be run to install it.
+3. **Placeholder substitution** — all `{SYNTAX_CHECK}`, `{TEST_COMMAND}`,
+   `{BUILD_COMMAND}`, `{LINT_COMMAND}` values come from the brief's
+   `## Commands` section. Do not invent values.
 
-## Enforcement Quality
+4. **Name vocabulary** — all persona names, template names, architecture doc
+   names, and entity names MUST appear in the brief. Do not invent or rename
+   anything not listed there.
 
-Generated workflows must resist rationalization. For any workflow with gate
-checks or review steps, include:
+5. **Required steps** — follow the meta-workflow's Generation Instructions.
+   Include the Knowledge Writeback step and the Event Emission step as defined
+   in the meta-workflow (unless the meta explicitly omits them, e.g. quiz_agent).
 
-**Iron Law framing** — critical gates use "YOU MUST" and "No exceptions" language,
-not suggestions. Example: "YOU MUST run tests before proceeding. Skipping because
-the change looks small is not allowed."
+6. **Enforcement quality** — for review workflows, include:
+   - A Rationalization Table of common agent excuses and factual rebuttals
+   - "YOU MUST" / "No exceptions" gate language at critical checks
+   - An announcement pattern: the agent declares intent at workflow start
 
-**Rationalization table** — for review workflows, include a table of common
-agent excuses and factual rebuttals drawn from the project's domain. Format:
+7. **No free-form additions** — do not add sections, steps, or notes beyond
+   what the meta-workflow and project brief prescribe.
 
-| Agent says | Reality |
-|---|---|
-| "It's a small change, tests aren't needed" | Small changes break things. Run the tests. |
-| "The previous review approved the approach" | Each implementation is reviewed independently. |
+---
 
-**Announcement pattern** — require the agent to declare intent at the start of
-any gate-heavy workflow: "I am running [workflow name] to [specific purpose]."
-This commitment increases follow-through.
+## Self-check (mandatory last step)
+
+After writing the file, verify before returning:
+
+1. Read back `.forge/workflows/{id}.md`
+2. Confirm the **first non-blank line** contains the persona symbol listed in
+   the brief's `## Personas` section for this workflow's role
+3. Confirm **no unsubstituted placeholders** remain (no literal `{TEST_COMMAND}`,
+   `{BUILD_COMMAND}`, `{SYNTAX_CHECK}`, or `{LINT_COMMAND}` in the file)
+4. Record in the manifest:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record ".forge/workflows/{id}.md"
+   ```
+   (If generation-manifest.cjs is not yet installed, skip silently.)
+
+5. Return **exactly one line**:
+   - `done: <first 80 chars of the written file>` — on success
+   - `FAILED: <reason>` — if any step above failed or the file could not be written
+
+Do not output anything else after the status line.

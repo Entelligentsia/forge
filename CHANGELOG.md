@@ -5,6 +5,41 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.11.0] — 2026-04-16
+
+**Phase 7 workflow fan-out with minimal context brief.**
+
+`/forge:init` Phase 7 now generates all 16 atomic workflow files in parallel
+using fanned-out Agent subagents — one subagent per workflow — instead of a
+single serial pass. A compact project brief (`.forge/init-context.md`, ≤3 KB)
+is materialised once from deterministic sources before the fan-out, replacing
+repeated full-context re-derivation across 16 serial model turns. Each subagent
+reads only its own brief + meta-workflow + persona file, writes one file, and
+self-validates before returning. Reduces Phase 7 wall time from ~15–20 min to
+~1–2 min for typical projects. The fan-out table lives in
+`forge/init/workflow-gen-plan.json`; the brief builder is
+`forge/tools/build-init-context.cjs` (21 tests).
+
+**Regenerate:** none — this change only affects new inits; existing generated
+artifacts are unchanged.
+
+---
+
+## [0.10.1] — 2026-04-16
+
+**Fix: `quiz_agent.md` missing from new inits.**
+
+`quiz_agent.md` (the project KB knowledge-check workflow) was listed as a Phase 7
+output in `generate-workflows.md` but had no meta-workflow source, so
+`/forge:init` silently skipped it. Added `forge/meta/workflows/meta-quiz-agent.md`
+with generation instructions that produce project-specific quiz questions from the
+generated KB (architecture docs, domain entities, stack conventions). Wired into
+`build-manifest.cjs` and `structure-manifest.json`.
+
+**Regenerate:** `workflows`
+
+---
+
 ## [0.10.0] — 2026-04-16
 
 **Tomoshibi (灯) agent + KB path configurability.**

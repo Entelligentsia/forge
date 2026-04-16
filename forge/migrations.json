@@ -1,4 +1,20 @@
 {
+  "0.10.1": {
+    "version": "0.11.0",
+    "date": "2026-04-16",
+    "notes": "Phase 7 of /forge:init now fans out all 16 atomic workflow generations in parallel via Agent subagents; adds build-init-context.cjs (deterministic project brief) and workflow-gen-plan.json (fan-out table).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.10.0": {
+    "version": "0.10.1",
+    "date": "2026-04-16",
+    "notes": "Fix: quiz_agent.md was missing from new inits — add meta-quiz-agent.md so Phase 7 generates the KB knowledge-check workflow.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.18": {
     "version": "0.10.0",
     "date": "2026-04-16",
