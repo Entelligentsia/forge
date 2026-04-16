@@ -133,6 +133,74 @@ Read `$FORGE_ROOT/init/generation/generate-skills.md` and follow it.
 **Input**: `$FORGE_ROOT/meta/skills/` + `.forge/config.json` (installedSkills) + discovery context + knowledge base
 **Output**: `.forge/skills/` (role-specific skill sets)
 
+### Completeness Guard
+
+After skill generation completes, verify that all required config fields are present
+and non-empty in `.forge/config.json`. This prevents an eager model from producing
+a partial config that would break downstream phases.
+
+1. Read the current `.forge/config.json`.
+2. Check every field listed in `$FORGE_ROOT/sdlc-config.schema.json`'s top-level `required` array:
+   `["version", "project", "stack", "commands", "paths"]`.
+3. For each required field, also check the nested `required` sub-fields:
+   - `project.required`: `["prefix", "name"]`
+   - `commands.required`: `["test"]`
+   - `paths.required`: `["engineering", "store", "workflows", "commands", "templates"]`
+4. A field is considered "missing or empty" if it is absent, `null`, an empty string `""`,
+   or an empty object `{}` (for object-type fields).
+5. If all required fields are present and non-empty → proceed.
+6. If any field is missing or empty → halt. Display a prompt:
+
+```
+△ Init Completeness Guard — missing required config fields:
+  · project.prefix — short project prefix (e.g. ACME)
+  · commands.test  — test command (e.g. npm test)
+
+Provide values for each missing field, then re-run Phase 5 or
+type each value now to continue:
+```
+
+The guard emits a clear human-readable message listing every missing field with a short
+hint. It does not write a partial config. After the user provides values, re-check
+before proceeding.
+
+### Write Calibration Baseline
+
+After the completeness guard passes, compute the calibration baseline and write
+`calibrationBaseline` into `.forge/config.json`. The baseline records the state of
+the project at calibration time so `/forge:calibrate` can detect drift later.
+
+1. Read `.forge/config.json` to get the current config.
+2. Read `$FORGE_ROOT/.claude-plugin/plugin.json` to get `version`.
+3. Read `engineering/MASTER_INDEX.md` and compute a SHA-256 hash of the semantic content:
+   - Strip blank lines and lines that start with `<!--` (comment lines).
+   - Hash the remaining lines joined with newline.
+   - Command:
+     ```
+     node -e "const crypto=require('crypto'),fs=require('fs'); const lines=fs.readFileSync('engineering/MASTER_INDEX.md','utf8').split('\n').filter(l=>l.trim()&&!l.trim().startsWith('<!--')); console.log(crypto.createHash('sha256').update(lines.join('\n')).digest('hex'))"
+     ```
+4. List completed sprint IDs from `.forge/store/sprints/` — sprints whose `status` is
+   `"done"` or `"retrospective-done"`. For a fresh init this will be empty.
+   - Command:
+     ```
+     node -e "const fs=require('fs'),p='.forge/store/sprints'; try{const files=fs.readdirSync(p).filter(f=>f.endsWith('.json')); const done=files.map(f=>JSON.parse(fs.readFileSync(p+'/'+f,'utf8'))).filter(s=>['done','retrospective-done'].includes(s.status)).map(s=>s.sprintId); console.log(JSON.stringify(done));}catch(e){console.log('[]')}"
+     ```
+5. Compute today's ISO date (`YYYY-MM-DD`):
+   - Command: `date -u +"%Y-%m-%d"`
+6. Build the `calibrationBaseline` object:
+   ```json
+   {
+     "lastCalibrated": "<ISO date from step 5>",
+     "version": "<plugin version from step 2>",
+     "masterIndexHash": "<SHA-256 from step 3>",
+     "sprintsCovered": <array from step 4>
+   }
+   ```
+7. Write the updated config back to `.forge/config.json` — merge `calibrationBaseline`
+   into the existing config object (do not overwrite other fields).
+   - Use `node -e "..."` with `fs.readFileSync` / `JSON.parse` / `JSON.stringify` / `fs.writeFileSync`
+   - Pattern: read → parse → assign `config.calibrationBaseline = {...}` → stringify → write.
+
 Write `.forge/init-progress.json`:
 ```json
 { "lastPhase": 5, "timestamp": "<current ISO timestamp>" }

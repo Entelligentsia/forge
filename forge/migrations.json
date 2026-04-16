@@ -1,4 +1,12 @@
 {
+  "0.9.9": {
+    "version": "0.9.10",
+    "date": "2026-04-16",
+    "notes": "Init: add completeness guard (verifies all required config fields before proceeding) and calibration baseline write (records project state at init time for /forge:calibrate drift detection) to Phase 5 of sdlc-init.md.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.8": {
     "version": "0.9.9",
     "date": "2026-04-16",

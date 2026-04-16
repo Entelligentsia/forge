@@ -1,6 +1,6 @@
 {
   "event": "sprint-start",
   "sprintId": "FORGE-S09",
-  "timestamp": "2026-04-15T00:00:00.000Z",
-  "mode": "sequential"
+  "timestamp": "2026-04-16T00:00:00.000Z",
+  "tasksToRun": ["FORGE-S09-T03", "FORGE-S09-T04", "FORGE-S09-T07", "FORGE-S09-T08", "FORGE-S09-T05", "FORGE-S09-T09"]
 }
