@@ -138,6 +138,16 @@ describe('build-init-context.cjs — extractPersonaSymbol', () => {
     assert.equal(extractPersonaSymbol(content), '·');
   });
 
+  test('extracts emoji from first-line format (generated persona style)', () => {
+    const content = `🗻 **emberglow Architect** — I hold the shape of the whole.\n\n# emberglow Architect\n`;
+    assert.equal(extractPersonaSymbol(content), '🗻');
+  });
+
+  test('extracts emoji from first-line format with multi-codepoint emoji', () => {
+    const content = `🍂 **emberglow Bug Fixer** — I find what has decayed.\n\n# Bug Fixer\n`;
+    assert.equal(extractPersonaSymbol(content), '🍂');
+  });
+
   test('only reads first 15 lines (does not scan full file)', () => {
     const header = Array.from({ length: 20 }, (_, i) => `line ${i}`).join('\n');
     const content = header + '\nsymbol: 🌊\n';

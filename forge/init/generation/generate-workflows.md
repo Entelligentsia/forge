@@ -28,6 +28,11 @@ Read these three sources before writing anything:
 2. **Opening section** — embed the persona file content verbatim as the first
    section of the generated workflow. Do not paraphrase or summarise.
 
+   **Strip meta-workflow YAML frontmatter.** The meta-workflow source may begin
+   with a YAML block (`---` … `---`) containing `requirements:` fields. Do NOT
+   include this in the generated output — it is meta-level metadata, not workflow
+   content. The generated file must start with the persona content, not `---`.
+
 3. **Placeholder substitution** — all `{SYNTAX_CHECK}`, `{TEST_COMMAND}`,
    `{BUILD_COMMAND}`, `{LINT_COMMAND}` values come from the brief's
    `## Commands` section. Do not invent values.

@@ -5,6 +5,31 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.11.1] — 2026-04-16
+
+**Fix Phase 7 fan-out: persona symbol extraction, frontmatter leak, and intake persona.**
+
+Three bugs found during smoke-test of v0.11.0 init on a real project:
+
+1. `extractPersonaSymbol` in `build-init-context.cjs` returned `·` for all
+   generated personas — the function only recognised YAML `symbol:` frontmatter.
+   Generated personas use a first-line emoji format (`🗻 **Name** — tagline`).
+   Fixed with Unicode `\p{Emoji_Presentation}` regex on the first non-blank line.
+
+2. `generate-workflows.md` did not strip YAML frontmatter from meta-workflows
+   before embedding content. Some meta-workflows begin with a `requirements:` /
+   `reasoning:` block (`---` … `---`) that leaked into generated output, placing
+   the persona section at line 8 instead of line 1 and breaking self-check.
+   Fixed with an explicit strip rule in the per-subagent rulebook.
+
+3. `workflow-gen-plan.json` had `"persona": "architect"` for `architect_sprint_intake`,
+   but `meta-sprint-intake.md` explicitly instructs subagents to load
+   `product-manager.md`. Corrected to `"persona": "product-manager"`.
+
+**Regenerate:** `workflows`
+
+---
+
 ## [0.11.0] — 2026-04-16
 
 **Phase 7 workflow fan-out with minimal context brief.**

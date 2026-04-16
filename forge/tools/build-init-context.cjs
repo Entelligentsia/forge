@@ -39,14 +39,33 @@ const SKILL_PERSONA_MAP = {
 };
 
 // ── extractPersonaSymbol ──────────────────────────────────────────────────────
-// Reads the first 15 lines of a persona file and extracts the symbol value
-// from a "symbol: <emoji>" frontmatter line. Returns '·' if not found.
+// Reads the first 15 lines of a persona file and extracts the emoji symbol.
+// Handles two formats:
+//   1. First-line emoji (generated persona style):
+//        🗻 **emberglow Architect** — tagline
+//   2. YAML frontmatter "symbol:" line:
+//        ---
+//        symbol: 🏛
+//        ---
+// Returns '·' if no symbol is found.
 function extractPersonaSymbol(content) {
   const lines = content.split('\n').slice(0, 15);
+
+  // Format 1: first non-blank line starts with an emoji character
+  // Unicode emoji range check — covers most common emoji blocks
+  const firstNonBlank = lines.find(l => l.trim().length > 0);
+  if (firstNonBlank) {
+    // Match a leading emoji (one or more emoji codepoints before a space or end)
+    const emojiMatch = firstNonBlank.match(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic})/u);
+    if (emojiMatch) return emojiMatch[0];
+  }
+
+  // Format 2: "symbol: <value>" in YAML frontmatter
   for (const line of lines) {
     const m = line.match(/^symbol:\s*(\S.*?)\s*$/i);
     if (m) return m[1].trim();
   }
+
   return '·';
 }
 

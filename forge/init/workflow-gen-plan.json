@@ -1,5 +1,5 @@
 [
-  {"id": "architect_sprint_intake",            "meta": "meta-sprint-intake.md",           "persona": "architect"},
+  {"id": "architect_sprint_intake",            "meta": "meta-sprint-intake.md",           "persona": "product-manager"},
   {"id": "architect_sprint_plan",              "meta": "meta-sprint-plan.md",             "persona": "architect"},
   {"id": "architect_approve",                  "meta": "meta-approve.md",                 "persona": "architect"},
   {"id": "architect_review_sprint_completion", "meta": "meta-review-sprint-completion.md","persona": "architect"},

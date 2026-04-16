@@ -1,4 +1,12 @@
 {
+  "0.11.0": {
+    "version": "0.11.1",
+    "date": "2026-04-16",
+    "notes": "Fix Phase 7 fan-out: extractPersonaSymbol now handles first-line emoji format; generate-workflows.md strips meta YAML frontmatter; workflow-gen-plan.json corrects architect_sprint_intake persona to product-manager.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
   "0.10.1": {
     "version": "0.11.0",
     "date": "2026-04-16",
