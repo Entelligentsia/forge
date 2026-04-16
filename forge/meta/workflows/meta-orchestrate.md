@@ -10,7 +10,6 @@ the complete lifecycle. This is the task state machine.
 Each phase has:
 - `name` — identifier
 - `agent` — which role executes
-- `model` — which model to use (see Model Resolution below)
 - `workflow` — which workflow file to load
 - `requires` — prerequisite artifact
 - `produces` — output artifact
@@ -19,47 +18,82 @@ Each phase has:
 
 ## Model Resolution
 
-Each phase subagent MUST be spawned with an explicit `model` parameter.
-The orchestrator resolves the model for each phase using this priority:
+Subagents inherit the parent session's model by default. **Omit the `model`
+parameter on Agent tool spawns** — Claude Code resolves the correct model
+from its environment.
 
-1. **`phase.model`** — if the pipeline phase definition in `config.pipelines`
-   includes a `model` field, use it (highest priority, allows per-phase override).
-2. **Capability-Based Match** — if the workflow file for the phase has a `requirements`
-   block in its frontmatter, map these tiers against the Capability Table:
+### Cluster Detection
 
-   ### Internal Capability Tiers
-   | Tier | Description | Target Profile |
-   | :--- | :--- | :--- |
-   | **High** | Deep reasoning, complex synthesis, adversarial review | Highest intelligence, max precision |
-   | **Medium** | Standard implementation, iterative refinement | Balanced intelligence and speed |
-   | **Low** | State machine transitions, formatting, simple commits | High speed, low latency, high reliability |
+At session start, detect the execution cluster from environment variables
+provided by Claude Code:
 
-   ### Host-Agnostic Mapping (Current Host: Claude Code)
-   | Capability | High | Medium | Low |
-   | :--- | :--- | :--- | :--- |
-   | **Reasoning** | `claude-3-opus` | `claude-3-5-sonnet` | `claude-3-haiku` |
-   | **Context** | `claude-3-opus` | `claude-3-5-sonnet` | `claude-3-haiku` |
-   | **Speed** | `claude-3-haiku` | `claude-3-5-sonnet` | `claude-3-haiku` |
+| Variable | Purpose |
+|----------|---------|
+| `CLAUDE_CODE_SUBAGENT_MODEL` | The actual model subagents run on |
+| `ANTHROPIC_DEFAULT_OPUS_MODEL` | What "opus" resolves to |
+| `ANTHROPIC_DEFAULT_SONNET_MODEL` | What "sonnet" resolves to |
+| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | What "haiku" resolves to |
 
-   The orchestrator selects the model that best satisfies the primary requirement
-   (Reasoning > Context > Speed). If the preferred model is unavailable, it
-   falls back to the next-best match in the table.
-3. **Role-based default** — if no `phase.model` or `requirements` are set, use the role default tier:
-   | Role | Default Tier | Mapping |
-   |------|---------------|---------|
-   | `plan` | Medium | `claude-3-5-sonnet` |
-   | `implement` | Medium | `claude-3-5-sonnet` |
-   | `review-plan` | High | `claude-3-opus` |
-   | `review-code` | High | `claude-3-opus` |
-   | `validate` | High | `claude-3-opus` |
-   | `approve` | High | `claude-3-opus` |
-   | `commit` | Low | `claude-3-haiku` |
+```
+if ANTHROPIC_DEFAULT_OPUS_MODEL == ANTHROPIC_DEFAULT_SONNET_MODEL == ANTHROPIC_DEFAULT_HAIKU_MODEL:
+    cluster = "single"  # all tiers resolve to same model
+else:
+    cluster = "tiered"  # tiers resolve to different models
+```
 
-The orchestrator itself runs on whichever model it was invoked with (typically
-`sonnet` — it is a lightweight state machine and does not need a heavy model).
+On **single** clusters (e.g. non-Anthropic runtimes), omit `model` — all
+phases inherit the parent model. On **tiered** clusters, the orchestrator
+passes `model=opus|sonnet|haiku` based on the role-to-tier mapping below,
+and Claude Code resolves the tier name to the actual runtime model.
 
-Short model names (`sonnet`, `opus`, `haiku`) are valid for the Agent tool's
-`model` parameter in Claude Code.
+### Role-to-Tier Mapping
+
+Used only on tiered clusters to select the appropriate model tier:
+
+| Role | Tier | Rationale |
+|------|------|-----------|
+| `review-plan` | opus | Deep reasoning for spec compliance |
+| `review-code` | opus | Deep reasoning for code quality |
+| `validate` | opus | Adversarial review needs highest precision |
+| `approve` | opus | Architectural sign-off needs broad context |
+| `plan` | sonnet | Balanced implementation planning |
+| `implement` | sonnet | Balanced coding and iteration |
+| `commit` | haiku | Fast, reliable state machine transition |
+| `writeback` | haiku | Fast, reliable collation and file writes |
+
+### Dispatch Behavior
+
+| Cluster type | Agent tool `model` param | Phase announcement |
+|-------------|------------------------|-------------------|
+| Single | Omitted (inherit parent) | `[glm-5.1:cloud]` |
+| Tiered | Tier name from mapping | `[opus → claude-opus-4-6]` |
+| Per-phase override | Override value from config | `[sonnet → claude-sonnet-4-6]` |
+| Unknown | Omitted (inherit parent) | `[inherited]` |
+
+### Phase Announcements
+
+Display the resolved model name in phase announcements:
+
+```
+# Single cluster — show the model directly
+→ SPECT-T01  [glm-5.1:cloud]
+
+# Tiered cluster — show tier → resolved model
+→ SPECT-T01  [opus → claude-opus-4-6]
+```
+
+Resolve the display name by reading `ANTHROPIC_DEFAULT_{TIER}_MODEL` from
+the environment. If the variable is unset, fall back to the tier name.
+
+### Per-Phase Override
+
+If a pipeline phase definition in `config.pipelines` includes a `model`
+field, it takes precedence over the cluster-based dispatch. This is the
+highest priority — it allows users to pin specific phases to specific models
+regardless of the detected cluster type.
+
+The orchestrator itself runs on whichever model it was invoked with — it is
+a lightweight state machine and does not need a heavy model.
 
 ## Pipeline Resolution
 
@@ -200,14 +234,53 @@ for each task in dependency_sorted(tasks):
   iteration_counts = {}                     # keyed by phase command name
   i = 0
 
+  # --- Detect execution cluster from env vars (see Model Resolution) ---
+  opus_model   = env("ANTHROPIC_DEFAULT_OPUS_MODEL", "")
+  sonnet_model = env("ANTHROPIC_DEFAULT_SONNET_MODEL", "")
+  haiku_model  = env("ANTHROPIC_DEFAULT_HAIKU_MODEL", "")
+  if opus_model and opus_model == sonnet_model == haiku_model:
+    cluster = "single"
+    resolved_model = opus_model   # all tiers same model
+  elif opus_model:
+    cluster = "tiered"
+    resolved_model = None         # each tier resolves differently
+  else:
+    cluster = "unknown"
+    resolved_model = env("CLAUDE_CODE_SUBAGENT_MODEL", "unknown")
+
+  # --- Role-to-tier mapping for tiered cluster dispatch ---
+  ROLE_TIER = {
+    "review-plan": "opus",
+    "review-code": "opus",
+    "validate":    "opus",
+    "approve":     "opus",
+    "plan":        "sonnet",
+    "implement":   "sonnet",
+    "commit":      "haiku",
+    "writeback":   "haiku",
+  }
+
   while i < len(phases):
     phase = phases[i]
 
-    # --- Resolve model for this phase (see Model Resolution) ---
-    # 1. phase.model override
-    # 2. workflow frontmatter 'requirements' -> Capability Table -> Model ID
-    # 3. role default tier -> Capability Table -> Model ID
-    phase_model = resolve_model(phase, workflow_path)
+    # --- Resolve model for display and dispatch (see Model Resolution) ---
+    if phase.model:                                   # per-phase override from config
+      display_model = phase.model
+      dispatch_model = phase.model                   # pass override to Agent tool
+      if env(f"ANTHROPIC_DEFAULT_{phase.model.upper()}_MODEL"):
+        resolved = env(f"ANTHROPIC_DEFAULT_{phase.model.upper()}_MODEL")
+        display_model = f"{phase.model} → {resolved}"
+    elif cluster == "single" and resolved_model:
+      display_model = resolved_model
+      dispatch_model = None                           # inherit parent model
+    elif cluster == "tiered":
+      tier = ROLE_TIER.get(phase.role, "sonnet")
+      resolved = env(f"ANTHROPIC_DEFAULT_{tier.upper()}_MODEL", tier)
+      display_model = f"{tier} → {resolved}" if resolved != tier else tier
+      dispatch_model = tier                           # pass tier name, Claude Code resolves
+    else:
+      display_model = env("CLAUDE_CODE_SUBAGENT_MODEL", "inherited")
+      dispatch_model = None                           # inherit parent model
 
     # --- Compute eventId before spawning so the subagent can name its sidecar ---
     start_ts = current_iso_timestamp()       # e.g. "20260415T141523000Z"
@@ -218,17 +291,17 @@ for each task in dependency_sorted(tasks):
     emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🌊", "Orchestrator", "I move tasks through their lifecycle."))
     banner_name = BANNER_MAP.get(phase.role, "forge")
     run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\\'./.forge/config.json\\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name}')
-    print(f"  → {task_id}  [{phase_model}]\n")
+    print(f"  → {task_id}  [{display_model}]\n")
 
     # --- Invoke phase as subagent (fresh context per phase) ---
     emit_event(task, phase, eventId=event_id, iteration=iteration_counts.get(phase.command, 0) + 1, action="start")
-    
+
     # Symmetric Injection Assembly: Persona -> Skill -> Workflow
     persona_noun    = ROLE_TO_NOUN.get(phase.role, phase.role)
     persona_content = read_file(f".forge/personas/{persona_noun}.md")
     skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
-    
-    spawn_subagent(
+
+    spawn_kwargs = dict(
       prompt=(
         f"Your first action — before any file reads or tool use — run this command using the Bash tool to display your identity:\n\n"
         f"FORGE_ROOT=$(node -e \"console.log(require('./.forge/config.json').paths.forgeRoot)\") && node \"$FORGE_ROOT/tools/banners.cjs\" {banner_name}\n\n"
@@ -246,8 +319,10 @@ for each task in dependency_sorted(tasks):
         f"inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD."
       ),
       description=f"{emoji} {persona_name} — {phase.name} for {task_id}",
-      model=phase_model
     )
+    if dispatch_model:
+      spawn_kwargs["model"] = dispatch_model
+    spawn_subagent(**spawn_kwargs)
     # Subagent reads all context from disk, does its work, writes artifacts/status to disk, then exits.
 
     # --- Sidecar merge: merge token usage written by subagent via custodian ---
@@ -371,7 +446,7 @@ Every phase emits a structured event via `/forge:store emit {sprintId} '{event-j
 | `startTimestamp` | ISO 8601 timestamp recorded **before** spawning the phase subagent |
 | `endTimestamp` | ISO 8601 timestamp recorded **after** the subagent returns |
 | `durationMinutes` | Decimal minutes elapsed between start and end (compute from the two timestamps) |
-| `model` | Model identifier as reported by the host CLI for this phase (e.g. `claude-sonnet-4-6`, `gpt-4o`, `o3`) — use the full identifier, not a short alias |
+| `model` | Resolved model identifier for this phase (e.g. `claude-sonnet-4-6`, `gpt-4o`, `glm-5.1:cloud`). Read from `CLAUDE_CODE_SUBAGENT_MODEL` on single-cluster runtimes, or from `ANTHROPIC_DEFAULT_{TIER}_MODEL` on tiered clusters. Use the full identifier, not a short alias like "opus" or "sonnet". |
 
 **Optional fields**: `verdict` (for review phases: `Approved` / `Revision Required`), `notes`,
 `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`
@@ -388,13 +463,14 @@ When in doubt, read `.forge/schemas/event.schema.json` directly.
 - Use the Execution Algorithm above verbatim — do not paraphrase or summarise it
 - `spawn_subagent` = Agent tool call. Each phase invocation MUST use the Agent tool with
   the exact workflow filename and task ID in the prompt. Never invoke phases inline.
-- **Model assignment is mandatory.** Every `spawn_subagent` call in the generated
-  orchestrator MUST include a `model` parameter. The generated workflow must:
-  1. Include the Model Resolution section (priority: `phase.model` from config $\rightarrow$ role default)
-  2. Include the role-based default table
-  3. Pass `model=phase_model` in every `spawn_subagent()` call in the execution algorithm
-  Do NOT generate a "Model Assignments" table without wiring it into the algorithm —
-  that produces dead documentation.
+- **Model dispatch uses cluster detection.** The generated workflow must include
+  the cluster detection block (reading `ANTHROPIC_DEFAULT_*_MODEL` env vars) and
+  the ROLE_TIER mapping table. On single clusters, omit `model` on Agent spawns
+  (subagents inherit the parent model). On tiered clusters, pass `model=tier`
+  based on the role-to-tier mapping. Only override this for per-phase `model`
+  fields from `config.pipelines`.
+  Do NOT generate a "Model Assignments" table — the Model Resolution section
+  above is the single source of truth.
 - **Include the sidecar merge pattern.** After each subagent returns, run
   `/forge:store merge-sidecar {sprintId} {eventId}` to merge token fields from the
   sidecar into the canonical event and delete the sidecar. If the sidecar does not

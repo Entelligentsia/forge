@@ -343,6 +343,23 @@ $FORGE_ROOT/.claude-plugin/plugin.json   →   extract "version"   →   NEW_LOC
 
 Update `LOCAL_VERSION` to `NEW_LOCAL_VERSION` for subsequent steps.
 
+### Re-derive FORGE_ROOT
+
+After verifying the new version, re-derive `FORGE_ROOT`. A managed plugin
+install changes the cache path (e.g. `…/cache/forge/forge/0.9.6/` →
+`…/cache/forge/forge/0.9.9/`), so the `FORGE_ROOT` captured at the top of
+this command is stale.
+
+```sh
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+```
+
+If the re-derived `FORGE_ROOT` differs from the original value, print:
+> 〇 FORGE_ROOT updated: {old} → {new}
+
+If `IS_CANARY` is true, `FORGE_ROOT` never changes (it is a local source
+path) — skip the re-derivation and keep the original value.
+
 ---
 
 ## Step 4 — Apply migrations

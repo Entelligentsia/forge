@@ -1,4 +1,12 @@
 {
+  "0.9.14": {
+    "version": "0.9.15",
+    "date": "2026-04-16",
+    "notes": "Fix BUG-041/042/043/044: re-derive FORGE_ROOT after plugin update, add plugin-installed schema fallback to store-cli/validate-store, copy schemas during init, remove hardcoded model names from orchestrate_task.md, add cluster-based model dispatch using env vars (v1+v2 of capability-based dispatch, see GH-45).",
+    "regenerate": ["tools", "workflows"],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.13": {
     "version": "0.9.14",
     "date": "2026-04-16",

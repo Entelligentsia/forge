@@ -37,7 +37,8 @@ const TASK_SHORT_RE = /^(T\d+)(-\S+)?$/;
 // Resolution order per entity type:
 //   1. .forge/schemas/{type}.schema.json  (project-installed copy)
 //   2. forge/schemas/{type}.schema.json   (in-tree source, for dogfooding)
-//   3. Minimal fallback (required fields only, with stderr warning)
+//   3. $FORGE_ROOT/schemas/{type}.schema.json  (plugin-installed, for production)
+//   4. Minimal fallback (required fields only, with stderr warning)
 const ENTITY_TYPES = ['sprint', 'task', 'bug', 'event', 'feature'];
 
 const MINIMAL_REQUIRED = {
@@ -50,14 +51,15 @@ const MINIMAL_REQUIRED = {
 
 function loadSchemas() {
   const schemas = {};
-  const projectDir = path.join('.forge', 'schemas');
-  const inTreeDir  = path.join('forge', 'schemas');
+  const projectDir   = path.join('.forge', 'schemas');
+  const inTreeDir    = path.join('forge', 'schemas');
+  const pluginDir    = path.join(__dirname, '..', 'schemas');
 
   for (const type of ENTITY_TYPES) {
     const schemaFile = `${type}.schema.json`;
     let schema = null;
 
-    // Try project-installed schemas first
+    // 1. Try project-installed schemas first
     const projectPath = path.join(projectDir, schemaFile);
     try {
       if (fs.existsSync(projectPath)) {
@@ -67,7 +69,7 @@ function loadSchemas() {
       console.error(`WARN: schema file ${projectPath} exists but could not be parsed: ${e.message}`);
     }
 
-    // Fall back to in-tree source schemas
+    // 2. Fall back to in-tree source schemas (development mode)
     if (!schema) {
       const inTreePath = path.join(inTreeDir, schemaFile);
       try {
@@ -79,10 +81,24 @@ function loadSchemas() {
       }
     }
 
+    // 3. Fall back to plugin-installed schemas (production mode)
+    //    validate-store.cjs lives at $FORGE_ROOT/tools/, so __dirname/../schemas/
+    //    resolves to $FORGE_ROOT/schemas/ — always correct for installed plugins.
+    if (!schema) {
+      const pluginPath = path.join(pluginDir, schemaFile);
+      try {
+        if (fs.existsSync(pluginPath)) {
+          schema = JSON.parse(fs.readFileSync(pluginPath, 'utf8'));
+        }
+      } catch (e) {
+        console.error(`WARN: schema file ${pluginPath} exists but could not be parsed: ${e.message}`);
+      }
+    }
+
     if (schema) {
       schemas[type] = schema;
     } else {
-      console.error(`WARN: schema file ${schemaFile} not found in ${projectDir} or ${inTreeDir}, using minimal fallback`);
+      console.error(`WARN: schema file ${schemaFile} not found in ${projectDir}, ${inTreeDir}, or ${pluginDir}, using minimal fallback`);
       schemas[type] = { type: 'object', required: MINIMAL_REQUIRED[type] || [], properties: {} };
     }
   }

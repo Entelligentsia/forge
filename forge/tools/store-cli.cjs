@@ -40,14 +40,15 @@ const NULLABLE_FIELDS = new Set([
 
 function loadSchemas() {
   const schemas = {};
-  const projectDir = path.join('.forge', 'schemas');
-  const inTreeDir  = path.join('forge', 'schemas');
+  const projectDir   = path.join('.forge', 'schemas');
+  const inTreeDir    = path.join('forge', 'schemas');
+  const pluginDir    = path.join(__dirname, '..', 'schemas');
 
   for (const type of ENTITY_TYPES) {
     const schemaFile = `${type}.schema.json`;
     let schema = null;
 
-    // Try project-installed schemas first
+    // 1. Try project-installed schemas first
     const projectPath = path.join(projectDir, schemaFile);
     try {
       if (fs.existsSync(projectPath)) {
@@ -55,12 +56,24 @@ function loadSchemas() {
       }
     } catch (_) {}
 
-    // Fall back to in-tree source schemas
+    // 2. Fall back to in-tree source schemas (development mode)
     if (!schema) {
       const inTreePath = path.join(inTreeDir, schemaFile);
       try {
         if (fs.existsSync(inTreePath)) {
           schema = JSON.parse(fs.readFileSync(inTreePath, 'utf8'));
+        }
+      } catch (_) {}
+    }
+
+    // 3. Fall back to plugin-installed schemas (production mode)
+    //    store-cli.cjs lives at $FORGE_ROOT/tools/, so __dirname/../schemas/
+    //    resolves to $FORGE_ROOT/schemas/ — always correct for installed plugins.
+    if (!schema) {
+      const pluginPath = path.join(pluginDir, schemaFile);
+      try {
+        if (fs.existsSync(pluginPath)) {
+          schema = JSON.parse(fs.readFileSync(pluginPath, 'utf8'));
         }
       } catch (_) {}
     }
