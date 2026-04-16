@@ -62,7 +62,7 @@ already installed Forge. This includes:
 **Invariant: schema change → update concepts diagram:**
 If a schema change affects the lifecycle (state machinery) of a Forge entity (Sprint, Task, Bug, Feature), the corresponding handwritten state diagram in `docs/concepts/*.md` MUST be manually updated to reflect the new state enums.
 
-**Also required with every version bump:**
+**Also required with every version bump (steps 1 and 2 are parallel — do both before moving on):**
 
 1. Add a migration entry to `forge/migrations.json` with:
    - `"from"` key = previous version
@@ -72,15 +72,23 @@ If a schema change affects the lifecycle (state machinery) of a Forge entity (Sp
    - `"breaking"` = `true` if manual steps are needed before regenerating
    - `"manual"` = list of manual step descriptions (empty array if none)
 
-2. If `"tools"` or `"workflows"` is in `regenerate`, users will need to run
+2. Add an entry to `CHANGELOG.md` (repo root) for the new version. Use the
+   format already established in that file:
+   - Heading: `## [X.Y.Z] — YYYY-MM-DD` (append `**△ Breaking**` if applicable)
+   - One-paragraph description of what changed
+   - `**Regenerate:** ...` line if regeneration is required
+   - `> Manual: ...` block quote for any manual steps
+   - Prepend at the top (newest-first order)
+
+3. If `"tools"` or `"workflows"` is in `regenerate`, users will need to run
    `/forge:update` after installing — make sure the migration notes are clear.
 
-3. **All script tests must pass before bumping.** Run
+4. **All script tests must pass before bumping.** Run
    `node --test forge/tools/__tests__/*.test.cjs` — if any test fails, the
    version bump and push are blocked until all tests pass and the failures are
    resolved.
 
-4. **Run a security scan before pushing.** A version bump means new code is
+5. **Run a security scan before pushing.** A version bump means new code is
    being distributed to every user who has Forge installed. Scan the
    **source directory** (`forge/`), not the cached install under
    `~/.claude/plugins/cache/`:
@@ -123,7 +131,7 @@ If a schema change affects the lifecycle (state machinery) of a Forge entity (Sp
    [Full scan history →](docs/security/index.md)
    ```
 
-4. **Run `build-manifest.cjs` after any meta/ file change:**
+6. **Run `build-manifest.cjs` after any meta/ file change:**
    If you add, rename, or remove any file in `forge/meta/personas/`,
    `forge/meta/workflows/`, `forge/meta/templates/`, or `forge/schemas/*.schema.json`,
    update the corresponding mapping table in `forge/tools/build-manifest.cjs` and
