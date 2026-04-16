@@ -350,6 +350,9 @@ Commands:
   emit <sprintId> '<json>' [--sidecar]        Write an event (or sidecar)
   merge-sidecar <sprintId> <eventId>          Merge sidecar into canonical event
   purge-events <sprintId>                     Delete all events for a sprint
+  progress <sprintOrBugId> <agentName> <bannerKey> <status> [detail]
+                                              Append a progress entry to the log
+  progress-clear <sprintOrBugId>              Clear (truncate) the progress log
   write-collation-state '<json>'             Write COLLATION_STATE.json
   validate <entity> '<json>'                  Validate against schema without writing
 
@@ -703,6 +706,55 @@ function cmdWriteCollationState() {
   console.log(JSON.stringify({ ok: true, dryRun: DRY_RUN }));
 }
 
+function cmdProgress() {
+  const sprintOrBugId = args[1];
+  const agentName = args[2];
+  const bannerKey = args[3];
+  const status = args[4];
+  const detail = args.slice(5).join(' ');
+
+  if (!sprintOrBugId || !agentName || !bannerKey || !status) {
+    console.error('Usage: store-cli.cjs progress <sprintOrBugId> <agentName> <bannerKey> <status> [detail]');
+    console.error('  status: start | progress | done | error');
+    process.exit(1);
+  }
+
+  const validStatuses = ['start', 'progress', 'done', 'error'];
+  if (!validStatuses.includes(status)) {
+    console.error(`Invalid status "${status}". Must be one of: ${validStatuses.join(', ')}`);
+    process.exit(1);
+  }
+
+  const timestamp = new Date().toISOString();
+  const line = `${timestamp}|${agentName}|${bannerKey}|${status}|${detail}\n`;
+
+  const dir = path.join('.forge', 'store', 'events', sprintOrBugId);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  const logPath = path.join(dir, 'progress.log');
+  fs.appendFileSync(logPath, line, 'utf8');
+}
+
+function cmdProgressClear() {
+  const sprintOrBugId = args[1];
+
+  if (!sprintOrBugId) {
+    console.error('Usage: store-cli.cjs progress-clear <sprintOrBugId>');
+    process.exit(1);
+  }
+
+  const dir = path.join('.forge', 'store', 'events', sprintOrBugId);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  const logPath = path.join(dir, 'progress.log');
+  fs.writeFileSync(logPath, '', 'utf8');
+  console.log(`Cleared ${logPath}`);
+}
+
 function cmdValidate() {
   const entity = args[1];
   const jsonStr = args[2];
@@ -749,6 +801,8 @@ switch (command) {
   case 'purge-events':         cmdPurgeEvents(); break;
   case 'write-collation-state': cmdWriteCollationState(); break;
   case 'validate':             cmdValidate(); break;
+  case 'progress':             cmdProgress(); break;
+  case 'progress-clear':       cmdProgressClear(); break;
   default:
     console.error(`Unknown command: ${command}`);
     console.error('Run with --help for usage information.');

@@ -215,7 +215,8 @@ PERSONA_MAP = {
 
 # --- Banner identity map (banner name per phase role) ---
 # Maps each role to a banner in forge/tools/banners.cjs.
-# Displayed by the orchestrator (badge) and by the subagent on entry (full).
+# Displayed by the orchestrator ONLY (badge before spawn, exit signal after return).
+# Subagents do NOT display banners — the orchestrator owns phase announcements.
 BANNER_MAP = {
   "plan":        "forge",
   "implement":   "forge",
@@ -260,6 +261,10 @@ for each task in dependency_sorted(tasks):
     "writeback":   "haiku",
   }
 
+  # --- Clear progress log for this sprint ---
+  progress_log_path = f".forge/store/events/{sprint_id}/progress.log"
+  run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/store-cli.cjs" progress-clear {sprint_id}')
+
   while i < len(phases):
     phase = phases[i]
 
@@ -287,24 +292,48 @@ for each task in dependency_sorted(tasks):
     event_id = f"{start_ts}_{task_id}_{phase.role}_{phase.action}"
     sidecar_path = f".forge/store/events/{sprint_id}/_{event_id}_usage.json"  # used by merge-sidecar
 
+    # --- Compute agent name for progress IPC ---
+    persona_noun = ROLE_TO_NOUN.get(phase.role, phase.role)
+    iteration = iteration_counts.get(phase.command, 0) + 1
+    agent_name = f"{task_id}:{persona_noun}:{phase.role}:{iteration}"
+
     # --- Announce phase with identity banner (badge) + task context ---
     emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🌊", "Orchestrator", "I move tasks through their lifecycle."))
     banner_name = BANNER_MAP.get(phase.role, "forge")
-    run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\\'./.forge/config.json\\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name}')
+    run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name}')
     print(f"  → {task_id}  [{display_model}]\n")
 
+    # --- Start progress Monitor before spawning subagent ---
+    # The Monitor streams lines from the progress log as the subagent works.
+    # New lines arrive as notifications while the Agent tool blocks on the subagent.
+    start_monitor(
+      command=f"tail -n +1 -F {progress_log_path} 2>/dev/null || true",
+      description=f"Progress: {agent_name}",
+      persistent=False
+    )
+
     # --- Invoke phase as subagent (fresh context per phase) ---
-    emit_event(task, phase, eventId=event_id, iteration=iteration_counts.get(phase.command, 0) + 1, action="start")
+    emit_event(task, phase, eventId=event_id, iteration=iteration, action="start")
 
     # Symmetric Injection Assembly: Persona -> Skill -> Workflow
-    persona_noun    = ROLE_TO_NOUN.get(phase.role, phase.role)
     persona_content = read_file(f".forge/personas/{persona_noun}.md")
     skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
 
     spawn_kwargs = dict(
       prompt=(
-        f"Your first action — before any file reads or tool use — run this command using the Bash tool to display your identity:\n\n"
-        f"FORGE_ROOT=$(node -e \"console.log(require('./.forge/config.json').paths.forgeRoot)\") && node \"$FORGE_ROOT/tools/banners.cjs\" {banner_name}\n\n"
+        f"### Progress Reporting\n"
+        f"- Agent name: {agent_name}\n"
+        f"- Progress log: {progress_log_path}\n"
+        f"- Banner key: {banner_name}\n\n"
+        f"Append progress entries to the log as you work:\n\n"
+        f"```\n"
+        f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress {sprint_id} {agent_name} {banner_name} start \"Starting {phase.role} phase\"\n"
+        f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress {sprint_id} {agent_name} {banner_name} progress \"Reading codebase\"\n"
+        f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress {sprint_id} {agent_name} {banner_name} done \"Completed {phase.role}\"\n"
+        f"```\n\n"
+        f"Write a `start` entry when you begin, `progress` entries as you make headway, "
+        f"a `done` entry when you finish, or an `error` entry if something fails. "
+        f"The orchestrator is monitoring this log in real time.\n\n"
         f"---\n\n"
         f"{persona_content}\n\n"
         f"{skill_content}\n\n"
@@ -325,6 +354,9 @@ for each task in dependency_sorted(tasks):
     spawn_subagent(**spawn_kwargs)
     # Subagent reads all context from disk, does its work, writes artifacts/status to disk, then exits.
 
+    # --- Stop progress Monitor ---
+    stop_monitor(progress_log_path)
+
     # --- Sidecar merge: merge token usage written by subagent via custodian ---
     # The subagent wrote the sidecar via /forge:store emit {sprintId} '{sidecar-json}' --sidecar
     # Merge the sidecar into the canonical event and delete the sidecar file
@@ -334,8 +366,10 @@ for each task in dependency_sorted(tasks):
     # If the sidecar does not exist, merge-sidecar exits 1 — treat as non-fatal (subagent may have skipped it)
     emit_event(task, phase, action="complete")
 
-    # --- Non-review phases always advance ---
+    # --- Phase-exit signal ---
+    # Non-review phases always advance with a completion signal
     if phase.role not in ("review-plan", "review-code", "validate"):
+      print(f"  ✓ {task_id}  {phase.role}  — completed\n")
       i += 1
       continue
 
@@ -343,10 +377,12 @@ for each task in dependency_sorted(tasks):
     verdict = read_verdict(task, phase)     # see Verdict Detection below
 
     if verdict == "Approved":
+      print(f"  ✓ {task_id}  {phase.role}  — Approved\n")
       i += 1                                # advance to next phase
 
     elif verdict == "Revision Required":
       iteration_counts[phase.command] = iteration_counts.get(phase.command, 0) + 1
+      print(f"  ↻ {task_id}  {phase.role}  — Revision Required (iteration {iteration_counts[phase.command]})\n")
 
       if iteration_counts[phase.command] >= phase.maxIterations: # default 3
         escalate_to_human(task, phase, reason="max iterations reached")
@@ -358,8 +394,88 @@ for each task in dependency_sorted(tasks):
 
     else:
       # Unexpected verdict (empty, malformed, or unknown)
+      print(f"  ⚠ {task_id}  {phase.role}  — escalated to human\n")
       escalate_to_human(task, phase, reason=f"unrecognised verdict: {verdict}")
       break
+```
+
+## Agent Naming Convention
+
+Each subagent is assigned a structured name at spawn time:
+
+```
+{taskId}:{persona_noun}:{phase.role}:{iteration}
+```
+
+| Component | Source | Example |
+|-----------|--------|---------|
+| `taskId` | Task ID from manifest | `FORGE-S09-T01` |
+| `persona_noun` | `ROLE_TO_NOUN` mapping | `engineer`, `supervisor`, `qa-engineer` |
+| `phase.role` | Pipeline phase role | `plan`, `review-plan`, `implement` |
+| `iteration` | 1-based revision count for this phase | `1`, `2`, `3` |
+
+Examples:
+
+- `FORGE-S09-T01:engineer:plan:1` — First plan attempt for T01
+- `FORGE-S09-T01:supervisor:review-plan:1` — First plan review for T01
+- `FORGE-S09-T01:engineer:update-impl:2` — Second implementation revision for T01
+
+The agent name is passed in the subagent prompt and used in every progress log
+entry the subagent writes. It provides identity and traceability for mid-task
+feedback.
+
+## Progress Reporting
+
+Each subagent writes progress entries to a transient log file that the
+orchestrator monitors in real time.
+
+**Log path:** `.forge/store/events/{sprintId}/progress.log`
+
+**Format per line:**
+
+```
+{ISO_TIMESTAMP}|{agent_name}|{banner_key}|{status}|{detail}
+```
+
+| Field | Format | Example |
+|-------|--------|---------|
+| `ISO_TIMESTAMP` | ISO 8601 UTC | `2026-04-16T14:15:23Z` |
+| `agent_name` | `{taskId}:{persona_noun}:{phase.role}:{iteration}` | `FORGE-S09-T01:engineer:plan:1` |
+| `banner_key` | Banner identity key from BANNER_MAP | `forge` |
+| `status` | One of: `start`, `progress`, `done`, `error` | `progress` |
+| `detail` | Free text (no pipe characters) | `Reading codebase` |
+
+**Writing entries:** Use `store-cli progress`:
+
+```
+node "$FORGE_ROOT/tools/store-cli.cjs" progress {sprintId} {agentName} {bannerKey} {status} "detail text"
+```
+
+**Monitoring:** The orchestrator starts a Monitor on the progress log before
+spawning each subagent and stops it after the subagent returns. This streams
+real-time status to the orchestrator's chat.
+
+**Clearing:** The orchestrator clears the progress log at task start using
+`store-cli progress-clear {sprintId}`.
+
+## Phase-Exit Signals
+
+After each subagent returns, the orchestrator prints a phase-exit signal:
+
+| Outcome | Format |
+|---------|--------|
+| Non-review phase completed | `  ✓ {task_id}  {phase_role}  — completed` |
+| Review verdict: Approved | `  ✓ {task_id}  {phase_role}  — Approved` |
+| Review verdict: Revision Required | `  ↻ {task_id}  {phase_role}  — Revision Required (iteration {n})` |
+| Escalated | `  ⚠ {task_id}  {phase_role}  — escalated to human` |
+
+Examples:
+
+```
+  ✓ FORGE-S09-T01  plan  — completed
+  ✓ FORGE-S09-T01  review-plan  — Approved
+  ↻ FORGE-S09-T01  review-plan  — Revision Required (iteration 2)
+  ⚠ FORGE-S09-T01  validate  — escalated to human
 ```
 
 ## Verdict Detection
@@ -494,3 +610,20 @@ When in doubt, read `.forge/schemas/event.schema.json` directly.
 
   Generated lookups must use `{persona_noun}.md` and `{persona_noun}-skills.md`,
   never `{phase.role}.md` or `{phase.role}-skills.md`.
+- **Phase banners are orchestrator-owned.** The generated orchestrator MUST NOT include
+  a "Your first action — run this banner command" instruction in subagent prompts.
+  The orchestrator displays the badge before spawning and the exit signal after return;
+  subagents do not display banners. Instead, include progress reporting instructions
+  in the subagent prompt with the agent name, progress log path, and banner key.
+- **Include the progress IPC pattern.** Each generated orchestrator MUST:
+  1. Clear the progress log at task start: `node "$FORGE_ROOT/tools/store-cli.cjs" progress-clear {sprintId}`
+  2. Compute the agent name before each spawn: `{taskId}:{persona_noun}:{phase.role}:{iteration}`
+  3. Start a Monitor on the progress log before each subagent spawn
+  4. Include progress reporting instructions in the subagent prompt (agent name,
+     progress log path, banner key, and `store-cli progress` command examples)
+  5. Stop the Monitor after the subagent returns
+  6. Display phase-exit signals after each phase completes (see Phase-Exit Signals section)
+- **Include phase-exit signals.** After each subagent returns (and after sidecar
+  merge and event emission), the generated orchestrator MUST print the appropriate
+  exit signal: `✓` for completed/approved, `↻` for revision required (with iteration
+  count), `⚠` for escalated.

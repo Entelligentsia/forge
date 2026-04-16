@@ -77,12 +77,7 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
 
 ## Generation Instructions
 
-- **Persona Self-Load:** The generated workflow MUST begin with these two actions (in order):
-  1. Run the identity banner using the Bash tool:
-     ```bash
-     FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" rift
-     ```
-  2. Read `.forge/personas/bug-fixer.md`.
+- **Persona Self-Load:** The generated workflow MUST begin by reading `.forge/personas/bug-fixer.md`. The orchestrator displays the badge — the bug-fixer persona does NOT run a banner command as its first action.
 - **Workflow Structure:** The generated `fix_bug.md` must follow the strict "Algorithm" block format.
 - **Symmetric Injection:** Every subagent spawned by the `fix-bug` orchestrator must follow the symmetric injection pattern: `[Persona] -> [Skill] -> [Workflow]`.
 - **Context Isolation:** Forbid inline execution of triage or fix logic; use the `Agent` tool for sub-tasks.
@@ -122,6 +117,8 @@ PERSONA_MAP = {
 # Default fallback: ("🍂", "Bug Fixer", "I find what has decayed and restore it.")
 
 # --- Banner identity map (banner name per phase role) ---
+# Displayed by the orchestrator ONLY (badge before spawn, exit signal after return).
+# Subagents do NOT display banners — the orchestrator owns phase announcements.
 BANNER_MAP = {
   "plan-fix":    "rift",
   "review-plan": "oracle",
@@ -132,22 +129,48 @@ BANNER_MAP = {
 }
 # Default fallback: "rift"
 
+# --- Clear progress log for this bug ---
+progress_log_path = ".forge/store/events/bugs/progress.log"
+run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/store-cli.cjs" progress-clear bugs')
+
 # --- Announce phase with identity banner (badge) + bug context ---
 emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🍂", "Bug Fixer", "I find what has decayed and restore it."))
 banner_name = BANNER_MAP.get(phase.role, "rift")
-run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\\'./.forge/config.json\\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name}')
+run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name}')
 print(f"  → {bug_id}  [{phase_model}]\n")
 
+# --- Compute agent name for progress IPC ---
+persona_noun = ROLE_TO_NOUN.get(phase.role, "bug-fixer")
+iteration = iteration_counts.get(phase.name, 0) + 1
+agent_name = f"{bug_id}:{persona_noun}:{phase.role}:{iteration}"
+
+# --- Start progress Monitor before spawning subagent ---
+start_monitor(
+  command=f"tail -n +1 -F {progress_log_path} 2>/dev/null || true",
+  description=f"Progress: {agent_name}",
+  persistent=False
+)
+
 # --- Symmetric Injection: noun resolved from ROLE_TO_NOUN ---
-persona_noun    = ROLE_TO_NOUN.get(phase.role, "bug-fixer")
 persona_content = read_file(f".forge/personas/{persona_noun}.md")
 skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
 
-# --- Spawn subagent with "print this exact line first" instruction ---
+# --- Spawn subagent with progress reporting instructions (no banner command) ---
 spawn_subagent(
   prompt=(
-    f"Your first action — before any file reads or tool use — run this command using the Bash tool to display your identity:\n\n"
-    f"FORGE_ROOT=$(node -e \"console.log(require('./.forge/config.json').paths.forgeRoot)\") && node \"$FORGE_ROOT/tools/banners.cjs\" {banner_name}\n\n"
+    f"### Progress Reporting\n"
+    f"- Agent name: {agent_name}\n"
+    f"- Progress log: {progress_log_path}\n"
+    f"- Banner key: {banner_name}\n\n"
+    f"Append progress entries to the log as you work:\n\n"
+    f"```\n"
+    f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress bugs {agent_name} {banner_name} start \"Starting {phase.role} phase\"\n"
+    f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress bugs {agent_name} {banner_name} progress \"Reading codebase\"\n"
+    f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress bugs {agent_name} {banner_name} done \"Completed {phase.role}\"\n"
+    f"```\n\n"
+    f"Write a `start` entry when you begin, `progress` entries as you make headway, "
+    f"a `done` entry when you finish, or an `error` entry if something fails. "
+    f"The orchestrator is monitoring this log in real time.\n\n"
     f"---\n\n"
     f"{persona_content}\n\n"
     f"{skill_content}\n\n"
@@ -164,6 +187,9 @@ spawn_subagent(
   description=f"{emoji} {persona_name} — {phase.name} for {bug_id}",
   model=phase_model
 )
+
+# --- Stop progress Monitor ---
+stop_monitor(progress_log_path)
 ```
 
 **Key rules for the generated `fix_bug.md`:**
@@ -172,4 +198,50 @@ spawn_subagent(
 - Persona and skill file lookups MUST use `{persona_noun}.md` and `{persona_noun}-skills.md` from `ROLE_TO_NOUN`, never `{phase.role}.md` or a hardcoded `"bug-fixer"` noun for all phases.
 - The sidecar path uses `.forge/store/events/bugs/_{event_id}_usage.json` (not `events/{sprint_id}/`).
 - The announcement `print()` line MUST include `{tagline}` and `[{phase_model}]`.
-- The `spawn_subagent` prompt MUST open with the "Your first output — before any tool use or file reads — print this exact line:" instruction.
+- **Phase banners are orchestrator-owned.** The `spawn_subagent` prompt MUST NOT include a "Your first action — run this banner command" instruction. Instead, include progress reporting instructions with the agent name, progress log path, and banner key. The orchestrator displays the badge before spawning and the exit signal after return.
+- **Include the progress IPC pattern.** The generated workflow MUST clear the progress log at bug start, compute agent names before each spawn, start a Monitor on the progress log before spawning, and stop it after the subagent returns.
+- **Include phase-exit signals.** After each subagent returns (and after sidecar merge and event emission), print the appropriate exit signal: `✓` for completed/approved, `↻` for revision required (with iteration count), `⚠` for escalated.
+
+## Progress Reporting
+
+Each subagent writes progress entries to a transient log file that the
+orchestrator monitors in real time.
+
+**Log path:** `.forge/store/events/bugs/progress.log`
+
+**Format per line:**
+
+```
+{ISO_TIMESTAMP}|{agent_name}|{banner_key}|{status}|{detail}
+```
+
+| Field | Format | Example |
+|-------|--------|---------|
+| `ISO_TIMESTAMP` | ISO 8601 UTC | `2026-04-16T14:15:23Z` |
+| `agent_name` | `{bugId}:{persona_noun}:{phase.role}:{iteration}` | `BUG-007:bug-fixer:plan-fix:1` |
+| `banner_key` | Banner identity key from BANNER_MAP | `rift` |
+| `status` | One of: `start`, `progress`, `done`, `error` | `start` |
+| `detail` | Free text (no pipe characters) | `Triaging bug` |
+
+**Writing entries:** Use `store-cli progress`:
+
+```
+node "$FORGE_ROOT/tools/store-cli.cjs" progress bugs {agentName} {bannerKey} {status} "detail text"
+```
+
+**Monitoring:** The orchestrator starts a Monitor on the progress log before
+spawning each subagent and stops it after the subagent returns.
+
+**Clearing:** The bug-fix orchestrator clears the progress log at bug start using
+`store-cli progress-clear bugs`.
+
+## Phase-Exit Signals
+
+After each subagent returns, the orchestrator prints a phase-exit signal:
+
+| Outcome | Format |
+|---------|--------|
+| Non-review phase completed | `  ✓ {bug_id}  {phase_role}  — completed` |
+| Review verdict: Approved | `  ✓ {bug_id}  {phase_role}  — Approved` |
+| Review verdict: Revision Required | `  ↻ {bug_id}  {phase_role}  — Revision Required (iteration {n})` |
+| Escalated | `  ⚠ {bug_id}  {phase_role}  — escalated to human` |

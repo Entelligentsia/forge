@@ -51,6 +51,23 @@ wiring in the generated atomic workflows.
    Custom pipeline phases that define `"model"` in config override the role default.
 6. Include error recovery strategies
 7. Include event emission format with project ID prefix
+8. **Phase banners are orchestrator-owned.** The generated orchestrator MUST NOT include
+   a "Your first action — run this banner command" instruction in subagent prompts.
+   The orchestrator displays the badge before spawning and the exit signal after return;
+   subagents do not display banners. Instead, include progress reporting instructions
+   in the subagent prompt with the agent name, progress log path, and banner key.
+9. **Include the progress IPC pattern.** Each generated orchestrator MUST:
+   - Clear the progress log at task start: `node "$FORGE_ROOT/tools/store-cli.cjs" progress-clear {sprintId}`
+   - Compute the agent name before each spawn: `{taskId}:{persona_noun}:{phase.role}:{iteration}`
+   - Start a Monitor on the progress log before each subagent spawn
+   - Include progress reporting instructions in the subagent prompt (agent name,
+     progress log path, banner key, and `store-cli progress` command examples)
+   - Stop the Monitor after the subagent returns
+   - Display phase-exit signals after each phase completes
+10. **Include phase-exit signals.** After each subagent returns (and after sidecar
+    merge and event emission), the generated orchestrator MUST print the appropriate
+    exit signal: `✓` for completed/approved, `↻` for revision required (with iteration
+    count), `⚠` for escalated.
 
 ### run_sprint.md
 1. Define execution modes (sequential, wave-parallel, full-parallel)
@@ -59,3 +76,9 @@ wiring in the generated atomic workflows.
 4. Include merge strategy
 5. Include sprint lifecycle hooks (collate, report, suggest)
 6. Include resume semantics
+7. **Clear the progress log at sprint start**, before any task dispatch:
+   ```
+   FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
+   node "$FORGE_ROOT/tools/store-cli.cjs" progress-clear {SPRINT_ID}
+   ```
+   This ensures a clean log for each sprint run.

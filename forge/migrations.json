@@ -1,4 +1,12 @@
 {
+  "0.9.15": {
+    "version": "0.9.16",
+    "date": "2026-04-16",
+    "notes": "Named-agent IPC: orchestrator-owned phase banners with exit signals, file-based progress log with Monitor streaming, store-cli progress/progress-clear commands, agent naming convention {taskId}:{persona}:{phase}:{iteration} (GH-46).",
+    "regenerate": ["workflows", "tools"],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.14": {
     "version": "0.9.15",
     "date": "2026-04-16",
