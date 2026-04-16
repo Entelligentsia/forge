@@ -5,6 +5,25 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.11.2] — 2026-04-16
+
+**Fix: restore requirements frontmatter in generated workflows.**
+
+v0.11.1 incorrectly stripped the YAML `requirements:` frontmatter block from
+generated workflow files. This block is not a leak — it carries
+`reasoning`/`context`/`speed` fields used for runtime model selection and must
+be preserved verbatim at the top of each generated workflow. The root cause was
+a misdiagnosis: the actual bug was the self-check rule "first non-blank line
+must be the persona symbol", which fails when frontmatter is correctly present.
+Corrected both: `generate-workflows.md` now instructs subagents to copy the
+frontmatter block then embed the persona after the closing `---`, and the
+self-check now looks for the persona symbol as the first non-blank line *after*
+the frontmatter, not the absolute first line.
+
+**Regenerate:** `workflows`
+
+---
+
 ## [0.11.1] — 2026-04-16
 
 **Fix Phase 7 fan-out: persona symbol extraction, frontmatter leak, and intake persona.**

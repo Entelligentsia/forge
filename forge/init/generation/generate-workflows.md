@@ -25,13 +25,12 @@ Read these three sources before writing anything:
 
 1. **Write EXACTLY ONE file:** `.forge/workflows/{id}.md`
 
-2. **Opening section** — embed the persona file content verbatim as the first
-   section of the generated workflow. Do not paraphrase or summarise.
-
-   **Strip meta-workflow YAML frontmatter.** The meta-workflow source may begin
-   with a YAML block (`---` … `---`) containing `requirements:` fields. Do NOT
-   include this in the generated output — it is meta-level metadata, not workflow
-   content. The generated file must start with the persona content, not `---`.
+2. **Opening section** — the generated file must begin with:
+   a. The meta-workflow's YAML frontmatter block (`---` … `---`) verbatim,
+      if present. This carries `requirements:` fields used for runtime model
+      selection and must be preserved exactly.
+   b. Immediately after the closing `---`, embed the persona file content
+      verbatim as the first section. Do not paraphrase or summarise.
 
 3. **Placeholder substitution** — all `{SYNTAX_CHECK}`, `{TEST_COMMAND}`,
    `{BUILD_COMMAND}`, `{LINT_COMMAND}` values come from the brief's
@@ -60,8 +59,10 @@ Read these three sources before writing anything:
 After writing the file, verify before returning:
 
 1. Read back `.forge/workflows/{id}.md`
-2. Confirm the **first non-blank line** contains the persona symbol listed in
-   the brief's `## Personas` section for this workflow's role
+2. Confirm the persona symbol appears as the **first non-blank line after the
+   closing `---`** of the frontmatter block (or as the absolute first non-blank
+   line if the meta-workflow had no frontmatter). The symbol is listed in the
+   brief's `## Personas` section for this workflow's role.
 3. Confirm **no unsubstituted placeholders** remain (no literal `{TEST_COMMAND}`,
    `{BUILD_COMMAND}`, `{SYNTAX_CHECK}`, or `{LINT_COMMAND}` in the file)
 4. Record in the manifest:
