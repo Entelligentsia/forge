@@ -1,0 +1,15 @@
+{
+  "eventId": "FORGE-S09-E001",
+  "taskId": null,
+  "sprintId": "FORGE-S09",
+  "role": "plan",
+  "action": "sprint-plan",
+  "phase": "planning",
+  "iteration": 1,
+  "startTimestamp": "2026-04-15T12:00:00.000Z",
+  "endTimestamp": "2026-04-15T12:00:00.000Z",
+  "durationMinutes": null,
+  "model": "unknown",
+  "verdict": "approved",
+  "notes": "Sprint plan created with 9 tasks across 4 waves. Calibration baseline, guardrails, calibrate command, bug closure, and release engineering."
+}

@@ -1,0 +1,7 @@
+{
+  "taskId": "FORGE-S07-T09",
+  "sprintId": "FORGE-S07",
+  "title": "PLAN — FORGE-S07-T09: Release engineering — version bump to 0.9.0, migration entry, security scan",
+  "status": "committed",
+  "path": "engineering/sprints/FORGE-S07-store-custodian/FORGE-S07-T09-release-engineering"
+}

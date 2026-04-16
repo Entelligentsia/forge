@@ -2,19 +2,21 @@
 
 # Cost Report — FORGE-S01
 
-> Generated: 2026-04-09
-> Sprint: Token Usage Tracking
+> Generated: 2026-04-16
+> Sprint: Sprint FORGE-S01 — Token Usage Tracking
 
 ## Per-Task Totals
 
 | Task          | Input Tokens | Output Tokens | Cache Read | Cache Write | Est. Cost USD | Source    |
 | ------------- | ------------ | ------------- | ---------- | ----------- | ------------- | --------- |
 | FORGE-S01-T01 | 3,150        | 1,350         | 0          | 0           | $0.0135       | (unknown) |
+| FORGE-S01-T07 | 0            | 0             | 0          | 0           | $0.0000       | (unknown) |
 
 ## Per-Role Breakdown
 
 | Role      | Input Tokens | Output Tokens | Cache Read | Cache Write | Est. Cost USD |
 | --------- | ------------ | ------------- | ---------- | ----------- | ------------- |
+| engineer  | 0            | 0             | 0          | 0           | $0.0000       |
 | implement | 3,150        | 1,350         | 0          | 0           | $0.0135       |
 
 ## Revision Waste
@@ -26,4 +28,5 @@ _No revision waste in this sprint._
 | Model             | Input Tokens | Output Tokens | Cache Read | Cache Write | Est. Cost USD |
 | ----------------- | ------------ | ------------- | ---------- | ----------- | ------------- |
 | claude-sonnet-4-6 | 3,150        | 1,350         | 0          | 0           | $0.0135       |
+| unknown           | 0            | 0             | 0          | 0           | $0.0000       |
 

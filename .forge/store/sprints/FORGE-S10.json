@@ -1,0 +1,13 @@
+{
+  "sprintId": "FORGE-S10",
+  "title": "Sprint S10 — Tomoshibi: KB Visibility Agent + Configurable KB Path",
+  "status": "retrospective-done",
+  "goal": "Add the Tomoshibi agent to keep coding-agent instruction files linked to the Forge KB; make the KB folder name user-configurable at init pre-flight",
+  "path": "engineering/sprints/FORGE-S10",
+  "taskIds": [
+    "FORGE-S10-T01"
+  ],
+  "features": [],
+  "createdAt": "2026-04-16T00:00:00.000Z",
+  "completedAt": "2026-04-16T10:00:00.000Z"
+}

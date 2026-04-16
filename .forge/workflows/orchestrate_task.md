@@ -1,11 +1,11 @@
-# Workflow: Orchestrate Task (Forge)
+# 🌊 Workflow: Orchestrate Task (Forge)
 
 ## Purpose
 
 Drive a single Forge task through the full pipeline: plan → review-plan →
-implement → review-code → approve → commit. The orchestrator is a minimal
-state machine — every phase runs as an Agent tool subagent with a fresh
-context window.
+implement → review-code → validate → approve → commit. The orchestrator is a
+minimal state machine — every phase runs as an Agent tool subagent with a
+fresh context window.
 
 ---
 
@@ -18,7 +18,7 @@ context window.
 ## Default Pipeline
 
 ```
-plan → review-plan [max 3] → implement → review-code [max 3] → approve → commit
+plan → review-plan [max 3] → implement → review-code [max 3] → validate [max 3] → approve → commit
 ```
 
 | # | Phase | Command | Role | Workflow File | Max Iter |
@@ -27,10 +27,11 @@ plan → review-plan [max 3] → implement → review-code [max 3] → approve �
 | 2 | review-plan | `/review-plan {TASK_ID}` | `review-plan` | `.forge/workflows/review_plan.md` | 3 |
 | 3 | implement | `/implement {TASK_ID}` | `implement` | `.forge/workflows/implement_plan.md` | — |
 | 4 | review-code | `/review-code {TASK_ID}` | `review-code` | `.forge/workflows/review_code.md` | 3 |
-| 5 | approve | `/approve {TASK_ID}` | `approve` | `.forge/workflows/architect_approve.md` | — |
-| 6 | commit | `/commit {TASK_ID}` | `commit` | `.forge/workflows/commit_task.md` | — |
+| 5 | validate | `/validate {TASK_ID}` | `validate` | `.forge/workflows/validate_task.md` | 3 |
+| 6 | approve | `/approve {TASK_ID}` | `approve` | `.forge/workflows/architect_approve.md` | — |
+| 7 | commit | `/commit {TASK_ID}` | `commit` | `.forge/workflows/commit_task.md` | — |
 
-Revision routing: on `Revision Required`, `review-plan` → `plan`, `review-code` → `implement`.
+Revision routing: on `Revision Required`, `review-plan` → `plan`, `review-code` → `implement`, `validate` → `implement`.
 
 ## Gate Checks (Forge-specific)
 
@@ -41,68 +42,137 @@ Before advancing past `implement`:
 
 ## Model Resolution
 
-**Every `spawn_subagent` call MUST include a `model` parameter. No exceptions.**
+Subagents inherit the parent session's model by default. On **tiered** clusters,
+the orchestrator passes `model=tier` based on the role-to-tier mapping.
 
-Resolve the model for each phase using this priority:
+### Cluster Detection
 
-1. **`phase.model`** — if the phase definition in `config.pipelines` includes a `model` field, use it (highest priority).
-2. **Role-based default** — otherwise use the table below:
+At session start, detect the execution cluster:
 
-| Role | Default Model |
-|------|---------------|
-| `plan` | `sonnet` |
-| `implement` | `sonnet` |
+```
+opus_model   = env("ANTHROPIC_DEFAULT_OPUS_MODEL", "")
+sonnet_model = env("ANTHROPIC_DEFAULT_SONNET_MODEL", "")
+haiku_model  = env("ANTHROPIC_DEFAULT_HAIKU_MODEL", "")
+
+if opus_model and opus_model == sonnet_model == haiku_model:
+    cluster = "single"       # all tiers same model — omit model param
+elif opus_model:
+    cluster = "tiered"       # tiers differ — pass tier name
+else:
+    cluster = "unknown"      # inherit parent
+```
+
+### Role-to-Tier Mapping (tiered clusters only)
+
+| Role | Tier |
+|------|------|
 | `review-plan` | `opus` |
 | `review-code` | `opus` |
+| `validate` | `opus` |
 | `approve` | `opus` |
+| `plan` | `sonnet` |
+| `implement` | `sonnet` |
 | `commit` | `haiku` |
+| `writeback` | `haiku` |
 
-The orchestrator itself runs on whichever model it was invoked with (typically
-`sonnet` — it is a lightweight state machine). Short model names
-(`sonnet`, `opus`, `haiku`) are valid for the Agent tool's `model` parameter.
+Per-phase `model` field in `config.pipelines` overrides cluster dispatch (highest priority).
 
 ## Context Isolation
 
 **Each phase MUST run as a subagent via the Agent tool — NEVER inline.**
 
-Inline phase execution accumulates tens of thousands of tokens of prior work
-into the orchestrator window and violates Forge's context-light design.
-Each subagent:
-
-- Starts with a fresh context window
-- Receives only the workflow file path, task ID, and the precomputed `eventId`
-- Reads everything else from disk (`task.json`, `PLAN.md`, `MASTER_INDEX.md`)
-- Writes results (artifacts, task status, event sidecar) to disk
-- Returns; orchestrator reads verdicts from disk artifacts, not from conversation context
+Each subagent starts with a fresh context window, reads everything from disk,
+writes results to disk, and returns. The orchestrator reads verdicts from disk
+artifacts only — never from conversation context.
 
 ## Token Self-Reporting (Sidecar Pattern)
 
-Each phase subagent reports its own token usage via a sidecar file.
+Each phase subagent MUST before returning:
+1. Run `/cost` to retrieve token usage.
+2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
+3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
 
-**Before returning, every subagent MUST:**
-
-1. Run `/cost` to retrieve token usage for the session.
-2. Parse five fields: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-3. Write `.forge/store/events/{SPRINT_ID}/_{eventId}_usage.json`:
-   ```json
-   {
-     "inputTokens": <integer>,
-     "outputTokens": <integer>,
-     "cacheReadTokens": <integer>,
-     "cacheWriteTokens": <integer>,
-     "estimatedCostUSD": <number>
-   }
-   ```
-
-The leading `_` marks the file as ephemeral — `validate-store.cjs` skips
-`_`-prefixed files. If `/cost` is unavailable, skip writing silently; the
-orchestrator handles missing sidecars gracefully.
+The leading `_` marks the sidecar as ephemeral — `validate-store.cjs` skips it.
+If `/cost` is unavailable, skip silently.
 
 ## Execution Algorithm
 
-The orchestrator MUST follow this procedure exactly. Do not deviate or paraphrase.
+The orchestrator MUST follow this procedure exactly. Do not deviate.
 
 ```
+# --- Persona symbol lookup (emoji, name, tagline) ---
+PERSONA_MAP = {
+  "plan":        ("🌱", "Engineer",    "I plan what will be built before any code is written."),
+  "implement":   ("🌱", "Engineer",    "I build what was planned. I do not move forward until the code is clean."),
+  "update-plan": ("🌱", "Engineer",    "I address what the Supervisor found. No more, no less."),
+  "update-impl": ("🌱", "Engineer",    "I address what the Supervisor found. No more, no less."),
+  "commit":      ("🌱", "Engineer",    "I close out completed work with a clean, honest commit."),
+  "review-plan": ("🌿", "Supervisor",  "I review before things move forward. I read the actual task prompt, not just the plan."),
+  "review-code": ("🌿", "Supervisor",  "I review before things move forward. I read the actual code, not the report."),
+  "validate":    ("🍵", "QA Engineer", "I validate against what was promised. The code compiling is not enough."),
+  "approve":     ("🗻", "Architect",   "I hold the shape of the whole. I give final sign-off before commit."),
+  "writeback":   ("🍃", "Collator",    "I gather what exists and arrange it into views."),
+}
+
+# --- Banner identity map (banner name per phase role) ---
+# Displayed by the orchestrator ONLY — subagents do NOT display banners.
+BANNER_MAP = {
+  "plan":        "forge",
+  "implement":   "forge",
+  "update-plan": "forge",
+  "update-impl": "forge",
+  "commit":      "forge",
+  "review-plan": "oracle",
+  "review-code": "oracle",
+  "validate":    "lumen",
+  "approve":     "north",
+  "writeback":   "drift",
+}
+
+# --- Role-to-noun mapping for persona/skill file lookups (NOT for display) ---
+ROLE_TO_NOUN = {
+  "plan":        "engineer",
+  "implement":   "engineer",
+  "update-plan": "engineer",
+  "update-impl": "engineer",
+  "commit":      "engineer",
+  "review-plan": "supervisor",
+  "review-code": "supervisor",
+  "validate":    "qa-engineer",
+  "approve":     "architect",
+  "writeback":   "collator",
+}
+
+# --- Detect execution cluster ---
+opus_model   = env("ANTHROPIC_DEFAULT_OPUS_MODEL", "")
+sonnet_model = env("ANTHROPIC_DEFAULT_SONNET_MODEL", "")
+haiku_model  = env("ANTHROPIC_DEFAULT_HAIKU_MODEL", "")
+if opus_model and opus_model == sonnet_model == haiku_model:
+  cluster = "single"
+  resolved_model = opus_model
+elif opus_model:
+  cluster = "tiered"
+  resolved_model = None
+else:
+  cluster = "unknown"
+  resolved_model = env("CLAUDE_CODE_SUBAGENT_MODEL", "unknown")
+
+ROLE_TIER = {
+  "review-plan": "opus", "review-code": "opus",
+  "validate": "opus",    "approve": "opus",
+  "plan": "sonnet",      "implement": "sonnet",
+  "commit": "haiku",     "writeback": "haiku",
+}
+
+# --- Resolve absolute paths for subagent injection ---
+sprint_root_path = f"engineering/sprints/{sprint_dir}"
+task_root_path   = f"engineering/sprints/{sprint_dir}/{task_dir}"
+store_root_path  = ".forge/store"
+
+# --- Clear progress log for this sprint ---
+progress_log_path = f".forge/store/events/{sprint_id}/progress.log"
+run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/store-cli.cjs" progress-clear {sprint_id}')
+
 phases = resolve_pipeline(task)          # from config.pipelines or default
 iteration_counts = {}                    # keyed by phase command name
 i = 0
@@ -110,63 +180,129 @@ i = 0
 while i < len(phases):
   phase = phases[i]
 
-  # --- Resolve model (see Model Resolution) ---
-  phase_model = phase.model or ROLE_MODEL_DEFAULTS[phase.role]
+  # --- Resolve model for display and dispatch ---
+  if phase.model:                        # per-phase override from config
+    dispatch_model = phase.model
+    resolved = env(f"ANTHROPIC_DEFAULT_{phase.model.upper()}_MODEL", "")
+    display_model = f"{phase.model} → {resolved}" if resolved else phase.model
+  elif cluster == "single":
+    display_model = resolved_model
+    dispatch_model = None                # inherit parent model
+  elif cluster == "tiered":
+    tier = ROLE_TIER.get(phase.role, "sonnet")
+    resolved = env(f"ANTHROPIC_DEFAULT_{tier.upper()}_MODEL", tier)
+    display_model = f"{tier} → {resolved}" if resolved != tier else tier
+    dispatch_model = tier
+  else:
+    display_model = env("CLAUDE_CODE_SUBAGENT_MODEL", "inherited")
+    dispatch_model = None
 
   # --- Precompute eventId and sidecar path ---
   start_ts = current_iso_timestamp()     # e.g. "20260415T141523000Z"
   event_id = f"{start_ts}_{task_id}_{phase.role}_{phase.action}"
   sidecar_path = f".forge/store/events/{sprint_id}/_{event_id}_usage.json"
 
-  # --- Announce phase to stdout using the persona symbol ---
-  # plan / implement / update-plan / update-impl / commit → 🌱 Engineer
-  # review-plan / review-code                            → 🌿 Supervisor
-  # approve                                              → ⛰️  Architect
-  # Output one line: "{symbol} {phase.name} — {TASK_ID}"
+  # --- Compute agent name for progress IPC ---
+  persona_noun = ROLE_TO_NOUN.get(phase.role, phase.role)
+  iteration = iteration_counts.get(phase.command, 0) + 1
+  agent_name = f"{task_id}:{persona_noun}:{phase.role}:{iteration}"
 
-  emit_event(task, phase, eventId=event_id,
-             iteration=iteration_counts.get(phase.command, 0) + 1,
-             action="start")
+  # --- Announce phase: badge banner + task context ---
+  emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🌊", "Orchestrator", "I move tasks through their lifecycle."))
+  banner_name = BANNER_MAP.get(phase.role, "forge")
+  run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name}')
+  print(f"  → {task_id}  [{display_model}]\n")
 
-  # --- Spawn fresh-context subagent (model parameter is MANDATORY) ---
-  spawn_subagent(
-    prompt="{persona_symbol} **Forge {role_name} — {phase.name}**\n\n"
-           "Read `{phase.workflow}` and follow it. Task ID: {task_id}. "
-           "Also read `engineering/MASTER_INDEX.md` for project state. "
-           "Before returning: run /cost, parse token usage, and write sidecar "
-           "`.forge/store/events/{sprint_id}/_{event_id}_usage.json` with fields: "
-           "inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD.",
-    description="{phase.name} phase for {task_id}",
-    model=phase_model                    # ← MANDATORY — never omit
+  emit_event(task, phase, eventId=event_id, iteration=iteration, action="start")
+
+  # --- Symmetric Injection Assembly: Persona -> Skill -> Workflow ---
+  persona_content = read_file(f".forge/personas/{persona_noun}.md")
+  skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
+
+  # --- Start progress Monitor before spawning subagent ---
+  start_monitor(
+    command=f"tail -n +1 -F {progress_log_path} 2>/dev/null || true",
+    description=f"Progress: {agent_name}",
+    persistent=False
   )
 
-  # --- Sidecar merge (graceful; missing sidecar is NOT an error) ---
-  token_fields = {}
-  if file_exists(sidecar_path):
-    token_fields = read_json(sidecar_path)
-    delete_file(sidecar_path)
-  emit_event(task, phase, action="complete", extra_fields=token_fields)
+  # --- Spawn fresh-context subagent (progress reporting instead of banner-first) ---
+  spawn_kwargs = dict(
+    prompt=(
+      f"### Progress Reporting\n"
+      f"- Agent name: {agent_name}\n"
+      f"- Progress log: {progress_log_path}\n"
+      f"- Banner key: {banner_name}\n\n"
+      f"Append progress entries to the log as you work:\n\n"
+      f"```\n"
+      f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress {sprint_id} {agent_name} {banner_name} start \"Starting {phase.role} phase\"\n"
+      f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress {sprint_id} {agent_name} {banner_name} progress \"Reading codebase\"\n"
+      f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress {sprint_id} {agent_name} {banner_name} done \"Completed {phase.role}\"\n"
+      f"```\n\n"
+      f"Write a `start` entry when you begin, `progress` entries as you make headway, "
+      f"a `done` entry when you finish, or an `error` entry if something fails. "
+      f"The orchestrator is monitoring this log in real time.\n\n"
+      f"---\n\n"
+      f"{persona_content}\n\n"
+      f"{skill_content}\n\n"
+      f"### Current Working Context\n"
+      f"- Sprint Root: {sprint_root_path}\n"
+      f"- Task Root:   {task_root_path}\n"
+      f"- Store Root:  {store_root_path}\n\n"
+      f"Read `{phase.workflow}` and follow it. Task ID: {task_id}. "
+      f"Also read `engineering/MASTER_INDEX.md` for project state. "
+      f"Before returning: run /cost, parse token usage, and write the usage sidecar via "
+      f"`/forge:store emit {sprint_id} '{{sidecar-json}}' --sidecar` with fields: "
+      f"inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD."
+    ),
+    description=f"{emoji} {persona_name} — {phase.name} for {task_id}",
+  )
+  if dispatch_model:
+    spawn_kwargs["model"] = dispatch_model
+  spawn_subagent(**spawn_kwargs)
 
-  # --- Non-review phases always advance ---
-  if phase.role not in ("review-plan", "review-code"):
+  # --- Stop progress Monitor ---
+  stop_monitor(progress_log_path)
+
+  # --- Sidecar merge via store-cli (graceful — exit 1 if missing is non-fatal) ---
+  FORGE_ROOT = resolve_forge_root()
+  run: node "$FORGE_ROOT/tools/store-cli.cjs" merge-sidecar {sprint_id} {event_id}
+  emit_event(task, phase, action="complete")
+
+  # --- Phase-exit signal ---
+  # Non-review phases always advance with a completion signal
+  if phase.role not in ("review-plan", "review-code", "validate"):
+    print(f"  ✓ {task_id}  {phase.role}  — completed\n")
     i += 1
+    # Compact context: all state is on disk; preserve loop bookkeeping in the summary
+    print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
+    /compact
     continue
 
   # --- Review phase: read verdict from the disk artifact ---
   verdict = read_verdict(task, phase)    # see Verdict Detection
 
   if verdict == "Approved":
+    print(f"  ✓ {task_id}  {phase.role}  — Approved\n")
     i += 1
+    # Compact context: all state is on disk; preserve loop bookkeeping in the summary
+    print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
+    /compact
 
   elif verdict == "Revision Required":
     iteration_counts[phase.command] = iteration_counts.get(phase.command, 0) + 1
+    print(f"  ↻ {task_id}  {phase.role}  — Revision Required (iteration {iteration_counts[phase.command]})\n")
     if iteration_counts[phase.command] >= phase.maxIterations:   # default 3
       escalate_to_human(task, phase, reason="max iterations reached")
       break
     target = phase.on_revision or nearest_preceding_non_review(phases, i)
     i = index_of(phases, target)
+    # Compact context: all state is on disk; preserve loop bookkeeping in the summary
+    print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
+    /compact
 
   else:
+    print(f"  ⚠ {task_id}  {phase.role}  — escalated to human\n")
     escalate_to_human(task, phase, reason=f"unrecognised verdict: {verdict}")
     break
 ```
@@ -180,14 +316,12 @@ infer from conversation context**.
 |---|---|---|
 | `review-plan` | `engineering/sprints/{SPRINT_DIR}/{TASK_DIR}/PLAN_REVIEW.md` | Line matching `**Verdict:**` |
 | `review-code` | `engineering/sprints/{SPRINT_DIR}/{TASK_DIR}/CODE_REVIEW.md` | Line matching `**Verdict:**` |
+| `validate` | `engineering/sprints/{SPRINT_DIR}/{TASK_DIR}/VALIDATION_REPORT.md` | Line matching `**Verdict:**` |
 
-The verdict line must be exactly:
+Expected values (trimmed after `**Verdict:**`):
 
 ```
 **Verdict:** Approved
-```
-or
-```
 **Verdict:** Revision Required
 ```
 
@@ -195,14 +329,13 @@ Any other value — or a missing artifact — is unrecognised: escalate.
 
 ## Escalation Procedure
 
-1. Update `.forge/store/tasks/{TASK_ID}.json`: set `status` to `escalated`.
+1. Update task status via `/forge:store update-status task {taskId} status escalated`
 2. Emit a final event with `verdict: "escalated"` and `notes` explaining the reason.
 3. Output:
    ```
-   △ Task {TASK_ID} — escalated to human
-   ── Reason: {reason}
-   ── Review: {artifact_path}
-   ── Resume: /{phase.command} {TASK_ID} after addressing the issues.
+   ⚠ Task {TASK_ID} escalated: {reason}
+   Review artifact: {artifact_path}
+   Resume with: /{phase.command} {TASK_ID} after addressing the issues.
    ```
 4. Stop processing this task. Continue to the next task in the sprint.
 
@@ -220,11 +353,12 @@ before code quality (`review-code`). Never reverse this.
 
 **Revision loop exhaustion is an escalation trigger.** Do NOT approve to unblock.
 
-**Model parameter is mandatory.** Every `spawn_subagent` call MUST pass `model=phase_model`.
+**Phase banners are orchestrator-owned.** Do NOT include banner-first instructions
+in subagent prompts. The orchestrator displays the badge before spawning and the
+exit signal after return.
 
 **No emoji in machine-readable fields.** Emoji belong only in stdout
-announcements and human-facing Markdown (`PROGRESS.md`). JSON fields
-(`status`, `verdict`, `role`, `action`) use plain values only.
+announcements and human-facing Markdown. JSON fields use plain values only.
 
 ## Error Recovery
 
@@ -250,7 +384,7 @@ following `.forge/schemas/event.schema.json`.
 | `eventId` | `{ISO_TIMESTAMP}_{TASK_ID}_{role}_{action}` e.g. `20260415T141523000Z_FORGE-S02-T03_implement_plan-task` |
 | `taskId` | Task ID from the task manifest |
 | `sprintId` | Sprint ID from the task manifest |
-| `role` | Phase role (`plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`) |
+| `role` | Phase role (`plan`, `review-plan`, `implement`, `review-code`, `validate`, `approve`, `commit`) |
 | `action` | Slash command invoked (e.g. `/implement`) |
 | `phase` | Phase name |
 | `iteration` | 1-based iteration count for this phase |

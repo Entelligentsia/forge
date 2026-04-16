@@ -18,6 +18,7 @@
     "similarBugs":         { "type": "array", "items": { "type": "string" } },
     "checklistItemAdded":  { "type": "boolean" },
     "businessRuleUpdated": { "type": "boolean" },
+    "githubIssue":         { "type": "string", "format": "uri" },
     "reportedAt":          { "type": "string", "format": "date-time" },
     "resolvedAt":          { "type": "string", "format": "date-time" }
   },

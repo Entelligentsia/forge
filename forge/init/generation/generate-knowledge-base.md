@@ -10,10 +10,18 @@ and initial stack review checklist from the discovery context.
 - Discovery context (from Phase 1)
 - `$FORGE_ROOT/meta/personas/` (to understand what agents need to know)
 
+## Setup
+
+Read the configured KB path:
+
+```sh
+KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo "engineering"`
+```
+
 ## Outputs
 
 ```
-engineering/
+{KB_PATH}/
   architecture/
     INDEX.md
     stack.md

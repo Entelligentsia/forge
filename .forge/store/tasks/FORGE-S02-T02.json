@@ -1,10 +1,7 @@
 {
   "taskId": "FORGE-S02-T02",
   "sprintId": "FORGE-S02",
-  "title": "feature.schema.md — author Feature store-schema documentation",
-  "status": "committed",
-  "path": "forge/meta/store-schema/feature.schema.md",
-  "estimate": "S",
-  "dependencies": [],
-  "pipeline": "default"
+  "title": "FORGE-S02-T02: Plan",
+  "status": "planned",
+  "path": "engineering/sprints/FORGE-S02/T02"
 }

@@ -1,4 +1,5 @@
 ---
+name: report-bug
 description: Use when you encounter a bug in Forge itself and want to file it as a GitHub issue in the Entelligentsia/forge repository
 ---
 

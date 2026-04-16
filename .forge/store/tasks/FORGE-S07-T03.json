@@ -1,0 +1,7 @@
+{
+  "taskId": "FORGE-S07-T03",
+  "sprintId": "FORGE-S07",
+  "title": "PLAN — FORGE-S07-T03: Fix collate.cjs facade bypasses — writeCollationState and purgeEvents",
+  "status": "planned",
+  "path": "engineering/sprints/FORGE-S07-store-custodian/FORGE-S07-T03-collate-facade-fix"
+}

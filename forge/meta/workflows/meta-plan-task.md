@@ -1,38 +1,58 @@
-# Meta-Workflow: Plan Task
+---
+requirements:
+  reasoning: High
+  context: Medium
+  speed: Low
+---
+
+# 🌱 Meta-Workflow: Plan Task
 
 ## Purpose
 
-The Engineer reads the task prompt, researches the codebase, and produces
-an implementation plan.
+The Engineer reads the task prompt, researches the codebase, and produces an implementation plan.
 
 ## Algorithm
 
-### Step 1 — Load Context
-- Read the task prompt
-- Read architecture docs relevant to the task
-- Read business domain docs relevant to the task
-- Read the stack checklist
+```
+1. Load Context:
+   - Read task prompt (source of truth)
+   - Read architecture docs and business domain docs relevant to the task
+   - Read stack checklist
 
-### Step 2 — Research
-- Identify files that will need modification (Glob, Grep, Read)
-- Understand existing patterns in the area being modified
-- Check for related tests
+2. Research:
+   - Identify files for modification (Glob, Grep, Read)
+   - Map existing patterns in the target area
+   - Identify existing tests to be maintained or expanded
+   - Identify whether the change is **material** (triggers version bump) or not:
+     - Bug fixes to any command, hook, tool spec, or workflow → material
+     - Tool-spec changes that alter generated tool behaviour → material
+     - Command-file changes that alter behaviour → material
+     - Hook changes → material
+     - Schema changes to `.forge/store/` or `.forge/config.json` → material
+     - Docs-only changes → NOT material
 
-### Step 3 — Plan
-- Write PLAN.md using the plan template
-- Include: objective, approach, files to modify, data model changes,
-  testing strategy, acceptance criteria, operational impact
+3. Plan:
+   - Generate PLAN.md using the project plan template
+   - Ensure inclusion of: Objective, Approach, Files to Modify, Data Model Changes, Testing Strategy, Acceptance Criteria, and Operational Impact
 
-### Step 4 — Knowledge Writeback
-- If undocumented patterns were discovered during research, update
-  the relevant architecture or business domain docs
+4. Knowledge Writeback:
+   - If new patterns were discovered, update architecture or business domain docs
 
-### Step 5 — Emit Event + Update State
-- Write event JSON to the store
-- Update task status to `planned`
+5. Finalize:
+   - Update task status via `/forge:store update-status task {taskId} status planned`
+   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Execute Token Reporting (see Generation Instructions)
+```
 
 ## Generation Instructions
-- Replace architecture doc references with the project's actual sub-doc names
-- Replace entity references with the project's actual entity names
-- Include the project's PLAN template path
-- Reference the project's specific architecture concerns
+
+- **Workflow Structure:** The generated `plan_task.md` must follow the strict "Algorithm" block format.
+- **Context Isolation:** The generated workflow must explicitly forbid inline execution. All complex sub-tasks must be delegated via the `Agent` tool.
+- **Project Specifics:**
+  - Replace architecture/domain doc placeholders with actual project file paths.
+  - Embed the project's specific PLAN template path.
+- **Token Reporting:** The generated workflow MUST mandate the following before returning:
+  1. Run `/cost` to retrieve session token usage.
+  2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
+  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+- **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

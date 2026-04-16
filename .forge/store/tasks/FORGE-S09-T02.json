@@ -1,0 +1,7 @@
+{
+  "taskId": "FORGE-S09-T02",
+  "sprintId": "FORGE-S09",
+  "title": "PLAN — FORGE-S09-T02: Config schema — add calibrationBaseline + required-field annotations",
+  "status": "committed",
+  "path": "engineering/sprints/FORGE-S09/FORGE-S09-T02-config-schema"
+}

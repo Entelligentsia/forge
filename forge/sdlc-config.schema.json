@@ -217,6 +217,80 @@
           }
         }
       }
+    },
+    "calibrationBaseline": {
+      "type": "object",
+      "description": "Calibration baseline written by /forge:init after skill generation. Records the state at calibration time so /forge:calibrate can detect drift.",
+      "required": ["lastCalibrated", "version", "masterIndexHash", "sprintsCovered"],
+      "additionalProperties": false,
+      "properties": {
+        "lastCalibrated": {
+          "type": "string",
+          "format": "date",
+          "description": "ISO date (YYYY-MM-DD) of the last calibration run"
+        },
+        "version": {
+          "type": "string",
+          "description": "Plugin version string at calibration time (e.g. 0.9.3)"
+        },
+        "masterIndexHash": {
+          "type": "string",
+          "description": "SHA-256 hex digest of the semantic content of engineering/MASTER_INDEX.md at calibration time"
+        },
+        "sprintsCovered": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Sprint IDs whose tasks and outcomes were included in the calibration baseline"
+        }
+      }
+    },
+    "calibrationHistory": {
+      "type": "array",
+      "description": "Audit trail of calibration runs. Each entry records the drift categories detected and the patches applied.",
+      "items": {
+        "type": "object",
+        "required": ["date", "version", "categories", "patches"],
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "ISO date (YYYY-MM-DD) of this calibration run"
+          },
+          "version": {
+            "type": "string",
+            "description": "Plugin version at calibration time"
+          },
+          "categories": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Drift categories detected: technical, business, retrospective, acceptance-criteria"
+          },
+          "patches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["target", "type", "applied"],
+              "additionalProperties": false,
+              "properties": {
+                "target": {
+                  "type": "string",
+                  "description": "Regeneration target (e.g. personas:engineer, skills:supervisor-skills)"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["regenerate"],
+                  "description": "Patch type (currently only 'regenerate' is supported)"
+                },
+                "applied": {
+                  "type": "boolean",
+                  "description": "Whether this patch was applied (true if approved and succeeded, false if skipped or failed)"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

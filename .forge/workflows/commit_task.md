@@ -1,4 +1,11 @@
-# Workflow: Commit Task (Forge Engineer)
+---
+requirements:
+  reasoning: Low
+  context: Low
+  speed: High
+---
+
+# 🌱 Workflow: Commit Task (Forge Engineer)
 
 ## Persona
 

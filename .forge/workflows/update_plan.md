@@ -1,4 +1,11 @@
-# Workflow: Update Plan (Forge Engineer)
+---
+requirements:
+  reasoning: Medium
+  context: Medium
+  speed: Medium
+---
+
+# 🌱 Workflow: Update Plan (Forge Engineer)
 
 ## Persona
 

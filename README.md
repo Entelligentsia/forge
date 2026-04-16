@@ -270,6 +270,7 @@ Full lifecycle documentation — inputs, outputs, gate checks, revision loops, a
 |---|---|---|
 | `/forge:init` | Bootstrap a complete SDLC instance from your codebase | [→](docs/commands/forge/init.md) |
 | `/forge:health` | Detect stale docs, orphaned entities, and missing skills | [→](docs/commands/forge/health.md) |
+| `/forge:calibrate` | Detect drift, propose regeneration patches, and apply approved patches | [→](docs/commands/forge/calibrate.md) |
 | `/forge:regenerate [target]` | Refresh workflows, templates, tools, or knowledge-base docs | [→](docs/commands/forge/regenerate.md) |
 | `/forge:update` | Propagate a plugin version upgrade into project artifacts | [→](docs/commands/forge/update.md) |
 | `/forge:add-pipeline [name]` | Add or manage a custom task pipeline in `.forge/config.json` | [→](docs/commands/forge/add-pipeline.md) |
@@ -286,30 +287,11 @@ publication. Reports are filed as versioned artifacts in
 
 | Version | Date | Report | Summary |
 |---------|------|--------|---------|
-| 0.6.11 | 2026-04-10 | [scan-v0.6.11.md](docs/security/scan-v0.6.11.md) | 91 files — 0 critical, 3 warnings (all justified), 0 info — SAFE TO USE |
-| 0.6.10 | 2026-04-10 | [scan-v0.6.10.md](docs/security/scan-v0.6.10.md) | 91 files — 0 critical, 3 warnings (all justified), 3 info (functional bugs fixed) — SAFE TO USE |
-| 0.6.9 | 2026-04-10 | [scan-v0.6.9.md](docs/security/scan-v0.6.9.md) | 87 files — 0 critical, 0 warnings, 2 info — SAFE TO USE |
-| 0.6.8 | 2026-04-10 | [scan-v0.6.8.md](docs/security/scan-v0.6.8.md) | 88 files — 0 critical, 3 warnings (all justified), 2 info — SAFE TO USE |
-| 0.6.5 | 2026-04-10 | [scan-v0.6.5.md](docs/security/scan-v0.6.5.md) | 92 files — 0 critical, 1 warning (path-derived URL, justified), 2 info — SAFE TO USE |
-| 0.6.4 | 2026-04-10 | [scan-v0.6.4.md](docs/security/scan-v0.6.4.md) | 91 files — 0 critical, 1 warning (configurable URL, justified), 2 info — SAFE TO USE |
-| 0.6.3 | 2026-04-09 | [scan-v0.6.3.md](docs/security/scan-v0.6.3.md) | 91 files — 0 critical, 1 warning (fixed in release), 2 info — SAFE TO USE |
-| 0.6.2 | 2026-04-09 | [scan-v0.6.2.md](docs/security/scan-v0.6.2.md) | 91 files — 0 critical, 3 warnings (all justified), 2 info — SAFE TO USE |
-| 0.6.1 | 2026-04-09 | [scan-v0.6.1.md](docs/security/scan-v0.6.1.md) | 91 files — 0 critical, 3 warnings (all justified), 2 info — SAFE TO USE |
-| 0.6.0 | 2026-04-09 | [scan-v0.6.0.md](docs/security/scan-v0.6.0.md) | 93 files — 0 critical, 2 warnings (all justified), 1 info — SAFE TO USE |
-| 0.5.9 | 2026-04-07 | [scan-v0.5.9.md](docs/security/scan-v0.5.9.md) | 89 files — 0 critical, 2 warnings (all justified), 1 info — SAFE TO USE |
-| 0.5.8 | 2026-04-07 | [scan-v0.5.8.md](docs/security/scan-v0.5.8.md) | 89 files — 0 critical, 2 warnings (all justified), 3 info — SAFE TO USE |
-| 0.5.7 | 2026-04-07 | [scan-v0.5.7.md](docs/security/scan-v0.5.7.md) | 89 files — 0 critical, 2 warnings (all justified), 3 info — SAFE TO USE |
-| 0.5.6 | 2026-04-07 | [scan-v0.5.6.md](docs/security/scan-v0.5.6.md) | 89 files — 0 critical, 2 warnings (all justified), 3 info — SAFE TO USE |
-| 0.5.5 | 2026-04-07 | [scan-v0.5.5.md](docs/security/scan-v0.5.5.md) | 89 files — 0 critical, 3 warnings (all justified), 4 info — SAFE TO USE |
-| 0.5.4 | 2026-04-06 | [scan-v0.5.4.md](docs/security/scan-v0.5.4.md) | 89 files — 0 critical, 0 warnings, 3 info — SAFE TO USE |
-| 0.4.1 | 2026-04-05 | [scan-v0.4.1.md](docs/security/scan-v0.4.1.md) | 87 files — 0 critical, 4 warnings (justified), 5 info — SAFE TO USE |
-| 0.4.0 | 2026-04-05 | [scan-v0.4.0.md](docs/security/scan-v0.4.0.md) | 72 files — 0 critical, 0 warnings, 4 info — SAFE TO USE |
-| 0.3.15 | 2026-04-05 | [scan-v0.3.15.md](docs/security/scan-v0.3.15.md) | 85 files — 0 critical, 2 warnings (justified), SAFE TO USE |
-| 0.3.14 | 2026-04-05 | [scan-v0.3.14.md](docs/security/scan-v0.3.14.md) | 79 files — 0 critical, 1 warning (justified), SAFE TO USE |
-| 0.3.11 | 2026-04-04 | [scan-v0.3.11.md](docs/security/scan-v0.3.11.md) | 78 files — 0 critical, 3 warnings (all justified), SAFE TO USE |
-| 0.3.10 | 2026-04-04 | [scan-v0.3.10.md](docs/security/scan-v0.3.10.md) | 84 files — 0 critical, 3 warnings (all justified), SAFE TO USE |
-| 0.3.9 | 2026-04-04 | [scan-v0.3.9.md](docs/security/scan-v0.3.9.md) | 84 files — 0 critical, 3 warnings (all justified), SAFE TO USE |
-| 0.3.8 | 2026-04-04 | [scan-v0.3.8.md](docs/security/scan-v0.3.8.md) | 83 files — 0 critical, 3 warnings (all justified), SAFE TO USE |
+| 0.10.0 | 2026-04-16 | [scan-v0.10.0.md](docs/security/scan-v0.10.0.md) | 126 files — 0 critical, 2 warnings (accepted, carry-forward), 3 info — SAFE TO USE |
+| 0.9.17 | 2026-04-16 | [scan-v0.9.17.md](docs/security/scan-v0.9.17.md) | 114 files — 0 critical, 1 warning (accepted, carry-forward), 2 info — SAFE TO USE |
+| 0.9.16 | 2026-04-16 | [scan-v0.9.16.md](docs/security/scan-v0.9.16.md) | 114 files — 0 critical, 1 warning (accepted, carry-forward), 2 info — SAFE TO USE |
+
+[Full scan history →](docs/security/index.md)
 
 ---
 
@@ -332,3 +314,4 @@ Maintainer Note:
 After saving `assets/forge_social.png`, upload it manually to set the social preview:
 GitHub → Entelligentsia/forge → Settings → Social preview → Edit → Upload image
 -->
+| 0.6.13 | 2026-04-12 | [scan-v0.6.13.md](docs/security/scan-v0.6.13.md) | SAFE TO USE |

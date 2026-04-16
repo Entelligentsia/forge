@@ -1,10 +1,7 @@
 {
   "taskId": "FORGE-S02-T09",
   "sprintId": "FORGE-S02",
-  "title": "README + vision alignment — containment diagram, concepts link, absorb default-workflows.md, sync vision/01-OVERVIEW.md",
-  "status": "committed",
-  "path": "README.md",
-  "estimate": "M",
-  "dependencies": ["FORGE-S02-T01"],
-  "pipeline": "default"
+  "title": "PLAN: FORGE-S02-T09",
+  "status": "planned",
+  "path": "engineering/sprints/FORGE-S02/T09"
 }

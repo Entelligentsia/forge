@@ -1,10 +1,7 @@
 {
   "taskId": "FORGE-S01-T02",
   "sprintId": "FORGE-S01",
-  "title": "validate-store — handle new event token fields",
+  "title": "PLAN — FORGE-S01-T02: validate-store — handle new event token fields",
   "status": "committed",
-  "path": "forge/tools/validate-store.cjs",
-  "estimate": "S",
-  "dependencies": ["FORGE-S01-T01"],
-  "pipeline": "default"
+  "path": "engineering/sprints/FORGE-S01/T02"
 }

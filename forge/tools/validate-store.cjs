@@ -3,173 +3,96 @@
 
 // Forge tool: validate-store
 // Check store integrity: required fields, types, enums, and referential integrity.
-// Usage: validate-store [--dry-run] [--fix]
+// Usage: validate-store [--dry-run] [--fix] [--json]
 
-process.on('uncaughtException', (error) => {
-  console.error('Fatal validate-store error:', error);
-  process.exit(1);
-});
+let _store;
+function _getStore() { return _store || (_store = require('./store.cjs')); }
 
-const fs = require('fs');
-const path = require('path');
+let _schemas;
+function _getSchemas() {
+  if (_schemas) return _schemas;
+  const fs = require('fs');
+  const path = require('path');
 
-const DRY_RUN = process.argv.includes('--dry-run');
-const FIX_MODE = process.argv.includes('--fix') && !DRY_RUN;
-const cwd = process.cwd();
+  const ENTITY_TYPES = ['sprint', 'task', 'bug', 'event', 'feature'];
 
-// --- Config ---
-function readConfig() {
-  const p = path.join(cwd, '.forge', 'config.json');
-  if (!fs.existsSync(p)) { console.error('Error: .forge/config.json not found'); process.exit(1); }
-  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) {
-    console.error(`Error: .forge/config.json is not valid JSON: ${e.message}`); process.exit(1);
+  const MINIMAL_REQUIRED = {
+    sprint:  ['sprintId', 'title', 'status', 'taskIds', 'createdAt'],
+    task:    ['taskId', 'sprintId', 'title', 'status', 'path'],
+    bug:     ['bugId', 'title', 'severity', 'status', 'path', 'reportedAt'],
+    event:   ['eventId', 'taskId', 'sprintId', 'role', 'action', 'phase', 'iteration', 'startTimestamp', 'endTimestamp', 'durationMinutes', 'model'],
+    feature: ['id', 'title', 'status', 'created_at']
+  };
+
+  const schemas = {};
+  const projectDir   = path.join('.forge', 'schemas');
+  const inTreeDir    = path.join('forge', 'schemas');
+  const pluginDir    = path.join(__dirname, '..', 'schemas');
+
+  for (const type of ENTITY_TYPES) {
+    const schemaFile = `${type}.schema.json`;
+    let schema = null;
+
+    // 1. Try project-installed schemas first
+    const projectPath = path.join(projectDir, schemaFile);
+    try {
+      if (fs.existsSync(projectPath)) {
+        schema = JSON.parse(fs.readFileSync(projectPath, 'utf8'));
+      }
+    } catch (e) {
+      console.error(`WARN: schema file ${projectPath} exists but could not be parsed: ${e.message}`);
+    }
+
+    // 2. Fall back to in-tree source schemas (development mode)
+    if (!schema) {
+      const inTreePath = path.join(inTreeDir, schemaFile);
+      try {
+        if (fs.existsSync(inTreePath)) {
+          schema = JSON.parse(fs.readFileSync(inTreePath, 'utf8'));
+        }
+      } catch (e) {
+        console.error(`WARN: schema file ${inTreePath} exists but could not be parsed: ${e.message}`);
+      }
+    }
+
+    // 3. Fall back to plugin-installed schemas (production mode)
+    //    validate-store.cjs lives at $FORGE_ROOT/tools/, so __dirname/../schemas/
+    //    resolves to $FORGE_ROOT/schemas/ — always correct for installed plugins.
+    if (!schema) {
+      const pluginPath = path.join(pluginDir, schemaFile);
+      try {
+        if (fs.existsSync(pluginPath)) {
+          schema = JSON.parse(fs.readFileSync(pluginPath, 'utf8'));
+        }
+      } catch (e) {
+        console.error(`WARN: schema file ${pluginPath} exists but could not be parsed: ${e.message}`);
+      }
+    }
+
+    if (schema) {
+      schemas[type] = schema;
+    } else {
+      console.error(`WARN: schema file ${schemaFile} not found in ${projectDir}, ${inTreeDir}, or ${pluginDir}, using minimal fallback`);
+      schemas[type] = { type: 'object', required: MINIMAL_REQUIRED[type] || [], properties: {} };
+    }
   }
+
+  _schemas = schemas;
+  return _schemas;
 }
 
-function readJson(filePath) {
-  try { return JSON.parse(fs.readFileSync(filePath, 'utf8')); } catch { return null; }
-}
+// ---------------------------------------------------------------------------
+// Constants (exported for testing)
+// ---------------------------------------------------------------------------
 
-// Embedded JSON schemas — validate-store.cjs is self-contained and does not
-// read from .forge/schemas/. These definitions are sourced from
-// forge/meta/store-schema/*.md and are the canonical machine-readable specs.
-const SCHEMAS = {
-  sprint: {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "forge/sprint.schema.json",
-    "title": "Sprint",
-    "type": "object",
-    "required": ["sprintId", "title", "status", "taskIds", "createdAt"],
-    "properties": {
-      "sprintId":       { "type": "string" },
-      "title":          { "type": "string" },
-      "description":    { "type": "string" },
-      "status": {
-        "type": "string",
-        "enum": ["planning", "active", "completed", "retrospective-done", "blocked", "partially-completed", "abandoned"]
-      },
-      "goal":           { "type": "string" },
-      "taskIds":        { "type": "array", "items": { "type": "string" } },
-      "dependencies":   { "type": "object" },
-      "executionMode":  { "type": "string", "enum": ["sequential", "wave-parallel", "full-parallel"] },
-      "createdAt":      { "type": "string", "format": "date-time" },
-      "completedAt":    { "type": "string", "format": "date-time" },
-      "humanEstimates": { "type": "object" },
-      "feature_id":     { "type": ["string", "null"] },
-      "features":       { "type": "array", "items": { "type": "string" } }
-    },
-    "additionalProperties": false
-  },
-  task: {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "forge/task.schema.json",
-    "title": "Task",
-    "type": "object",
-    "required": ["taskId", "sprintId", "title", "status", "path"],
-    "properties": {
-      "taskId":               { "type": "string" },
-      "sprintId":             { "type": "string" },
-      "title":                { "type": "string" },
-      "description":          { "type": "string" },
-      "status": {
-        "type": "string",
-        "enum": [
-          "draft", "planned", "plan-approved", "implementing",
-          "implemented", "review-approved", "approved", "committed",
-          "plan-revision-required", "code-revision-required", "blocked", "escalated", "abandoned"
-        ]
-      },
-      "path":                 { "type": "string" },
-      "estimate":             { "type": "string", "enum": ["S", "M", "L", "XL"] },
-      "dependencies":         { "type": "array", "items": { "type": "string" } },
-      "knowledgeUpdates":     { "type": "array" },
-      "planIterations":       { "type": "integer", "minimum": 0 },
-      "codeReviewIterations": { "type": "integer", "minimum": 0 },
-      "assignedModel":        { "type": "string" },
-      "pipeline":             { "type": "string" },
-      "feature_id":           { "type": ["string", "null"] }
-    },
-    "additionalProperties": false
-  },
-  bug: {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "forge/bug.schema.json",
-    "title": "Bug",
-    "type": "object",
-    "required": ["bugId", "title", "severity", "status", "path", "reportedAt"],
-    "properties": {
-      "bugId":                { "type": "string" },
-      "title":                { "type": "string" },
-      "description":          { "type": "string" },
-      "severity":             { "type": "string", "enum": ["critical", "major", "minor"] },
-      "status":               { "type": "string", "enum": ["reported", "triaged", "in-progress", "fixed", "verified"] },
-      "path":                 { "type": "string" },
-      "rootCauseCategory": {
-        "type": "string",
-        "enum": ["validation", "auth", "business-rule", "data-integrity", "race-condition", "integration", "configuration", "regression"]
-      },
-      "similarBugs":          { "type": "array", "items": { "type": "string" } },
-      "checklistItemAdded":   { "type": "boolean" },
-      "businessRuleUpdated":  { "type": "boolean" },
-      "reportedAt":           { "type": "string", "format": "date-time" },
-      "resolvedAt":           { "type": "string", "format": "date-time" }
-    },
-    "additionalProperties": false
-  },
-  event: {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "forge/event.schema.json",
-    "title": "Event",
-    "type": "object",
-    "required": [
-      "eventId", "taskId", "sprintId", "role", "action",
-      "phase", "iteration", "startTimestamp", "endTimestamp", "durationMinutes", "model"
-    ],
-    "properties": {
-      "eventId":         { "type": "string" },
-      "taskId":          { "type": "string" },
-      "sprintId":        { "type": "string" },
-      "role":            { "type": "string" },
-      "action":          { "type": "string" },
-      "phase":           { "type": "string" },
-      "iteration":       { "type": "integer", "minimum": 1 },
-      "startTimestamp":  { "type": "string", "format": "date-time" },
-      "endTimestamp":    { "type": "string", "format": "date-time" },
-      "durationMinutes": { "type": "number", "minimum": 0 },
-      "model":           { "type": "string" },
-      "verdict":            { "type": "string" },
-      "notes":              { "type": "string" },
-      "inputTokens":        { "type": "integer", "minimum": 0 },
-      "outputTokens":       { "type": "integer", "minimum": 0 },
-      "cacheReadTokens":    { "type": "integer", "minimum": 0 },
-      "cacheWriteTokens":   { "type": "integer", "minimum": 0 },
-      "estimatedCostUSD":   { "type": "number",  "minimum": 0 },
-      "tokenSource":        { "type": "string",  "enum": ["reported", "estimated"] }
-    },
-    "additionalProperties": false
-  },
-  feature: {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "forge/feature.schema.json",
-    "title": "Feature",
-    "type": "object",
-    "required": ["id", "title", "status", "created_at"],
-    "properties": {
-      "id":           { "type": "string" },
-      "title":        { "type": "string" },
-      "description":  { "type": "string" },
-      "status": {
-        "type": "string",
-        "enum": ["draft", "active", "shipped", "retired"]
-      },
-      "requirements": { "type": "array", "items": { "type": "string" } },
-      "sprints":      { "type": "array", "items": { "type": "string" } },
-      "tasks":        { "type": "array", "items": { "type": "string" } },
-      "created_at":   { "type": "string", "format": "date-time" },
-      "updated_at":   { "type": "string", "format": "date-time" }
-    },
-    "additionalProperties": false
-  }
+const ENTITY_TYPES = ['sprint', 'task', 'bug', 'event', 'feature'];
+
+const MINIMAL_REQUIRED = {
+  sprint:  ['sprintId', 'title', 'status', 'taskIds', 'createdAt'],
+  task:    ['taskId', 'sprintId', 'title', 'status', 'path'],
+  bug:     ['bugId', 'title', 'severity', 'status', 'path', 'reportedAt'],
+  event:   ['eventId', 'taskId', 'sprintId', 'role', 'action', 'phase', 'iteration', 'startTimestamp', 'endTimestamp', 'durationMinutes', 'model'],
+  feature: ['id', 'title', 'status', 'created_at']
 };
 
 // Fields that are legitimately null:
@@ -184,17 +107,12 @@ function validateRecord(record, schema) {
 
   for (const field of required) {
     if (record[field] === undefined || record[field] === '') {
-      errors.push(`missing required field: "${field}"`);
+      errors.push({ category: 'missing-required', field, message: `missing required field: "${field}"`, value: record[field], expected: null });
     } else if (record[field] === null && !NULLABLE_FK.has(field)) {
-      errors.push(`missing required field: "${field}"`);
+      errors.push({ category: 'missing-required', field, message: `missing required field: "${field}"`, value: null, expected: null });
     }
   }
 
-  // Generic property loop — covers ALL schema-defined fields including optional ones.
-  // Token fields (inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens,
-  // estimatedCostUSD) are not in `required`, so absent fields skip via `continue`
-  // below. When present, the integer/number type checks and minimum:0 guard apply
-  // automatically. No special-casing is needed for token fields.
   for (const [field, def] of Object.entries(schema.properties || {})) {
     const val = record[field];
     if (val === undefined) continue;
@@ -210,35 +128,27 @@ function validateRecord(record, schema) {
       const ok = Array.isArray(def.type)
         ? def.type.some(t => typeMatches(t, val))
         : typeMatches(def.type, val);
-      if (!ok) errors.push(`field "${field}": expected ${def.type}, got ${Array.isArray(val) ? 'array' : typeof val}`);
+      if (!ok) errors.push({ category: 'type-mismatch', field, message: `field "${field}": expected ${def.type}, got ${Array.isArray(val) ? 'array' : typeof val}`, value: val, expected: String(def.type) });
     }
     if (def.enum && !def.enum.includes(val)) {
-      errors.push(`field "${field}": value "${val}" not in [${def.enum.join(', ')}]`);
+      errors.push({ category: 'invalid-enum', field, message: `field "${field}": value "${val}" not in [${def.enum.join(', ')}]`, value: String(val), expected: def.enum });
     }
     if (def.minimum !== undefined && typeof val === 'number' && val < def.minimum) {
-      errors.push(`field "${field}": value ${val} is below minimum ${def.minimum}`);
+      errors.push({ category: 'minimum-violation', field, message: `field "${field}": value ${val} is below minimum ${def.minimum}`, value: val, expected: String(def.minimum) });
+    }
+  }
+
+  // Check for undeclared fields when additionalProperties is false
+  if (schema.additionalProperties === false) {
+    const allowed = new Set([...required, ...Object.keys(schema.properties || {})]);
+    for (const key of Object.keys(record)) {
+      if (!allowed.has(key)) {
+        errors.push({ category: 'undeclared-field', field: key, message: `undeclared field: "${key}"`, value: record[key], expected: null });
+      }
     }
   }
 
   return errors;
-}
-
-const config    = readConfig();
-const storePath = path.join(cwd, config.paths?.store || '.forge/store');
-
-function listJsonFiles(dir) {
-  if (!fs.existsSync(dir)) return [];
-  return fs.readdirSync(dir)
-    .filter(f => f.endsWith('.json'))
-    .map(f => path.join(dir, f));
-}
-
-let errors = 0;
-let fixes = 0;
-
-function err(file, msg) {
-  console.error(`ERROR  ${path.relative(cwd, file)}: ${msg}`);
-  errors++;
 }
 
 // --- Backfill defaults for --fix mode ---
@@ -249,19 +159,15 @@ const BACKFILL = {
   bug: {
     reportedAt: (rec) => rec.resolvedAt || new Date().toISOString(),
   },
-  // Events written before schema stabilisation often omit fields that can be inferred
-  // from the filename, sibling fields, or sensible defaults.
   event: {
-    eventId:         (_rec, file) => path.basename(file, '.json'),
+    eventId:         (_rec, id) => id,
     role:            (rec)        => rec.agent || 'unknown',
     action:          (rec)        => rec.phase  || 'unknown',
     phase:           (rec)        => rec.action || 'unknown',
     iteration:       ()           => 1,
     startTimestamp:  (rec)        => rec.timestamp || new Date().toISOString(),
-    // endTimestamp / durationMinutes are in NULLABLE_FK — derive only if a timestamp hint exists
     endTimestamp:    (rec)        => rec.timestamp || null,
     durationMinutes: ()           => null,
-    // Prefer an explicit model field; fall back to actor if it looks like a model ID
     model: (rec) => {
       if (rec.actor && typeof rec.actor === 'string' && rec.actor.includes('claude')) return rec.actor;
       return 'unknown';
@@ -269,21 +175,102 @@ const BACKFILL = {
   },
 };
 
-function backfillRecord(file, rec, type) {
+module.exports = { validateRecord, MINIMAL_REQUIRED, NULLABLE_FK, BACKFILL, ENTITY_TYPES };
+
+// ---------------------------------------------------------------------------
+// CLI
+// ---------------------------------------------------------------------------
+if (require.main === module) {
+
+process.on('uncaughtException', (error) => {
+  console.error('Fatal validate-store error:', error);
+  process.exit(1);
+});
+
+const fs = require('fs');
+const path = require('path');
+const store = _getStore();
+const schemas = _getSchemas();
+
+const DRY_RUN = process.argv.includes('--dry-run');
+const FIX_MODE = process.argv.includes('--fix');
+const JSON_MODE = process.argv.includes('--json');
+
+// Read engineering root and project prefix from config for filesystem consistency checks
+const CONFIG_PATH = '.forge/config.json';
+let engineeringRoot = 'engineering';
+let projectPrefix = '[A-Z]+';
+try {
+  const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+  if (cfg.paths && cfg.paths.engineering) engineeringRoot = cfg.paths.engineering;
+  if (cfg.project && cfg.project.prefix) projectPrefix = cfg.project.prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+} catch (_) {}
+
+// Slug-aware directory discovery regexes
+const SPRINT_DIR_RE = new RegExp(`^(${projectPrefix}-S\\d+)(-\\S+)?$`);
+const TASK_FULL_RE  = new RegExp(`^(${projectPrefix}-S\\d+-T\\d+)(-\\S+)?$`);
+const TASK_SHORT_RE = /^(T\d+)(-\S+)?$/;
+
+let errorsCount = 0;
+let warningsCount = 0;
+let fixesCount = 0;
+
+// Structured collections for --json mode
+const jsonErrors = [];
+const jsonWarnings = [];
+const jsonFixes = [];
+
+function err(id, msg, category, field, value, expected) {
+  errorsCount++;
+  if (JSON_MODE) {
+    jsonErrors.push({ entity: id.split('/')[0].split('-')[0] || 'unknown', id, category: category || 'unknown', field: field || null, message: msg, value: value || null, expected: expected || null });
+  } else {
+    console.error(`ERROR  ${id}: ${msg}`);
+  }
+}
+
+function warn(id, msg, category, field) {
+  warningsCount++;
+  if (JSON_MODE) {
+    jsonWarnings.push({ entity: id.split('/')[0].split('-')[0] || 'unknown', id, category: category || 'unknown', field: field || null, message: msg });
+  } else {
+    console.log(`WARN   ${id}: ${msg}`);
+  }
+}
+
+function fixMsg(id, msg, category, field) {
+  fixesCount++;
+  if (JSON_MODE) {
+    jsonFixes.push({ entity: id.split('/')[0].split('-')[0] || 'unknown', id, category: category || 'backfill', field: field || null, message: msg, applied: !DRY_RUN });
+  } else {
+    console.log(`FIXED  ${id}: ${msg}`);
+  }
+}
+
+function backfillRecord(id, rec, type) {
   const rules = BACKFILL[type];
   if (!rules) return false;
   let changed = false;
   for (const [field, derive] of Object.entries(rules)) {
     if (rec[field] === undefined || rec[field] === null || rec[field] === '') {
-      const val = derive(rec, file);
+      const val = derive(rec, id);
       rec[field] = val;
-      console.log(`FIXED  ${path.relative(cwd, file)}: backfilled "${field}" = "${val}"`);
+      fixMsg(id, `backfilled "${field}" = "${val}"`, 'backfill', field);
       changed = true;
-      fixes++;
     }
   }
   if (changed) {
-    fs.writeFileSync(file, JSON.stringify(rec, null, 2) + '\n', 'utf8');
+    // In dry-run mode, preview the fix without writing
+    if (DRY_RUN) return changed;
+    // Facade write uses the logic in FSImpl to maintain formatting
+    if (type === 'sprint') store.writeSprint(rec);
+    else if (type === 'task') store.writeTask(rec);
+    else if (type === 'bug') store.writeBug(rec);
+    else if (type === 'feature') store.writeFeature(rec);
+    // Events are slightly different as they need sprintId
+    else if (type === 'event') {
+      // We'll handle event writing in the loop where sprintId is known
+    }
   }
   return changed;
 }
@@ -295,109 +282,238 @@ const bugIds    = new Set();
 const featureIds = new Set();
 
 // --- Pass 1: validate structure, collect IDs ---
-for (const file of listJsonFiles(path.join(storePath, 'sprints'))) {
-  const rec = readJson(file);
-  if (!rec) { err(file, 'invalid JSON'); continue; }
-  if (FIX_MODE) backfillRecord(file, rec, 'sprint');
-  if (rec.sprintId) {
-    sprintIds.add(rec.sprintId);
-    const prefix = config.project?.prefix;
-    if (prefix) sprintIds.add(`${prefix}-${rec.sprintId}`);
-  }
-  for (const e of validateRecord(rec, SCHEMAS.sprint)) err(file, e);
+const sprints = store.listSprints();
+for (const rec of sprints) {
+  if (!rec) continue;
+  if (FIX_MODE) backfillRecord(rec.sprintId, rec, 'sprint');
+  if (rec.sprintId) sprintIds.add(rec.sprintId);
+  for (const e of validateRecord(rec, schemas.sprint)) err(rec.sprintId, e.message, e.category, e.field, e.value, e.expected);
+  if (!rec.path) warn(rec.sprintId, 'missing optional field "path"', 'missing-optional', 'path');
 }
 
-for (const file of listJsonFiles(path.join(storePath, 'tasks'))) {
-  const rec = readJson(file);
-  if (!rec) { err(file, 'invalid JSON'); continue; }
+const tasks = store.listTasks();
+for (const rec of tasks) {
+  if (!rec) continue;
   if (rec.taskId) taskIds.add(rec.taskId);
-  for (const e of validateRecord(rec, SCHEMAS.task)) err(file, e);
+  for (const e of validateRecord(rec, schemas.task)) err(rec.taskId, e.message, e.category, e.field, e.value, e.expected);
 }
 
-for (const file of listJsonFiles(path.join(storePath, 'bugs'))) {
-  const rec = readJson(file);
-  if (!rec) { err(file, 'invalid JSON'); continue; }
-  if (FIX_MODE) backfillRecord(file, rec, 'bug');
+const bugs = store.listBugs();
+for (const rec of bugs) {
+  if (!rec) continue;
+  if (FIX_MODE) backfillRecord(rec.bugId, rec, 'bug');
   if (rec.bugId) bugIds.add(rec.bugId);
-  for (const e of validateRecord(rec, SCHEMAS.bug)) err(file, e);
+  for (const e of validateRecord(rec, schemas.bug)) err(rec.bugId, e.message, e.category, e.field, e.value, e.expected);
 }
 
-for (const file of listJsonFiles(path.join(storePath, 'features'))) {
-  const rec = readJson(file);
-  if (!rec) { err(file, 'invalid JSON'); continue; }
-  const featureId = rec.id || path.basename(file, '.json');
+const features = store.listFeatures();
+for (const rec of features) {
+  if (!rec) continue;
+  const featureId = rec.id || 'unknown';
   featureIds.add(featureId);
 }
 
 // --- Pass 2: referential integrity ---
-for (const file of listJsonFiles(path.join(storePath, 'sprints'))) {
-  const rec = readJson(file);
+for (const rec of sprints) {
   if (!rec) continue;
   if (rec.feature_id && !featureIds.has(rec.feature_id)) {
     if (FIX_MODE) {
       rec.feature_id = null;
-      fs.writeFileSync(file, JSON.stringify(rec, null, 2) + '\n', 'utf8');
-      console.log(`FIXED  ${path.relative(cwd, file)}: nullified orphaned feature_id`);
-      fixes++;
+      if (!DRY_RUN) store.writeSprint(rec);
+      fixMsg(rec.sprintId, `nullified orphaned feature_id "${rec.feature_id}"`, 'orphaned-fk', 'feature_id');
     } else {
-      err(file, `feature_id "${rec.feature_id}" references unknown feature`);
+      err(rec.sprintId, `feature_id "${rec.feature_id}" references unknown feature`, 'orphaned-fk', 'feature_id', rec.feature_id);
     }
   }
 }
 
-for (const file of listJsonFiles(path.join(storePath, 'tasks'))) {
-  const rec = readJson(file);
+for (const rec of tasks) {
   if (!rec) continue;
   if (rec.sprintId && !sprintIds.has(rec.sprintId))
-    err(file, `sprintId "${rec.sprintId}" references unknown sprint`);
-  
+    err(rec.taskId, `sprintId "${rec.sprintId}" references unknown sprint`, 'orphaned-fk', 'sprintId', rec.sprintId);
+
   if (rec.feature_id && !featureIds.has(rec.feature_id)) {
     if (FIX_MODE) {
       rec.feature_id = null;
-      fs.writeFileSync(file, JSON.stringify(rec, null, 2) + '\n', 'utf8');
-      console.log(`FIXED  ${path.relative(cwd, file)}: nullified orphaned feature_id`);
-      fixes++;
+      if (!DRY_RUN) store.writeTask(rec);
+      fixMsg(rec.taskId, `nullified orphaned feature_id "${rec.feature_id}"`, 'orphaned-fk', 'feature_id');
     } else {
-      err(file, `feature_id "${rec.feature_id}" references unknown feature`);
+      err(rec.taskId, `feature_id "${rec.feature_id}" references unknown feature`, 'orphaned-fk', 'feature_id', rec.feature_id);
     }
   }
 }
 
-for (const file of listJsonFiles(path.join(storePath, 'bugs'))) {
-  const rec = readJson(file);
+for (const rec of bugs) {
   if (!rec) continue;
   for (const ref of (rec.similarBugs || [])) {
-    if (!bugIds.has(ref)) err(file, `similarBugs references unknown bug "${ref}"`);
+    if (!bugIds.has(ref)) err(rec.bugId, `similarBugs references unknown bug "${ref}"`, 'orphaned-fk', 'similarBugs', ref);
   }
 }
 
 // --- Events ---
-const eventsRoot = path.join(storePath, 'events');
-if (fs.existsSync(eventsRoot)) {
-  for (const sprintDir of fs.readdirSync(eventsRoot)) {
-    const sprintEventsDir = path.join(eventsRoot, sprintDir);
-    if (!fs.statSync(sprintEventsDir).isDirectory()) continue;
-    for (const file of listJsonFiles(sprintEventsDir)) {
-      const rec = readJson(file);
-      if (!rec) { err(file, 'invalid JSON'); continue; }
-      if (FIX_MODE) backfillRecord(file, rec, 'event');
-      for (const e of validateRecord(rec, SCHEMAS.event)) err(file, e);
-      if (rec.taskId && !taskIds.has(rec.taskId) && !bugIds.has(rec.taskId))
-        err(file, `taskId "${rec.taskId}" references unknown task or bug`);
-      if (rec.sprintId && !sprintIds.has(rec.sprintId) && rec.sprintId !== sprintDir)
-        err(file, `sprintId "${rec.sprintId}" references unknown sprint`);
+const allSprints = store.listSprints();
+for (const sprint of allSprints) {
+  if (!sprint) continue;
+  const sprintId = sprint.sprintId;
+  const eventFileEntries = store.listEventFilenames(sprintId)
+    .filter(entry => !entry.id.startsWith('_'));
+
+  for (const entry of eventFileEntries) {
+    const filename = entry.id; // filename without .json extension
+    const rec = store.getEvent(filename, sprintId);
+    if (!rec) continue;
+
+    const eventId = rec.eventId;
+
+    if (FIX_MODE) {
+      const rules = BACKFILL.event;
+      let changed = false;
+      for (const [field, derive] of Object.entries(rules)) {
+        if (rec[field] === undefined || rec[field] === null || rec[field] === '') {
+          const val = derive(rec, filename);
+          rec[field] = val;
+          fixMsg(`${sprintId}/${filename}`, `backfilled "${field}" = "${val}"`, 'backfill', field);
+          changed = true;
+        }
+      }
+
+      // If the filename doesn't match the canonical eventId, resolve the mismatch.
+      // When the eventId is a valid filename, rename the file to match it.
+      // When the eventId is invalid (contains /, is a placeholder like "temp",
+      // or cannot be a filename), backfill eventId to the filename instead.
+      if (filename !== rec.eventId) {
+        const isValidFilename = (id) => id && !id.includes('/') && !id.includes('\\') && id !== '.';
+        if (isValidFilename(rec.eventId)) {
+          if (!DRY_RUN) {
+            try {
+              store.renameEvent(sprintId, filename, rec.eventId);
+            } catch (renameErr) {
+              err(`${sprintId}/${filename}`, `cannot rename to ${rec.eventId}.json: ${renameErr.message}`, 'filename-mismatch', 'eventId');
+            }
+          }
+          fixMsg(`${sprintId}/${filename}`, `renamed to ${rec.eventId}.json`, 'filename-mismatch', 'eventId');
+        } else {
+          // eventId is invalid for a filename — backfill it to the current filename
+          fixMsg(`${sprintId}/${filename}`, `eventId "${rec.eventId}" is not a valid filename, resetting to "${filename}"`, 'filename-mismatch', 'eventId');
+          rec.eventId = filename;
+          changed = true;
+        }
+      }
+
+      // Write the updated record (writeEvent now handles ghost detection internally)
+      if (changed && !DRY_RUN) store.writeEvent(sprintId, rec);
+    }
+
+    for (const e of validateRecord(rec, schemas.event)) err(`${sprintId}/${eventId}`, e.message, e.category, e.field, e.value, e.expected);
+    if (rec.taskId && !taskIds.has(rec.taskId) && !bugIds.has(rec.taskId))
+      err(`${sprintId}/${eventId}`, `taskId "${rec.taskId}" references unknown task or bug`, 'orphaned-fk', 'taskId', rec.taskId);
+    if (rec.sprintId && !sprintIds.has(rec.sprintId) && rec.sprintId !== sprintId)
+      err(`${sprintId}/${eventId}`, `sprintId "${rec.sprintId}" references unknown sprint`, 'orphaned-fk', 'sprintId', rec.sprintId);
+  }
+}
+
+// --- Pass 3: Filesystem consistency ---
+// Walk engineering/sprints/ to detect orphaned directories and dangling path fields.
+// All checks here emit warnings (not errors) for backward compatibility.
+const sprintsDir = path.join(engineeringRoot, 'sprints');
+if (fs.existsSync(sprintsDir)) {
+  let sprintEntries;
+  try { sprintEntries = fs.readdirSync(sprintsDir); } catch (_) { sprintEntries = []; }
+
+  for (const entry of sprintEntries) {
+    const entryPath = path.join(sprintsDir, entry);
+    let isDir = false;
+    try { isDir = fs.statSync(entryPath).isDirectory(); } catch (_) {}
+    if (!isDir) continue;
+
+    const sprintMatch = SPRINT_DIR_RE.exec(entry);
+    if (!sprintMatch) continue; // not a recognised sprint directory pattern — skip silently
+    const dirSprintId = sprintMatch[1];
+
+    if (!sprintIds.has(dirSprintId)) {
+      warn(dirSprintId, `directory "${entry}" has no sprint record in store`, 'orphan-directory');
+      continue; // no point walking tasks for an unregistered sprint
+    }
+
+    // Walk for task subdirectories
+    let taskEntries;
+    try { taskEntries = fs.readdirSync(entryPath); } catch (_) { taskEntries = []; }
+
+    for (const taskEntry of taskEntries) {
+      const taskEntryPath = path.join(entryPath, taskEntry);
+      let isTaskDir = false;
+      try { isTaskDir = fs.statSync(taskEntryPath).isDirectory(); } catch (_) {}
+      if (!isTaskDir) continue;
+
+      let dirTaskId = null;
+
+      const taskFullMatch = TASK_FULL_RE.exec(taskEntry);
+      if (taskFullMatch) {
+        dirTaskId = taskFullMatch[1];
+      } else {
+        const taskShortMatch = TASK_SHORT_RE.exec(taskEntry);
+        if (taskShortMatch) {
+          // Construct full task ID from sprint ID + short task number (e.g. T09 → FORGE-S06-T09)
+          dirTaskId = `${dirSprintId}-${taskShortMatch[1]}`;
+        }
+      }
+
+      if (!dirTaskId) continue; // not a recognised task directory pattern — skip silently
+
+      if (!taskIds.has(dirTaskId)) {
+        warn(dirTaskId, `directory "${entry}/${taskEntry}" has no task record in store`, 'orphan-directory');
+      }
     }
   }
 }
 
+// path field cross-check for sprints
+for (const rec of sprints) {
+  if (!rec || !rec.path) continue;
+  if (!fs.existsSync(rec.path)) {
+    warn(rec.sprintId, `path "${rec.path}" does not exist on disk`, 'stale-path', 'path');
+  }
+}
+
+// path field cross-check for tasks
+for (const rec of tasks) {
+  if (!rec || !rec.path) continue;
+  if (!fs.existsSync(rec.path)) {
+    warn(rec.taskId, `path "${rec.path}" does not exist on disk`, 'stale-path', 'path');
+  }
+}
+
 // --- Result ---
-if (fixes > 0) {
-  console.log(`${fixes} field(s) backfilled.`);
-}
-if (errors === 0) {
-  console.log(`Store validation passed (${sprintIds.size} sprint(s), ${taskIds.size} task(s), ${bugIds.size} bug(s)).`);
-  process.exit(0);
+if (JSON_MODE) {
+  const result = {
+    ok: errorsCount === 0,
+    errors: jsonErrors,
+    warnings: jsonWarnings,
+    fixes: jsonFixes,
+    summary: {
+      sprints: sprintIds.size,
+      tasks: taskIds.size,
+      bugs: bugIds.size,
+      features: featureIds.size,
+      errors: errorsCount,
+      warnings: warningsCount,
+      fixes: fixesCount
+    }
+  };
+  console.log(JSON.stringify(result, null, 2));
+  process.exit(errorsCount === 0 ? 0 : 1);
 } else {
-  console.error(`\n${errors} error(s) found.`);
-  process.exit(1);
+  if (fixesCount > 0) {
+    console.log(`${fixesCount} field(s) backfilled.`);
+  }
+  if (errorsCount === 0) {
+    console.log(`Store validation passed (${sprintIds.size} sprint(s), ${taskIds.size} task(s), ${bugIds.size} bug(s)).`);
+    if (warningsCount > 0) console.log(`${warningsCount} warning(s).`);
+    process.exit(0);
+  } else {
+    console.error(`\n${errorsCount} error(s) found.`);
+    process.exit(1);
+  }
 }
+
+} // end if (require.main === module)

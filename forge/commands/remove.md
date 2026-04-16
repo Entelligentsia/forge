@@ -1,4 +1,5 @@
 ---
+name: remove
 description: Use when you want to remove Forge from the current project, with options for what to keep
 ---
 
@@ -13,19 +14,26 @@ nothing is deleted until you confirm explicitly.
 |---|---|---|
 | `.forge/` | Config, workflows, templates, task/sprint/bug store | Yes — regeneratable via `/forge:init` |
 | `.claude/commands/` | Generated slash commands (sprint-plan, run-task, etc.) | Yes — regeneratable via `/forge:init` |
-| `engineering/` | Knowledge base, sprint history, bug history, tools | **Caution** — represents accumulated project learning |
+| `{KB_PATH}/` | Knowledge base, sprint history, bug history, tools | **Caution** — represents accumulated project learning |
 
 ## Step 1 — Inventory what exists
+
+Read the configured KB path from config:
+
+```sh
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo "engineering"`
+```
 
 Check which Forge directories are present:
 
 ```
 exists: !`[ -d ".forge" ] && echo "YES" || echo "NO"`
-exists: !`[ -d "engineering" ] && echo "YES" || echo "NO"`
+exists: !`[ -d "{KB_PATH}" ] && echo "YES" || echo "NO"`
 exists: !`[ -d ".claude/commands" ] && echo "YES" || echo "NO"`
 ```
 
-Report to the user exactly what was found before proceeding.
+Report to the user exactly what was found before proceeding (use the actual KB path value, e.g. `engineering/` or `ai-docs/`).
 
 ## Step 2 — Present options
 
@@ -36,16 +44,16 @@ Forge removal options:
 
   [1] Minimal — remove .forge/ only
       Removes config, workflows, templates, and the task/sprint/bug store.
-      Leaves engineering/ and .claude/commands/ intact.
+      Leaves {KB_PATH}/ and .claude/commands/ intact.
       Use this to reset Forge config while keeping your knowledge base.
 
   [2] Standard — remove .forge/ and generated commands
       Removes .forge/ and the Forge-generated commands in .claude/commands/.
-      Leaves engineering/ intact.
+      Leaves {KB_PATH}/ intact.
       Recommended for most removals — your knowledge base survives.
 
   [3] Full — remove everything
-      Removes .forge/, generated commands, AND engineering/.
+      Removes .forge/, generated commands, AND {KB_PATH}/.
       Your knowledge base, sprint history, and bug history will be lost.
       This cannot be undone.
 
@@ -54,20 +62,21 @@ Which option? (1 / 2 / 3)
 
 Wait for the user's choice before proceeding.
 
-## Step 3 — Confirm engineering/ removal (option 3 only)
+## Step 3 — Confirm KB folder removal (option 3 only)
 
-If the user chose option 3, ask explicitly:
+If the user chose option 3, ask explicitly (using the actual KB_PATH value):
 
 ```
-engineering/ contains your accumulated knowledge base — architecture docs,
+{KB_PATH}/ contains your accumulated knowledge base — architecture docs,
 entity model, stack checklist, sprint history, and bug history. This represents
 real learning that took sprints to build.
 
 Are you sure you want to delete it?
-Type "delete engineering" to confirm, or anything else to keep it and use option 2 instead.
+Type "delete {KB_PATH}" to confirm, or anything else to keep it and use option 2 instead.
 ```
 
-If they do not type exactly `delete engineering`, downgrade to option 2 and inform them.
+If they do not type exactly `delete {KB_PATH}` (with the actual path, e.g. `delete engineering`
+or `delete ai-docs`), downgrade to option 2 and inform them.
 
 ## Step 4 — Final confirmation
 
@@ -89,7 +98,7 @@ About to delete:
   ✗ .claude/commands/commit.md
   ✗ .claude/commands/collate.md
   ✗ .claude/commands/retrospective.md
-  [✗ engineering/]   ← only if option 3 confirmed
+  [✗ {KB_PATH}/]   ← only if option 3 confirmed
 
 Type "confirm" to proceed, or anything else to cancel.
 ```
@@ -125,7 +134,7 @@ rm -f .claude/commands/sprint-intake.md \
 
 **Option 3 (full):**
 ```bash
-rm -rf .forge/ engineering/
+rm -rf .forge/ "{KB_PATH}/"
 rm -f .claude/commands/sprint-intake.md \
       .claude/commands/sprint-plan.md \
       .claude/commands/run-task.md \

@@ -1,11 +1,7 @@
 {
   "taskId": "FORGE-S01-T05",
   "sprintId": "FORGE-S01",
-  "title": "collate.cjs — COST_REPORT.md generation",
-  "status": "committed",
-  "assignedModel": "claude-sonnet-4-6",
-  "path": "forge/tools/collate.cjs",
-  "estimate": "L",
-  "dependencies": ["FORGE-S01-T01"],
-  "pipeline": "default"
+  "title": "PLAN — FORGE-S01-T05: collate.cjs — COST_REPORT.md generation",
+  "status": "implemented",
+  "path": "engineering/sprints/FORGE-S01/T05"
 }

@@ -1,29 +1,47 @@
-# Meta-Workflow: Update Implementation
+---
+requirements:
+  reasoning: Medium
+  context: Medium
+  speed: Medium
+---
+
+# 🌱 Meta-Workflow: Update Implementation
 
 ## Purpose
 
-The Engineer fixes code based on Supervisor review feedback.
+Update the implementation of a task based on a "Revision Required" verdict from a review phase.
 
 ## Algorithm
 
-### Step 1 — Load Context
-- Read CODE_REVIEW.md (the revision feedback)
-- Read the relevant code files referenced in the feedback
+```
+1. Load Context:
+   - Read current implementation (code)
+   - Read the review artifact (CODE_REVIEW.md or VALIDATION_REPORT.md)
+   - Read the approved PLAN.md
 
-### Step 2 — Address Each Item
-- Go through each numbered revision item
-- Fix the code
-- Re-run syntax check and tests after each fix
+2. Analysis:
+   - Map the "Revision Required" items to specific code locations
+   - Determine if the required changes necessitate a plan update
 
-### Step 3 — Verify
-- Run full verification: {SYNTAX_CHECK}, {TEST_COMMAND}, {BUILD_COMMAND}
-- Confirm all revision items are addressed
+3. Implementation:
+   - Apply the necessary fixes/changes
+   - Verify the changes using the project's test suite
+   - Update PROGRESS.md with a summary of the revisions
 
-### Step 4 — Update PROGRESS.md
-- Append revision section with what was changed
-- Update test evidence with latest run
-
-### Step 5 — Emit Event + Update State
+4. Finalize:
+   - Update task status via `/forge:store update-status task {taskId} status implemented`
+   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Execute Token Reporting (see Generation Instructions)
+```
 
 ## Generation Instructions
-- Same project-specific commands as meta-implement.md
+
+- **Workflow Structure:** The generated `update_implementation.md` must follow the strict "Algorithm" block format.
+- **Context Isolation:** Forbid inline execution of fix logic; use the `Agent` tool for sub-tasks.
+- **Project Specifics:**
+  - Reference project-specific verification commands.
+- **Token Reporting:** The generated workflow MUST mandate the following before returning:
+  1. Run `/cost` to retrieve session token usage.
+  2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
+  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+- **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

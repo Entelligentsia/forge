@@ -1,4 +1,4 @@
-# Workflow: Quiz Agent (Forge Knowledge Check)
+# 🌊 Workflow: Quiz Agent (Forge Knowledge Check)
 
 ## Purpose
 

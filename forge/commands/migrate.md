@@ -1,4 +1,5 @@
 ---
+name: migrate
 description: Use after forge:init to migrate a pre-existing AI-SDLC store to Forge format — interviews you to define the project-specific mapping
 ---
 
@@ -87,10 +88,22 @@ If the user declines, exit without changes.
 
 ## Step 5 — Apply migration
 
-For each affected file:
-1. Read the JSON
-2. Apply the mapping (replace only the matched field values)
-3. Write the file back with the same formatting (`JSON.stringify(record, null, 2) + '\n'`)
+For each affected record, apply the migration via the store custodian:
+
+```
+node "$FORGE_ROOT/tools/store-cli.cjs" write <entity> '{updated-json}'
+```
+
+where `<entity>` is `sprint`, `task`, or `bug` as appropriate, and
+`'{updated-json}'` is the full record with the mapped field values applied.
+Construct the JSON by reading the current record (using the Read tool or
+`/forge:store read <entity> <id>`), applying only the agreed mapping, and
+passing the complete updated record to the custodian.
+
+**Error handling:** If the custodian exits with code 1, read stderr for the
+validation error, fix the data, and retry (max 2 retries). If the command still
+fails after retries, report the validation error to the user and stop. **Never
+fall back to writing store files directly.**
 
 Do not modify any field that was not part of the agreed mapping. Do not add or remove fields.
 

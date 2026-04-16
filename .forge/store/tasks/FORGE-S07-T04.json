@@ -1,0 +1,7 @@
+{
+  "taskId": "FORGE-S07-T04",
+  "sprintId": "FORGE-S07",
+  "title": "PLAN — FORGE-S07-T04: Refactor validate-store.cjs — remove embedded schemas and fix facade bypass",
+  "status": "committed",
+  "path": "engineering/sprints/FORGE-S07-store-custodian/FORGE-S07-T04-validate-store-refactor"
+}

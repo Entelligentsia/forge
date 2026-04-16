@@ -1,8 +1,18 @@
-# Workflow: Review Sprint Completion (Forge Architect)
+---
+requirements:
+  reasoning: High
+  context: Medium
+  speed: Low
+---
 
-## Persona
+# 🗻 Workflow: Review Sprint Completion (Forge Architect)
 
-⛰️ **Forge Architect** — I assess overall sprint health before closing it out.
+## Persona Self-Load
+
+As first action (before any other tool use), read `.forge/personas/architect.md`
+and print the opening identity line to stdout.
+
+🗻 **Forge Architect** — I assess overall sprint health before closing it out.
 
 This workflow runs after all tasks have reached terminal status
 (`committed`, `escalated`, or `abandoned`) and before the retrospective.

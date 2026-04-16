@@ -1,42 +1,58 @@
-# Meta-Workflow: Implement Plan
+---
+requirements:
+  reasoning: Medium
+  context: Medium
+  speed: Medium
+---
+
+# 🌱 Meta-Workflow: Implement Plan
 
 ## Purpose
 
-The Engineer implements the approved plan: write code, run tests, verify,
-and document progress.
+The Engineer implements the approved plan: write code, run tests, verify, and document progress.
 
 ## Algorithm
 
-### Step 1 — Load Context
-- Read architecture docs relevant to the task
-- Read business domain docs relevant to the task
-- Read the approved PLAN.md
+```
+1. Load Context:
+   - Read architecture and business domain docs
+   - Read the approved PLAN.md
 
-### Step 2 — Implement
-- Follow the plan. Write code.
-- Work incrementally — compile/check after each significant change
+2. Implementation:
+   - Execute plan steps incrementally
+   - Perform "compile/check" after each significant change
+   - Ensure all new code follows established project patterns
 
-### Step 3 — Verify
-- Run syntax verification: {SYNTAX_CHECK}
-- Run test suite: {TEST_COMMAND}
-- Run build if frontend assets modified: {BUILD_COMMAND}
+3. Verification:
+   - Run syntax verification: {SYNTAX_CHECK}
+   - Run test suite: {TEST_COMMAND}
+   - Run build if frontend assets modified: {BUILD_COMMAND}
 
-### Step 4 — Document
-- Write PROGRESS.md with:
-  - What was done
-  - Test evidence (copy test output)
-  - Files changed manifest
+4. Documentation:
+   - Write PROGRESS.md containing:
+     - Summary of changes
+     - Test evidence (copy of output)
+     - Files changed manifest
 
-### Step 5 — Knowledge Writeback
-- Update architecture/business-domain/stack-checklist if discoveries made
-- Tag updates: `<!-- Discovered during {TASK_ID} — {date} -->`
+5. Knowledge Writeback:
+   - Update architecture/domain/stack-checklist if discoveries were made
+   - Tag updates: `<!-- Discovered during {TASK_ID} — {date} -->`
 
-### Step 6 — Emit Event + Update State
+6. Finalize:
+   - Update task status via `/forge:store update-status task {taskId} status implemented`
+   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Execute Token Reporting (see Generation Instructions)
+```
 
 ## Generation Instructions
-- Replace {SYNTAX_CHECK} with project's checker (py_compile, node --check, go vet...)
-- Replace {TEST_COMMAND} with project's test runner
-- Replace {BUILD_COMMAND} with project's build step
-- Reference specific architecture sub-documents by name
-- Reference specific entity names from business domain
-- Include project-specific verification steps (Django: makemigrations --check)
+
+- **Workflow Structure:** The generated `implement_plan.md` must follow the strict "Algorithm" block format.
+- **Context Isolation:** Forbid inline execution of complex logic; use the `Agent` tool for sub-tasks.
+- **Project Specifics:**
+  - Replace {SYNTAX_CHECK}, {TEST_COMMAND}, and {BUILD_COMMAND} with actual project commands.
+  - Reference project-specific architecture docs by name.
+- **Token Reporting:** The generated workflow MUST mandate the following before returning:
+  1. Run `/cost` to retrieve session token usage.
+  2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
+  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+- **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

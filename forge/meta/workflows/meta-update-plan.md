@@ -1,27 +1,47 @@
-# Meta-Workflow: Update Plan
+---
+requirements:
+  reasoning: Medium
+  context: Medium
+  speed: Medium
+---
+
+# 🌱 Meta-Workflow: Update Plan
 
 ## Purpose
 
-The Engineer revises the implementation plan based on Supervisor feedback.
+Update the implementation plan of a task based on a "Revision Required" verdict from the plan review phase.
 
 ## Algorithm
 
-### Step 1 — Load Context
-- Read the original PLAN.md
-- Read PLAN_REVIEW.md (the revision feedback)
-- Read any architecture/domain docs referenced in the feedback
+```
+1. Load Context:
+   - Read the original task prompt
+   - Read the current PLAN.md
+   - Read the review artifact (PLAN_REVIEW.md)
 
-### Step 2 — Address Each Item
-- Go through each numbered revision item
-- Research additional context if needed
-- Update the plan to address the feedback
+2. Analysis:
+   - Review the numbered, actionable items in the review artifact
+   - Determine where the plan was insufficient or incorrect
 
-### Step 3 — Update PLAN.md
-- Revise the plan in place
-- Add a revision history section noting what changed and why
+3. Revision:
+   - Update PLAN.md to address all review findings
+   - Ensure the revised plan remains aligned with the task prompt
+   - Update the "Operational Impact" or "Testing Strategy" if the revision changed them
 
-### Step 4 — Emit Event + Update State
+4. Finalize:
+   - Update task status via `/forge:store update-status task {taskId} status planned`
+   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Execute Token Reporting (see Generation Instructions)
+```
 
 ## Generation Instructions
-- Same project-specific references as meta-plan-task.md
-- Include the project's plan template path
+
+- **Workflow Structure:** The generated `update_plan.md` must follow the strict "Algorithm" block format.
+- **Context Isolation:** Forbid inline execution of plan revision; use the `Agent` tool for sub-tasks.
+- **Project Specifics:**
+  - Reference the project's plan template.
+- **Token Reporting:** The generated workflow MUST mandate the following before returning:
+  1. Run `/cost` to retrieve session token usage.
+  2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
+  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+- **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

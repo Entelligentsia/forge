@@ -1,10 +1,7 @@
 {
   "taskId": "FORGE-S03-T01",
   "sprintId": "FORGE-S03",
-  "title": "Eliminate tools regenerate target and embed store schemas",
-  "description": "The 'tools' regeneration target was always a misnomer — it only copied JSON schemas to .forge/schemas/. Tools ship with the plugin and never needed per-project regeneration. This task removes the target entirely and makes validate-store self-contained by embedding schemas internally.\n\nChanges required:\n1. forge/tools/validate-store.cjs — promote the existing FALLBACK field lists to full embedded JSON Schema objects (matching the blocks in forge/meta/store-schema/*.md); remove loadSchema(), schemasPath, and all .forge/schemas/ file reads. The tool must work without .forge/schemas/ present.\n2. forge/commands/init.md — remove Phase 8 (schema copy to .forge/schemas/). Document that validate-store embeds its own schemas.\n3. forge/commands/regenerate.md — remove the 'tools' category section entirely.\n4. forge/commands/update.md — remove all references to 'tools' in regeneration descriptions (Step 4 summary, Step 2A 'After install, Forge will regenerate' list, Step 6 summary).\n5. forge/meta/store-schema/*.md — remove the 'JSON Schema' section header that says 'emitted verbatim to .forge/schemas/ during init'. Reframe each file's intro as a design document. The JSON blocks remain as reference but no longer imply they are extraction sources.",
-  "status": "committed",
-  "estimate": "M",
-  "dependencies": [],
-  "path": "engineering/sprints/FORGE-S03/FORGE-S03-T01"
+  "title": "PLAN — FORGE-S03-T01: Eliminate tools regenerate target and embed store schemas",
+  "status": "planned",
+  "path": "engineering/sprints/FORGE-S03/T01"
 }

@@ -1,0 +1,13 @@
+{
+  "eventId": "20260412T110637000Z_BUG-007_plan_plan-fix",
+  "taskId": "BUG-007",
+  "sprintId": "bugs",
+  "role": "plan",
+  "action": "plan-fix",
+  "phase": "plan-fix",
+  "iteration": 1,
+  "startTimestamp": "2026-04-12T11:06:37Z",
+  "endTimestamp": "2026-04-12T11:06:37Z",
+  "durationMinutes": 0,
+  "model": "claude-sonnet-4-6"
+}

@@ -1,0 +1,7 @@
+{
+  "taskId": "FORGE-S06-T06",
+  "sprintId": "FORGE-S06",
+  "title": "PLAN — FORGE-S06-T06: Add `path` field to sprint schema",
+  "status": "committed",
+  "path": "engineering/sprints/FORGE-S06/FORGE-S06-T06-add-path-to-sprint-schema"
+}

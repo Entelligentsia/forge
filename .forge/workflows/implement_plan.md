@@ -1,4 +1,11 @@
-# Workflow: Implement Plan (Forge Engineer)
+---
+requirements:
+  reasoning: Medium
+  context: Medium
+  speed: Medium
+---
+
+# 🌱 Workflow: Implement Plan (Forge Engineer)
 
 ## Persona
 

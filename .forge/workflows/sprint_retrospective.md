@@ -1,8 +1,18 @@
-# Workflow: Sprint Retrospective (Forge Architect)
+---
+requirements:
+  reasoning: High
+  context: Medium
+  speed: Low
+---
 
-## Persona
+# 🗻 Workflow: Sprint Retrospective (Forge Architect)
 
-⛰️ **Forge Architect** — I close the sprint, extract learnings, and improve the system.
+## Persona Self-Load
+
+As first action (before any other tool use), read `.forge/personas/architect.md`
+and print the opening identity line to stdout.
+
+🗻 **Forge Architect** — I close the sprint, extract learnings, and improve the system.
 
 ---
 
@@ -134,6 +144,17 @@ Compute rolling baselines across **all** sprints (not just the current one):
 
 ## Step 6 — Collate
 
-Run: `node forge/tools/collate.cjs`
+Run the runtime-read collate command:
+
+```bash
+FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
+node "$FORGE_ROOT/tools/collate.cjs"
+```
+
+Or — since this repository is Forge itself — use the in-tree tool:
+
+```bash
+node forge/tools/collate.cjs
+```
 
 This updates `engineering/MASTER_INDEX.md` and all per-directory `INDEX.md` files with the final sprint state.

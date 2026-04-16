@@ -1,12 +1,12 @@
 # Forge Skill Recommendations
 
 Maps discovered stack components to verified Claude Code marketplace skills.
-Used during `forge:init` (Phase 1.5) and `forge:health` to recommend skills
+Used during `forge:init` (Phase 2) and `forge:health` to recommend skills
 that complement Forge's project-specific knowledge.
 
 ## Skill Sources
 
-Skills come from two locations — both are checked by `hooks/list-skills.js`:
+Skills come from two locations — both are checked by `tools/list-skills.js`:
 
 | Source | Location | Install mechanism |
 |---|---|---|

@@ -12,6 +12,7 @@ by Claude Code when the plugin is installed. Each maps to a `/forge:<name>` invo
 |---|---|---|
 | `/forge:init` | `commands/init.md` | Bootstrap complete SDLC instance in a project |
 | `/forge:health` | `commands/health.md` | Detect stale docs, orphaned entities, skill gaps |
+| `/forge:calibrate` | `commands/calibrate.md` | Detect drift, propose regeneration patches, apply approved patches |
 | `/forge:update` | `commands/update.md` | Propagate plugin upgrade into project artifacts |
 | `/forge:update-tools` | `commands/update-tools.md` | Copy latest tools/schemas into project |
 | `/forge:regenerate` | `commands/regenerate.md` | Refresh specific artifact categories |
@@ -28,6 +29,18 @@ Hooks are registered in `forge/hooks/hooks.json` and execute automatically.
 |---|---|---|
 | `SessionStart` | `hooks/check-update.js` | Inject Forge context; check for newer version; prompt `/forge:update` after install |
 | `PostToolUse` (Bash) | `hooks/triage-error.js` | On non-zero exit from Forge-related commands, suggest `/forge:report-bug` |
+
+## Agents
+
+Named agents live in `forge/agents/`. Claude Code auto-discovers all `.md` files in `agents/`
+when the plugin is installed. Agents can be invoked via the Agent tool from within workflows,
+commands, or other agents — or auto-invoked by Claude Code based on task context.
+
+| Agent | File | Purpose |
+|---|---|---|
+| Tomoshibi (灯) | `agents/tomoshibi.md` | Ensure coding-agent instruction files have current Forge KB links |
+
+<!-- Discovered during FORGE-S10-T01 — 2026-04-16 -->
 
 ## Utilities (not hooks)
 

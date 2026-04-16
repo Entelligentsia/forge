@@ -1,0 +1,7 @@
+{
+  "taskId": "FORGE-S06-T05",
+  "sprintId": "FORGE-S06",
+  "title": "PLAN — FORGE-S06-T05: Suppress false breaking-change confirmation in forge:update",
+  "status": "committed",
+  "path": "engineering/sprints/FORGE-S06/FORGE-S06-T05-suppress-false-breaking-change"
+}

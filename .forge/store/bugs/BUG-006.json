@@ -6,7 +6,7 @@
   "status": "fixed",
   "path": "forge/tools/collate.cjs",
   "rootCauseCategory": "data-integrity",
-  "similarBugs": ["BUG-005"],
+  "similarBugs": ["BUG-005", "BUG-007"],
   "checklistItemAdded": false,
   "businessRuleUpdated": false,
   "reportedAt": "2026-04-07T06:07:21Z",

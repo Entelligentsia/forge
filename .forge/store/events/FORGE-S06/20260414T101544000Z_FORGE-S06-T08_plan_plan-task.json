@@ -1,0 +1,13 @@
+{
+  "eventId": "20260414T101544000Z_FORGE-S06-T08_plan_plan-task",
+  "taskId": "FORGE-S06-T08",
+  "sprintId": "FORGE-S06",
+  "role": "plan",
+  "action": "plan-task",
+  "phase": "plan",
+  "iteration": 1,
+  "startTimestamp": "2026-04-14T10:15:44Z",
+  "endTimestamp": "2026-04-14T10:16:30Z",
+  "durationMinutes": 0.77,
+  "model": "claude-sonnet-4-6"
+}

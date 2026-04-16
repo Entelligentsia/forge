@@ -1,257 +1,251 @@
-# Meta-Workflow: Fix Bug (Orchestrator)
+---
+requirements:
+  reasoning: Medium
+  context: Medium
+  speed: Medium
+---
+
+# 🍂 Meta-Workflow: Fix Bug
 
 ## Purpose
 
-Triage a reported bug, analyse the root cause, drive the fix through the full
-plan → review → implement → code-review → approve → commit pipeline
-autonomously, and classify the root cause for trend analysis.
+Triage and resolve a reported bug. This follows the same rigorous pipeline as a standard task.
 
----
-
-## Persona
-
-🍂 **{PROJECT_NAME} Bug Fixer** — I find what has decayed and restore it.
-
----
-
-## Triage (Inline Pre-Phase)
-
-Before spawning any subagent, the orchestrator triages the bug inline:
-
-1. Read `.forge/store/bugs/{BUG_ID}.json`
-2. Read `engineering/bugs/{BUG_DIR}/ANALYSIS.md` if it exists
-3. Identify the exact file and line where the bug manifests
-4. Assess severity: `critical` / `major` / `minor`
-5. Classify root cause category (see Step 2 below)
-6. Update bug store `status` → `"in-progress"`
-
-Triage is inline because it only reads and classifies — it produces no
-implementation artifacts that would contaminate downstream subagent context.
-
----
-
-## Bug-Fix Pipeline
+## Algorithm
 
 ```
-triage (inline) → plan-fix → review-plan → [loop ≤ 3] → implement → review-code → [loop ≤ 3] → approve → commit
+1. Triage:
+   - Locate or create the bug record (MANDATORY — do this before anything else):
+     a. Determine the bug ID: if $ARGUMENTS is an existing FORGE-BUG-NNN ID, use it.
+        Otherwise derive the next available ID by listing .forge/store/bugs/.
+     b. If .forge/store/bugs/{BUG_ID}.json does NOT exist:
+        - Derive a short slug from the bug title (kebab-case, ≤ 5 words)
+        - Create the engineering folder:
+            mkdir -p engineering/bugs/{BUG_ID}-{slug}
+        - Write the bug record via store-cli — NEVER write the file directly:
+            node "$FORGE_ROOT/tools/store-cli.cjs" write bug '{
+              "bugId":       "{BUG_ID}",
+              "title":       "<from input>",
+              "description": "<from input>",
+              "severity":    "<assessed: critical|major|minor>",
+              "status":      "reported",
+              "path":        "engineering/bugs/{BUG_ID}-{slug}",
+              "reportedAt":  "<current ISO timestamp>"
+            }'
+        - If $ARGUMENTS contains a GitHub issue URL, include it as "githubIssue"
+          in the JSON above — it is a valid schema field.
+     c. Read the now-guaranteed record:
+            node "$FORGE_ROOT/tools/store-cli.cjs" read bug {BUG_ID} --json
+   - Reproduce the bug: create a failing test case or a reproduction script
+   - Confirm the root cause via codebase research
+
+2. Plan:
+   - Generate BUG_FIX_PLAN.md following the plan template
+   - Define the "Success Condition": how the reproduction script/test will now pass
+
+3. Implementation:
+   - Implement the fix following the approved plan
+   - Verify the fix using the reproduction script/test
+   - Run regression tests to ensure no side effects
+
+4. Documentation:
+   - Update the bug record in the store with:
+     - Root cause analysis
+     - Fix description
+     - Verification evidence
+
+5. Finalize:
+   - Execute Token Reporting (see Generation Instructions) — do this
+     first so the sidecar is written before the event directory is purged
+   - Summarise accumulated cost data into the bug artifact:
+     read all events from `.forge/store/events/{bugId}/`, aggregate
+     inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, and
+     estimatedCostUSD across all events that carry token fields, and
+     append a `## Cost Summary` section to the bug's markdown artifact
+     (e.g. `engineering/bugs/{bugDir}/BUG_ANALYSIS.md` or equivalent).
+     Format: one line per phase event, total row at the bottom.
+     If no events carry token data, skip this section silently.
+   - Run `node "$FORGE_ROOT/tools/collate.cjs" {bugId} --purge-events`
+     This purges `.forge/store/events/{bugId}/` deterministically.
+     The cost summary written to the bug artifact above is the durable
+     record; no COST_REPORT.md is generated for bug IDs (collate skips
+     sprint processing when the ID is not a known sprint).
+   - Update bug status via `/forge:store update-status bug {bugId} status fixed`
+   - Emit the complete event via `/forge:store emit {bugId} '{event-json}'`
+     (tombstone — written after the purge; the only event that will remain)
 ```
-
-Each phase after triage runs as a **subagent** (Agent tool call) with a fresh
-context window. The orchestrator itself stays minimal — it only holds the phase
-loop and emits events.
-
----
-
-## Model Resolution
-
-Resolve the model for each phase using this priority:
-
-1. **`phase.model`** from `config.pipelines` if defined (highest priority)
-2. **Role-based default:**
-
-| Role          | Default Model |
-|---------------|---------------|
-| `plan`        | `sonnet`      |
-| `implement`   | `sonnet`      |
-| `review-plan` | `opus`        |
-| `review-code` | `opus`        |
-| `approve`     | `opus`        |
-| `commit`      | `haiku`       |
-
----
-
-## Execution Algorithm
-
-The orchestrator MUST follow this procedure exactly. Do not deviate.
-
-```
-triage_bug_inline(bug_id)           # read, classify, set status = "in-progress"
-update_bug_store(bug_id, status="in-progress")
-
-phases = [plan-fix, review-plan, implement, review-code, approve, commit]
-iteration_counts = {}               # keyed by phase name
-i = 0
-
-while i < len(phases):
-  phase = phases[i]
-  phase_model = phase.model or ROLE_MODEL_DEFAULTS[phase.role]
-
-  start_ts = current_iso_timestamp()
-  event_id = f"{start_ts}_{bug_id}_{phase.role}_{phase.action}"
-  sidecar_path = f".forge/store/events/bugs/_{event_id}_usage.json"
-
-  emit_event(bug_id, phase, eventId=event_id, iteration=iteration_counts.get(phase.name, 0) + 1, action="start")
-
-  spawn_subagent(
-    prompt="🍂 **{PROJECT_NAME} Bug Fixer — {phase.name}**\n\nRead `{phase.workflow}` and follow it. Bug ID: {bug_id}. Also read `engineering/MASTER_INDEX.md` and `engineering/bugs/{BUG_DIR}/ANALYSIS.md` for context. Before returning: run /cost, parse token usage, and write sidecar `.forge/store/events/bugs/_{event_id}_usage.json` with fields: inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD.",
-    description="{phase.name} phase for {bug_id}",
-    model=phase_model
-  )
-
-  # Sidecar merge (graceful — no error if missing)
-  token_fields = {}
-  if file_exists(sidecar_path):
-    token_fields = read_json(sidecar_path)
-    delete_file(sidecar_path)
-  emit_event(bug_id, phase, action="complete", extra_fields=token_fields)
-
-  # Non-review phases always advance
-  if phase.role not in ("review-plan", "review-code"):
-    i += 1
-    continue
-
-  # Review phase: detect verdict from artifact
-  verdict = read_verdict(bug_id, phase)   # see Verdict Detection below
-
-  if verdict == "Approved":
-    i += 1
-
-  elif verdict == "Revision Required":
-    iteration_counts[phase.name] = iteration_counts.get(phase.name, 0) + 1
-
-    if iteration_counts[phase.name] >= phase.maxIterations:   # default 3
-      escalate_to_human(bug_id, phase, reason="max iterations reached")
-      break
-
-    # Loop back: review-plan → plan-fix; review-code → implement
-    target = phase.on_revision or nearest_preceding_non_review(phases, i)
-    i = index_of(phases, target)
-
-  else:
-    escalate_to_human(bug_id, phase, reason=f"unrecognised verdict: {verdict}")
-    break
-```
-
----
-
-## Verdict Detection
-
-After each review phase, read the verdict from the written artifact — never
-infer from conversation context.
-
-| Phase role    | Artifact                                        | Field                  |
-|---------------|-------------------------------------------------|------------------------|
-| `review-plan` | `engineering/bugs/{BUG_DIR}/PLAN_REVIEW.md`     | Line matching `**Verdict:**` |
-| `review-code` | `engineering/bugs/{BUG_DIR}/CODE_REVIEW.md`     | Line matching `**Verdict:**` |
-
-Expected values (trimmed after `**Verdict:**`):
-
-```
-**Verdict:** Approved
-**Verdict:** Revision Required
-```
-
-Any other value — or a missing artifact — is unrecognised: escalate.
-
----
-
-## Escalation Procedure
-
-1. Update bug store: `status` → `"triaged"` (revert to triaged so it is not lost)
-2. Emit a final event with `verdict: "escalated"` and `notes` explaining the reason
-3. Output:
-   ```
-   ⚠ Bug {BUG_ID} escalated: {reason}
-   Review artifact: {artifact_path}
-   Resume with: /fix-bug {BUG_ID} after addressing the issues.
-   ```
-4. Stop.
-
----
-
-## Status Codes
-
-**YOU MUST use plain machine-readable values — no emoji in store or event fields.**
-
-Bug store `status` MUST be one of the `bug.schema.json` enum values:
-
-| Lifecycle point        | Value         |
-|------------------------|---------------|
-| Orchestrator starts    | `"in-progress"` |
-| Commit phase complete  | `"fixed"`     |
-
-Event `verdict` MUST be one of:
-
-| Outcome           | Value                |
-|-------------------|----------------------|
-| Review passed     | `"Approved"`         |
-| Needs rework      | `"Revision Required"` |
-| Escalated         | `"escalated"`        |
-
-Do NOT write `"🔴 Plan Revision Required"`, `"✅ Committed"`, or any
-emoji-decorated string into JSON fields.
-
----
-
-## Agent Announcement Banner
-
-Every subagent invocation prompt MUST open with this decorated banner line:
-
-```
-🍂 **{PROJECT_NAME} Bug Fixer — {phase.name}**
-```
-
-This must appear as the first line of the subagent prompt, before workflow
-instructions. It matches the convention used by `/run-task` and `/run-sprint`.
-
----
-
-## Event Emission
-
-Emit structured events to `.forge/store/events/bugs/` following `event.schema.json`.
-
-Required fields per event:
-
-| Field            | Value                                                       |
-|------------------|-------------------------------------------------------------|
-| `eventId`        | `{ISO_TIMESTAMP}_{BUG_ID}_{role}_{action}`                  |
-| `taskId`         | Bug ID (use bug ID in the taskId field)                     |
-| `sprintId`       | `"bugs"` (virtual sprint for bug events)                    |
-| `role`           | Phase role (`plan`, `review-plan`, `implement`, etc.)       |
-| `action`         | Slash command invoked (e.g. `/implement`, `/review-plan`)   |
-| `phase`          | Phase name                                                  |
-| `iteration`      | 1-based iteration count for this phase                      |
-| `startTimestamp` | ISO 8601 before spawning the subagent                       |
-| `endTimestamp`   | ISO 8601 after the subagent returns                         |
-| `durationMinutes`| Decimal minutes elapsed                                     |
-| `model`          | Full model identifier (e.g. `claude-sonnet-4-6`)            |
-
-Use only the field names above — no aliases (`agent`, `status`, `timestamp`, `details`).
-
----
-
-## Knowledge Writeback (Final Phase)
-
-After the commit phase, the orchestrator performs writeback inline:
-
-1. Add a stack-checklist item if this bug class should be caught in future reviews
-2. Tag similar bugs in `.forge/store/bugs/` with `similarBugs`
-3. Update `rootCauseCategory` in the bug store JSON if refined during implementation
-4. Set `resolvedAt` to the current ISO timestamp
-
----
-
-## Iron Laws
-
-**YOU MUST NOT advance a review phase until the verdict artifact exists and reads `Approved`.** Skipping because "it's a small fix" is not allowed. No exceptions.
-
-**Always read the verdict from the artifact.** Never assume approval because the review phase ran without error.
-
-**Revision loop exhaustion is an escalation trigger.** Do NOT approve to unblock.
-
-**No emoji in machine-readable fields.** Emoji belong only in human-facing output (PROGRESS.md, announcements).
-
----
 
 ## Generation Instructions
 
-- Fill in `{PROJECT_NAME}` from `.forge/config.json` → `project.name`
-- Fill in `{BUG_DIR}` from the bug store `path` field → derive the directory name
-- Fill in test/build/lint commands from `.forge/config.json` → `commands`
-- Reference the exact workflow filenames in `.forge/workflows/` for each phase
-- Use the Execution Algorithm above verbatim — do not paraphrase
-- `spawn_subagent` = Agent tool call. Each phase invocation MUST use the Agent tool
-- **Model assignment is mandatory.** Every `spawn_subagent` call MUST include `model=phase_model`
-- **Include the sidecar merge pattern** after every subagent return
-- **Include the Status Codes table** — the generated workflow must enforce plain values
-- **Include the Agent Announcement Banner section** — first line of every subagent prompt
+- **Persona Self-Load:** The generated workflow MUST begin by reading `.forge/personas/bug-fixer.md`. The orchestrator displays the badge — the bug-fixer persona does NOT run a banner command as its first action.
+- **Workflow Structure:** The generated `fix_bug.md` must follow the strict "Algorithm" block format.
+- **Symmetric Injection:** Every subagent spawned by the `fix-bug` orchestrator must follow the symmetric injection pattern: `[Persona] -> [Skill] -> [Workflow]`.
+- **Context Isolation:** Forbid inline execution of triage or fix logic; use the `Agent` tool for sub-tasks.
+- **Project Specifics:**
+  - Reference project-specific bug reporting paths.
+- **Token Reporting:** The generated workflow MUST mandate the following before returning:
+  1. Run `/cost` to retrieve session token usage.
+  2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
+  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+- **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.
+
+## Announcement Algorithm
+
+The generated `fix_bug.md` MUST include the following verbatim algorithm for phase announcements and symmetric persona/skill injection. This mirrors the pattern from `meta-orchestrate.md`.
+
+```
+# --- Role-to-noun mapping (persona and skill file lookups) ---
+ROLE_TO_NOUN = {
+  "plan-fix":    "bug-fixer",
+  "review-plan": "supervisor",
+  "implement":   "bug-fixer",
+  "review-code": "supervisor",
+  "approve":     "architect",
+  "commit":      "engineer",
+}
+# Default fallback: "bug-fixer"
+
+# --- Persona symbol lookup (emoji, name, tagline) ---
+PERSONA_MAP = {
+  "plan-fix":    ("🍂", "Bug Fixer",  "I find what has decayed and restore it."),
+  "review-plan": ("🌿", "Supervisor", "I review before things move forward. I read the actual fix, not just the plan."),
+  "implement":   ("🍂", "Bug Fixer",  "I find what has decayed and restore it."),
+  "review-code": ("🌿", "Supervisor", "I review before things move forward. I read the actual code, not the report."),
+  "approve":     ("🗻", "Architect",  "I hold the shape of the whole. I give final sign-off before commit."),
+  "commit":      ("🌱", "Engineer",   "I close out completed work with a clean, honest commit."),
+}
+# Default fallback: ("🍂", "Bug Fixer", "I find what has decayed and restore it.")
+
+# --- Banner identity map (banner name per phase role) ---
+# Displayed by the orchestrator ONLY (badge before spawn, exit signal after return).
+# Subagents do NOT display banners — the orchestrator owns phase announcements.
+BANNER_MAP = {
+  "plan-fix":    "rift",
+  "review-plan": "oracle",
+  "implement":   "rift",
+  "review-code": "oracle",
+  "approve":     "north",
+  "commit":      "forge",
+}
+# Default fallback: "rift"
+
+# --- Clear progress log for this bug ---
+progress_log_path = ".forge/store/events/bugs/progress.log"
+run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/store-cli.cjs" progress-clear bugs')
+
+# --- Announce phase with identity banner (badge) + bug context ---
+emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🍂", "Bug Fixer", "I find what has decayed and restore it."))
+banner_name = BANNER_MAP.get(phase.role, "rift")
+run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name}')
+print(f"  → {bug_id}  [{phase_model}]\n")
+
+# --- Compute agent name for progress IPC ---
+persona_noun = ROLE_TO_NOUN.get(phase.role, "bug-fixer")
+iteration = iteration_counts.get(phase.name, 0) + 1
+agent_name = f"{bug_id}:{persona_noun}:{phase.role}:{iteration}"
+
+# --- Start progress Monitor before spawning subagent ---
+start_monitor(
+  command=f"tail -n +1 -F {progress_log_path} 2>/dev/null || true",
+  description=f"Progress: {agent_name}",
+  persistent=False
+)
+
+# --- Symmetric Injection: noun resolved from ROLE_TO_NOUN ---
+persona_content = read_file(f".forge/personas/{persona_noun}.md")
+skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
+
+# --- Spawn subagent with progress reporting instructions (no banner command) ---
+spawn_subagent(
+  prompt=(
+    f"### Progress Reporting\n"
+    f"- Agent name: {agent_name}\n"
+    f"- Progress log: {progress_log_path}\n"
+    f"- Banner key: {banner_name}\n\n"
+    f"Append progress entries to the log as you work:\n\n"
+    f"```\n"
+    f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress bugs {agent_name} {banner_name} start \"Starting {phase.role} phase\"\n"
+    f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress bugs {agent_name} {banner_name} progress \"Reading codebase\"\n"
+    f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress bugs {agent_name} {banner_name} done \"Completed {phase.role}\"\n"
+    f"```\n\n"
+    f"Write a `start` entry when you begin, `progress` entries as you make headway, "
+    f"a `done` entry when you finish, or an `error` entry if something fails. "
+    f"The orchestrator is monitoring this log in real time.\n\n"
+    f"---\n\n"
+    f"{persona_content}\n\n"
+    f"{skill_content}\n\n"
+    f"### Current Working Context\n"
+    f"- Bug Root:    {bug_root_path}\n"
+    f"- Store Root:  {store_root_path}\n"
+    f"- Events Root: .forge/store/events/bugs/\n\n"
+    f"Read `{phase.workflow}` and follow it. Bug ID: {bug_id}. "
+    f"Also read `engineering/MASTER_INDEX.md` for project state. "
+    f"Before returning: run /cost, parse token usage, and write sidecar "
+    f"`.forge/store/events/bugs/_{event_id}_usage.json` with fields: "
+    f"inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD."
+  ),
+  description=f"{emoji} {persona_name} — {phase.name} for {bug_id}",
+  model=phase_model
+)
+
+# --- Stop progress Monitor ---
+stop_monitor(progress_log_path)
+```
+
+**Key rules for the generated `fix_bug.md`:**
+- `ROLE_TO_NOUN` MUST cover all six phases: `plan-fix`, `review-plan`, `implement`, `review-code`, `approve`, `commit`.
+- `PERSONA_MAP` MUST cover the same six phases with the correct emoji/name/tagline per persona (bug-fixer, supervisor, architect, engineer — not all bug-fixer).
+- Persona and skill file lookups MUST use `{persona_noun}.md` and `{persona_noun}-skills.md` from `ROLE_TO_NOUN`, never `{phase.role}.md` or a hardcoded `"bug-fixer"` noun for all phases.
+- The sidecar path uses `.forge/store/events/bugs/_{event_id}_usage.json` (not `events/{sprint_id}/`).
+- The announcement `print()` line MUST include `{tagline}` and `[{phase_model}]`.
+- **Phase banners are orchestrator-owned.** The `spawn_subagent` prompt MUST NOT include a "Your first action — run this banner command" instruction. Instead, include progress reporting instructions with the agent name, progress log path, and banner key. The orchestrator displays the badge before spawning and the exit signal after return.
+- **Include the progress IPC pattern.** The generated workflow MUST clear the progress log at bug start, compute agent names before each spawn, start a Monitor on the progress log before spawning, and stop it after the subagent returns.
+- **Include phase-exit signals.** After each subagent returns (and after sidecar merge and event emission), print the appropriate exit signal: `✓` for completed/approved, `↻` for revision required (with iteration count), `⚠` for escalated.
+- **Include post-phase /compact calls.** After each phase-exit signal (for every non-escalation outcome), the generated orchestrator MUST:
+  1. Print a checkpoint line: `[checkpoint] bug={bug_id} phase={phase.role} iterations={iteration_counts}`
+  2. Run `/compact` to free orchestrator context before the next phase.
+  All durable state is on disk; the checkpoint line ensures the compact summary preserves the loop bookkeeping. Do NOT compact on escalation — the human needs full context.
+
+## Progress Reporting
+
+Each subagent writes progress entries to a transient log file that the
+orchestrator monitors in real time.
+
+**Log path:** `.forge/store/events/bugs/progress.log`
+
+**Format per line:**
+
+```
+{ISO_TIMESTAMP}|{agent_name}|{banner_key}|{status}|{detail}
+```
+
+| Field | Format | Example |
+|-------|--------|---------|
+| `ISO_TIMESTAMP` | ISO 8601 UTC | `2026-04-16T14:15:23Z` |
+| `agent_name` | `{bugId}:{persona_noun}:{phase.role}:{iteration}` | `BUG-007:bug-fixer:plan-fix:1` |
+| `banner_key` | Banner identity key from BANNER_MAP | `rift` |
+| `status` | One of: `start`, `progress`, `done`, `error` | `start` |
+| `detail` | Free text (no pipe characters) | `Triaging bug` |
+
+**Writing entries:** Use `store-cli progress`:
+
+```
+node "$FORGE_ROOT/tools/store-cli.cjs" progress bugs {agentName} {bannerKey} {status} "detail text"
+```
+
+**Monitoring:** The orchestrator starts a Monitor on the progress log before
+spawning each subagent and stops it after the subagent returns.
+
+**Clearing:** The bug-fix orchestrator clears the progress log at bug start using
+`store-cli progress-clear bugs`.
+
+## Phase-Exit Signals
+
+After each subagent returns, the orchestrator prints a phase-exit signal:
+
+| Outcome | Format |
+|---------|--------|
+| Non-review phase completed | `  ✓ {bug_id}  {phase_role}  — completed` |
+| Review verdict: Approved | `  ✓ {bug_id}  {phase_role}  — Approved` |
+| Review verdict: Revision Required | `  ↻ {bug_id}  {phase_role}  — Revision Required (iteration {n})` |
+| Escalated | `  ⚠ {bug_id}  {phase_role}  — escalated to human` |

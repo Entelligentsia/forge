@@ -1,4 +1,11 @@
-# Workflow: Review Plan (Forge Supervisor)
+---
+requirements:
+  reasoning: High
+  context: Medium
+  speed: Low
+---
+
+# 🌿 Workflow: Review Plan (Forge Supervisor)
 
 ## Persona
 

@@ -52,9 +52,9 @@
 | `engineering/architecture/database.md` | Added "Ephemeral Sidecar Files" section documenting `_{eventId}_usage.json` convention (T03) |
 | `engineering/stack-checklist.md` | Added `toLocaleString()` ICU fallback check for CJS tools (T05) |
 
-### Unresolved `[?]` Items
+### Resolved `[?]` Items
 
-- `engineering/architecture/processes.md` line 45: `## No CI/CD [?]` — This pre-dates the sprint and reflects the project's current state (no CI/CD pipeline). **Retain as-is** — it is an accurate observation, not a stale discovery.
+- `engineering/architecture/processes.md`: `## No CI/CD [?]` — Confirmed by S01–S08 retrospectives as accurate observation. `[?]` marker removed on 2026-04-15.
 
 ## Stack Checklist Changes
 
@@ -93,6 +93,19 @@ No bugs were filed during this sprint. The single code review revision (T04) was
 ### Baseline Comparison
 
 _Baseline comparison omitted — no prior baseline data._
+
+## Post-Sprint Store Repair (2026-04-15)
+
+During the 0.8.10 → 0.9.2 Forge update, `/forge:store-repair` was run and applied the following fixes to FORGE-S01 events:
+
+- **52 events cleaned:** Removed pre-schema legacy fields (`timestamp`, `agent`, `status`, `summary`, `output`, `commitHash`, `filesChanged`, `details`, `actor`) that were not part of the 0.9.2 event schema
+- **Preserved schema-valid fields:** `verdict`, `notes`, `inputTokens`, `outputTokens`, `estimatedCostUSD` are now valid in 0.9.2 and were retained
+- **Backfilled required fields:** `phase` (derived from role + action) and `iteration` (set to 1) added to all events
+- **Token data migrated:** `tokenUsage.inputTokens`/`outputTokens` → `inputTokens`/`outputTokens` at schema level
+- **T05 status corrected:** `implemented` → `committed` (was a stale store state; task was committed in git)
+- **`[?]` marker resolved:** `engineering/architecture/processes.md` "No CI/CD [?]" → "No CI/CD" (confirmed by S01–S08 retrospectives)
+
+After repair, `validate-store` reports 0 errors on FORGE-S01 events (8 remaining errors are the sprint `path` schema gap — see Entelligentsia/forge#38).
 
 ## Recommendations for Next Sprint
 

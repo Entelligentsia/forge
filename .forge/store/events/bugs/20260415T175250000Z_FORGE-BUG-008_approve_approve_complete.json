@@ -1,0 +1,19 @@
+{
+  "eventId": "20260415T175250000Z_FORGE-BUG-008_approve_approve",
+  "taskId": "FORGE-BUG-008",
+  "sprintId": "bugs",
+  "role": "approve",
+  "action": "approve",
+  "phase": "approve",
+  "iteration": 1,
+  "startTimestamp": "2026-04-15T17:52:50Z",
+  "endTimestamp": "2026-04-15T17:55:30Z",
+  "durationMinutes": 2.67,
+  "model": "claude-opus-4-6",
+  "verdict": "Approved",
+  "inputTokens": 12500,
+  "outputTokens": 4200,
+  "cacheReadTokens": 42000,
+  "cacheWriteTokens": 0,
+  "estimatedCostUSD": 0.5355
+}

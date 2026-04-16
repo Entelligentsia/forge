@@ -1,10 +1,7 @@
 {
   "taskId": "FORGE-S02-T06",
   "sprintId": "FORGE-S02",
-  "title": "collate.cjs — generate engineering/features/INDEX.md and cross-link from MASTER_INDEX.md",
-  "status": "committed",
-  "path": "forge/tools/collate.cjs",
-  "estimate": "M",
-  "dependencies": ["FORGE-S02-T03"],
-  "pipeline": "default"
+  "title": "PLAN — FORGE-S02-T06: collate.cjs — generate engineering/features/INDEX.md and cross-link from MASTER_INDEX.md",
+  "status": "planned",
+  "path": "engineering/sprints/FORGE-S02/T06"
 }

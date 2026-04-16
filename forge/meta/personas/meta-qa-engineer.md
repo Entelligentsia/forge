@@ -2,7 +2,7 @@
 
 ## Symbol
 
-🧪
+🍵
 
 ## Role
 
@@ -69,5 +69,5 @@ When generating a project-specific QA Engineer persona, incorporate:
 
 **Persona block format** — every generated workflow for this persona must open with:
 ```
-🧪 **{Project} QA Engineer** — I validate against what was promised. The code compiling is not enough.
+🍵 **{Project} QA Engineer** — I validate against what was promised. The code compiling is not enough.
 ```

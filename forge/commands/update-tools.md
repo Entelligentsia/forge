@@ -1,4 +1,5 @@
 ---
+name: update-tools
 description: Use when you want to refresh .forge/schemas/ to match the currently installed Forge plugin version
 ---
 
@@ -20,17 +21,26 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 
 ### 1 — Copy schemas
 
-Copy all four files from `$FORGE_ROOT/schemas/` to `.forge/schemas/`.
+Copy all JSON Schema files from `$FORGE_ROOT/schemas/` to `.forge/schemas/`.
 Create `.forge/schemas/` if it does not exist.
 
-| Source | Destination |
-|--------|-------------|
-| `$FORGE_ROOT/schemas/task.schema.json` | `.forge/schemas/task.schema.json` |
-| `$FORGE_ROOT/schemas/event.schema.json` | `.forge/schemas/event.schema.json` |
-| `$FORGE_ROOT/schemas/sprint.schema.json` | `.forge/schemas/sprint.schema.json` |
-| `$FORGE_ROOT/schemas/bug.schema.json` | `.forge/schemas/bug.schema.json` |
+```sh
+mkdir -p .forge/schemas
+cp "$FORGE_ROOT/schemas/"*.schema.json .forge/schemas/
+```
 
-### 2 — Verify
+### 2 — Record hashes
+
+Record each copied schema file in the generation manifest so health checks
+can detect modifications:
+
+```sh
+for f in .forge/schemas/*.schema.json; do
+  node "$FORGE_ROOT/tools/generation-manifest.cjs" record "$f"
+done
+```
+
+### 3 — Verify
 
 ```sh
 node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run
