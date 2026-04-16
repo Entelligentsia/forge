@@ -371,6 +371,9 @@ for each task in dependency_sorted(tasks):
     if phase.role not in ("review-plan", "review-code", "validate"):
       print(f"  ✓ {task_id}  {phase.role}  — completed\n")
       i += 1
+      # Compact context: all state is on disk; preserve loop bookkeeping in the summary
+      print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
+      /compact
       continue
 
     # --- Review phase: detect verdict ---
@@ -379,6 +382,9 @@ for each task in dependency_sorted(tasks):
     if verdict == "Approved":
       print(f"  ✓ {task_id}  {phase.role}  — Approved\n")
       i += 1                                # advance to next phase
+      # Compact context: all state is on disk; preserve loop bookkeeping in the summary
+      print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
+      /compact
 
     elif verdict == "Revision Required":
       iteration_counts[phase.command] = iteration_counts.get(phase.command, 0) + 1
@@ -391,6 +397,9 @@ for each task in dependency_sorted(tasks):
       # Route back to the revision target
       target = phase.on_revision or nearest_preceding_non_review(phases, i)
       i = index_of(phases, target)          # loop back
+      # Compact context: all state is on disk; preserve loop bookkeeping in the summary
+      print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
+      /compact
 
     else:
       # Unexpected verdict (empty, malformed, or unknown)
@@ -627,3 +636,10 @@ When in doubt, read `.forge/schemas/event.schema.json` directly.
   merge and event emission), the generated orchestrator MUST print the appropriate
   exit signal: `✓` for completed/approved, `↻` for revision required (with iteration
   count), `⚠` for escalated.
+- **Include post-phase /compact calls.** After each phase-exit signal (for every
+  non-escalation outcome), the generated orchestrator MUST:
+  1. Print a checkpoint line: `[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}`
+  2. Run `/compact` to free orchestrator context before the next phase.
+  All durable state is on disk; the checkpoint line ensures the compact summary
+  preserves the loop bookkeeping (task ID, sprint ID, current phase index,
+  iteration counts). Do NOT compact on escalation — the human needs full context.

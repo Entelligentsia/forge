@@ -12,7 +12,7 @@
 
 | Sprint    | Title                                                                              | Status      | Tasks |
 | --------- | ---------------------------------------------------------------------------------- | ----------- | ----- |
-| FORGE-S09 | Sprint S09                                                                         | 🔵 active   | 9/9   |
+| FORGE-S09 | Sprint S09                                                                         | ✅ completed | 9/9   |
 | FORGE-S08 | Sprint S08                                                                         | ✅ completed | 6/6   |
 | FORGE-S07 | Sprint S07                                                                         | 🔵 active   | 8/9   |
 | FORGE-S06 | Sprint S06                                                                         | 🔵 active   | 7/10  |

@@ -1,4 +1,12 @@
 {
+  "0.9.17": {
+    "version": "0.9.18",
+    "date": "2026-04-16",
+    "notes": "Orchestrator context compaction: /compact called after each phase-exit signal with a checkpoint line to preserve loop bookkeeping across the compact.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
   "0.9.16": {
     "version": "0.9.17",
     "date": "2026-04-16",

@@ -201,6 +201,10 @@ stop_monitor(progress_log_path)
 - **Phase banners are orchestrator-owned.** The `spawn_subagent` prompt MUST NOT include a "Your first action — run this banner command" instruction. Instead, include progress reporting instructions with the agent name, progress log path, and banner key. The orchestrator displays the badge before spawning and the exit signal after return.
 - **Include the progress IPC pattern.** The generated workflow MUST clear the progress log at bug start, compute agent names before each spawn, start a Monitor on the progress log before spawning, and stop it after the subagent returns.
 - **Include phase-exit signals.** After each subagent returns (and after sidecar merge and event emission), print the appropriate exit signal: `✓` for completed/approved, `↻` for revision required (with iteration count), `⚠` for escalated.
+- **Include post-phase /compact calls.** After each phase-exit signal (for every non-escalation outcome), the generated orchestrator MUST:
+  1. Print a checkpoint line: `[checkpoint] bug={bug_id} phase={phase.role} iterations={iteration_counts}`
+  2. Run `/compact` to free orchestrator context before the next phase.
+  All durable state is on disk; the checkpoint line ensures the compact summary preserves the loop bookkeeping. Do NOT compact on escalation — the human needs full context.
 
 ## Progress Reporting
 

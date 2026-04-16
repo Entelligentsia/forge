@@ -82,3 +82,13 @@ wiring in the generated atomic workflows.
    node "$FORGE_ROOT/tools/store-cli.cjs" progress-clear {SPRINT_ID}
    ```
    This ensures a clean log for each sprint run.
+8. **Include post-task /compact calls.** After each task subagent reaches a terminal
+   state (committed, escalated, or abandoned — including after the re-spawn guard),
+   print a checkpoint line and run `/compact` before dispatching the next task:
+   ```
+   [checkpoint] sprint={SPRINT_ID} task={task.taskId} status={task_status} remaining={remaining_task_count}
+   /compact
+   ```
+   All durable state is on disk. The checkpoint line preserves loop bookkeeping in
+   the compact summary. Do NOT compact mid re-spawn guard — only after the final
+   status read for that task.
