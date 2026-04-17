@@ -3,6 +3,13 @@ requirements:
   reasoning: Medium
   context: Medium
   speed: Medium
+deps:
+  personas: [architect]
+  skills: [architect, generic]
+  templates: [PLAN_TEMPLATE]
+  sub_workflows: [review_plan]
+  kb_docs: [architecture/stack.md]
+  config_fields: [paths.engineering]
 ---
 
 # 🌱 Meta-Workflow: Update Plan

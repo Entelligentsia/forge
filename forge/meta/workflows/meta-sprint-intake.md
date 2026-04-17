@@ -3,6 +3,13 @@ requirements:
   reasoning: High
   context: Medium
   speed: Low
+deps:
+  personas: [product-manager]
+  skills: [architect, generic]
+  templates: [SPRINT_REQUIREMENTS_TEMPLATE, SPRINT_MANIFEST_TEMPLATE]
+  sub_workflows: []
+  kb_docs: [MASTER_INDEX.md, architecture/stack.md]
+  config_fields: [project.prefix, paths.engineering]
 ---
 
 # 🌸 Meta-Workflow: Sprint Intake

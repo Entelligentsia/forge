@@ -15,7 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// ── Static mapping tables ─────────────────────────────────────────────────────
+// ── Static mapping tables (kept at top — parseMetaDeps defined after) ─────────
 
 // 1. Personas — meta-{name}.md → .forge/personas/{name}.md
 //    Exclusions: meta-orchestrator.md, meta-product-manager.md
@@ -86,6 +86,91 @@ const COMMAND_NAMES = [
   'run-sprint.md', 'collate.md', 'retrospective.md', 'approve.md', 'commit.md',
 ];
 
+// ── parseMetaDeps ─────────────────────────────────────────────────────────────
+//
+// Walks meta/workflows/ files (filtered by workflowMap entries with non-null
+// sources), extracts the `deps:` YAML block from each file's frontmatter, and
+// resolves logical names to .forge/ filesystem paths.
+//
+// Logical name resolution rules:
+//   personas: {role}       → .forge/personas/{role}.md
+//   skills:   {role}       → .forge/skills/{role}-skills.md
+//   templates: {STEM}      → .forge/templates/{STEM}.md
+//   sub_workflows: {id}    → .forge/workflows/{id}.md
+//   kb_docs: {path}        → {KB_PATH}/{path}  (placeholder kept for runtime)
+//   config_fields:         pass-through
+//
+// Returns { [workflowId]: { personas, skills, templates, sub_workflows, kb_docs, config_fields } }
+// Entries with no deps: block are omitted.
+
+function _parseFrontmatterDeps(content) {
+  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!fmMatch) return null;
+
+  const lines = fmMatch[1].split('\n');
+  let inDeps = false;
+  const result = {};
+
+  for (const line of lines) {
+    if (/^deps:\s*$/.test(line)) {
+      inDeps = true;
+      continue;
+    }
+    if (inDeps) {
+      const subKey = line.match(/^  (\w+):\s*(.*)/);
+      if (subKey) {
+        const [, key, rawValue] = subKey;
+        result[key] = _parseYamlList(rawValue.trim());
+        continue;
+      }
+      if (line.length > 0 && line[0] !== ' ') {
+        inDeps = false;
+      }
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : null;
+}
+
+function _parseYamlList(value) {
+  const inline = value.match(/^\[(.*)\]$/);
+  if (inline) {
+    const inner = inline[1].trim();
+    if (!inner) return [];
+    return inner.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  if (!value) return [];
+  return [value];
+}
+
+function parseMetaDeps(metaDir, workflowMap) {
+  const map = workflowMap || WORKFLOW_MAP;
+  const edges = {};
+
+  for (const [srcFile, outFile] of map) {
+    if (!srcFile) continue;
+    const metaPath = path.join(metaDir, srcFile);
+    if (!fs.existsSync(metaPath)) continue;
+
+    const content = fs.readFileSync(metaPath, 'utf8');
+    const rawDeps = _parseFrontmatterDeps(content);
+    if (!rawDeps) continue;
+
+    const workflowId = outFile.replace(/\.md$/, '');
+
+    edges[workflowId] = {
+      personas:      (rawDeps.personas      || []).map(r => `.forge/personas/${r}.md`),
+      skills:        (rawDeps.skills        || []).map(r => `.forge/skills/${r}-skills.md`),
+      templates:     (rawDeps.templates     || []).map(s => `.forge/templates/${s}.md`),
+      sub_workflows: (rawDeps.sub_workflows || []).map(id => `.forge/workflows/${id}.md`),
+      kb_docs:       (rawDeps.kb_docs       || []).map(p => `{KB_PATH}/${p}`),
+      config_fields: rawDeps.config_fields  || [],
+    };
+  }
+
+  return edges;
+}
+
 // ── Reverse-drift detection ───────────────────────────────────────────────────
 
 function checkReverseDrift(metaDir, map, label) {
@@ -127,6 +212,7 @@ module.exports = {
   COMMAND_NAMES,
   checkReverseDrift,
   verifySources,
+  parseMetaDeps,
 };
 
 // ── CLI ────────────────────────────────────────────────────────────────────────
@@ -197,6 +283,10 @@ try {
     process.stderr.write(`△ Could not read schemas dir: ${e.message}\n`);
   }
 
+  // ── Parse dep edges from meta-workflow frontmatter ────────────────────────────
+
+  const depEdges = parseMetaDeps(path.join(forgeRoot, 'meta', 'workflows'), WORKFLOW_MAP);
+
   // ── Build manifest ────────────────────────────────────────────────────────────
 
   const manifest = {
@@ -234,6 +324,9 @@ try {
         dir: '.forge/schemas',
         files: schemaFiles,
       },
+    },
+    edges: {
+      workflows: depEdges,
     },
   };
 

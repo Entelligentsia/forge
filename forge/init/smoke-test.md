@@ -13,7 +13,75 @@ Read the configured KB path:
 KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo "engineering"`
 ```
 
-## Checks
+Read `.forge/config.json` and check the `mode` field. If `mode` equals `"fast"`,
+run the **Fast-mode invariants** block below instead of the standard checks.
+
+---
+
+## Fast-mode invariants (run when `config.mode === "fast"`)
+
+Assert each of the following. Self-correct once per failing item.
+
+1. **Config validates** — `.forge/config.json` validates against
+   `$FORGE_ROOT/sdlc-config.schema.json` and includes `mode: "fast"`.
+
+2. **Schemas present** — `.forge/schemas/` contains all expected `.schema.json`
+   files (Phase 10 output).
+
+3. **Commands present** — `.claude/commands/` contains all 13 command wrappers.
+
+4. **Stubs present and well-formed** — `.forge/workflows/` contains one `.md` file
+   for every workflow id in `$FORGE_ROOT/schemas/structure-manifest.json`
+   `namespaces.workflows.files`. Each file must start with the sentinel:
+   `<!-- FORGE FAST-MODE STUB`. If any file is missing or does not have the
+   sentinel, re-write the stub:
+   ```
+   <!-- FORGE FAST-MODE STUB — will self-replace on first use -->
+   ---
+   effort: medium
+   mode: stub
+   workflow_id: {id}
+   ---
+
+   # Workflow: {id} (fast-mode stub)
+
+   Before doing any task work, materialise this workflow and its dependencies:
+
+   1. Read `${CLAUDE_PLUGIN_ROOT}/init/generation/lazy-materialize.md` and
+      follow it exactly, with `workflow_id={id}`.
+   2. After lazy-materialize completes, re-read `.forge/workflows/{id}.md` (it
+      will have been replaced with the real generated workflow) and execute it
+      from the top.
+   3. Do not proceed with the user's task until the real workflow has loaded
+      and executed.
+
+   Arguments from caller: $ARGUMENTS
+   ```
+
+5. **Dependency edges present** — `$FORGE_ROOT/schemas/structure-manifest.json`
+   has a non-empty `edges.workflows` section.
+
+6. **KB skeleton present** — `{KB_PATH}/MASTER_INDEX.md` exists and contains
+   the `<!-- forge-fast-stub -->` sentinel. The KB subdirectories
+   (`architecture/`, `business-domain/`, `sprints/`, `bugs/`) exist.
+
+7. **Tomoshibi block present** — `CLAUDE.md` (or `AGENTS.md` if CLAUDE.md
+   absent) contains the Forge-managed block written by Phase 12.
+
+**Stubs must NOT be recorded in `.forge/generation-manifest.json`.** Verify
+that none of the stub workflow files appear in the generation manifest (they
+should show as "untracked" to `generation-manifest.cjs check`). If any are
+present, remove them:
+```sh
+node "$FORGE_ROOT/tools/generation-manifest.cjs" remove .forge/workflows/{id}.md
+```
+
+After all fast-mode invariants pass, write `.forge/update-check-cache.json`
+(same as standard Stamp step below) and skip to the Report.
+
+---
+
+## Checks (standard — run when mode is "full" or absent)
 
 ### 1. Structural — all expected files exist
 

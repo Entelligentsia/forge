@@ -5,6 +5,114 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [Unreleased]
+
+(no entries)
+
+---
+
+## [0.12.1] — 2026-04-17
+
+**`/forge:config` command + fast-mode-respecting regenerate + interactive
+init prompt.**
+
+Three coordinated changes ship together:
+
+- **Interactive mode prompt for `/forge:init`** (FEAT-004). `/forge:init`
+  now surfaces fast vs. full mode through an interactive prompt between
+  resume detection and the pre-flight plan. Default = Full (Enter picks
+  Full). The pre-flight table is mode-specific — Full keeps the familiar
+  12-row layout; Fast labels each row `[runs]`/`[skeleton]`/`[stubs]`/
+  `[deferred]` so users see what runs now vs. on first workflow use.
+  `--fast` and a new `--full` flag remain non-interactive escape hatches
+  for scripted runs; combining them halts with a conflict error. Mode is
+  persisted to `.forge/init-progress.json` pre-Phase-1 and propagated
+  into `.forge/config.json` by Phase 1. On resume, the stored mode is
+  offered as the default with a switch option; switching emits an
+  explicit warning, and resuming into a phase that's skipped in the new
+  mode advances to the next active phase with an `△` notice.
+- **`/forge:regenerate` and `/forge:materialize` now respect fast mode.**
+  Targeted regenerate (`/forge:regenerate workflows`, single-file variants,
+  default no-args run) filters every category through a materialized check —
+  only files that exist (and, for workflows, are not stubs) are touched.
+  Migrations that fan out `/forge:regenerate <target>` against a fast install
+  no longer crash mid-flight; they become partial refreshes or no-ops, and
+  unmaterialized stubs pick up the new meta-version at first use for free.
+  Per-category fast-mode footers report `N of M regenerated`.
+- **Mode switching is now explicit.** New `/forge:config` command owns the
+  `mode` field. `/forge:config mode full` runs materialize-all then default
+  regenerate then writes `mode: full`. `/forge:config mode fast` is refused
+  (one-way transition). Read-only `/forge:config` and `/forge:config mode`
+  for inspection.
+- **`/forge:regenerate` (default) and `/forge:materialize --all` no longer
+  auto-flip mode.** Both are now mode-neutral. Promotion is a separate
+  decision the user makes by running `/forge:config mode full`.
+- **`/forge:update` final summary** appends a fast-mode promotion hint when
+  the project is still in fast mode after migration.
+- **Bug fix (issue #47 / FORGE-BUG-010):** `/forge:init` Phase 12 now offers
+  to gitignore `.forge/store/events/` — the transient JSON event-log
+  directory that accumulates one file per agent phase per task or bug.
+  `/forge:update` Step 5 audit gains a `5g` sub-check that surfaces a
+  `add-gitignore-entry` item on existing projects whose `.gitignore` does
+  not already cover the path. Idempotent on both paths; never modifies
+  unrelated lines.
+
+**Regenerate:** none — additive change. Existing full-mode projects are
+unaffected; existing fast-mode projects automatically get the new (better)
+behaviour the next time they invoke `/forge:regenerate` or
+`/forge:materialize`. Projects that have not yet gitignored
+`.forge/store/events/` will see a new audit item the next time they run
+`/forge:update`.
+
+---
+
+## [0.12.0] — 2026-04-17
+
+**Fast-mode init with subagent-distributed lazy scaffolding.**
+
+`/forge:init --fast` completes in ~30 seconds (plus Phase 2 user interaction)
+by running only structural phases upfront and deferring all heavy LLM
+generation to first use. Heavy artifacts (personas, skills, templates,
+workflows) are materialised on demand by the subagent that needs them —
+matching Forge's decentralised execution model.
+
+Key changes:
+
+- **`/forge:init --fast`** — new flag that skips Phases 4, 5, 6, 8 and writes
+  stub workflow files for Phase 7. Each stub carries a self-ensure boilerplate:
+  on first invocation the subagent reads `lazy-materialize.md`, materialises
+  its transitive dependency closure, self-replaces the stub, and re-reads the
+  real workflow.
+- **Machine-readable dep graph** — all 17 `forge/meta/workflows/meta-*.md`
+  files gain a `deps:` YAML frontmatter block declaring their closure (personas,
+  skills, templates, sub-workflows, KB docs). `build-manifest.cjs` parses these
+  and emits an `edges.workflows` section into `structure-manifest.json`.
+- **`lazy-materialize.md`** — new rulebook in `forge/init/generation/`. Reads
+  edges from structure-manifest, computes transitive closure (BFS, 2-level),
+  fans out to existing single-file rulebooks in topological order (KB → personas
+  → skills/templates → workflows), rebuilding the project brief between layers.
+- **`ensure-ready.cjs`** — new tool; answers "is workflow X's closure
+  materialised?". CLI: `--workflow <id>`, `--closure <id>`, `--target <path>`.
+  Exit 0 = ready, 1 = needs generation. Exports `computeClosure` and
+  `resolveKbPath` for test use.
+- **`/forge:materialize`** — new command; fills missing/stubbed artifacts without
+  overwriting pristine ones. Separate verb from `/forge:regenerate` (fill-in
+  vs. rebuild-always).
+- **Per-file scoping for skills and templates** in `/forge:regenerate`:
+  `regenerate skills engineer` and `regenerate templates PLAN_TEMPLATE` now work,
+  mirroring the existing `personas` and `workflows` per-file patterns.
+- **Config `mode` field** — `.forge/config.json` gains optional `"mode": "fast" |
+  "full"`. Written by Phase 1; flipped to `"full"` on default `/forge:regenerate`
+  or `/forge:materialize --all`.
+- **Fast-mode smoke test** — Phase 11 branches on `config.mode`; validates stub
+  sentinel, command count, schema presence, dep-graph edges — skips referential-
+  integrity checks that assume full artifacts.
+
+**Regenerate:** none — existing full-mode projects are unaffected. Fast mode is
+opt-in at future `--fast` inits.
+
+---
+
 ## [0.11.3] — 2026-04-16
 
 **Parallelise init and regenerate across all generation phases.**

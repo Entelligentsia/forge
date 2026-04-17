@@ -194,6 +194,31 @@ describe('checkNamespaces', () => {
     assert.equal(result.missing.length, 2);
   });
 
+  test('fast-mode stub files (with sentinel) count as present', () => {
+    const manifest = {
+      namespaces: {
+        workflows: {
+          logicalKey: 'workflows',
+          dir: '.forge/workflows',
+          files: ['plan_task.md'],
+        },
+      },
+    };
+
+    const stubContent = '<!-- FORGE FAST-MODE STUB — will self-replace on first use -->\n---\neffort: medium\nmode: stub\nworkflow_id: plan_task\n---\n# Workflow: plan_task (fast-mode stub)\n';
+    const structure = {
+      '.forge/workflows/plan_task.md': stubContent,
+    };
+
+    tmpDir = createTempProject(structure);
+
+    const result = checkNamespaces(manifest, tmpDir, { strict: false });
+
+    assert.equal(result.total, 1);
+    assert.equal(result.present, 1, 'stub file should count as present (checkNamespaces checks existence only)');
+    assert.equal(result.missing.length, 0);
+  });
+
   test('reads configPaths from .forge/config.json when not provided in options', () => {
     const manifest = {
       namespaces: {

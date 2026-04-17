@@ -23,6 +23,52 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 
 All tool invocations in this command use `node "$FORGE_ROOT/tools/<tool>.cjs"`.
 
+## Fast-mode awareness
+
+Regenerate respects `.forge/config.json` `mode`. Read it once at the top of
+the command and reuse:
+
+```sh
+CONFIG_MODE=$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo "full")
+```
+
+If `CONFIG_MODE` is not `"fast"` (i.e. `"full"` or anything else), every
+category below behaves exactly as it always has — no filtering, no mode
+write. The fast-mode handling only kicks in when `CONFIG_MODE == "fast"`.
+
+### Materialized detection (fast mode only)
+
+A target file is **materialized** if:
+
+| Namespace | Materialized if… |
+|---|---|
+| `.forge/workflows/<id>.md` | File exists AND its first non-blank line does not begin with `<!-- FORGE FAST-MODE STUB` |
+| `.forge/personas/<role>.md` | File exists |
+| `.forge/skills/<role>-skills.md` | File exists |
+| `.forge/templates/<STEM>.md` | File exists |
+| `.claude/commands/<name>` | Always present in fast mode — no filter needed |
+
+For each meta source enumerated below, derive the target path using the
+existing single-file mapping rules in each category and apply the test.
+
+The stub sentinel `<!-- FORGE FAST-MODE STUB` is written by `/forge:init`
+Phase 7 fast branch — see `forge/init/sdlc-init.md`.
+
+### Single-file variants in fast mode
+
+For any single-file invocation (e.g. `/forge:regenerate workflows:plan_task`)
+where `CONFIG_MODE == "fast"`:
+- If the target is materialized → regenerate as normal.
+- If the target is a stub or missing → emit
+  `〇 Fast mode: <path> is a stub and will self-refresh on first use. Nothing to regenerate.`
+  and exit 0 (no manifest changes).
+
+### Default (no-args) in fast mode
+
+The default run filters every category through the materialized check and
+emits a per-category summary footer. **It does NOT write `mode`** — mode
+promotion is a separate, explicit decision owned by `/forge:config mode full`.
+
 ## Arguments
 
 $ARGUMENTS
@@ -37,12 +83,16 @@ with a colon delimiter (both forms are equivalent):
 /forge:regenerate personas engineer           # single persona file only
 /forge:regenerate personas:engineer           # same — colon form (from migration entries)
 /forge:regenerate skills                        # .forge/skills/ role-specific skills
+/forge:regenerate skills engineer              # single skill file only
+/forge:regenerate skills:engineer              # same — colon form (from migration entries)
 /forge:regenerate workflows                    # full workflow rebuild
 /forge:regenerate workflows plan_task          # single workflow file only
 /forge:regenerate workflows:plan_task          # same — colon form (from migration entries)
 /forge:regenerate workflows sprint_plan        # single workflow file only
 /forge:regenerate commands                     # .claude/commands/ slash command wrappers
 /forge:regenerate templates                    # document templates only
+/forge:regenerate templates PLAN_TEMPLATE      # single template file only
+/forge:regenerate templates:PLAN_TEMPLATE      # same — colon form (from migration entries)
 /forge:regenerate knowledge-base               # all three sub-targets (merge mode)
 /forge:regenerate knowledge-base architecture
 /forge:regenerate knowledge-base:architecture  # colon form (from migration entries)
@@ -64,6 +114,12 @@ Re-generate `.forge/personas/` from the meta-persona definitions and the current
 **If a sub-target is provided** (e.g. `/forge:regenerate personas engineer`
 or the colon form `personas:engineer`), regenerate only the single persona
 file `.forge/personas/<sub-target>.md` from `$FORGE_ROOT/meta/personas/meta-<sub-target>.md`.
+
+If `CONFIG_MODE == "fast"`: apply the single-file materialized check
+(persona is materialized iff `.forge/personas/<sub-target>.md` exists). If
+not materialized, emit the stub-or-missing message and exit 0. Otherwise
+proceed.
+
 Before writing, remove any existing manifest entry for this specific file (handles rename case):
 ```sh
 node "$FORGE_ROOT/tools/generation-manifest.cjs" remove .forge/personas/<sub-target>.md 2>/dev/null || true
@@ -81,35 +137,81 @@ steps below apply to that single file.
      --out .forge/init-context.md --json-out .forge/init-context.json
    ```
 2. Enumerate `$FORGE_ROOT/meta/personas/meta-*.md` (exclude README.md).
-3. Emit: `Generating personas (<N> files in parallel)...`
-4. Clear stale entries:
+   Let `M_total` = the enumerated count.
+
+   **If `CONFIG_MODE == "fast"`**: filter the enumeration to only entries
+   whose target file `.forge/personas/<role>.md` exists (materialized check).
+   Let `N_materialized` = the filtered count.
+   - If `N_materialized == 0`: emit `〇 Fast mode: no materialized personas to regenerate.` and return 0 (no manifest changes).
+   - Otherwise continue with the filtered set; do NOT clear the namespace
+     (skip step 4) — clearing would remove manifest entries for stubs/missing
+     entries that we are intentionally leaving alone. Instead, only `remove`
+     manifest entries for the files we are about to regenerate (mirrors the
+     single-file pattern):
+     ```sh
+     for each filtered entry:
+       node "$FORGE_ROOT/tools/generation-manifest.cjs" remove .forge/personas/<role>.md 2>/dev/null || true
+     ```
+
+3. Emit: `Generating personas (<N> files in parallel)...` — use `N_materialized` in fast mode, `M_total` in full mode.
+4. **Full mode only**: clear stale entries (skip in fast mode — see step 2):
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/personas/
    ```
-5. **Spawn ALL persona subagents in a SINGLE Agent tool message** using
+5. **Spawn the persona subagents in a SINGLE Agent tool message** using
    `$FORGE_ROOT/init/generation/generate-persona.md` as the per-subagent rulebook
-   (same fan-out pattern as `/forge:init` Phase 4).
+   (same fan-out pattern as `/forge:init` Phase 4). Spawn one per filtered
+   entry — every entry in fast mode, every meta source in full mode.
 6. Collect results. For each `done:` result → emit `  〇 <filename>.md`.
    Retry failures once. Any still failing: surface the id list.
-7. Emit `  〇 personas — <N> files written`
+7. Emit `  〇 personas — <N> files written` (fast mode appends ` (M-N deferred)` when `N < M`).
 
 ---
 
-## Category: `skills` — full rebuild (parallel)
+## Category: `skills` — full rebuild or single file
 
 Re-generate `.forge/skills/` from the meta-skill templates and project config.
 
+**If a sub-target is provided** (e.g. `/forge:regenerate skills engineer`
+or the colon form `skills:engineer`), regenerate only the single skill file
+`.forge/skills/<sub-target>-skills.md` from
+`$FORGE_ROOT/meta/skills/meta-<sub-target>-skills.md`.
+
+If `CONFIG_MODE == "fast"`: apply the single-file materialized check
+(skill is materialized iff `.forge/skills/<sub-target>-skills.md` exists).
+If not materialized, emit the stub-or-missing message and exit 0. Otherwise
+proceed.
+
+Before writing, remove any existing manifest entry for this specific file:
+```sh
+node "$FORGE_ROOT/tools/generation-manifest.cjs" remove .forge/skills/<sub-target>-skills.md 2>/dev/null || true
+```
+Generate the single file (no fan-out needed). All manifest and hash steps below
+apply to that single file.
+
+**If no sub-target** — full rebuild, fanned out in parallel:
+
 1. Build the project brief (same command as in `personas` above).
-2. Enumerate `$FORGE_ROOT/meta/skills/meta-*-skills.md`.
+2. Enumerate `$FORGE_ROOT/meta/skills/meta-*-skills.md`. Let `M_total` =
+   the enumerated count.
+
+   **If `CONFIG_MODE == "fast"`**: filter to entries whose target file
+   `.forge/skills/<role>-skills.md` exists. Let `N_materialized` = filtered
+   count.
+   - If `N_materialized == 0`: emit `〇 Fast mode: no materialized skills to regenerate.` and return 0.
+   - Otherwise continue with the filtered set; skip step 4 (do not clear
+     namespace), and `remove` manifest entries only for the filtered files.
+
 3. Emit: `Generating skills (<N> files in parallel)...`
-4. Clear stale entries:
+4. **Full mode only**: clear stale entries (skip in fast mode):
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/skills/
    ```
-5. **Spawn ALL skill subagents in a SINGLE Agent tool message** using
+5. **Spawn the skill subagents in a SINGLE Agent tool message** using
    `$FORGE_ROOT/init/generation/generate-skill.md` as the per-subagent rulebook.
 6. Collect results. Retry failures once. Any still failing: surface the id list.
 7. For each completed file, check manifest (warn on modified), emit `  〇 <filename>.md`.
+   Fast mode appends `〇 skills — <N> files written (M-N deferred)` when `N < M`.
 
 ---
 
@@ -120,7 +222,14 @@ current knowledge base. Covers both atomic workflows and orchestration.
 
 **If a sub-target is provided** (e.g. `/forge:regenerate workflows plan_task`
 or the colon form `workflows:plan_task`), regenerate only the single workflow
-file `.forge/workflows/<sub-target>.md`. Before writing, remove any existing
+file `.forge/workflows/<sub-target>.md`.
+
+If `CONFIG_MODE == "fast"`: apply the single-file materialized check —
+the workflow file must exist AND its first non-blank line must NOT begin
+with `<!-- FORGE FAST-MODE STUB`. If the file is a stub or missing, emit
+the stub-or-missing message and exit 0. Otherwise proceed.
+
+Before writing, remove any existing
 manifest entry for this specific file:
 ```sh
 node "$FORGE_ROOT/tools/generation-manifest.cjs" remove .forge/workflows/<sub-target>.md 2>/dev/null || true
@@ -139,23 +248,42 @@ write, record hash.
      --out .forge/init-context.md --json-out .forge/init-context.json
    ```
 2. Read `$FORGE_ROOT/init/workflow-gen-plan.json` (16-entry fan-out table).
-3. Emit: `Generating workflows (16 atomic + orchestration, parallel)...`
-4. Check each file for manual modifications before clearing:
+   Let `M_total` = the entry count.
+
+   **If `CONFIG_MODE == "fast"`**: filter to entries whose target file
+   `.forge/workflows/<id>.md` is materialized (exists AND first non-blank
+   line does not begin with `<!-- FORGE FAST-MODE STUB`).
+   Let `N_materialized` = filtered count.
+   - If `N_materialized == 0`: emit `〇 Fast mode: no materialized workflows to regenerate.` and return 0 (no manifest changes, orchestration skipped — orchestration only makes sense with a complete workflow set).
+   - Otherwise continue with the filtered set.
+
+3. Emit: `Generating workflows (<N> atomic + orchestration, parallel)...` —
+   in fast mode, omit the orchestration suffix when filtering applies.
+4. Check each (filtered) file for manual modifications before any clearing:
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/workflows/{filename}.md
    ```
    For any exit 1 (modified): warn `△ .forge/workflows/{filename}.md has been manually
    modified. Overwriting will discard your changes. Proceed? (yes / no / show diff)`
    Collect answers before proceeding.
-5. Clear stale entries:
+5. **Full mode only**: clear stale entries (skip in fast mode — clearing
+   would drop manifest entries for stubs we are intentionally leaving alone):
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/workflows/
    ```
-6. **Spawn all 16 atomic workflow subagents in a SINGLE Agent tool message** using
+   In fast mode, only `remove` manifest entries for the filtered files
+   that are about to be regenerated.
+6. **Spawn the atomic workflow subagents in a SINGLE Agent tool message** using
    `$FORGE_ROOT/init/generation/generate-workflows.md` as the per-subagent rulebook
-   (same fan-out pattern as `/forge:init` Phase 7d).
+   (same fan-out pattern as `/forge:init` Phase 7d). Spawn one per filtered
+   entry.
 7. Collect results. Retry failures once in a single Agent call.
-8. **Then spawn orchestration subagent**:
+8. **Full mode only**: spawn orchestration subagent. **In fast mode this
+   step is skipped** — orchestration depends on the complete workflow set
+   being present and refreshed; running it against a partially materialised
+   project would produce stale references. Orchestration files
+   (`orchestrate_task.md`, `run_sprint.md`) refresh on full promotion or
+   when workflows is fully rebuilt.
    ```
    Read $FORGE_ROOT/init/generation/generate-orchestration.md and follow it.
    FORGE_ROOT: {FORGE_ROOT}
@@ -163,7 +291,8 @@ write, record hash.
    Output: .forge/workflows/orchestrate_task.md and .forge/workflows/run_sprint.md
    ```
 9. For each written file: record hash `node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/workflows/{filename}.md`
-10. Emit `  〇 workflows — 18 files written`
+10. Emit `  〇 workflows — <N> files written` (full mode: 18; fast mode:
+    `〇 workflows — N of M files regenerated (others remain as stubs)`).
 
 **Do NOT touch:** `.claude/commands/`, `.forge/config.json`, or any knowledge base file.
 
@@ -205,20 +334,49 @@ separately by Step 5b-pre in `/forge:update` — not here.
 
 ---
 
-## Category: `templates` — full rebuild (parallel)
+## Category: `templates` — full rebuild or single file
 
 Re-generate `.forge/templates/` from the meta-template definitions and the
 current knowledge base.
 
+**If a sub-target is provided** (e.g. `/forge:regenerate templates PLAN_TEMPLATE`
+or the colon form `templates:PLAN_TEMPLATE`), regenerate only the single template
+file `.forge/templates/<sub-target>.md`. Determine the source meta file from
+`$FORGE_ROOT/init/generation/generate-template.md`'s filename mapping (e.g.
+`PLAN_TEMPLATE` → `meta-plan.md`).
+
+If `CONFIG_MODE == "fast"`: apply the single-file materialized check
+(template is materialized iff `.forge/templates/<sub-target>.md` exists).
+If not materialized, emit the stub-or-missing message and exit 0. Otherwise
+proceed.
+
+Before writing, remove any existing manifest
+entry:
+```sh
+node "$FORGE_ROOT/tools/generation-manifest.cjs" remove .forge/templates/<sub-target>.md 2>/dev/null || true
+```
+Generate the single file (no fan-out needed). Record hash after writing.
+
+**If no sub-target** — full rebuild, fanned out in parallel:
+
 1. Build the project brief (same command as in `personas` above).
-2. Enumerate `$FORGE_ROOT/meta/templates/meta-*.md`.
+2. Enumerate `$FORGE_ROOT/meta/templates/meta-*.md`. Let `M_total` =
+   the enumerated count.
+
+   **If `CONFIG_MODE == "fast"`**: filter to entries whose target file
+   `.forge/templates/<STEM>.md` exists (use the same filename mapping as
+   the single-file variant). Let `N_materialized` = filtered count.
+   - If `N_materialized == 0`: emit `〇 Fast mode: no materialized templates to regenerate.` and return 0.
+   - Otherwise continue with the filtered set; skip step 5 (do not clear
+     namespace), and only `remove` manifest entries for the filtered files.
+
 3. Emit: `Generating templates (<N> files in parallel)...`
-4. Check each file for manual modifications (warn on modified, same pattern as workflows).
-5. Clear stale entries:
+4. Check each (filtered) file for manual modifications (warn on modified, same pattern as workflows).
+5. **Full mode only**: clear stale entries (skip in fast mode):
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/templates/
    ```
-6. **Spawn ALL template subagents in a SINGLE Agent tool message** using
+6. **Spawn the template subagents in a SINGLE Agent tool message** using
    `$FORGE_ROOT/init/generation/generate-template.md` as the per-subagent rulebook.
 7. Collect results. Retry failures once. Any still failing: surface the id list.
 8. For each written file: record hash, emit `  〇 <filename>.md`.
@@ -228,6 +386,7 @@ current knowledge base.
      node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/templates/CUSTOM_COMMAND_TEMPLATE.md
    fi
    ```
+   Fast-mode footer: emit `〇 templates — <N> files written (M-N deferred)` when `N < M`.
 
 ---
 
@@ -350,6 +509,30 @@ Run all five categories respecting dependencies — with maximum parallelism:
 
 This runs in 4 serial steps instead of 5 sequential category passes, with all
 fan-outs parallelised within each step.
+
+Each category honours the materialized filter described in **Fast-mode
+awareness** above. The default run **does NOT write `mode`** — promotion
+is owned by `/forge:config mode full`. Mode stays `fast` until the user
+runs that command.
+
+### Fast-mode completion footer
+
+When `CONFIG_MODE == "fast"`, after all four steps succeed, emit a summary
+footer (use the per-category counts collected during each fan-out):
+
+```
+〇 Regenerate complete (fast mode)
+  personas   — N of M regenerated
+  templates  — N of M regenerated
+  skills     — N of M regenerated
+  workflows  — N of M regenerated (others remain as stubs)
+  commands   — always present, regenerated normally
+
+〇 To promote to full mode: /forge:config mode full
+```
+
+Full-mode projects are unaffected — the mode check short-circuits to the
+existing full-rebuild behaviour. No filter, no footer.
 
 ## On error
 

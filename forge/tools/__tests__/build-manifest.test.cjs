@@ -12,6 +12,7 @@ const {
   COMMAND_NAMES,
   checkReverseDrift,
   verifySources,
+  parseMetaDeps,
 } = require('../build-manifest.cjs');
 
 describe('build-manifest.cjs — mapping tables', () => {
@@ -117,5 +118,64 @@ describe('build-manifest.cjs — exported functions', () => {
     assert.ok(Array.isArray(warnings));
     // All meta-*.md files in templates/ are referenced in TEMPLATE_MAP
     assert.equal(warnings.length, 0);
+  });
+});
+
+describe('build-manifest.cjs — parseMetaDeps', () => {
+
+  test('fixture with well-formed deps: block parses to correct edges', () => {
+    const fixtureDir = path.join(__dirname, 'fixtures');
+    const edges = parseMetaDeps(fixtureDir, [['meta-with-deps.md', 'plan_task.md']]);
+    assert.ok(edges.plan_task, 'plan_task edge should exist');
+    assert.deepEqual(edges.plan_task.personas, ['.forge/personas/architect.md']);
+    assert.deepEqual(edges.plan_task.skills, ['.forge/skills/architect-skills.md', '.forge/skills/generic-skills.md']);
+    assert.deepEqual(edges.plan_task.templates, ['.forge/templates/PLAN_TEMPLATE.md', '.forge/templates/TASK_PROMPT_TEMPLATE.md']);
+    assert.deepEqual(edges.plan_task.sub_workflows, ['.forge/workflows/review_plan.md']);
+    assert.deepEqual(edges.plan_task.kb_docs, ['{KB_PATH}/architecture/stack.md', '{KB_PATH}/MASTER_INDEX.md']);
+    assert.deepEqual(edges.plan_task.config_fields, ['commands.test', 'paths.engineering']);
+  });
+
+  test('meta file without deps: block produces no edge entry', () => {
+    const os = require('os');
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bm-test-'));
+    try {
+      fs.writeFileSync(path.join(tmpDir, 'meta-no-deps.md'),
+        '---\nrequirements:\n  reasoning: High\n---\n\n# No deps\n');
+      const edges = parseMetaDeps(tmpDir, [['meta-no-deps.md', 'some_workflow.md']]);
+      assert.ok(!edges.some_workflow, 'no edge entry expected when deps: is absent');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('parseMetaDeps on real meta/workflows dir produces edges for all 17 meta sources', () => {
+    const metaDir = path.join(__dirname, '..', '..', 'meta', 'workflows');
+    const edges = parseMetaDeps(metaDir, WORKFLOW_MAP);
+    const metaSources = WORKFLOW_MAP.filter(([src]) => src !== null);
+    assert.ok(Object.keys(edges).length >= metaSources.length,
+      `expected ≥${metaSources.length} edges, got ${Object.keys(edges).length}`);
+  });
+
+  test('every meta workflow with deps: has a non-empty personas list', () => {
+    const metaDir = path.join(__dirname, '..', '..', 'meta', 'workflows');
+    const edges = parseMetaDeps(metaDir, WORKFLOW_MAP);
+    for (const [id, dep] of Object.entries(edges)) {
+      assert.ok(dep.personas && dep.personas.length > 0, `workflow "${id}" has empty personas list`);
+    }
+  });
+
+  test('empty deps list in sub_workflows resolves to empty array', () => {
+    const os = require('os');
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bm-test2-'));
+    try {
+      fs.writeFileSync(path.join(tmpDir, 'meta-leaf.md'),
+        '---\nrequirements:\n  reasoning: High\ndeps:\n  personas: [supervisor]\n  skills: [supervisor, generic]\n  templates: []\n  sub_workflows: []\n  kb_docs: []\n  config_fields: []\n---\n# Leaf\n');
+      const edges = parseMetaDeps(tmpDir, [['meta-leaf.md', 'review_plan.md']]);
+      assert.ok(edges.review_plan, 'review_plan edge should exist');
+      assert.deepEqual(edges.review_plan.sub_workflows, []);
+      assert.deepEqual(edges.review_plan.templates, []);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });

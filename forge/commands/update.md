@@ -543,7 +543,7 @@ list. Each item has:
 
 | Field | Description |
 |-------|-------------|
-| `type` | `delete-command`, `delete-workflow`, `update-pipeline-cmd`, `legacy-model-field`, `add-workflow-field`, `add-persona-symbol`, `add-paths-key`, `missing-command-file` |
+| `type` | `delete-command`, `delete-workflow`, `update-pipeline-cmd`, `legacy-model-field`, `add-workflow-field`, `add-persona-symbol`, `add-paths-key`, `missing-command-file`, `add-gitignore-entry` |
 | `label` | Human-readable one-line description |
 | `action` | What will be done if approved |
 | `path` | File or pipeline affected |
@@ -562,6 +562,7 @@ list. Each item has:
 | `add-persona-symbol` | false | no | Optional decoration |
 | `add-paths-key` | true | no | Missing config key |
 | `missing-command-file` | false | no | Advisory only |
+| `add-gitignore-entry` | true | no | Transient store path not gitignored |
 
 Items where `modified: true` must be flagged with `△` in the label.
 
@@ -704,6 +705,36 @@ ls .claude/commands/{cmd}.md 2>/dev/null && echo "found:claude"
   `label: "pipeline \"{name}\" phase {N} — command file missing for \"{cmd}\""`,
   `action: "Run /forge:add-pipeline to create it, or create manually"`
 
+**5g — Transient store gitignore audit.** `.forge/store/events/` accumulates
+one JSON per agent phase per task or bug — these are transient logs that
+should not be committed. Detect projects where the path is not yet ignored.
+
+1. Check whether the project root has a `.gitignore`:
+   ```sh
+   ls .gitignore 2>/dev/null
+   ```
+   If absent, skip this sub-check entirely (no items added — the project is
+   not under git or has no gitignore convention; do not auto-create).
+
+2. Read `.gitignore` and search for any of these match strings on a
+   non-comment, non-blank line (literal substring match):
+   - `.forge/store/events/`
+   - `.forge/store/events`
+   - `.forge/store/`
+   - `.forge/`
+
+   If any match → already ignored, no item added.
+
+3. If no match → add item:
+   `type: add-gitignore-entry`, `required: true`,
+   `path: .gitignore`,
+   `label: ".gitignore — .forge/store/events/ is not ignored (transient agent event logs)"`,
+   `action: "Append .forge/store/events/ to .gitignore"`
+
+This sub-check runs whether or not pipelines are configured — it depends
+only on `.gitignore` and the project's `.forge/` layout (always present
+post-init).
+
 **5f — Persona decoration.** For each command file found during 5d/5e that
 has a `## Persona` section but no symbol line (first non-blank line after the
 heading does not start with one of `🌱 🌿 ⛰️ 🌊 🍂 🍃`), add item:
@@ -729,8 +760,9 @@ Symbol is derived from the phase role:
 
 **Pipeline gate behavior:** All sub-checks always run. Pipeline-dependent
 sub-checks (5b-rename, 5c, 5d, 5e, 5f) naturally produce zero items when
-no pipelines are configured. If `.forge/config.json` does not exist, Step 5
-is skipped entirely (handled by 5a above).
+no pipelines are configured. Project-wide sub-checks (5b-pre, 5b-portability,
+5g) run regardless of pipeline state. If `.forge/config.json` does not exist,
+Step 5 is skipped entirely (handled by 5a above).
 
 ### 5b-present — Present consolidated prompt
 
@@ -764,9 +796,10 @@ and emit:
 1. Deletion items (`delete-command`, `delete-workflow`) first — highest urgency
 2. Pipeline config updates (`update-pipeline-cmd`, `add-paths-key`) second
 3. Workflow field additions (`add-workflow-field`) third
-4. Missing file warnings (`missing-command-file`) fourth — always advisory
-5. Legacy model field items (`legacy-model-field`) fifth — auto-applied
-6. Optional decoration items (`add-persona-symbol`) last — marked `(optional)`
+4. Gitignore entries (`add-gitignore-entry`) fourth — repo hygiene
+5. Missing file warnings (`missing-command-file`) fifth — always advisory
+6. Legacy model field items (`legacy-model-field`) sixth — auto-applied
+7. Optional decoration items (`add-persona-symbol`) last — marked `(optional)`
 
 **Behavior for each choice:**
 
@@ -788,6 +821,17 @@ For `add-persona-symbol` items: skip, emit
 `  ── skipped: <label> (optional)`
 
 For `missing-command-file` items: emit advisory reminder at the end.
+
+**`add-gitignore-entry` apply rule:** append the following two lines to
+`.gitignore` (preserve existing trailing newline; do not introduce a
+duplicate if either line is already present after a re-read):
+
+```
+# Forge — transient agent event logs (one file per phase, do not commit)
+.forge/store/events/
+```
+
+Touch nothing else in `.gitignore`. Emit `〇 applied: appended .forge/store/events/ to .gitignore`.
 
 After processing, if any optional items were skipped:
 ```
@@ -822,6 +866,7 @@ using the existing prompts from the corresponding sub-checks:
 - `add-paths-key` items → follow 5c prompt
 - `add-workflow-field` items → follow 5e audit (Case A, B, or C)
 - `missing-command-file` items → follow 5e Case C prompt
+- `add-gitignore-entry` items → confirm append, then write the entry per 5g
 - `add-persona-symbol` items → follow 5f persona decoration prompt
 
 This preserves backward compatibility exactly — each item type uses the same
@@ -921,6 +966,22 @@ Print the final summary:
    • Generated workflows and tools are ready to use
    {if files missing:}• Run /forge:add-pipeline to create missing command file(s){end if}
 ```
+
+**Fast-mode promotion hint.** After printing the summary, read
+`.forge/config.json` `mode`:
+
+```sh
+CURRENT_MODE=$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo "unset")
+```
+
+If `CURRENT_MODE == "fast"`, also emit:
+
+```
+〇 Migration applied in fast mode. Materialized artifacts refreshed; stubs will pick up changes on first use.
+〇 To fully promote: /forge:config mode full
+```
+
+This is informational only — no behavioural change. Do not block on it.
 
 ---
 

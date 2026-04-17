@@ -3,6 +3,13 @@ requirements:
   reasoning: Medium
   context: Medium
   speed: Medium
+deps:
+  personas: [bug-fixer]
+  skills: [bug-fixer, generic]
+  templates: [PROGRESS_TEMPLATE]
+  sub_workflows: [review_code]
+  kb_docs: [architecture/stack.md, architecture/routing.md]
+  config_fields: [commands.test, paths.engineering]
 ---
 
 # 🍂 Meta-Workflow: Fix Bug

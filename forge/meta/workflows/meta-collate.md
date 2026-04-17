@@ -3,6 +3,13 @@ requirements:
   reasoning: Medium
   context: Low
   speed: High
+deps:
+  personas: [collator]
+  skills: [collator, generic]
+  templates: []
+  sub_workflows: []
+  kb_docs: [MASTER_INDEX.md]
+  config_fields: [paths.engineering]
 ---
 
 # 🍃 Meta-Workflow: Collate
