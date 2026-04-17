@@ -65,6 +65,12 @@ const MODE_TINTS = {
   full: [255, 138, 60],    // ember orange
 };
 
+// ─── Zen blue ─────────────────────────────────────────────────────────────────
+// System-wide horizontal-rule tint. Applied to em-dash separators in
+// phaseHeader, ruleLine, and ensure-ready.cjs --announce framing. Picked to
+// read calm and cool without competing with banner colours.
+const ZEN_BLUE = [100, 140, 200];
+
 // ─── Banner registry ───────────────────────────────────────────────────────────
 const BANNERS = {
 
@@ -320,6 +326,36 @@ function subtitle(text, opts) {
 }
 
 /**
+ * Em-dash rule line, tinted zen blue by default.
+ *   ━━━ {text} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ *
+ * Use as a horizontal section separator anywhere in the system. Calling
+ * with no text produces a plain rule (just em-dashes, no label).
+ *
+ * @param {string} [text]   Optional label to embed in the rule
+ * @param {object} [opts]
+ * @param {number} [opts.width=65]   Total line width
+ * @param {number[]} [opts.color]    [r,g,b] override tint; defaults to ZEN_BLUE
+ * @returns {string}
+ */
+function ruleLine(text, opts) {
+  const o = opts || {};
+  const width = o.width || 65;
+  const color = Array.isArray(o.color) ? o.color : ZEN_BLUE;
+  const tint = f(color[0], color[1], color[2]);
+
+  let line;
+  if (text && text.length > 0) {
+    const head = `━━━ ${text} `;
+    const padCount = Math.max(3, width - head.length);
+    line = head + '━'.repeat(padCount);
+  } else {
+    line = '━'.repeat(width);
+  }
+  return _maybePlain(`${tint}${line}${R}`);
+}
+
+/**
  * Phase header: multi-line — badge, em-dash banner, progress bar.
  * Concatenates with newlines so a single println prints all three.
  *
@@ -347,10 +383,9 @@ function phaseHeader(n, total, name, bannerKey, opts) {
     label: name,
   });
 
-  // Em-dash banner — match the existing format used across all forge commands.
-  const headerText = `Phase ${n}/${total} — ${name}`;
-  const emWidth = Math.max(0, 65 - headerText.length - 4);  // " ━━━ ... ━━━" pad
-  const emBanner = `━━━ ${headerText} ${'━'.repeat(emWidth)}`;
+  // Em-dash banner — match the existing format used across all forge commands,
+  // tinted zen blue for system-wide visual consistency on horizontal rules.
+  const emBanner = ruleLine(`Phase ${n}/${total} — ${name}`);
 
   const lines = [
     badge(bannerKey),
@@ -432,6 +467,10 @@ if (require.main === module) {
       const bannerKey = args[4] || 'forge';
       const mode = args[5];   // optional 'fast' | 'full'
       console.log(phaseHeader(n, total, name, bannerKey, mode ? { mode } : undefined));
+    } else if (args[0] === '--rule') {
+      // --rule [text]   Zen-blue em-dash horizontal rule (with optional label)
+      const text = args.slice(1).join(' ') || undefined;
+      console.log(ruleLine(text));
     } else {
       process.stdout.write(render(args[0]) + '\n');
     }
@@ -444,6 +483,6 @@ if (require.main === module) {
 // ─── Exports ───────────────────────────────────────────────────────────────────
 module.exports = {
   render, badge, mark, list, gallery, rule, BANNERS,
-  progressBar, subtitle, phaseHeader,
-  isPlain, stripAnsi, MODE_TINTS,
+  progressBar, subtitle, phaseHeader, ruleLine,
+  isPlain, stripAnsi, MODE_TINTS, ZEN_BLUE,
 };

@@ -1,4 +1,12 @@
 {
+  "0.12.4": {
+    "version": "0.12.5",
+    "date": "2026-04-17",
+    "notes": "Visual upgrade for fast-mode capability announcement: framed em-dash block with lantern-yellow progress bars and zen-blue horizontal rules. New banners.cjs ZEN_BLUE constant + ruleLine() helper + --rule CLI subcommand. phaseHeader em-dash banner is now zen-blue tinted for system-wide horizontal-rule consistency.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.12.3": {
     "version": "0.12.4",
     "date": "2026-04-17",

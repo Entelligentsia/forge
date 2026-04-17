@@ -267,3 +267,72 @@ describe('ensure-ready.cjs — computeCapabilities + predictCapabilitiesAfter', 
     assert.equal(cap.percent, 0);
   });
 });
+
+describe('ensure-ready.cjs — _renderAnnouncement', () => {
+  const { _renderAnnouncement } = require('../ensure-ready.cjs');
+  const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]/g;
+
+  test('returns multi-line framed block with title and rules', () => {
+    const out = _renderAnnouncement({
+      currentBefore: 2, currentAfter: 12, total: 41,
+      percentBefore: 5, percentAfter: 29, added: 10,
+    });
+    const lines = out.split('\n');
+    assert.ok(lines.length >= 5, `expected >= 5 lines, got ${lines.length}`);
+    assert.ok(out.includes('━━━'), 'should contain em-dash rule');
+    assert.ok(out.includes('Forge'), 'should contain title');
+    assert.ok(out.includes('Capability Upgrade'), 'should contain title detail');
+    assert.ok(out.includes('Currently'), 'should label the current line');
+    assert.ok(out.includes('After'), 'should label the after line');
+  });
+
+  test('top + bottom rules are zen-blue tinted', () => {
+    const out = _renderAnnouncement({
+      currentBefore: 2, currentAfter: 12, total: 41,
+      percentBefore: 5, percentAfter: 29, added: 10,
+    });
+    const zenAnsi = '\x1b[38;2;100;140;200m';
+    const lines = out.split('\n');
+    assert.ok(lines[0].includes(zenAnsi), 'top rule should carry ZEN_BLUE');
+    assert.ok(lines[lines.length - 1].includes(zenAnsi), 'bottom rule should carry ZEN_BLUE');
+  });
+
+  test('shows percentages and ratios in the data lines', () => {
+    const out = _renderAnnouncement({
+      currentBefore: 5, currentAfter: 20, total: 41,
+      percentBefore: 12, percentAfter: 49, added: 15,
+    }).replace(ANSI_RE, '');
+    assert.ok(out.includes('12%'), 'should include before percent');
+    assert.ok(out.includes('49%'), 'should include after percent');
+    assert.ok(out.includes('5/41'), 'should include before ratio (from progress bar)');
+    assert.ok(out.includes('20/41'), 'should include after ratio');
+    assert.ok(out.includes('+15 artifacts'), 'should include added count (plural)');
+  });
+
+  test('uses singular "artifact" for added=1', () => {
+    const out = _renderAnnouncement({
+      currentBefore: 0, currentAfter: 1, total: 41,
+      percentBefore: 0, percentAfter: 2, added: 1,
+    }).replace(ANSI_RE, '');
+    assert.ok(out.includes('+1 artifact'), 'should use singular');
+    assert.ok(!out.includes('+1 artifacts'), 'should NOT use plural');
+  });
+
+  test('already-materialised closure (added=0) shows refresh-in-place message', () => {
+    const out = _renderAnnouncement({
+      currentBefore: 12, currentAfter: 12, total: 41,
+      percentBefore: 29, percentAfter: 29, added: 0,
+    }).replace(ANSI_RE, '');
+    assert.ok(out.includes('refreshing in place'), `expected refresh message, got: ${out}`);
+    assert.ok(!out.includes('+0 artifact'), 'should not emit a +0 line');
+  });
+
+  test('--all with 100% materialisation shows promote hint', () => {
+    const out = _renderAnnouncement({
+      currentBefore: 41, currentAfter: 41, total: 41,
+      percentBefore: 100, percentAfter: 100, added: 0,
+    }, { allFlag: true }).replace(ANSI_RE, '');
+    assert.ok(out.includes('already fully materialised'), 'should announce 100% state');
+    assert.ok(out.includes('/forge:config mode full'), 'should hint at the promote command');
+  });
+});
