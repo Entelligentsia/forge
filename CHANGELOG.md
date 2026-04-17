@@ -11,6 +11,21 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.12.2] — 2026-04-17
+
+**`/forge:init` mode prompt now defaults to Fast.**
+
+After dogfooding v0.12.1, Fast mode is reliable enough to be the default
+for new installs. The Mode Selection prompt now presents Fast as `[1]`
+and Full as `[2]`; pressing Enter picks Fast. The resume sub-prompt is
+re-ordered the same way for consistency. `--fast` and `--full` flags are
+unchanged — both remain non-interactive escape hatches.
+
+**Regenerate:** none — single-command UX change. No project files
+affected.
+
+---
+
 ## [0.12.1] — 2026-04-17
 
 **`/forge:config` command + fast-mode-respecting regenerate + interactive

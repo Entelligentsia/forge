@@ -1,4 +1,12 @@
 {
+  "0.12.1": {
+    "version": "0.12.2",
+    "date": "2026-04-17",
+    "notes": "/forge:init mode prompt now defaults to Fast (was Full). Order in the prompt and the resume switch options is also flipped so [1] = Fast, [2] = Full. Pressing Enter at the prompt picks Fast. Pre-existing --fast and --full flags continue to work unchanged.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.12.0": {
     "version": "0.12.1",
     "date": "2026-04-17",

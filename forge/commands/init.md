@@ -71,13 +71,13 @@ After confirming resume, emit (substituting the stored mode):
 ```
 〇 Previous init used: <stored-mode> mode
 
-Continue in <stored-mode> mode? [Y] Or switch: [1] Full / [2] Fast
+Continue in <stored-mode> mode? [Y] Or switch: [1] Fast / [2] Full
 ```
 
 Input handling:
 - Empty / `Y` / `y` → keep stored mode.
-- `1` / `full` → switch to Full mode.
-- `2` / `fast` → switch to Fast mode.
+- `1` / `fast` → switch to Fast mode.
+- `2` / `full` → switch to Full mode.
 - Anything else → re-emit the sub-prompt.
 
 If the user switches modes, update the `mode` field in
@@ -135,21 +135,21 @@ Do not write `.forge/init-progress.json`. Do not proceed.
 
 Forge can bootstrap your SDLC in two modes:
 
-  [1] Full  — generate everything now (KB docs, personas, skills,
+  [1] Fast  — scaffold + lazy materialisation (KB skeleton + 16
+             workflow stubs that self-materialise on first use). ~30s.
+             〇 Best for: most projects. Heavy generation is deferred
+                to first workflow invocation (~1–2 min per workflow).
+
+  [2] Full  — generate everything now (KB docs, personas, skills,
              templates, workflows, orchestration). ~10–15 min.
-             〇 Best for: new projects, offline work, evaluating Forge.
+             〇 Best for: offline work, evaluating end-to-end output.
 
-  [2] Fast  — scaffold only (KB skeleton + 16 workflow stubs that
-             self-materialise on first use). ~30s.
-             〇 Best for: trying Forge quickly. Heavy generation is
-                deferred to first workflow invocation (~1–2 min each).
-
-Which mode? [1] Full / [2] Fast  (default: 1): ___
+Which mode? [1] Fast / [2] Full  (default: 1): ___
 ```
 
 Input handling:
-- `1`, `full`, empty (Enter) → Full mode.
-- `2`, `fast` → Fast mode.
+- `1`, `fast`, empty (Enter) → Fast mode.
+- `2`, `full` → Full mode.
 - Anything else → re-emit the banner above and re-prompt. No silent fallback.
 
 **Persist the chosen mode pre-Phase-1.** As soon as a valid choice is made
