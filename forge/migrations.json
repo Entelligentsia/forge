@@ -1,4 +1,44 @@
 {
+  "0.12.3": {
+    "version": "0.12.4",
+    "date": "2026-04-17",
+    "notes": "Fast-mode capability announcement: every materialise round (per-workflow stub trigger or /forge:materialize --all) now emits a 2-line summary like '〇 Forge is currently in fast mode · 5% capabilities generated (2 of 41) — this round will lift capabilities to 29% (12 of 41, +10 artifact(s))'. Silent on full installs. New ensure-ready.cjs subcommands: --capabilities, --capabilities-after, --announce.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.12.2": {
+    "version": "0.12.3",
+    "date": "2026-04-17",
+    "notes": "Visual onboarding character: hero banners and per-phase/step badges across /forge:init, /forge:update, /forge:regenerate, /forge:health (and light touch on /forge:config and /forge:materialize). banners.cjs gains progressBar, subtitle, phaseHeader, plain-mode (NO_COLOR / non-tty / --plain). Backwards-compatible — all existing API + emits still work; new visuals are additive.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.12.1": {
+    "version": "0.12.2",
+    "date": "2026-04-17",
+    "notes": "/forge:init mode prompt now defaults to Fast (was Full). Order in the prompt and the resume switch options is also flipped so [1] = Fast, [2] = Full. Pressing Enter at the prompt picks Fast. Pre-existing --fast and --full flags continue to work unchanged.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.12.0": {
+    "version": "0.12.1",
+    "date": "2026-04-17",
+    "notes": "Interactive fast/full prompt for /forge:init (with --full escape hatch). New /forge:config command for mode switching. Regenerate and materialize now respect fast mode and no longer auto-flip to full. Explicit promotion: /forge:config mode full. /forge:init Phase 12 and /forge:update Step 5 now offer to gitignore .forge/store/events/ (transient agent logs).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.11.3": {
+    "version": "0.12.0",
+    "date": "2026-04-17",
+    "notes": "Fast-mode init: /forge:init --fast runs in ~30s + Phase 2, deferring heavy LLM generation to first use. Machine-readable dep graph (deps: frontmatter in all 17 meta workflows, edges section in structure-manifest.json). New lazy-materialize.md rulebook, ensure-ready.cjs tool, /forge:materialize command. Per-file scoping for skills and templates in /forge:regenerate. Config mode field (fast/full).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.11.2": {
     "version": "0.11.3",
     "date": "2026-04-16",

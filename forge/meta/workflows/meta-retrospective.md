@@ -3,6 +3,13 @@ requirements:
   reasoning: High
   context: Medium
   speed: Low
+deps:
+  personas: [architect]
+  skills: [architect, generic]
+  templates: [RETROSPECTIVE_TEMPLATE]
+  sub_workflows: []
+  kb_docs: [architecture/stack.md]
+  config_fields: [paths.engineering]
 ---
 
 # 🗻 Meta-Workflow: Retrospective

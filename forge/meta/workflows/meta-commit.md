@@ -3,6 +3,13 @@ requirements:
   reasoning: Low
   context: Low
   speed: High
+deps:
+  personas: [engineer]
+  skills: [engineer, generic]
+  templates: [PROGRESS_TEMPLATE]
+  sub_workflows: []
+  kb_docs: []
+  config_fields: [commands.test, paths.engineering]
 ---
 
 # 🌱 Meta-Workflow: Commit Task

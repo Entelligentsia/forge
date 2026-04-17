@@ -1,3 +1,17 @@
+---
+requirements:
+  reasoning: High
+  context: High
+  speed: Medium
+deps:
+  personas: [architect, engineer, supervisor, bug-fixer, collator, qa-engineer]
+  skills: [architect, engineer, supervisor, generic]
+  templates: []
+  sub_workflows: [plan_task, implement_plan, review_plan, review_code, fix_bug, architect_approve, commit_task, validate_task]
+  kb_docs: [architecture/stack.md]
+  config_fields: [paths.engineering]
+---
+
 # 🌊 Meta-Workflow: Orchestrate Task
 
 ## Purpose

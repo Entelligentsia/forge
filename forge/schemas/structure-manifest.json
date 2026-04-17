@@ -1,6 +1,6 @@
 {
-  "version": "0.11.3",
-  "generatedAt": "2026-04-16T17:16:06.878Z",
+  "version": "0.12.4",
+  "generatedAt": "2026-04-17T11:28:36.030Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -97,6 +97,364 @@
         "sprint.schema.json",
         "task.schema.json"
       ]
+    }
+  },
+  "edges": {
+    "workflows": {
+      "architect_approve": {
+        "personas": [
+          ".forge/personas/architect.md"
+        ],
+        "skills": [
+          ".forge/skills/architect-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [],
+        "sub_workflows": [],
+        "kb_docs": [
+          "{KB_PATH}/architecture/stack.md"
+        ],
+        "config_fields": [
+          "paths.engineering"
+        ]
+      },
+      "collator_agent": {
+        "personas": [
+          ".forge/personas/collator.md"
+        ],
+        "skills": [
+          ".forge/skills/collator-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [],
+        "sub_workflows": [],
+        "kb_docs": [
+          "{KB_PATH}/MASTER_INDEX.md"
+        ],
+        "config_fields": [
+          "paths.engineering"
+        ]
+      },
+      "commit_task": {
+        "personas": [
+          ".forge/personas/engineer.md"
+        ],
+        "skills": [
+          ".forge/skills/engineer-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [
+          ".forge/templates/PROGRESS_TEMPLATE.md"
+        ],
+        "sub_workflows": [],
+        "kb_docs": [],
+        "config_fields": [
+          "commands.test",
+          "paths.engineering"
+        ]
+      },
+      "fix_bug": {
+        "personas": [
+          ".forge/personas/bug-fixer.md"
+        ],
+        "skills": [
+          ".forge/skills/bug-fixer-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [
+          ".forge/templates/PROGRESS_TEMPLATE.md"
+        ],
+        "sub_workflows": [
+          ".forge/workflows/review_code.md"
+        ],
+        "kb_docs": [
+          "{KB_PATH}/architecture/stack.md",
+          "{KB_PATH}/architecture/routing.md"
+        ],
+        "config_fields": [
+          "commands.test",
+          "paths.engineering"
+        ]
+      },
+      "implement_plan": {
+        "personas": [
+          ".forge/personas/engineer.md"
+        ],
+        "skills": [
+          ".forge/skills/engineer-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [
+          ".forge/templates/PROGRESS_TEMPLATE.md"
+        ],
+        "sub_workflows": [
+          ".forge/workflows/review_code.md"
+        ],
+        "kb_docs": [
+          "{KB_PATH}/architecture/stack.md",
+          "{KB_PATH}/architecture/routing.md"
+        ],
+        "config_fields": [
+          "commands.test",
+          "paths.engineering"
+        ]
+      },
+      "orchestrate_task": {
+        "personas": [
+          ".forge/personas/architect.md",
+          ".forge/personas/engineer.md",
+          ".forge/personas/supervisor.md",
+          ".forge/personas/bug-fixer.md",
+          ".forge/personas/collator.md",
+          ".forge/personas/qa-engineer.md"
+        ],
+        "skills": [
+          ".forge/skills/architect-skills.md",
+          ".forge/skills/engineer-skills.md",
+          ".forge/skills/supervisor-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [],
+        "sub_workflows": [
+          ".forge/workflows/plan_task.md",
+          ".forge/workflows/implement_plan.md",
+          ".forge/workflows/review_plan.md",
+          ".forge/workflows/review_code.md",
+          ".forge/workflows/fix_bug.md",
+          ".forge/workflows/architect_approve.md",
+          ".forge/workflows/commit_task.md",
+          ".forge/workflows/validate_task.md"
+        ],
+        "kb_docs": [
+          "{KB_PATH}/architecture/stack.md"
+        ],
+        "config_fields": [
+          "paths.engineering"
+        ]
+      },
+      "plan_task": {
+        "personas": [
+          ".forge/personas/architect.md"
+        ],
+        "skills": [
+          ".forge/skills/architect-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [
+          ".forge/templates/PLAN_TEMPLATE.md",
+          ".forge/templates/TASK_PROMPT_TEMPLATE.md"
+        ],
+        "sub_workflows": [
+          ".forge/workflows/review_plan.md"
+        ],
+        "kb_docs": [
+          "{KB_PATH}/architecture/stack.md",
+          "{KB_PATH}/MASTER_INDEX.md"
+        ],
+        "config_fields": [
+          "commands.test",
+          "paths.engineering"
+        ]
+      },
+      "sprint_retrospective": {
+        "personas": [
+          ".forge/personas/architect.md"
+        ],
+        "skills": [
+          ".forge/skills/architect-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [
+          ".forge/templates/RETROSPECTIVE_TEMPLATE.md"
+        ],
+        "sub_workflows": [],
+        "kb_docs": [
+          "{KB_PATH}/architecture/stack.md"
+        ],
+        "config_fields": [
+          "paths.engineering"
+        ]
+      },
+      "review_code": {
+        "personas": [
+          ".forge/personas/supervisor.md"
+        ],
+        "skills": [
+          ".forge/skills/supervisor-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [
+          ".forge/templates/CODE_REVIEW_TEMPLATE.md"
+        ],
+        "sub_workflows": [],
+        "kb_docs": [
+          "{KB_PATH}/architecture/stack.md",
+          "{KB_PATH}/architecture/routing.md"
+        ],
+        "config_fields": [
+          "commands.test",
+          "paths.engineering"
+        ]
+      },
+      "review_plan": {
+        "personas": [
+          ".forge/personas/supervisor.md"
+        ],
+        "skills": [
+          ".forge/skills/supervisor-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [
+          ".forge/templates/PLAN_REVIEW_TEMPLATE.md"
+        ],
+        "sub_workflows": [],
+        "kb_docs": [
+          "{KB_PATH}/architecture/stack.md"
+        ],
+        "config_fields": [
+          "paths.engineering"
+        ]
+      },
+      "architect_review_sprint_completion": {
+        "personas": [
+          ".forge/personas/architect.md"
+        ],
+        "skills": [
+          ".forge/skills/architect-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [],
+        "sub_workflows": [],
+        "kb_docs": [
+          "{KB_PATH}/architecture/stack.md"
+        ],
+        "config_fields": [
+          "paths.engineering"
+        ]
+      },
+      "architect_sprint_intake": {
+        "personas": [
+          ".forge/personas/product-manager.md"
+        ],
+        "skills": [
+          ".forge/skills/architect-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [
+          ".forge/templates/SPRINT_REQUIREMENTS_TEMPLATE.md",
+          ".forge/templates/SPRINT_MANIFEST_TEMPLATE.md"
+        ],
+        "sub_workflows": [],
+        "kb_docs": [
+          "{KB_PATH}/MASTER_INDEX.md",
+          "{KB_PATH}/architecture/stack.md"
+        ],
+        "config_fields": [
+          "project.prefix",
+          "paths.engineering"
+        ]
+      },
+      "architect_sprint_plan": {
+        "personas": [
+          ".forge/personas/architect.md"
+        ],
+        "skills": [
+          ".forge/skills/architect-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [
+          ".forge/templates/SPRINT_MANIFEST_TEMPLATE.md",
+          ".forge/templates/TASK_PROMPT_TEMPLATE.md"
+        ],
+        "sub_workflows": [],
+        "kb_docs": [
+          "{KB_PATH}/MASTER_INDEX.md",
+          "{KB_PATH}/architecture/stack.md"
+        ],
+        "config_fields": [
+          "project.prefix",
+          "paths.engineering"
+        ]
+      },
+      "update_implementation": {
+        "personas": [
+          ".forge/personas/engineer.md"
+        ],
+        "skills": [
+          ".forge/skills/engineer-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [
+          ".forge/templates/PROGRESS_TEMPLATE.md"
+        ],
+        "sub_workflows": [
+          ".forge/workflows/review_code.md"
+        ],
+        "kb_docs": [
+          "{KB_PATH}/architecture/stack.md"
+        ],
+        "config_fields": [
+          "commands.test",
+          "paths.engineering"
+        ]
+      },
+      "update_plan": {
+        "personas": [
+          ".forge/personas/architect.md"
+        ],
+        "skills": [
+          ".forge/skills/architect-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [
+          ".forge/templates/PLAN_TEMPLATE.md"
+        ],
+        "sub_workflows": [
+          ".forge/workflows/review_plan.md"
+        ],
+        "kb_docs": [
+          "{KB_PATH}/architecture/stack.md"
+        ],
+        "config_fields": [
+          "paths.engineering"
+        ]
+      },
+      "validate_task": {
+        "personas": [
+          ".forge/personas/qa-engineer.md"
+        ],
+        "skills": [
+          ".forge/skills/qa-engineer-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [],
+        "sub_workflows": [],
+        "kb_docs": [
+          "{KB_PATH}/architecture/stack.md"
+        ],
+        "config_fields": [
+          "commands.test",
+          "paths.engineering"
+        ]
+      },
+      "quiz_agent": {
+        "personas": [
+          ".forge/personas/qa-engineer.md"
+        ],
+        "skills": [
+          ".forge/skills/qa-engineer-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [],
+        "sub_workflows": [],
+        "kb_docs": [
+          "{KB_PATH}/architecture/stack.md",
+          "{KB_PATH}/MASTER_INDEX.md"
+        ],
+        "config_fields": [
+          "paths.engineering"
+        ]
+      }
     }
   }
 }

@@ -3,6 +3,13 @@ requirements:
   reasoning: High
   context: Medium
   speed: Low
+deps:
+  personas: [architect]
+  skills: [architect, generic]
+  templates: [SPRINT_MANIFEST_TEMPLATE, TASK_PROMPT_TEMPLATE]
+  sub_workflows: []
+  kb_docs: [MASTER_INDEX.md, architecture/stack.md]
+  config_fields: [project.prefix, paths.engineering]
 ---
 
 # 🗻 Meta-Workflow: Sprint Plan

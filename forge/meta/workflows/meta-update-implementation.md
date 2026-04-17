@@ -3,6 +3,13 @@ requirements:
   reasoning: Medium
   context: Medium
   speed: Medium
+deps:
+  personas: [engineer]
+  skills: [engineer, generic]
+  templates: [PROGRESS_TEMPLATE]
+  sub_workflows: [review_code]
+  kb_docs: [architecture/stack.md]
+  config_fields: [commands.test, paths.engineering]
 ---
 
 # 🌱 Meta-Workflow: Update Implementation

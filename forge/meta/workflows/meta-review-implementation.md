@@ -3,6 +3,13 @@ requirements:
   reasoning: High
   context: Medium
   speed: Low
+deps:
+  personas: [supervisor]
+  skills: [supervisor, generic]
+  templates: [CODE_REVIEW_TEMPLATE]
+  sub_workflows: []
+  kb_docs: [architecture/stack.md, architecture/routing.md]
+  config_fields: [commands.test, paths.engineering]
 ---
 
 # 🌿 Meta-Workflow: Review Implementation

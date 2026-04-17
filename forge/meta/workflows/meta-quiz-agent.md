@@ -3,6 +3,13 @@ requirements:
   reasoning: Medium
   context: High
   speed: Low
+deps:
+  personas: [qa-engineer]
+  skills: [qa-engineer, generic]
+  templates: []
+  sub_workflows: []
+  kb_docs: [architecture/stack.md, MASTER_INDEX.md]
+  config_fields: [paths.engineering]
 ---
 
 # 🍵 Meta-Workflow: Quiz Agent

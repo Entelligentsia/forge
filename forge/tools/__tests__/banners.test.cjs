@@ -77,3 +77,129 @@ describe('banners.cjs', () => {
     }
   });
 });
+
+describe('banners.cjs — progressBar', () => {
+  const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]/g;
+
+  test('returns string with counter and label', () => {
+    const out = banners.progressBar(5, 12, { label: 'Templates' });
+    const plain = out.replace(ANSI_RE, '');
+    assert.ok(plain.includes('5/12'), 'should contain counter');
+    assert.ok(plain.includes('Templates'), 'should contain label');
+  });
+
+  test('clamps n to [0, total]', () => {
+    const overOut = banners.progressBar(99, 12);
+    const underOut = banners.progressBar(-3, 12);
+    assert.ok(overOut.replace(ANSI_RE, '').includes('12/12'));
+    assert.ok(underOut.replace(ANSI_RE, '').includes('0/12'));
+  });
+
+  test('0 cells uses only the empty glyph; full uses only filled glyph', () => {
+    const empty = banners.progressBar(0, 12, { width: 12 }).replace(ANSI_RE, '');
+    const full = banners.progressBar(12, 12, { width: 12 }).replace(ANSI_RE, '');
+    // Strip everything after the bar (counter + label) by splitting on double space.
+    const emptyBar = empty.split('  ')[0];
+    const fullBar = full.split('  ')[0];
+    assert.ok(!emptyBar.includes('▰'), `empty bar should have no filled glyphs, got "${emptyBar}"`);
+    assert.ok(!fullBar.includes('▱'), `full bar should have no empty glyphs, got "${fullBar}"`);
+  });
+
+  test('partial fill includes both glyphs', () => {
+    const partial = banners.progressBar(5, 12, { width: 12 }).replace(ANSI_RE, '');
+    assert.ok(partial.includes('▰'));
+    assert.ok(partial.includes('▱'));
+  });
+
+  test('honours custom width', () => {
+    const out = banners.progressBar(5, 10, { width: 20 }).replace(ANSI_RE, '');
+    const bar = out.split('  ')[0];
+    assert.equal(bar.length, 20, `bar should be 20 cells, got "${bar}" (${bar.length})`);
+  });
+
+  test('total of 0 does not divide-by-zero', () => {
+    assert.doesNotThrow(() => banners.progressBar(0, 0));
+  });
+});
+
+describe('banners.cjs — subtitle', () => {
+  test('returns single-line text containing the input', () => {
+    const out = banners.subtitle('Forging your SDLC');
+    assert.ok(!out.includes('\n'), 'subtitle should be single line');
+    assert.ok(out.includes('Forging your SDLC'));
+  });
+});
+
+describe('banners.cjs — phaseHeader', () => {
+  test('returns three lines: badge, em-dash banner, progress bar', () => {
+    const out = banners.phaseHeader(7, 12, 'Workflows', 'ember');
+    const lines = out.split('\n');
+    assert.equal(lines.length, 3, `expected 3 lines, got ${lines.length}: ${JSON.stringify(lines)}`);
+    assert.ok(lines[0].includes('EMBER'), 'first line should be the ember badge');
+    assert.ok(lines[1].includes('━━━'), 'second line should be em-dash banner');
+    assert.ok(lines[1].includes('Phase 7/12 — Workflows'));
+    assert.ok(lines[2].includes('7/12'), 'third line should be progress bar with counter');
+  });
+
+  test('mode tint via string opts', () => {
+    const fast = banners.phaseHeader(1, 12, 'Discover', 'north', 'fast');
+    const full = banners.phaseHeader(1, 12, 'Discover', 'north', 'full');
+    assert.notEqual(fast, full, 'fast and full mode should produce different output');
+  });
+
+  test('throws on unknown banner key', () => {
+    assert.throws(() => banners.phaseHeader(1, 12, 'X', 'nonexistent'), /unknown/i);
+  });
+});
+
+describe('banners.cjs — plain mode', () => {
+  const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]/g;
+
+  test('NO_COLOR strips ANSI from render()', () => {
+    const original = process.env.NO_COLOR;
+    process.env.NO_COLOR = '1';
+    try {
+      const out = banners.render('forge');
+      assert.equal(out.match(ANSI_RE), null, `expected no ANSI, got: ${JSON.stringify(out)}`);
+    } finally {
+      if (original === undefined) delete process.env.NO_COLOR; else process.env.NO_COLOR = original;
+    }
+  });
+
+  test('FORGE_BANNERS_PLAIN strips ANSI from badge()', () => {
+    const original = process.env.FORGE_BANNERS_PLAIN;
+    process.env.FORGE_BANNERS_PLAIN = '1';
+    try {
+      const out = banners.badge('north');
+      assert.equal(out.match(ANSI_RE), null);
+    } finally {
+      if (original === undefined) delete process.env.FORGE_BANNERS_PLAIN; else process.env.FORGE_BANNERS_PLAIN = original;
+    }
+  });
+
+  test('plain mode also strips ANSI from progressBar()', () => {
+    const original = process.env.NO_COLOR;
+    process.env.NO_COLOR = '1';
+    try {
+      const out = banners.progressBar(5, 12, { color: [255, 100, 50], label: 'X' });
+      assert.equal(out.match(ANSI_RE), null);
+    } finally {
+      if (original === undefined) delete process.env.NO_COLOR; else process.env.NO_COLOR = original;
+    }
+  });
+
+  test('isPlain returns true when env is set', () => {
+    const original = process.env.NO_COLOR;
+    process.env.NO_COLOR = '1';
+    try {
+      assert.equal(banners.isPlain(), true);
+    } finally {
+      if (original === undefined) delete process.env.NO_COLOR; else process.env.NO_COLOR = original;
+    }
+  });
+
+  test('stripAnsi removes all CSI sequences', () => {
+    const input = '\x1b[1m\x1b[38;2;255;0;0mhello\x1b[0m';
+    assert.equal(banners.stripAnsi(input), 'hello');
+  });
+});

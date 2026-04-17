@@ -6,6 +6,62 @@ current working directory. Execute these 12 phases in order.
 Set `$FORGE_ROOT` to the forge plugin directory (the parent of this file's
 directory — the folder containing `meta/` and `init/`).
 
+## Fast-mode detection
+
+Read the chosen mode from `.forge/init-progress.json` (written by the
+**Mode Selection** step in `init.md` before this document is loaded):
+
+```sh
+jq -r '.mode // "full"' .forge/init-progress.json 2>/dev/null || echo "full"
+```
+
+If the value is `"fast"`, set `FAST_MODE=true` for the rest of this document.
+If the file is missing, the field is absent, or the value is anything else,
+default to full mode (`FAST_MODE=false`).
+
+Fast mode skips heavy LLM generation (Phases 3 full KB, 4 personas, 5 skills,
+6 templates, 8 orchestration) and instead writes stub workflow files that
+self-materialise on first use.
+
+---
+
+## Phase header rendering
+
+Every phase below opens with a 3-line header rendered by `banners.cjs --phase`:
+banner badge → em-dash separator → mode-tinted progress bar. Always invoke it
+like this (substituting `{N}`, `{Name}`, and `{bannerKey}` per the table below):
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase {N} 12 "{Name}" {bannerKey} \
+  "$(jq -r '.mode // "full"' .forge/init-progress.json 2>/dev/null || echo full)"
+```
+
+| Phase | Name | Banner key |
+|-------|------|------------|
+| 1 | Discover | `north` |
+| 2 | Marketplace Skills | `entelligentsia` |
+| 3 | Knowledge Base | `oracle` |
+| 4 | Personas | `bloom` |
+| 5 | Skills | `tide` |
+| 6 | Templates | `drift` |
+| 7 | Workflows | `ember` |
+| 8 | Orchestration | `rift` |
+| 9 | Commands | `lumen` |
+| 10 | Tools | `forge` |
+| 11 | Smoke Test | `north` |
+| 12 | Tomoshibi | `lumen` |
+
+The `--phase` helper replaces the older `━━━ Phase N/12 — <name> ━━━` emit
+lines — do not emit a second em-dash banner after the helper.
+
+For combined-phase sections (Phases 5+6, Phases 8+9), invoke the helper
+once per phase using the lead phase's banner key as a single banner badge,
+then a second `--phase` line for the trailing phase. (Both phases run in
+parallel — both badges represent that.)
+
+`banners.cjs` auto-detects `NO_COLOR` and non-tty stdout and strips
+ANSI in those contexts; CI runs render plain.
+
 ---
 
 ## Pre-flight — Knowledge Base Folder
@@ -41,7 +97,12 @@ KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/d
 
 ## Phase 1 — Discover
 
-Emit: `━━━ Phase 1/12 — Discover ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Render the phase header (see **Phase header rendering** above):
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 1 12 "Discover" north \
+  "$(jq -r '.mode // "full"' .forge/init-progress.json 2>/dev/null || echo full)"
+```
 
 Also emit: `Running 5 discovery scans in parallel...`
 
@@ -59,6 +120,18 @@ Run the 5 discovery prompts in parallel. Each reads from `$FORGE_ROOT/init/disco
 
 Validate the config against `$FORGE_ROOT/sdlc-config.schema.json`.
 
+After writing `.forge/config.json`, propagate the chosen `mode` from
+`.forge/init-progress.json` into the config:
+
+```sh
+MODE=$(jq -r '.mode // "full"' .forge/init-progress.json 2>/dev/null || echo "full")
+node "$FORGE_ROOT/tools/manage-config.cjs" set mode "$MODE"
+```
+
+The `mode` value was selected pre-Phase-1 by `init.md` (interactive prompt or
+`--fast`/`--full` flag) and stored in `init-progress.json`. Phase 1 is the
+first writer of `config.json`, so this is where the field lands on disk.
+
 Write `.forge/init-progress.json`:
 ```json
 { "lastPhase": 1, "timestamp": "<current ISO timestamp>" }
@@ -68,7 +141,12 @@ Write `.forge/init-progress.json`:
 
 ## Phase 2 — Recommend Marketplace Skills
 
-Emit: `━━━ Phase 2/12 — Marketplace Skills ━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Render the phase header:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 2 12 "Marketplace Skills" entelligentsia \
+  "$(jq -r '.mode // "full"' .forge/init-progress.json 2>/dev/null || echo full)"
+```
 
 Read `$FORGE_ROOT/meta/skill-recommendations.md` for the full mapping and rationale.
 
@@ -123,7 +201,15 @@ Write `.forge/init-progress.json`:
 
 ## Phase 3 — Generate Knowledge Base
 
-Emit: `━━━ Phase 3/12 — Knowledge Base ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Render the phase header:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 3 12 "Knowledge Base" oracle \
+  "$(jq -r '.mode // "full"' .forge/init-progress.json 2>/dev/null || echo full)"
+```
+
+**Fast mode:** run only Steps 3a and 3c-fast below, then skip to Phase 7.
+Skip Step 3b (parallel doc-gen subagents) and Step 3d entirely.
 
 ### Step 3a — Scaffold directories
 
@@ -204,11 +290,58 @@ Write `.forge/init-progress.json`:
 { "lastPhase": 3, "timestamp": "<current ISO timestamp>" }
 ```
 
+### Step 3c-fast — KB skeleton (fast mode only)
+
+Skip Step 3b and Step 3d. Instead, write a minimal KB skeleton:
+
+1. Write `{KB_PATH}/MASTER_INDEX.md`:
+   ```markdown
+   # Master Index
+
+   <!-- forge-fast-stub -->
+
+   ## Domain Entities
+
+   <!-- Entities will be populated when the KB is fully generated. Run /forge:materialize to generate full KB docs. -->
+
+   ## Architecture
+
+   - [Stack](architecture/stack.md)
+   - [Processes](architecture/processes.md)
+   - [Database](architecture/database.md)
+   - [Routing](architecture/routing.md)
+   - [Deployment](architecture/deployment.md)
+
+   ## Business Domain
+
+   - [Entity Model](business-domain/entity-model.md)
+   ```
+
+2. Create empty placeholder INDEX files:
+   ```sh
+   echo "# Architecture" > "{KB_PATH}/architecture/INDEX.md"
+   echo "# Business Domain" > "{KB_PATH}/business-domain/INDEX.md"
+   ```
+
+3. Write `.forge/init-progress.json`:
+   ```json
+   { "lastPhase": 3, "timestamp": "<current ISO timestamp>" }
+   ```
+
+4. Jump directly to Phase 7-fast (skip Phases 4, 5, 6).
+
 ---
 
 ## Phase 4 — Generate Personas (parallel)
 
-Emit: `━━━ Phase 4/12 — Personas (parallel) ━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+**Fast mode: SKIP entirely.** Jump to Phase 5.
+
+Render the phase header:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 4 12 "Personas (parallel)" bloom \
+  "$(jq -r '.mode // "full"' .forge/init-progress.json 2>/dev/null || echo full)"
+```
 
 ### Step 4a — Build the project brief (if not already built)
 
@@ -275,7 +408,15 @@ Write `.forge/init-progress.json`:
 
 ## Phases 5 + 6 — Generate Skills and Templates (parallel phases)
 
-Emit: `━━━ Phases 5+6/12 — Skills + Templates (parallel) ━━━━━━━━━━━━━━`
+**Fast mode: SKIP entirely** (including the completeness guard). Jump to Phase 7.
+
+Render two phase headers (one per logical phase, parallel execution):
+
+```sh
+MODE="$(jq -r '.mode // "full"' .forge/init-progress.json 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 5 12 "Skills (parallel)" tide "$MODE"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 6 12 "Templates (parallel)" drift "$MODE"
+```
 
 ### Step 5/6-pre — Completeness Guard
 
@@ -384,7 +525,67 @@ Write `.forge/init-progress.json`:
 
 ## Phase 7 — Generate Atomic Workflows (parallel)
 
-Emit: `━━━ Phase 7/12 — Workflows (parallel) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Render the phase header:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 7 12 "Workflows (parallel)" ember \
+  "$(jq -r '.mode // "full"' .forge/init-progress.json 2>/dev/null || echo full)"
+```
+
+**Fast mode:** run Phase 7-fast below instead of Steps 7a–7e. Then continue to Phase 9 (skip Phase 8).
+
+### Phase 7-fast — Write stub workflow files (fast mode only)
+
+Read `$FORGE_ROOT/init/workflow-gen-plan.json` (16 entries) and enumerate both
+orchestration workflow ids (`orchestrate_task`, `run_sprint`) from the manifest:
+
+```sh
+cat "$FORGE_ROOT/init/workflow-gen-plan.json"
+```
+
+For every workflow id (16 atomic + 2 orchestration = 18 total), write a stub
+file to `.forge/workflows/{id}.md`:
+
+```markdown
+<!-- FORGE FAST-MODE STUB — will self-replace on first use -->
+---
+effort: medium
+mode: stub
+workflow_id: {id}
+---
+
+# Workflow: {id} (fast-mode stub)
+
+Before doing any task work, materialise this workflow and its dependencies:
+
+1. Read `${CLAUDE_PLUGIN_ROOT}/init/generation/lazy-materialize.md` and
+   follow it exactly, with `workflow_id={id}`.
+2. After lazy-materialize completes, re-read `.forge/workflows/{id}.md` (it
+   will have been replaced with the real generated workflow) and execute it
+   from the top.
+3. Do not proceed with the user's task until the real workflow has loaded
+   and executed.
+
+Arguments from caller: $ARGUMENTS
+```
+
+Write all 18 stubs using deterministic `printf` — no subagent fan-out, no LLM
+generation. These files must NOT be recorded in `.forge/generation-manifest.json`.
+
+After writing all stubs, verify the stub set matches the workflow list by running:
+```sh
+ls .forge/workflows/*.md | wc -l
+```
+Assert count is 18. If not, re-write the missing stubs.
+
+Write `.forge/init-progress.json`:
+```json
+{ "lastPhase": 7, "timestamp": "<current ISO timestamp>" }
+```
+
+Continue to Phase 9 (skip Phase 8 in fast mode).
+
+---
 
 ### Step 7a — Build the project brief
 
@@ -488,7 +689,18 @@ Write `.forge/init-progress.json`:
 
 ## Phases 8 + 9 — Generate Orchestration and Commands (parallel phases)
 
-Emit: `━━━ Phases 8+9/12 — Orchestration + Commands (parallel) ━━━━━━━━`
+Render two phase headers (one per logical phase, parallel execution):
+
+```sh
+MODE="$(jq -r '.mode // "full"' .forge/init-progress.json 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 8 12 "Orchestration (parallel)" rift "$MODE"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 9 12 "Commands (parallel)" lumen "$MODE"
+```
+
+**Fast mode: SKIP Phase 8 (orchestration).** The two orchestration stubs
+(`orchestrate_task.md`, `run_sprint.md`) were already written in Phase 7-fast.
+Run Phase 9 (commands) as normal — stub files already exist so the idempotency
+check in `generate-commands.md` passes.
 
 Both phases depend only on Phase 7 output. Spawn them simultaneously.
 
@@ -523,7 +735,12 @@ Write `.forge/init-progress.json`:
 
 ## Phase 10 — Install Tools
 
-Emit: `━━━ Phase 10/12 — Tools ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Render the phase header:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 10 12 "Tools" forge \
+  "$(jq -r '.mode // "full"' .forge/init-progress.json 2>/dev/null || echo full)"
+```
 
 Read `$FORGE_ROOT/init/generation/generate-tools.md` and follow it.
 
@@ -543,7 +760,12 @@ Write `.forge/init-progress.json`:
 
 ## Phase 11 — Smoke Test
 
-Emit: `━━━ Phase 11/12 — Smoke Test ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Render the phase header:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 11 12 "Smoke Test" north \
+  "$(jq -r '.mode // "full"' .forge/init-progress.json 2>/dev/null || echo full)"
+```
 
 Read `$FORGE_ROOT/init/smoke-test.md` and follow it.
 
@@ -562,7 +784,12 @@ Write `.forge/init-progress.json`:
 
 ## Phase 12 — Link KB to Agent Instruction Files
 
-Emit: `━━━ Phase 12/12 — Tomoshibi ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+Render the phase header:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 12 12 "Tomoshibi" lumen \
+  "$(jq -r '.mode // "full"' .forge/init-progress.json 2>/dev/null || echo full)"
+```
 
 Invoke Tomoshibi to ensure every coding-agent instruction file in the project
 has up-to-date links to the Forge knowledge base and generated workflow entry points.
@@ -578,12 +805,68 @@ After Tomoshibi completes, emit a one-line rename note:
   node "$FORGE_ROOT/tools/manage-config.cjs" set paths.engineering <new-name>
 ```
 
+### Git hygiene — gitignore transient store paths
+
+`.forge/store/events/` accumulates one JSON file per agent phase per task or
+bug. For an active project this can grow to many hundreds of files — they are
+transient execution logs, not source artifacts, and should not be committed
+to version control.
+
+1. Check whether the project root contains a `.gitignore` file:
+   ```sh
+   ls .gitignore 2>/dev/null
+   ```
+   If absent, skip this step (the project is not under git or has no
+   gitignore convention — do not auto-create one).
+
+2. Check whether `.forge/store/events/` is already ignored. Treat any of
+   the following lines as a match (each matched as a literal substring on
+   any non-comment, non-blank line):
+   - `.forge/store/events/`
+   - `.forge/store/events`
+   - `.forge/store/` (broader — covers events as a side effect)
+   - `.forge/` (broadest — covers everything generated)
+
+   Do this with a simple read of `.gitignore`. If a match is found, emit
+   `〇 .forge/store/events/ already gitignored — skipped.` and continue.
+
+3. If no match is found, prompt:
+   ```
+   〇 .forge/store/events/ holds transient agent event logs and should not be
+     committed. Add it to .gitignore now? [Y/n]
+   ```
+   - **Y / Enter** → append to `.gitignore` (preserve trailing newline,
+     skip if writing would create a duplicate):
+     ```
+     # Forge — transient agent event logs (one file per phase, do not commit)
+     .forge/store/events/
+     ```
+     Emit `〇 Appended .forge/store/events/ to .gitignore.`
+   - **n** → emit `〇 Skipped — manage .gitignore manually.` and continue.
+
+   This is idempotent and never modifies any other line in `.gitignore`.
+
 Delete `.forge/init-progress.json` — init is complete.
 Use the Bash tool: `rm -f .forge/init-progress.json`
 
 ---
 
 ## Report
+
+Open the report with the closing celebration banner — re-render the
+forge hero with a mode-specific subtitle:
+
+```sh
+MODE="$(jq -r '.mode // "full"' .forge/init-progress.json 2>/dev/null \
+        || node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null \
+        || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" forge
+if [ "$MODE" = "fast" ]; then
+  node "$FORGE_ROOT/tools/banners.cjs" --subtitle "灯 Skeleton ready · 16 stubs await first use · /forge:materialize to warm up"
+else
+  node "$FORGE_ROOT/tools/banners.cjs" --subtitle "灯 SDLC ready · all artifacts generated · /sprint-plan to begin"
+fi
+```
 
 After all phases complete, report to the user:
 - Knowledge base: doc count, entity count, checklist item count

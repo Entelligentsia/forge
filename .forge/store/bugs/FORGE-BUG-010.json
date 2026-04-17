@@ -1,0 +1,12 @@
+{
+  "bugId": "FORGE-BUG-010",
+  "title": "forge:init / forge:update should guide users to gitignore .forge/store/events/",
+  "description": "Issue #47 — .forge/store/events/ accumulates transient JSON event logs that should not be in version control. Forge should add the path to .gitignore during /forge:init and surface a Step 5 audit item in /forge:update if the path is unignored.",
+  "severity": "minor",
+  "status": "fixed",
+  "path": "engineering/bugs/FORGE-BUG-010-gitignore-events",
+  "githubIssue": "https://github.com/Entelligentsia/forge/issues/47",
+  "reportedAt": "2026-04-17T06:08:34Z",
+  "resolvedAt": "2026-04-17T11:00:00Z",
+  "rootCauseCategory": "configuration"
+}

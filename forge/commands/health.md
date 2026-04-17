@@ -32,6 +32,15 @@ First, resolve the plugin root and project root:
 FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 ```
 
+Open the run with the oracle hero + subtitle:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" oracle
+node "$FORGE_ROOT/tools/banners.cjs" --subtitle "Reading the project's pulse — config, KB freshness, store integrity, structural completeness"
+```
+
+`banners.cjs` strips ANSI in `NO_COLOR` / non-tty / `--plain` contexts.
+
 Parse `$ARGUMENTS` for a `--path <dir>` argument:
 - If present, `PROJECT_ROOT = <dir>` (absolute or relative to the current working directory — resolve to absolute).
 - If absent, `PROJECT_ROOT = .` (current working directory).
@@ -128,6 +137,24 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
 ## Output
 
 A health report to stdout — no files modified.
+
+After the report's findings, close with a single status line that
+reflects the overall verdict (synthesized from check 12's findings):
+
+```sh
+# Pick one of three status emojis based on the worst finding observed:
+#   〇 = all checks pass         (green)
+#   △ = warnings, no errors      (caution)
+#   × = at least one failure     (alert)
+node "$FORGE_ROOT/tools/banners.cjs" --subtitle "{〇|△|×} Health check complete — {N} 〇, {W} △, {E} ×"
+```
+
+If exactly zero issues were found, also re-render the oracle badge as a
+"sealed" closing mark:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --badge oracle
+```
 
 ## Arguments
 

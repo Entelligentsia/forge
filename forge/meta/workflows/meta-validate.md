@@ -3,6 +3,13 @@ requirements:
   reasoning: High
   context: Medium
   speed: Low
+deps:
+  personas: [qa-engineer]
+  skills: [qa-engineer, generic]
+  templates: []
+  sub_workflows: []
+  kb_docs: [architecture/stack.md]
+  config_fields: [commands.test, paths.engineering]
 ---
 
 # 🍵 Meta-Workflow: Validate Task
