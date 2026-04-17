@@ -150,6 +150,62 @@ describe('banners.cjs — phaseHeader', () => {
   test('throws on unknown banner key', () => {
     assert.throws(() => banners.phaseHeader(1, 12, 'X', 'nonexistent'), /unknown/i);
   });
+
+  test('em-dash banner line carries ZEN_BLUE tint', () => {
+    const out = banners.phaseHeader(7, 12, 'Workflows', 'ember');
+    const lines = out.split('\n');
+    const zenAnsi = '\x1b[38;2;100;140;200m';
+    assert.ok(lines[1].includes(zenAnsi), 'em-dash line should carry zen-blue ANSI prefix');
+  });
+});
+
+describe('banners.cjs — ruleLine', () => {
+  const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]/g;
+
+  test('returns single line of em-dashes when called with no text', () => {
+    const out = banners.ruleLine();
+    const plain = out.replace(ANSI_RE, '');
+    assert.ok(!plain.includes('\n'), 'should be single line');
+    assert.equal(plain.length, 65, `default width is 65, got ${plain.length}`);
+    assert.ok(plain.split('').every(c => c === '━'), 'all chars should be ━');
+  });
+
+  test('embeds text in the rule', () => {
+    const out = banners.ruleLine('Phase 5/12 — Templates');
+    const plain = out.replace(ANSI_RE, '');
+    assert.ok(plain.startsWith('━━━ Phase 5/12'), 'should start with rule + label');
+    assert.ok(plain.endsWith('━'), 'should end with em-dash filler');
+    assert.equal(plain.length, 65, `default width is 65, got ${plain.length}`);
+  });
+
+  test('honours custom width', () => {
+    const out = banners.ruleLine('X', { width: 30 });
+    const plain = out.replace(ANSI_RE, '');
+    assert.equal(plain.length, 30);
+  });
+
+  test('default tint is ZEN_BLUE', () => {
+    const out = banners.ruleLine();
+    const zenAnsi = '\x1b[38;2;100;140;200m';
+    assert.ok(out.includes(zenAnsi), `should carry ZEN_BLUE ANSI, got: ${JSON.stringify(out)}`);
+  });
+
+  test('custom color overrides ZEN_BLUE', () => {
+    const out = banners.ruleLine('X', { color: [255, 0, 0] });
+    assert.ok(out.includes('\x1b[38;2;255;0;0m'), 'should use custom tint');
+    assert.ok(!out.includes('\x1b[38;2;100;140;200m'), 'should NOT include default tint');
+  });
+
+  test('plain mode strips ZEN_BLUE ANSI', () => {
+    const original = process.env.NO_COLOR;
+    process.env.NO_COLOR = '1';
+    try {
+      const out = banners.ruleLine('X');
+      assert.equal(out.match(ANSI_RE), null);
+    } finally {
+      if (original === undefined) delete process.env.NO_COLOR; else process.env.NO_COLOR = original;
+    }
+  });
 });
 
 describe('banners.cjs — plain mode', () => {

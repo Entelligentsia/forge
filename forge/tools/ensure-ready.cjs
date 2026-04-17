@@ -234,6 +234,58 @@ function loadManifest(projectRoot) {
   }
 }
 
+// ── _renderAnnouncement ──────────────────────────────────────────────────────
+//
+// Renders the standout fast-mode capability announcement: a framed em-dash
+// block with banner badge, two indented progress-bar lines (current vs after),
+// and a top + bottom rule. Single source of formatting — used by both the CLI
+// `--announce` mode and tests.
+//
+// @param {object} p          predictCapabilitiesAfter() result
+// @param {object} [opts]
+// @param {boolean} [opts.allFlag]  Whether this is a `--all` invocation (changes
+//                                  the "already materialised" copy)
+// @returns {string} multi-line block (no trailing newline)
+
+function _renderAnnouncement(p, opts) {
+  const o = opts || {};
+  // Lazy-require banners so test environments without the file (or with a
+  // shadowed copy) can still exercise the module exports above.
+  let banners;
+  try { banners = require('./banners.cjs'); } catch { banners = null; }
+
+  const FAST_TINT = [255, 208, 122];   // lantern yellow
+
+  // Em-dash horizontal rules — zen-blue tinted via banners.ruleLine for
+  // system-wide consistency. Falls back to plain em-dashes if banners is
+  // unavailable in the test environment.
+  const title = '🔥 Forge — Capability Upgrade (fast mode)';
+  const topRule    = banners ? banners.ruleLine(title)  : `━━━ ${title} ` + '━'.repeat(3);
+  const bottomRule = banners ? banners.ruleLine()       : '━'.repeat(65);
+
+  const labelBefore = 'Currently  ';
+  const labelAfter  = 'After      ';
+
+  // progressBar already prints "n/total"; we add a percentage on the right.
+  const bar = (cur) => banners
+    ? banners.progressBar(cur, p.total, { width: 12, color: FAST_TINT })
+    : `${cur}/${p.total}`;
+
+  const lineBefore = `  ${labelBefore}${bar(p.currentBefore)}   ·   ${String(p.percentBefore).padStart(3)}%`;
+
+  let lineAfter;
+  if (p.added === 0) {
+    lineAfter = o.allFlag
+      ? `  ${labelAfter}${bar(p.currentBefore)}   ·   ${String(p.percentBefore).padStart(3)}%   already fully materialised — /forge:config mode full to flip the flag`
+      : `  ${labelAfter}${bar(p.currentBefore)}   ·   ${String(p.percentBefore).padStart(3)}%   closure already materialised — refreshing in place`;
+  } else {
+    const addedNote = `+${p.added} artifact${p.added === 1 ? '' : 's'}`;
+    lineAfter = `  ${labelAfter}${bar(p.currentAfter)}   ·   ${String(p.percentAfter).padStart(3)}%   ${addedNote}`;
+  }
+
+  return [topRule, '', lineBefore, lineAfter, '', bottomRule].join('\n');
+}
+
 // ── exports (for testing) ─────────────────────────────────────────────────────
 
 module.exports = {
@@ -241,6 +293,7 @@ module.exports = {
   computeCapabilities, predictCapabilitiesAfter,
   loadManifest,
   FAST_STUB_SENTINEL,
+  _renderAnnouncement,   // exported for testing
 };
 
 // ── CLI guard ─────────────────────────────────────────────────────────────────
@@ -318,16 +371,7 @@ try {
       process.exit(2);
     }
     const p = predictCapabilitiesAfter(manifest, projectRoot, addPaths);
-    const line1 = `〇 Forge is currently in fast mode · ${p.percentBefore}% capabilities generated (${p.currentBefore} of ${p.total})`;
-    let line2;
-    if (p.added === 0) {
-      line2 = allFlag
-        ? '   Everything is already materialised — nothing to add. Use /forge:config mode full to flip the flag.'
-        : '   This closure is already materialised — re-running for freshness only.';
-    } else {
-      line2 = `   This round will lift capabilities to ${p.percentAfter}% (${p.currentAfter} of ${p.total}, +${p.added} artifact(s))`;
-    }
-    process.stdout.write(line1 + '\n' + line2 + '\n');
+    process.stdout.write(_renderAnnouncement(p, { allFlag }) + '\n');
     process.exit(0);
   }
 

@@ -11,6 +11,52 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.12.5] — 2026-04-17
+
+**Visual upgrade: framed capability announcement; system-wide zen-blue rules.**
+
+The 2-line capability announcement (shipped in v0.12.4) was getting lost
+between bash command output. v0.12.5 reframes it as a standout block:
+
+```
+━━━ 🔥 Forge — Capability Upgrade (fast mode) ━━━━━━━━━━━━━━━━━━━
+
+  Currently  ▰▰▰░░░░░░░░░  10/41   ·    24%
+  After      ▰▰▰▰░░░░░░░░  15/41   ·    37%   +5 artifacts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+The top + bottom em-dash rules render in **zen blue** `(100, 140, 200)`.
+Progress bars carry the lantern-yellow fast-mode tint introduced in
+v0.12.3. Together they give the announcement real visual weight on a
+busy terminal.
+
+`banners.cjs` extensions:
+
+- **`ZEN_BLUE`** — exported `[100, 140, 200]` constant.
+- **`ruleLine(text, opts)`** — produces a 65-char zen-blue em-dash
+  horizontal rule with optional embedded label. Default tint is
+  `ZEN_BLUE`; override via `opts.color`.
+- **`--rule [text]`** — new CLI subcommand for emitting standalone rules
+  from markdown rulebooks.
+- **`phaseHeader()`** em-dash banner now uses `ruleLine` internally —
+  every phase / step header across `/forge:init`, `/forge:update`,
+  `/forge:regenerate`, `/forge:health` emits its em-dash separator in
+  zen blue automatically.
+
+`ensure-ready.cjs` `_renderAnnouncement()` (used by `--announce`) now
+uses `banners.ruleLine` for its top + bottom rules — same zen-blue
+tint, single source of formatting.
+
+All ANSI is auto-stripped in `NO_COLOR` / `FORGE_BANNERS_PLAIN` /
+non-tty / `--plain` contexts.
+
+**Regenerate:** none — additive change. Existing emit lines and APIs
+are unaffected.
+
+---
+
 ## [0.12.4] — 2026-04-17
 
 **Fast-mode capability announcement on every materialise round.**
