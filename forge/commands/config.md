@@ -44,6 +44,22 @@ are implemented today.
 
 ---
 
+## Visual
+
+For all subcommands, open with a single `north` badge (config = bearings):
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --badge north
+```
+
+Subcommands that change state (`mode full`) also render a `forge` badge
+inside the promotion sequence; subcommands that are read-only just print
+the summary after the badge.
+
+`banners.cjs` strips ANSI in `NO_COLOR` / non-tty / `--plain` contexts.
+
+---
+
 ## Subcommand: `/forge:config` (no args) — summary
 
 Read `.forge/config.json`. Emit a summary block:
@@ -119,7 +135,10 @@ that was already materialised, then writes `mode: full`.
      `〇 mode is unset (legacy full install). Writing mode: full.`, then jump
      to Step 5 (skip materialize + regenerate, just write the field).
 
-3. **Emit promotion banner**:
+3. **Emit promotion banner** (forge badge + em-dash separator):
+   ```sh
+   node "$FORGE_ROOT/tools/banners.cjs" --badge forge
+   ```
    ```
    ━━━ Promoting to Full Mode ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    ```

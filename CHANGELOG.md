@@ -11,6 +11,52 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.12.3] — 2026-04-17
+
+**Visual onboarding character across `/forge:init`, `/forge:update`,
+`/forge:regenerate`, `/forge:health` (and light touch on `/forge:config`
+and `/forge:materialize`).**
+
+`banners.cjs` ships with three new helpers and a CLI extension:
+
+- `progressBar(n, total, opts)` — unicode block bar with optional
+  gradient tint and label.
+- `subtitle(text, opts)` — dim italic single-line subtitle for under
+  hero banners.
+- `phaseHeader(n, total, name, bannerKey, opts)` — three-line
+  composite: badge → em-dash separator → progress bar (mode-tinted).
+- New CLI subcommands: `--subtitle`, `--progress`, `--phase`, plus a
+  global `--plain` flag.
+- Auto-strips ANSI in `NO_COLOR` / `FORGE_BANNERS_PLAIN` / non-tty
+  contexts — CI runs render plain.
+
+Wired into commands:
+
+- **`/forge:init`** opens with the `forge` hero + version subtitle,
+  every phase emits a banner badge + progress bar before its em-dash
+  header (per-phase banner map: north / entelligentsia / oracle /
+  bloom / tide / drift / ember / rift / lumen / forge / north / lumen).
+  Mode-tinted progress bars: Fast = lantern yellow, Full = ember
+  orange. Closes with the forge hero + a mode-specific tagline.
+- **`/forge:update`** opens with the `ember` hero, every step gets a
+  banner badge + step header (1: north, 2A: rift, 2B: drift, 3: lumen,
+  4: forge, 5: oracle, 6: drift, 7: lumen).
+- **`/forge:regenerate`** opens with the `forge` hero, every category
+  emits a badge before its "Generating..." line (personas: bloom,
+  skills: tide, templates: drift, workflows: ember, commands: lumen,
+  knowledge-base: oracle).
+- **`/forge:health`** opens with the `oracle` hero + subtitle; closes
+  with a status verdict line and (on perfect health) a sealing oracle
+  badge.
+- **`/forge:config`** and **`/forge:materialize`** get a single
+  opening badge each — light touch on small commands.
+
+**Regenerate:** none — additive change. All existing API and existing
+emit lines remain — visuals are added in front of them, not as
+replacements.
+
+---
+
 ## [0.12.2] — 2026-04-17
 
 **`/forge:init` mode prompt now defaults to Fast.**

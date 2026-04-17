@@ -113,6 +113,20 @@ Then jump to the next active phase. The fast-mode phase map is:
 `1, 2, 3 (skeleton), 7 (stubs), 9, 10, 11, 12`. Phases `4, 5, 6, 8` are
 skipped in fast mode.
 
+### Hero
+
+Before Mode Selection, render the Forge hero block once per session:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" forge
+node "$FORGE_ROOT/tools/banners.cjs" --subtitle "AI SDLC bootstrapper · forge:init v$(node -p "require('$FORGE_ROOT/.claude-plugin/plugin.json').version")"
+```
+
+The hero runs once. If the user starts over after a checkpoint, render
+the hero again (fresh session feel). If the user resumes mid-init, do
+NOT re-render the hero — just emit the badge for the resume target
+phase.
+
 ### Mode Selection
 
 Before showing the pre-flight plan, choose the init mode.

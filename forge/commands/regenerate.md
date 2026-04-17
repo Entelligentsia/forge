@@ -23,6 +23,30 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 
 All tool invocations in this command use `node "$FORGE_ROOT/tools/<tool>.cjs"`.
 
+## Hero
+
+Open the run with the forge hero + a one-line subtitle (parses
+`$ARGUMENTS` to mention the target):
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" forge
+node "$FORGE_ROOT/tools/banners.cjs" --subtitle "Re-running generation against current meta-definitions ($ARGUMENTS or full)"
+```
+
+Each category section below opens with a `banners.cjs --badge {key}` call
+before its "Generating ..." line. The badge map:
+
+| Category | Banner key |
+|----------|-----------|
+| personas | `bloom` |
+| skills | `tide` |
+| templates | `drift` |
+| workflows | `ember` |
+| commands | `lumen` |
+| knowledge-base | `oracle` |
+
+`banners.cjs` strips ANSI in `NO_COLOR` / non-tty / `--plain` contexts.
+
 ## Fast-mode awareness
 
 Regenerate respects `.forge/config.json` `mode`. Read it once at the top of
@@ -153,7 +177,11 @@ steps below apply to that single file.
        node "$FORGE_ROOT/tools/generation-manifest.cjs" remove .forge/personas/<role>.md 2>/dev/null || true
      ```
 
-3. Emit: `Generating personas (<N> files in parallel)...` — use `N_materialized` in fast mode, `M_total` in full mode.
+3. Render the personas badge, then emit the count:
+   ```sh
+   node "$FORGE_ROOT/tools/banners.cjs" --badge bloom
+   ```
+   Then emit: `Generating personas (<N> files in parallel)...` — use `N_materialized` in fast mode, `M_total` in full mode.
 4. **Full mode only**: clear stale entries (skip in fast mode — see step 2):
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/personas/
@@ -202,7 +230,11 @@ apply to that single file.
    - Otherwise continue with the filtered set; skip step 4 (do not clear
      namespace), and `remove` manifest entries only for the filtered files.
 
-3. Emit: `Generating skills (<N> files in parallel)...`
+3. Render the skills badge, then emit the count:
+   ```sh
+   node "$FORGE_ROOT/tools/banners.cjs" --badge tide
+   ```
+   Then emit: `Generating skills (<N> files in parallel)...`
 4. **Full mode only**: clear stale entries (skip in fast mode):
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/skills/
@@ -257,7 +289,11 @@ write, record hash.
    - If `N_materialized == 0`: emit `〇 Fast mode: no materialized workflows to regenerate.` and return 0 (no manifest changes, orchestration skipped — orchestration only makes sense with a complete workflow set).
    - Otherwise continue with the filtered set.
 
-3. Emit: `Generating workflows (<N> atomic + orchestration, parallel)...` —
+3. Render the workflows badge, then emit the count:
+   ```sh
+   node "$FORGE_ROOT/tools/banners.cjs" --badge ember
+   ```
+   Then emit: `Generating workflows (<N> atomic + orchestration, parallel)...` —
    in fast mode, omit the orchestration suffix when filtering applies.
 4. Check each (filtered) file for manual modifications before any clearing:
    ```sh
@@ -311,7 +347,11 @@ Run this when:
 
 1. Read `.forge/config.json` for paths
 2. Enumerate `.forge/workflows/` to know what workflow files currently exist
-3. Emit: `Generating commands (<N> files)...`
+3. Render the commands badge, then emit the count:
+   ```sh
+   node "$FORGE_ROOT/tools/banners.cjs" --badge lumen
+   ```
+   Then emit: `Generating commands (<N> files)...`
 4. Clear stale entries for this namespace:
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .claude/commands/
@@ -370,7 +410,11 @@ Generate the single file (no fan-out needed). Record hash after writing.
    - Otherwise continue with the filtered set; skip step 5 (do not clear
      namespace), and only `remove` manifest entries for the filtered files.
 
-3. Emit: `Generating templates (<N> files in parallel)...`
+3. Render the templates badge, then emit the count:
+   ```sh
+   node "$FORGE_ROOT/tools/banners.cjs" --badge drift
+   ```
+   Then emit: `Generating templates (<N> files in parallel)...`
 4. Check each (filtered) file for manual modifications (warn on modified, same pattern as workflows).
 5. **Full mode only**: clear stale entries (skip in fast mode):
    ```sh
@@ -395,7 +439,13 @@ Generate the single file (no fan-out needed). Record hash after writing.
 **This is not a full rebuild.** The knowledge base accumulates writeback from
 every sprint. Overwriting it from scratch destroys that accumulated knowledge.
 
-Emit: `Generating knowledge-base...`
+Render the knowledge-base badge, then emit the status line:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --badge oracle
+```
+
+Then emit: `Generating knowledge-base...`
 
 Instead: re-run the relevant discovery prompts scoped to what has changed,
 compute a delta against the existing docs, and merge only new content in.

@@ -39,7 +39,15 @@ Parse the argument:
 
 ## Full warm-up (`/forge:materialize` or `--all`)
 
+Open with the forge badge + status line:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --badge forge
+```
+
 Emit: `〇 forge:materialize — full warm-up…`
+
+`banners.cjs` strips ANSI in `NO_COLOR` / non-tty / `--plain` contexts.
 
 Follow `$FORGE_ROOT/init/generation/lazy-materialize.md` for each stub or missing
 workflow in `.forge/workflows/`. Work from a single collected list:
@@ -61,6 +69,12 @@ workflow in `.forge/workflows/`. Work from a single collected list:
 ---
 
 ## Single-workflow (`/forge:materialize workflows <id>`)
+
+Open with the forge badge + status line:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --badge forge
+```
 
 Emit: `〇 forge:materialize — materialising closure for {id}…`
 

@@ -1,4 +1,12 @@
 {
+  "0.12.2": {
+    "version": "0.12.3",
+    "date": "2026-04-17",
+    "notes": "Visual onboarding character: hero banners and per-phase/step badges across /forge:init, /forge:update, /forge:regenerate, /forge:health (and light touch on /forge:config and /forge:materialize). banners.cjs gains progressBar, subtitle, phaseHeader, plain-mode (NO_COLOR / non-tty / --plain). Backwards-compatible — all existing API + emits still work; new visuals are additive.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.12.1": {
     "version": "0.12.2",
     "date": "2026-04-17",
