@@ -20,10 +20,26 @@ KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/d
 
 ---
 
-## Step 1 — Emit progress banner
+## Step 1 — Emit progress banner + capability announcement
 
 ```
 〇 Materialising /forge workflows — first-use scaffolding for: {WORKFLOW_ID}
+```
+
+Then announce the fast-mode capability state — what's currently
+materialised and what this round will lift the project to:
+
+```sh
+node "$FORGE_ROOT/tools/ensure-ready.cjs" --announce --workflow {WORKFLOW_ID}
+```
+
+`--announce` reads `.forge/config.json` itself and emits nothing if the
+project is in `full` mode (so this is a safe no-op for non-fast installs).
+On fast-mode projects it emits two lines:
+
+```
+〇 Forge is currently in fast mode · 5% capabilities generated (2 of 41)
+   This round will lift capabilities to 29% (12 of 41, +10 artifact(s))
 ```
 
 ---

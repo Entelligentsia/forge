@@ -141,3 +141,129 @@ describe('ensure-ready.cjs — resolvePath', () => {
   });
 
 });
+
+describe('ensure-ready.cjs — computeCapabilities + predictCapabilitiesAfter', () => {
+  const { computeCapabilities, predictCapabilitiesAfter, FAST_STUB_SENTINEL } =
+    require('../ensure-ready.cjs');
+
+  // Build a synthetic project with a small known manifest.
+  const SMALL_MANIFEST = {
+    namespaces: {
+      workflows: {
+        dir: '.forge/workflows',
+        files: ['plan_task.md', 'implement_plan.md', 'review_code.md'],
+      },
+      personas: {
+        dir: '.forge/personas',
+        files: ['architect.md', 'engineer.md'],
+      },
+      skills: {
+        dir: '.forge/skills',
+        files: ['architect-skills.md', 'engineer-skills.md'],
+      },
+      templates: {
+        dir: '.forge/templates',
+        files: ['PLAN_TEMPLATE.md'],
+      },
+    },
+  };
+
+  function makeFastProject(opts = {}) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-cap-'));
+    fs.mkdirSync(path.join(root, '.forge', 'workflows'),  { recursive: true });
+    fs.mkdirSync(path.join(root, '.forge', 'personas'),   { recursive: true });
+    fs.mkdirSync(path.join(root, '.forge', 'skills'),     { recursive: true });
+    fs.mkdirSync(path.join(root, '.forge', 'templates'),  { recursive: true });
+
+    // Stubs vs real files based on opts.
+    const stub = FAST_STUB_SENTINEL + ' first-use materialisation\n';
+    const real = '# real file\n';
+    if (opts.workflows) {
+      for (const [f, kind] of Object.entries(opts.workflows)) {
+        fs.writeFileSync(path.join(root, '.forge', 'workflows', f), kind === 'real' ? real : stub);
+      }
+    }
+    if (opts.personas) {
+      for (const f of opts.personas) fs.writeFileSync(path.join(root, '.forge', 'personas', f), real);
+    }
+    if (opts.skills) {
+      for (const f of opts.skills) fs.writeFileSync(path.join(root, '.forge', 'skills', f), real);
+    }
+    if (opts.templates) {
+      for (const f of opts.templates) fs.writeFileSync(path.join(root, '.forge', 'templates', f), real);
+    }
+    return root;
+  }
+
+  test('computeCapabilities counts a fully-materialised project as 100%', () => {
+    const root = makeFastProject({
+      workflows: { 'plan_task.md': 'real', 'implement_plan.md': 'real', 'review_code.md': 'real' },
+      personas: ['architect.md', 'engineer.md'],
+      skills: ['architect-skills.md', 'engineer-skills.md'],
+      templates: ['PLAN_TEMPLATE.md'],
+    });
+    const cap = computeCapabilities(SMALL_MANIFEST, root);
+    assert.equal(cap.total, 8);
+    assert.equal(cap.current, 8);
+    assert.equal(cap.percent, 100);
+    fs.rmSync(root, { recursive: true });
+  });
+
+  test('computeCapabilities treats stubs as not-materialised', () => {
+    const root = makeFastProject({
+      workflows: { 'plan_task.md': 'stub', 'implement_plan.md': 'real' },
+      personas: ['architect.md'],
+    });
+    const cap = computeCapabilities(SMALL_MANIFEST, root);
+    assert.equal(cap.byNamespace.workflows.current, 1, 'only the real workflow counts');
+    assert.equal(cap.byNamespace.personas.current, 1);
+    assert.equal(cap.byNamespace.templates.current, 0);
+    assert.equal(cap.current, 2);
+    assert.equal(cap.total, 8);
+    assert.equal(cap.percent, Math.round(2 / 8 * 100));
+    fs.rmSync(root, { recursive: true });
+  });
+
+  test('computeCapabilities returns 0% on a bare project', () => {
+    const root = makeFastProject();
+    const cap = computeCapabilities(SMALL_MANIFEST, root);
+    assert.equal(cap.current, 0);
+    assert.equal(cap.percent, 0);
+    fs.rmSync(root, { recursive: true });
+  });
+
+  test('predictCapabilitiesAfter adds only paths from expected namespaces', () => {
+    const root = makeFastProject({
+      workflows: { 'plan_task.md': 'real' },
+      personas: ['architect.md'],
+    });
+    const addPaths = [
+      '.forge/workflows/implement_plan.md',  // not yet materialised — should add
+      '.forge/personas/architect.md',         // already materialised — should not double-count
+      '.forge/personas/engineer.md',          // new — should add
+      '.forge/notexpected.md',                // outside expected paths — ignore
+    ];
+    const p = predictCapabilitiesAfter(SMALL_MANIFEST, root, addPaths);
+    assert.equal(p.added, 2);
+    assert.equal(p.currentBefore, 2);
+    assert.equal(p.currentAfter, 4);
+    assert.equal(p.total, 8);
+    assert.equal(p.percentAfter, Math.round(4 / 8 * 100));
+    fs.rmSync(root, { recursive: true });
+  });
+
+  test('predictCapabilitiesAfter with empty addPaths returns no change', () => {
+    const root = makeFastProject({ personas: ['architect.md'] });
+    const p = predictCapabilitiesAfter(SMALL_MANIFEST, root, []);
+    assert.equal(p.added, 0);
+    assert.equal(p.currentBefore, p.currentAfter);
+    fs.rmSync(root, { recursive: true });
+  });
+
+  test('computeCapabilities handles missing namespaces gracefully', () => {
+    const cap = computeCapabilities({ namespaces: {} }, '/tmp');
+    assert.equal(cap.current, 0);
+    assert.equal(cap.total, 0);
+    assert.equal(cap.percent, 0);
+  });
+});

@@ -11,6 +11,40 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.12.4] — 2026-04-17
+
+**Fast-mode capability announcement on every materialise round.**
+
+When the project is in fast mode and a stub workflow triggers
+materialisation (or the user runs `/forge:materialize` / `--all`), Forge
+now opens with a 2-line announcement:
+
+```
+〇 Forge is currently in fast mode · 5% capabilities generated (2 of 41)
+   This round will lift capabilities to 29% (12 of 41, +10 artifact(s))
+```
+
+The percentages count materialised artifacts across the four lazy
+namespaces (workflows, personas, skills, templates) against the total
+expected set in `structure-manifest.json`. Commands are excluded from the
+denominator — they're scaffolded eagerly even in fast mode.
+
+`ensure-ready.cjs` gains three new module exports and CLI subcommands:
+
+- `computeCapabilities(manifest, projectRoot)` / `--capabilities`
+- `predictCapabilitiesAfter(manifest, projectRoot, addPaths)` /
+  `--capabilities-after [--all | --workflow <id> | --target <path>]`
+- `--announce` — emits the human-readable 2-line summary; silent on full
+  installs (no output, exit 0).
+
+Wired into `forge/init/generation/lazy-materialize.md` Step 1 (per-workflow
+stub trigger) and `forge/commands/materialize.md` (`--all` and
+single-workflow paths).
+
+**Regenerate:** none — additive change.
+
+---
+
 ## [0.12.3] — 2026-04-17
 
 **Visual onboarding character across `/forge:init`, `/forge:update`,

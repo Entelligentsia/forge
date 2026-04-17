@@ -47,6 +47,12 @@ node "$FORGE_ROOT/tools/banners.cjs" --badge forge
 
 Emit: `〇 forge:materialize — full warm-up…`
 
+Then announce the fast-mode capability state — silent on full installs:
+
+```sh
+node "$FORGE_ROOT/tools/ensure-ready.cjs" --announce --all
+```
+
 `banners.cjs` strips ANSI in `NO_COLOR` / non-tty / `--plain` contexts.
 
 Follow `$FORGE_ROOT/init/generation/lazy-materialize.md` for each stub or missing

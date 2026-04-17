@@ -100,9 +100,148 @@ function computeClosure(manifest, workflowId) {
   };
 }
 
+// ── computeCapabilities ───────────────────────────────────────────────────────
+//
+// Counts materialized artifacts across the four lazy-materialised namespaces
+// (workflows, personas, skills, templates). Commands are excluded — they are
+// always present in fast mode (scaffolded eagerly) and don't move the needle.
+//
+// "Materialized" means:
+//   - workflows: file exists AND its first non-blank line does not start with
+//     the FAST_STUB_SENTINEL.
+//   - personas/skills/templates: file exists.
+//
+// @param {object} manifest    Parsed structure-manifest.json
+// @param {string} projectRoot Project root path
+// @returns {object} {
+//   current, total, percent,
+//   byNamespace: { workflows: {current,total}, personas: {...}, ... }
+// }
+function computeCapabilities(manifest, projectRoot) {
+  const namespaces = (manifest && manifest.namespaces) || {};
+  const tracked = ['workflows', 'personas', 'skills', 'templates'];
+
+  const byNamespace = {};
+  let current = 0;
+  let total = 0;
+
+  for (const ns of tracked) {
+    const cfg = namespaces[ns];
+    if (!cfg || !Array.isArray(cfg.files) || !cfg.dir) {
+      byNamespace[ns] = { current: 0, total: 0 };
+      continue;
+    }
+    let nsCurrent = 0;
+    for (const fname of cfg.files) {
+      const absPath = path.resolve(projectRoot, cfg.dir, fname);
+      if (!fs.existsSync(absPath)) continue;
+      if (ns === 'workflows') {
+        let content;
+        try { content = fs.readFileSync(absPath, 'utf8'); } catch { continue; }
+        const firstNonBlank = content.split('\n').find(line => line.trim().length > 0) || '';
+        if (firstNonBlank.startsWith(FAST_STUB_SENTINEL)) continue;
+      }
+      nsCurrent++;
+    }
+    byNamespace[ns] = { current: nsCurrent, total: cfg.files.length };
+    current += nsCurrent;
+    total += cfg.files.length;
+  }
+
+  const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+  return { current, total, percent, byNamespace };
+}
+
+// ── predictCapabilitiesAfter ──────────────────────────────────────────────────
+//
+// Predicts what computeCapabilities() would return after a set of paths is
+// materialized. Each path in `addPaths` is treated as if it became materialized
+// (existing on disk and not a stub). Paths already materialized are not
+// double-counted.
+//
+// @param {object} manifest
+// @param {string} projectRoot
+// @param {string[]} addPaths    Paths that this round will materialize.
+// @returns {object} {
+//   currentBefore, currentAfter, total, percentBefore, percentAfter, added
+// }
+function predictCapabilitiesAfter(manifest, projectRoot, addPaths) {
+  const before = computeCapabilities(manifest, projectRoot);
+  const namespaces = (manifest && manifest.namespaces) || {};
+  const tracked = ['workflows', 'personas', 'skills', 'templates'];
+
+  // Build a path → namespace lookup so we can credit each addPath correctly.
+  // Also build a set of currently-materialized paths so we don't double-count.
+  const expectedPaths = new Map(); // path → ns
+  const materializedPaths = new Set();
+  for (const ns of tracked) {
+    const cfg = namespaces[ns];
+    if (!cfg || !Array.isArray(cfg.files) || !cfg.dir) continue;
+    for (const fname of cfg.files) {
+      const rel = path.posix.join(cfg.dir, fname);
+      expectedPaths.set(rel, ns);
+      const absPath = path.resolve(projectRoot, cfg.dir, fname);
+      if (!fs.existsSync(absPath)) continue;
+      if (ns === 'workflows') {
+        let content;
+        try { content = fs.readFileSync(absPath, 'utf8'); } catch { continue; }
+        const firstNonBlank = content.split('\n').find(line => line.trim().length > 0) || '';
+        if (firstNonBlank.startsWith(FAST_STUB_SENTINEL)) continue;
+      }
+      materializedPaths.add(rel);
+    }
+  }
+
+  let added = 0;
+  for (const p of addPaths || []) {
+    // Normalise the path for matching against expectedPaths keys.
+    const norm = p.startsWith('./') ? p.slice(2) : p;
+    if (!expectedPaths.has(norm)) continue;
+    if (materializedPaths.has(norm)) continue;
+    added++;
+  }
+
+  const currentAfter = before.current + added;
+  const percentAfter = before.total > 0 ? Math.round((currentAfter / before.total) * 100) : 0;
+  return {
+    currentBefore: before.current,
+    currentAfter,
+    total: before.total,
+    percentBefore: before.percent,
+    percentAfter,
+    added,
+  };
+}
+
+// ── loadManifest / loadConfig (shared CLI helpers) ───────────────────────────
+
+function loadManifest(projectRoot) {
+  let manifestPath = path.join(projectRoot, '.forge', 'schemas', 'structure-manifest.json');
+  if (!fs.existsSync(manifestPath)) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(path.join(projectRoot, '.forge', 'config.json'), 'utf8'));
+      if (cfg && cfg.paths && cfg.paths.forgeRoot) {
+        const alt = path.join(cfg.paths.forgeRoot, 'schemas', 'structure-manifest.json');
+        if (fs.existsSync(alt)) manifestPath = alt;
+      }
+    } catch {}
+  }
+  if (!fs.existsSync(manifestPath)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
 // ── exports (for testing) ─────────────────────────────────────────────────────
 
-module.exports = { computeClosure, resolveKbPath, resolvePath };
+module.exports = {
+  computeClosure, resolveKbPath, resolvePath,
+  computeCapabilities, predictCapabilitiesAfter,
+  loadManifest,
+  FAST_STUB_SENTINEL,
+};
 
 // ── CLI guard ─────────────────────────────────────────────────────────────────
 
@@ -110,21 +249,131 @@ if (require.main === module) {
 try {
 
   const argv = process.argv.slice(2);
-  let mode = null;   // 'workflow' | 'closure' | 'target'
+  let mode = null;   // 'workflow' | 'closure' | 'target' | 'capabilities' | 'capabilities-after' | 'capabilities-after-all'
   let target = null;
+  let allFlag = false;
 
   for (let i = 0; i < argv.length; i++) {
-    if ((argv[i] === '--workflow' || argv[i] === '--closure' || argv[i] === '--target') && argv[i + 1]) {
-      mode   = argv[i].replace('--', '');
+    const a = argv[i];
+    if (a === '--capabilities') {
+      mode = 'capabilities';
+    } else if (a === '--capabilities-after') {
+      mode = 'capabilities-after';
+    } else if (a === '--announce') {
+      mode = 'announce';
+    } else if (a === '--all') {
+      allFlag = true;
+    } else if ((a === '--workflow' || a === '--closure' || a === '--target') && argv[i + 1]) {
+      // Preserve the source flag — used as `target` indicator unless a
+      // capabilities/announce mode is already set
+      if (mode !== 'capabilities-after' && mode !== 'announce') {
+        mode = a.replace('--', '');
+      }
       target = argv[++i];
     }
   }
 
+  // Capabilities mode: print summary, exit 0.
+  if (mode === 'capabilities') {
+    const projectRoot = process.cwd();
+    const manifest = loadManifest(projectRoot);
+    const summary = computeCapabilities(manifest, projectRoot);
+    process.stdout.write(JSON.stringify(summary, null, 2) + '\n');
+    process.exit(0);
+  }
+
+  // Announce mode: emit a human-readable two-line announcement comparing
+  // current capabilities to projected-after-materialise. Skips silently
+  // (exit 0, no output) if mode is anything other than 'fast'.
+  if (mode === 'announce') {
+    const projectRoot = process.cwd();
+    let configMode = 'full';
+    try {
+      const cfg = JSON.parse(fs.readFileSync(path.join(projectRoot, '.forge', 'config.json'), 'utf8'));
+      if (cfg && cfg.mode) configMode = cfg.mode;
+    } catch {}
+    if (configMode !== 'fast') {
+      process.exit(0);
+    }
+    const manifest = loadManifest(projectRoot);
+    let addPaths = [];
+    if (allFlag) {
+      const namespaces = (manifest && manifest.namespaces) || {};
+      for (const ns of ['workflows', 'personas', 'skills', 'templates']) {
+        const cfg = namespaces[ns];
+        if (!cfg || !Array.isArray(cfg.files) || !cfg.dir) continue;
+        for (const fname of cfg.files) addPaths.push(path.posix.join(cfg.dir, fname));
+      }
+    } else if (target) {
+      const workflowId = target.endsWith('.md') ? path.basename(target, '.md') : target;
+      const closure = computeClosure(manifest, workflowId);
+      addPaths = [
+        ...closure.workflows,
+        ...closure.personas,
+        ...closure.skills,
+        ...closure.templates,
+      ];
+    } else {
+      process.stderr.write('Usage: ensure-ready.cjs --announce [--all | --workflow <id> | --target <path>]\n');
+      process.exit(2);
+    }
+    const p = predictCapabilitiesAfter(manifest, projectRoot, addPaths);
+    const line1 = `〇 Forge is currently in fast mode · ${p.percentBefore}% capabilities generated (${p.currentBefore} of ${p.total})`;
+    let line2;
+    if (p.added === 0) {
+      line2 = allFlag
+        ? '   Everything is already materialised — nothing to add. Use /forge:config mode full to flip the flag.'
+        : '   This closure is already materialised — re-running for freshness only.';
+    } else {
+      line2 = `   This round will lift capabilities to ${p.percentAfter}% (${p.currentAfter} of ${p.total}, +${p.added} artifact(s))`;
+    }
+    process.stdout.write(line1 + '\n' + line2 + '\n');
+    process.exit(0);
+  }
+
+  // Capabilities-after mode: predict post-materialise summary, exit 0.
+  if (mode === 'capabilities-after') {
+    const projectRoot = process.cwd();
+    const manifest = loadManifest(projectRoot);
+    let addPaths = [];
+    if (allFlag) {
+      // Predicting --all: every expected path is added.
+      const namespaces = (manifest && manifest.namespaces) || {};
+      for (const ns of ['workflows', 'personas', 'skills', 'templates']) {
+        const cfg = namespaces[ns];
+        if (!cfg || !Array.isArray(cfg.files) || !cfg.dir) continue;
+        for (const fname of cfg.files) addPaths.push(path.posix.join(cfg.dir, fname));
+      }
+    } else if (target) {
+      // Predicting per-workflow: closure-derived paths.
+      const workflowId = target.endsWith('.md') ? path.basename(target, '.md') : target;
+      const closure = computeClosure(manifest, workflowId);
+      addPaths = [
+        ...closure.workflows,
+        ...closure.personas,
+        ...closure.skills,
+        ...closure.templates,
+      ];
+    } else {
+      process.stderr.write('Usage: ensure-ready.cjs --capabilities-after [--all | --workflow <id> | --target <path>]\n');
+      process.exit(2);
+    }
+    const prediction = predictCapabilitiesAfter(manifest, projectRoot, addPaths);
+    process.stdout.write(JSON.stringify(prediction, null, 2) + '\n');
+    process.exit(0);
+  }
+
   if (!mode || !target) {
     process.stderr.write([
-      'Usage: ensure-ready.cjs --workflow <id>   Exit 0=ready 1=needs-gen; stdout=JSON missing-list',
-      '       ensure-ready.cjs --closure <id>    Print full transitive closure as JSON',
-      '       ensure-ready.cjs --target <path>   Same as --workflow keyed by filename',
+      'Usage: ensure-ready.cjs --workflow <id>             Exit 0=ready 1=needs-gen; stdout=JSON missing-list',
+      '       ensure-ready.cjs --closure <id>              Print full transitive closure as JSON',
+      '       ensure-ready.cjs --target <path>             Same as --workflow keyed by filename',
+      '       ensure-ready.cjs --capabilities              Print current capability summary as JSON',
+      '       ensure-ready.cjs --capabilities-after [--all | --workflow <id> | --target <path>]',
+      '                                                    Predict capability summary after materialisation',
+      '       ensure-ready.cjs --announce [--all | --workflow <id> | --target <path>]',
+      '                                                    Emit a 2-line human-readable fast-mode capability',
+      '                                                    announcement (silent if mode is not "fast")',
     ].join('\n') + '\n');
     process.exit(2);
   }
@@ -139,28 +388,7 @@ try {
   // ── Load structure-manifest ──────────────────────────────────────────────────
 
   const projectRoot = process.cwd();
-
-  // Try project-local first, then .forge/config.json's forgeRoot
-  let manifestPath = path.join(projectRoot, '.forge', 'schemas', 'structure-manifest.json');
-  if (!fs.existsSync(manifestPath)) {
-    // Try to find it via config.paths.forgeRoot
-    try {
-      const cfg = JSON.parse(fs.readFileSync(path.join(projectRoot, '.forge', 'config.json'), 'utf8'));
-      if (cfg && cfg.paths && cfg.paths.forgeRoot) {
-        const alt = path.join(cfg.paths.forgeRoot, 'schemas', 'structure-manifest.json');
-        if (fs.existsSync(alt)) manifestPath = alt;
-      }
-    } catch {}
-  }
-
-  let manifest = {};
-  if (fs.existsSync(manifestPath)) {
-    try {
-      manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    } catch (e) {
-      process.stderr.write(`△ Could not parse structure-manifest.json: ${e.message}\n`);
-    }
-  }
+  const manifest = loadManifest(projectRoot);
 
   // ── Load config ───────────────────────────────────────────────────────────────
 
