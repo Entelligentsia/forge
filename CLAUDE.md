@@ -88,7 +88,22 @@ If a schema change affects the lifecycle (state machinery) of a Forge entity (Sp
    version bump and push are blocked until all tests pass and the failures are
    resolved.
 
-5. **Run a security scan before pushing.** A version bump means new code is
+5. **Regenerate `integrity.json` after bumping.** After bumping the version and
+   finalising all plugin file changes (commands, agents, hooks), regenerate the
+   hash manifest and update the verifier hash baked into `forge/commands/health.md`:
+
+   ```
+   node forge/tools/gen-integrity.cjs --forge-root forge/
+   # → writes forge/integrity.json with the new version and fresh SHA-256 hashes
+
+   # Then update the EXPECTED hash literal in forge/commands/health.md
+   #   to match the new hash of tools/verify-integrity.cjs:
+   node -e "const c=require('crypto'),f=require('fs'); \
+     console.log(c.createHash('sha256').update(f.readFileSync('forge/tools/verify-integrity.cjs')).digest('hex'))"
+   # Copy that output and replace the EXPECTED= value in the health.md integrity check step.
+   ```
+
+6. **Run a security scan before pushing.** A version bump means new code is
    being distributed to every user who has Forge installed. Scan the
    **source directory** (`forge/`), not the cached install under
    `~/.claude/plugins/cache/`:
@@ -131,7 +146,7 @@ If a schema change affects the lifecycle (state machinery) of a Forge entity (Sp
    [Full scan history →](docs/security/index.md)
    ```
 
-6. **Run `build-manifest.cjs` after any meta/ file change:**
+7. **Run `build-manifest.cjs` after any meta/ file change:**
    If you add, rename, or remove any file in `forge/meta/personas/`,
    `forge/meta/workflows/`, `forge/meta/templates/`, or `forge/schemas/*.schema.json`,
    update the corresponding mapping table in `forge/tools/build-manifest.cjs` and

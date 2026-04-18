@@ -1,5 +1,5 @@
 {
-  "version": "0.12.5",
+  "version": "0.13.0",
   "generatedAt": "2026-04-17T12:08:06.035Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
@@ -71,6 +71,7 @@
     "commands": {
       "logicalKey": "commands",
       "dir": ".claude/commands",
+      "prefixed": true,
       "files": [
         "approve.md",
         "collate.md",

@@ -30,6 +30,7 @@ function checkNamespaces(manifest, projectRoot, options = {}) {
 
   // Resolve config path overrides
   let resolvedConfigPaths;
+  let projectPrefix = '';
   if (configPaths !== null) {
     resolvedConfigPaths = configPaths;
   } else {
@@ -39,6 +40,9 @@ function checkNamespaces(manifest, projectRoot, options = {}) {
       try {
         const cfg = JSON.parse(fs.readFileSync(configFile, 'utf8'));
         resolvedConfigPaths = (cfg && cfg.paths) ? cfg.paths : {};
+        projectPrefix = (cfg && cfg.project && cfg.project.prefix)
+          ? cfg.project.prefix.toLowerCase()
+          : '';
       } catch {
         // unparseable — use defaults
       }
@@ -52,9 +56,12 @@ function checkNamespaces(manifest, projectRoot, options = {}) {
 
   for (const [nsKey, ns] of Object.entries(manifest.namespaces)) {
     const logicalKey = ns.logicalKey || nsKey;
-    const resolvedDir = (resolvedConfigPaths[logicalKey] && typeof resolvedConfigPaths[logicalKey] === 'string')
+    let resolvedDir = (resolvedConfigPaths[logicalKey] && typeof resolvedConfigPaths[logicalKey] === 'string')
       ? resolvedConfigPaths[logicalKey]
       : ns.dir;
+    if (ns.prefixed && projectPrefix) {
+      resolvedDir = resolvedDir + '/' + projectPrefix;
+    }
     const absDir = path.join(projectRoot, resolvedDir);
 
     const expected = ns.files || [];

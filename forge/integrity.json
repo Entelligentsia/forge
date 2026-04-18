@@ -1,0 +1,26 @@
+{
+  "version": "0.14.0",
+  "generated": "2026-04-18",
+  "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
+  "files": {
+    "commands/add-pipeline.md": "d917d987954c370ee119bf7c8419af7ef115c4fac0aad45f77f7979b49f1b459",
+    "commands/add-task.md": "867a4b8f1138ad38378aae301a3cc9b41f4a7ccb6f7b30e9f9bca4c5d58c6a04",
+    "commands/ask.md": "df15f0aa68c93d65bfef05adb514c377bfc65617cafcd79534eb9b4149302657",
+    "commands/calibrate.md": "3f99ed7e71be80c9b507a221525109d1974ca304b09d16a68e8eaafc0373b0ca",
+    "commands/config.md": "67251316b806d706bb77f063128e29995c6b4abaf554f4d5558bd97a1a6cfcfe",
+    "commands/health.md": "8af62e3077d57fdc87d729b0548fcc459d7647cd9b0e9c5aa77f7a4b5797bd54",
+    "commands/init.md": "5ed304e6cc505e151a59b8244b69b680df4989493237f6b1eed4028e7dad5820",
+    "commands/materialize.md": "a9c542bd943efc5428ff7e3d73198e0c248cb7b7463ba4c4b8db0d9fbc04b42a",
+    "commands/migrate.md": "cfb2151f7c6e06694adfc47be2c5ae348eaa24e9c657d7494399169aacc95114",
+    "commands/regenerate.md": "d6a85530b849ccd05062d813625fa1ff533974b8a3066a1c568a1aa8530c3508",
+    "commands/remove.md": "45c775a7268261d5c1a99cc251ecf9d841d75b670b217217389cdaca3f36f71c",
+    "commands/report-bug.md": "af8a54bf8887b35e5c880898dd45783f6c2e80d3dc031d6479a6be613ac43053",
+    "commands/store-repair.md": "9317be65deb400953b8642b4d353d5583d3b032546c0b8f73d6c3a9b3445ebdd",
+    "commands/update-tools.md": "768c0d7ec07a17055c3d4b1b31370812f4292e03b1496723ba36f8caf596a609",
+    "commands/update.md": "27f9228f35b6494d788fae100bae21d47aeefe0f2b63b848e6b9143974b12721",
+    "agents/tomoshibi.md": "162cb28e4d0e65b72dc027222dd54f7d3eb6b6fe60ebdd0cf80572842d39e89f",
+    "hooks/check-update.js": "c7b2a4ae5172452ed842e92cb879dd463b9c4e7f19297ee2e356088df04b8e71",
+    "hooks/triage-error.js": "b1e9c1c9a9f3e4868fff295f2caf87a2a72a817ee767af35f6334c88e45e16d4",
+    "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
+  }
+}

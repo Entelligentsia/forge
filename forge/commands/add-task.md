@@ -243,7 +243,7 @@ node "$FORGE_ROOT/tools/collate.cjs"
 
 ## Step 9 — Confirm
 
-Display a summary:
+Display a summary (substitute `{PREFIX}` with `PROJECT_PREFIX.toLowerCase()`):
 
 ```
 〇 Task added successfully!
@@ -256,8 +256,8 @@ Display a summary:
    Pipeline:   {PIPELINE}
 
 ── Next steps:
-   1. Run /run-task {TASK_ID} to execute the full pipeline.
-   2. Or run /plan {TASK_ID} to plan it first.
+   1. Run /{PREFIX}:run-task {TASK_ID} to execute the full pipeline.
+   2. Or run /{PREFIX}:plan {TASK_ID} to plan it first.
 ```
 
 ---

@@ -24,6 +24,7 @@ Assess the health and currency of the project's SDLC knowledge base.
 | **Skill gaps** | Marketplace skills relevant to the stack that are not installed |
 | **Feature Test Coverage** | Features with zero tagged tests |
 | **Concepts freshness** | `docs/concepts/*.md` pages older than `forge/meta/store-schema/` updates |
+| **Plugin integrity** | Plugin command and agent files modified since last release hash was recorded |
 
 ## How to run
 
@@ -130,9 +131,27 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
 11. Check concepts freshness:
     - Compare the modification timestamps of files in `$PROJECT_ROOT/docs/concepts/*.md` against the newest schema modification in `$FORGE_ROOT/meta/store-schema/`.
     - If any concept doc is older than the newest schema change, emit a notice that it may be stale.
-12. Report all findings with actionable recommendations.
+12. Check plugin integrity:
+    First, verify the integrity verifier itself has not been tampered with:
+    ```sh
+    ACTUAL=$(node -e "const c=require('crypto'),f=require('fs'); console.log(c.createHash('sha256').update(f.readFileSync('$FORGE_ROOT/tools/verify-integrity.cjs')).digest('hex'))")
+    EXPECTED="3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
+    ```
+    If `ACTUAL != EXPECTED`, emit:
+    > △ Integrity verifier itself appears modified — run `/forge:update` to restore. Skipping integrity check.
+    And skip the rest of this step.
+
+    If the verifier hash matches, run:
+    ```sh
+    node "$FORGE_ROOT/tools/verify-integrity.cjs" --forge-root "$FORGE_ROOT"
+    ```
+    Include the output line verbatim in the report (it already uses 〇/△/× format).
+    Note: local verification is tamper-evident, not tamper-proof. `/forge:update` is
+    the authoritative restore path.
+
+13. Report all findings with actionable recommendations.
     If `--path` was used, open the report with: `Health report for: $PROJECT_ROOT`
-13. Close the report with: `If you've found a bug in Forge itself, run /forge:report-bug`
+14. Close the report with: `If you've found a bug in Forge itself, run /forge:report-bug`
 
 ## Output
 

@@ -18,12 +18,17 @@ nothing is deleted until you confirm explicitly.
 
 ## Step 1 — Inventory what exists
 
-Read the configured KB path from config:
+Read the configured KB path and project prefix from config:
 
 ```sh
 FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo "engineering"`
+PREFIX: !`node -e "try{console.log(require('.forge/config.json').project.prefix.toLowerCase())}catch(e){console.log('')}" 2>/dev/null || echo ""`
 ```
+
+If `PREFIX` is empty or `.forge/config.json` is unreadable, fall back to scanning both
+`.claude/commands/` and all immediate subdirectories for the 13 known filenames and remove
+whatever is found. Log a warning: `△ Could not read project prefix from config — scanning for commands in all locations.`
 
 Check which Forge directories are present:
 
@@ -85,19 +90,19 @@ Summarise exactly what will be deleted, then ask:
 ```
 About to delete:
   ✗ .forge/
-  ✗ .claude/commands/sprint-intake.md
-  ✗ .claude/commands/sprint-plan.md
-  ✗ .claude/commands/run-task.md
-  ✗ .claude/commands/run-sprint.md
-  ✗ .claude/commands/plan.md
-  ✗ .claude/commands/review-plan.md
-  ✗ .claude/commands/implement.md
-  ✗ .claude/commands/review-code.md
-  ✗ .claude/commands/fix-bug.md
-  ✗ .claude/commands/approve.md
-  ✗ .claude/commands/commit.md
-  ✗ .claude/commands/collate.md
-  ✗ .claude/commands/retrospective.md
+  ✗ .claude/commands/{PREFIX}/sprint-intake.md
+  ✗ .claude/commands/{PREFIX}/sprint-plan.md
+  ✗ .claude/commands/{PREFIX}/run-task.md
+  ✗ .claude/commands/{PREFIX}/run-sprint.md
+  ✗ .claude/commands/{PREFIX}/plan.md
+  ✗ .claude/commands/{PREFIX}/review-plan.md
+  ✗ .claude/commands/{PREFIX}/implement.md
+  ✗ .claude/commands/{PREFIX}/review-code.md
+  ✗ .claude/commands/{PREFIX}/fix-bug.md
+  ✗ .claude/commands/{PREFIX}/approve.md
+  ✗ .claude/commands/{PREFIX}/commit.md
+  ✗ .claude/commands/{PREFIX}/collate.md
+  ✗ .claude/commands/{PREFIX}/retrospective.md
   [✗ {KB_PATH}/]   ← only if option 3 confirmed
 
 Type "confirm" to proceed, or anything else to cancel.
@@ -117,37 +122,39 @@ rm -rf .forge/
 **Option 2 (standard):**
 ```bash
 rm -rf .forge/
-rm -f .claude/commands/sprint-intake.md \
-      .claude/commands/sprint-plan.md \
-      .claude/commands/run-task.md \
-      .claude/commands/run-sprint.md \
-      .claude/commands/plan.md \
-      .claude/commands/review-plan.md \
-      .claude/commands/implement.md \
-      .claude/commands/review-code.md \
-      .claude/commands/fix-bug.md \
-      .claude/commands/approve.md \
-      .claude/commands/commit.md \
-      .claude/commands/collate.md \
-      .claude/commands/retrospective.md
+rm -f ".claude/commands/${PREFIX}/sprint-intake.md" \
+      ".claude/commands/${PREFIX}/sprint-plan.md" \
+      ".claude/commands/${PREFIX}/run-task.md" \
+      ".claude/commands/${PREFIX}/run-sprint.md" \
+      ".claude/commands/${PREFIX}/plan.md" \
+      ".claude/commands/${PREFIX}/review-plan.md" \
+      ".claude/commands/${PREFIX}/implement.md" \
+      ".claude/commands/${PREFIX}/review-code.md" \
+      ".claude/commands/${PREFIX}/fix-bug.md" \
+      ".claude/commands/${PREFIX}/approve.md" \
+      ".claude/commands/${PREFIX}/commit.md" \
+      ".claude/commands/${PREFIX}/collate.md" \
+      ".claude/commands/${PREFIX}/retrospective.md"
+rmdir ".claude/commands/${PREFIX}" 2>/dev/null || true
 ```
 
 **Option 3 (full):**
 ```bash
 rm -rf .forge/ "{KB_PATH}/"
-rm -f .claude/commands/sprint-intake.md \
-      .claude/commands/sprint-plan.md \
-      .claude/commands/run-task.md \
-      .claude/commands/run-sprint.md \
-      .claude/commands/plan.md \
-      .claude/commands/review-plan.md \
-      .claude/commands/implement.md \
-      .claude/commands/review-code.md \
-      .claude/commands/fix-bug.md \
-      .claude/commands/approve.md \
-      .claude/commands/commit.md \
-      .claude/commands/collate.md \
-      .claude/commands/retrospective.md
+rm -f ".claude/commands/${PREFIX}/sprint-intake.md" \
+      ".claude/commands/${PREFIX}/sprint-plan.md" \
+      ".claude/commands/${PREFIX}/run-task.md" \
+      ".claude/commands/${PREFIX}/run-sprint.md" \
+      ".claude/commands/${PREFIX}/plan.md" \
+      ".claude/commands/${PREFIX}/review-plan.md" \
+      ".claude/commands/${PREFIX}/implement.md" \
+      ".claude/commands/${PREFIX}/review-code.md" \
+      ".claude/commands/${PREFIX}/fix-bug.md" \
+      ".claude/commands/${PREFIX}/approve.md" \
+      ".claude/commands/${PREFIX}/commit.md" \
+      ".claude/commands/${PREFIX}/collate.md" \
+      ".claude/commands/${PREFIX}/retrospective.md"
+rmdir ".claude/commands/${PREFIX}" 2>/dev/null || true
 ```
 
 After removal, verify the directories are gone and report what was removed.

@@ -26,6 +26,11 @@ KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/d
 
 ## Instructions
 
+**Slash command naming:** When referencing slash commands anywhere in generated workflow
+content, always use the namespaced form `/{prefix}:command-name` where `{prefix}` is
+`project.prefix` from `.forge/config.json` (lowercased). Never emit bare `/command-name`
+forms. This applies to all command references across all generated workflow content.
+
 ### orchestrate_task.md
 1. Add a **Pipeline Resolution** section at the top of the orchestrator:
    - Read `task.pipeline` from the task manifest JSON

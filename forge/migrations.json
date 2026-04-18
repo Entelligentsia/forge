@@ -1,4 +1,38 @@
 {
+  "0.13.1": {
+    "version": "0.14.0",
+    "date": "2026-04-18",
+    "notes": "Tomoshibi unified into single oracle agent; KB-visibility logic extracted to forge:refresh-kb-links plugin skill. Agent-tool Tomoshibi invocations in update, init, and collate replaced with Skill-tool invocations.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.13.0": {
+    "version": "0.13.1",
+    "date": "2026-04-18",
+    "notes": "Tomoshibi Oracle warns before config changes that require regeneration — project.prefix change now shows impact and exact follow-up command before [Y/n] prompt.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.12.6": {
+    "version": "0.13.0",
+    "date": "2026-04-18",
+    "notes": "Generated commands are now namespaced under project prefix (/{prefix}:plan etc.). Command files gain description: frontmatter. /forge:remove is prefix-aware. /forge:add-task shows namespaced next-step commands.",
+    "regenerate": ["commands", "workflows"],
+    "breaking": false,
+    "manual": [
+      "After regenerating, delete the old flat command files: rm -f .claude/commands/{sprint-intake,sprint-plan,run-task,run-sprint,plan,review-plan,implement,review-code,fix-bug,approve,commit,collate,retrospective}.md"
+    ]
+  },
+  "0.12.5": {
+    "version": "0.12.6",
+    "date": "2026-04-18",
+    "notes": "New /forge:ask command (Tomoshibi Oracle concierge) + plugin integrity checks. /forge:ask routes project-status, config, version, workflow/command explanation queries through the new tomoshibi-oracle agent. /forge:health gains a tamper-evident integrity check via verify-integrity.cjs + inline verifier hash. gen-integrity.cjs generates the release-time hash manifest (integrity.json).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.12.4": {
     "version": "0.12.5",
     "date": "2026-04-17",
