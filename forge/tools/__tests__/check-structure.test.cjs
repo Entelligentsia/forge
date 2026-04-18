@@ -219,6 +219,82 @@ describe('checkNamespaces', () => {
     assert.equal(result.missing.length, 0);
   });
 
+  test('prefixed namespace resolves dir with project.prefix from config', () => {
+    const manifest = {
+      namespaces: {
+        commands: {
+          logicalKey: 'commands',
+          dir: '.claude/commands',
+          prefixed: true,
+          files: ['plan.md', 'run-task.md'],
+        },
+      },
+    };
+
+    const structure = {
+      '.claude/commands/acme/plan.md': '---\ndescription: plan\neffort: high\n---\n',
+      '.claude/commands/acme/run-task.md': '---\ndescription: run\neffort: high\n---\n',
+      '.forge/config.json': JSON.stringify({ project: { prefix: 'ACME' }, paths: {} }),
+    };
+
+    tmpDir = createTempProject(structure);
+    const result = checkNamespaces(manifest, tmpDir, { strict: false });
+
+    assert.equal(result.total, 2);
+    assert.equal(result.present, 2);
+    assert.equal(result.missing.length, 0);
+  });
+
+  test('prefixed namespace reports missing when files are at old flat path', () => {
+    const manifest = {
+      namespaces: {
+        commands: {
+          logicalKey: 'commands',
+          dir: '.claude/commands',
+          prefixed: true,
+          files: ['plan.md'],
+        },
+      },
+    };
+
+    const structure = {
+      '.claude/commands/plan.md': '---\neffort: high\n---\n',
+      '.forge/config.json': JSON.stringify({ project: { prefix: 'EMBER' }, paths: {} }),
+    };
+
+    tmpDir = createTempProject(structure);
+    const result = checkNamespaces(manifest, tmpDir, { strict: false });
+
+    assert.equal(result.total, 1);
+    assert.equal(result.present, 0);
+    assert.equal(result.missing.length, 1);
+    assert.equal(result.missing[0].filename, 'plan.md');
+  });
+
+  test('prefixed namespace falls back to base dir when prefix unavailable', () => {
+    const manifest = {
+      namespaces: {
+        commands: {
+          logicalKey: 'commands',
+          dir: '.claude/commands',
+          prefixed: true,
+          files: ['plan.md'],
+        },
+      },
+    };
+
+    const structure = {
+      '.claude/commands/plan.md': '---\neffort: high\n---\n',
+    };
+
+    tmpDir = createTempProject(structure);
+    const result = checkNamespaces(manifest, tmpDir, { strict: false });
+
+    assert.equal(result.total, 1);
+    assert.equal(result.present, 1, 'falls back to base dir when no prefix in config');
+    assert.equal(result.missing.length, 0);
+  });
+
   test('reads configPaths from .forge/config.json when not provided in options', () => {
     const manifest = {
       namespaces: {
