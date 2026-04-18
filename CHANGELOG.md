@@ -11,6 +11,28 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.12.6] — 2026-04-18
+
+**`/forge:ask` concierge command + tamper-evident plugin integrity.**
+
+`/forge:ask` is a new single conversational entry point for all Forge intent. It routes
+project-status queries, config reads/writes (scoped to `project.name` and `project.prefix`),
+version checks, and workflow/command explanations through the new **Tomoshibi Oracle**
+agent (`forge/agents/tomoshibi-oracle.md`). The existing `tomoshibi.md` KB-visibility
+agent is unchanged.
+
+Plugin integrity adds two new tools: `gen-integrity.cjs` (run at release time to write
+`integrity.json` — a SHA-256 manifest of all plugin command, agent, hook, and verifier
+files) and `verify-integrity.cjs` (run at health-check time to re-hash each file and
+report drift). `/forge:health` now includes a tamper-evident integrity check: it first
+verifies `verify-integrity.cjs` itself against a hash literal baked into the command,
+then runs the verifier. Detection is tamper-*evident*, not tamper-*proof*; `/forge:update`
+is the authoritative restore path and is documented as such.
+
+**Regenerate:** none required.
+
+---
+
 ## [0.12.5] — 2026-04-17
 
 **Visual upgrade: framed capability announcement; system-wide zen-blue rules.**

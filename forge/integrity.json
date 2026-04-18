@@ -1,0 +1,27 @@
+{
+  "version": "0.12.6",
+  "generated": "2026-04-18",
+  "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
+  "files": {
+    "commands/add-pipeline.md": "d917d987954c370ee119bf7c8419af7ef115c4fac0aad45f77f7979b49f1b459",
+    "commands/add-task.md": "6596b13a8def81d1d8b8f2af53cef207fc51c3e8dffc5ddb99eacb92966722bc",
+    "commands/ask.md": "f6cfe974b6184e8cb6b3cf2f86680446b496536136888a93c7ac905633ff7c3d",
+    "commands/calibrate.md": "3f99ed7e71be80c9b507a221525109d1974ca304b09d16a68e8eaafc0373b0ca",
+    "commands/config.md": "67251316b806d706bb77f063128e29995c6b4abaf554f4d5558bd97a1a6cfcfe",
+    "commands/health.md": "8af62e3077d57fdc87d729b0548fcc459d7647cd9b0e9c5aa77f7a4b5797bd54",
+    "commands/init.md": "5ed304e6cc505e151a59b8244b69b680df4989493237f6b1eed4028e7dad5820",
+    "commands/materialize.md": "a9c542bd943efc5428ff7e3d73198e0c248cb7b7463ba4c4b8db0d9fbc04b42a",
+    "commands/migrate.md": "cfb2151f7c6e06694adfc47be2c5ae348eaa24e9c657d7494399169aacc95114",
+    "commands/regenerate.md": "d6a85530b849ccd05062d813625fa1ff533974b8a3066a1c568a1aa8530c3508",
+    "commands/remove.md": "56ca1b43a61b04bb9a5d76d32e3a9a4db72819cffd9218d1f7f8753d35627d96",
+    "commands/report-bug.md": "af8a54bf8887b35e5c880898dd45783f6c2e80d3dc031d6479a6be613ac43053",
+    "commands/store-repair.md": "9317be65deb400953b8642b4d353d5583d3b032546c0b8f73d6c3a9b3445ebdd",
+    "commands/update-tools.md": "768c0d7ec07a17055c3d4b1b31370812f4292e03b1496723ba36f8caf596a609",
+    "commands/update.md": "f00b4b1211a4b7c5c2b8a2e9fb51c2c2e748e65182a855782c68f06a392430e9",
+    "agents/tomoshibi-oracle.md": "5f2e05a6696e64e88bf9a6ae90de5a427506e9975087d701b34f685857ce5580",
+    "agents/tomoshibi.md": "6853bc37daa4fd32971e8ab58a3e5216b64651fbebe3cf6ac513cf9f1c01f39b",
+    "hooks/check-update.js": "c7b2a4ae5172452ed842e92cb879dd463b9c4e7f19297ee2e356088df04b8e71",
+    "hooks/triage-error.js": "b1e9c1c9a9f3e4868fff295f2caf87a2a72a817ee767af35f6334c88e45e16d4",
+    "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
+  }
+}

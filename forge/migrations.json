@@ -1,4 +1,12 @@
 {
+  "0.12.5": {
+    "version": "0.12.6",
+    "date": "2026-04-18",
+    "notes": "New /forge:ask command (Tomoshibi Oracle concierge) + plugin integrity checks. /forge:ask routes project-status, config, version, workflow/command explanation queries through the new tomoshibi-oracle agent. /forge:health gains a tamper-evident integrity check via verify-integrity.cjs + inline verifier hash. gen-integrity.cjs generates the release-time hash manifest (integrity.json).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.12.4": {
     "version": "0.12.5",
     "date": "2026-04-17",
