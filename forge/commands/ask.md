@@ -17,7 +17,7 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 
 ```sh
 node "$FORGE_ROOT/tools/banners.cjs" oracle
-node "$FORGE_ROOT/tools/banners.cjs" --subtitle "🏮🔮 灯 Tomoshibi Oracle — your Forge concierge"
+node "$FORGE_ROOT/tools/banners.cjs" --subtitle "🏮 灯 Tomoshibi — your Forge concierge"
 ```
 
 ## Soft config check
@@ -29,7 +29,7 @@ queries gracefully when config is absent.
 
 ## Invoke oracle
 
-Read `$FORGE_ROOT/agents/tomoshibi-oracle.md` and follow it exactly.
+Read `$FORGE_ROOT/agents/tomoshibi.md` and follow it exactly.
 The user's question is: $ARGUMENTS
 
 ## On error

@@ -11,6 +11,37 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.14.0] — 2026-04-18
+
+**Tomoshibi unified — single oracle agent + `forge:refresh-kb-links` plugin skill.**
+
+Forge previously shipped two Tomoshibi agents: `tomoshibi.md` (KB-visibility) and
+`tomoshibi-oracle.md` (concierge). The KB-visibility logic is now a first-class plugin
+skill (`forge:refresh-kb-links`) — invokable directly by users and by callers via the
+Skill tool. The oracle is unified into a single `tomoshibi.md` that handles all intents
+including a new "refresh KB links" conversational route. The three Agent-tool invocations
+of Tomoshibi (in `/forge:update` Step 7, `/forge:init` Phase 12, and `meta-collate`
+Finalize) are replaced with Skill-tool invocations — simpler, more transparent, no Agent
+overhead for a deterministic task. `tomoshibi-oracle.md` is deleted.
+
+**Regenerate:** none required.
+
+---
+
+## [0.13.1] — 2026-04-18
+
+**Tomoshibi Oracle warns before destructive config changes.**
+
+`/forge:ask` now shows the regeneration impact *before* confirming a `project.prefix`
+change — the exact follow-up command (`/forge:regenerate commands workflows`) is displayed
+alongside the consequence (command folder rename, stale workflow references) before the
+`[Y/n]` prompt. `project.name` changes are confirmed clean (no regeneration needed).
+An oracle warns before the deed, not after.
+
+**Regenerate:** none required.
+
+---
+
 ## [0.13.0] — 2026-04-18
 
 **Generated commands are namespaced under the project prefix.**

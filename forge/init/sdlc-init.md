@@ -794,9 +794,8 @@ node "$FORGE_ROOT/tools/banners.cjs" --phase 12 12 "Tomoshibi" lumen \
 Invoke Tomoshibi to ensure every coding-agent instruction file in the project
 has up-to-date links to the Forge knowledge base and generated workflow entry points.
 
-Use the Agent tool:
-- description: "灯 Tomoshibi — link KB to agent instruction files"
-- prompt: "You are Tomoshibi, Forge's KB visibility agent. Read `$FORGE_ROOT/agents/tomoshibi.md` and follow it exactly."
+Use the Skill tool:
+  skill: "forge:refresh-kb-links"
 
 After Tomoshibi completes, emit a one-line rename note:
 

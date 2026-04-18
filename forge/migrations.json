@@ -1,4 +1,20 @@
 {
+  "0.13.1": {
+    "version": "0.14.0",
+    "date": "2026-04-18",
+    "notes": "Tomoshibi unified into single oracle agent; KB-visibility logic extracted to forge:refresh-kb-links plugin skill. Agent-tool Tomoshibi invocations in update, init, and collate replaced with Skill-tool invocations.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.13.0": {
+    "version": "0.13.1",
+    "date": "2026-04-18",
+    "notes": "Tomoshibi Oracle warns before config changes that require regeneration — project.prefix change now shows impact and exact follow-up command before [Y/n] prompt.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.12.6": {
     "version": "0.13.0",
     "date": "2026-04-18",
