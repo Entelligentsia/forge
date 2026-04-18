@@ -11,6 +11,23 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.14.1] — 2026-04-18
+
+**collate now generates Sprint, Task, and Bug INDEX.md files — fixing broken knowledge graph links.**
+
+`MASTER_INDEX.md` has always linked to `sprints/{sprint}/INDEX.md`, `sprints/{sprint}/{task}/INDEX.md`,
+and `bugs/{bug}/INDEX.md`, but `collate.cjs` never wrote those files. Every link from the master index
+was a dead end. This release adds three new pure functions (`buildSprintIndex`, `buildTaskIndex`,
+`buildBugIndex`) — each fully tested — and wires them into the CLI generation loop. Running collate
+now produces a fully traversable knowledge graph: MASTER_INDEX → Sprint INDEX → Task INDEX → task
+documents, and MASTER_INDEX → Bug INDEX → bug documents. The `forge:refresh-kb-links` skill also
+gains a KB integrity check that detects missing INDEX files and prompts the user to re-run collate
+before proceeding.
+
+**Regenerate:** none required.
+
+---
+
 ## [0.14.0] — 2026-04-18
 
 **Tomoshibi unified — single oracle agent + `forge:refresh-kb-links` plugin skill.**

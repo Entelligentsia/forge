@@ -2,11 +2,11 @@
 
 # Forge — Master Index
 
-> Generated: 2026-04-16
+> Generated: 2026-04-18
 
 ## Feature Registry
 
-[Browse all 1 features ↗](features/INDEX.md)
+[Browse all 3 features ↗](features/INDEX.md)
 
 ## Sprint Registry
 
@@ -165,4 +165,5 @@
 | [BUG-005](bugs/BUG-005-fix-bug-orchestrator-deviations/INDEX.md)          | fix-bug is not an orchestrator — 4 control-flow and schema deviations                                       | major    | ✅ fixed     |
 | [BUG-006](bugs/BUG-006-collate-cost-report-path/INDEX.md)                 | collate: COST_REPORT.md written to SNN/ stub dirs instead of existing sprint_NN_*/ dirs                     | major    | ✅ fixed     |
 | [BUG-007](bugs/BUG-007-collate-cost-report-attribution/INDEX.md)          | collate: COST_REPORT.md path fallback fails when sprint.path absent + (unknown) attribution in usage events | major    | ✅ fixed     |
+| [FORGE-BUG-010](bugs/FORGE-BUG-010-gitignore-events/INDEX.md)             | forge:init / forge:update should guide users to gitignore .forge/store/events/                              | minor    | ✅ fixed     |
 

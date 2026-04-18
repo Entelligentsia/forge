@@ -113,6 +113,41 @@ Only include rows for workflow files that actually exist on disk. Check each:
 
 (Only include rows where the referenced `.forge/workflows/` file exists on disk.)
 
+## KB Integrity Check
+
+Before scanning agent instruction files, verify that the knowledge graph itself is complete.
+The collate tool generates INDEX.md files at every node of the graph; if they are missing,
+links in MASTER_INDEX.md are broken and agents navigate to dead ends.
+
+Check the following, using `KB_PATH` as the root:
+
+1. **Sprint INDEX files** — for every directory under `{KB_PATH}/sprints/`, check that
+   `{KB_PATH}/sprints/{sprint-dir}/INDEX.md` exists.
+
+2. **Task INDEX files** — for every subdirectory under `{KB_PATH}/sprints/{sprint-dir}/`
+   that looks like a task folder (contains at least one `.md` file), check that its
+   `INDEX.md` exists.
+
+3. **Bug INDEX files** — for every directory under `{KB_PATH}/bugs/`, check that
+   `{KB_PATH}/bugs/{bug-dir}/INDEX.md` exists.
+
+If any INDEX files are missing, prepend this warning to the output (before the agent-file
+approval prompt):
+
+```
+⚠️  KB knowledge graph has broken links — INDEX.md files are missing:
+
+  △ {KB_PATH}/sprints/PROJ-S01/INDEX.md         — missing
+  △ {KB_PATH}/sprints/PROJ-S01/PROJ-S01-T01/INDEX.md — missing
+  △ {KB_PATH}/bugs/PROJ-B01-some-bug/INDEX.md   — missing
+
+Run collate to regenerate them:
+  node "$FORGE_ROOT/tools/collate.cjs"
+```
+
+If all INDEX files are present (or there are no sprint/task/bug folders yet), skip this
+block entirely. Do not warn when the KB is intact.
+
 ## Staleness Check
 
 For each detected agent instruction file, check both sections:
