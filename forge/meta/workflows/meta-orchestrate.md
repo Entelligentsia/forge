@@ -579,7 +579,7 @@ Every phase emits a structured event via `/forge:store emit {sprintId} '{event-j
 | `taskId` | Task ID from the task manifest |
 | `sprintId` | Sprint ID from the task manifest |
 | `role` | Pipeline phase role (e.g. `plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`) |
-| `action` | Slash command invoked (e.g. `/implement`, `/review-plan`) |
+| `action` | Slash command invoked in namespaced form (e.g. `/{prefix}:implement`, `/{prefix}:review-plan`) |
 | `phase` | Pipeline phase name (e.g. `plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`) |
 | `iteration` | 1-based iteration count for this phase |
 | `startTimestamp` | ISO 8601 timestamp recorded **before** spawning the phase subagent |

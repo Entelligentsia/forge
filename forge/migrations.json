@@ -1,4 +1,14 @@
 {
+  "0.12.6": {
+    "version": "0.13.0",
+    "date": "2026-04-18",
+    "notes": "Generated commands are now namespaced under project prefix (/{prefix}:plan etc.). Command files gain description: frontmatter. /forge:remove is prefix-aware. /forge:add-task shows namespaced next-step commands.",
+    "regenerate": ["commands", "workflows"],
+    "breaking": false,
+    "manual": [
+      "After regenerating, delete the old flat command files: rm -f .claude/commands/{sprint-intake,sprint-plan,run-task,run-sprint,plan,review-plan,implement,review-code,fix-bug,approve,commit,collate,retrospective}.md"
+    ]
+  },
   "0.12.5": {
     "version": "0.12.6",
     "date": "2026-04-18",
