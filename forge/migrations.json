@@ -1,4 +1,12 @@
 {
+  "0.14.0": {
+    "version": "0.14.1",
+    "date": "2026-04-18",
+    "notes": "collate now generates Sprint, Task, and Bug INDEX.md files — closes broken knowledge graph links from MASTER_INDEX.md. refresh-kb-links skill gains KB integrity check that warns when INDEX files are missing.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.13.1": {
     "version": "0.14.0",
     "date": "2026-04-18",

@@ -74,7 +74,112 @@ function sourceLabel(sources) {
   return '(mixed)';
 }
 
-module.exports = { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED };
+const SPRINT_DOCS = [
+  { file: 'SPRINT_PLAN.md',         label: 'Sprint Plan',         purpose: 'Sprint scope and task definitions' },
+  { file: 'SPRINT_REQUIREMENTS.md', label: 'Sprint Requirements', purpose: 'Requirements and acceptance criteria' },
+  { file: 'COST_REPORT.md',         label: 'Cost Report',         purpose: 'Token usage and cost analysis' },
+];
+
+const TASK_DOCS = [
+  { file: 'TASK_PROMPT.md',         label: 'Task Prompt',         purpose: 'Task definition and prompt' },
+  { file: 'PLAN.md',                label: 'Plan',                purpose: 'Implementation plan' },
+  { file: 'PROGRESS.md',            label: 'Progress',            purpose: 'Implementation progress log' },
+  { file: 'ARCHITECT_APPROVAL.md',  label: 'Architect Approval',  purpose: 'Architecture review' },
+  { file: 'CODE_REVIEW.md',         label: 'Code Review',         purpose: 'Code review' },
+  { file: 'VALIDATION_REPORT.md',   label: 'Validation Report',   purpose: 'Validation results' },
+];
+
+function buildSprintIndex(sprint, tasks, availableDocs) {
+  const avail = new Set(availableDocs);
+  const lines = [GENERATED, '', `# Sprint: ${sprint.title || sprint.sprintId}`, '',
+    `> Sprint ID: ${sprint.sprintId}`,
+    `> Status: ${statusBadge(sprint.status)}`,
+    sprint.executionMode ? `> Execution Mode: ${sprint.executionMode}` : null,
+    ''].filter(l => l !== null);
+
+  if (sprint.goal) lines.push('## Goal', '', sprint.goal, '');
+  if (sprint.description && sprint.description !== sprint.goal) lines.push('## Description', '', sprint.description, '');
+
+  const presentDocs = SPRINT_DOCS.filter(d => avail.has(d.file));
+  if (presentDocs.length > 0) {
+    lines.push('## Sprint Documents', '');
+    const rows = [['Document', 'Purpose']];
+    for (const d of presentDocs) rows.push([`[${d.label}](${d.file})`, d.purpose]);
+    lines.push(padTable(rows), '');
+  }
+
+  lines.push('## Tasks', '');
+  if (tasks.length > 0) {
+    const rows = [['Task', 'Title', 'Status', 'Estimate']];
+    for (const t of tasks) {
+      rows.push([`[${t.taskId}](${t.taskId}/INDEX.md)`, t.title || '—', statusBadge(t.status), t.estimate || '—']);
+    }
+    lines.push(padTable(rows), '');
+  } else {
+    lines.push('_No tasks._', '');
+  }
+
+  return lines.join('\n') + '\n';
+}
+
+function buildTaskIndex(task, availableDocs) {
+  const avail = new Set(availableDocs);
+  const lines = [GENERATED, '', `# Task: ${task.title || task.taskId}`, '',
+    `> Task ID: ${task.taskId}`,
+    `> Sprint: [${task.sprintId}](../INDEX.md)`,
+    `> Status: ${statusBadge(task.status)}`,
+    task.estimate ? `> Estimate: ${task.estimate}` : null,
+    ''].filter(l => l !== null);
+
+  if (task.description) lines.push('## Description', '', task.description, '');
+
+  const presentDocs = TASK_DOCS.filter(d => avail.has(d.file));
+  if (presentDocs.length > 0) {
+    lines.push('## Task Documents', '');
+    const rows = [['Document', 'Purpose']];
+    for (const d of presentDocs) rows.push([`[${d.label}](${d.file})`, d.purpose]);
+    lines.push(padTable(rows), '');
+  }
+
+  return lines.join('\n') + '\n';
+}
+
+const BUG_DOCS = [
+  { file: 'ANALYSIS.md',         label: 'Analysis',          purpose: 'Bug analysis and triage' },
+  { file: 'BUG_FIX_PLAN.md',    label: 'Fix Plan',           purpose: 'Fix implementation plan' },
+  { file: 'PLAN.md',             label: 'Plan',               purpose: 'Fix implementation plan' },
+  { file: 'PLAN_REVIEW.md',      label: 'Plan Review',        purpose: 'Fix plan review' },
+  { file: 'PROGRESS.md',         label: 'Progress',           purpose: 'Fix progress log' },
+  { file: 'APPROVAL.md',         label: 'Approval',           purpose: 'Architecture approval' },
+  { file: 'ARCHITECT_APPROVAL.md', label: 'Architect Approval', purpose: 'Architecture approval' },
+  { file: 'CODE_REVIEW.md',      label: 'Code Review',        purpose: 'Code review' },
+  { file: 'VALIDATION_REPORT.md', label: 'Validation Report', purpose: 'Fix validation' },
+];
+
+function buildBugIndex(bug, availableDocs) {
+  const avail = new Set(availableDocs);
+  const lines = [GENERATED, '', `# Bug: ${bug.title || bug.bugId}`, '',
+    `> Bug ID: ${bug.bugId}`,
+    `> Severity: ${bug.severity || '—'}`,
+    `> Status: ${statusBadge(bug.status)}`,
+    bug.reportedAt ? `> Reported: ${bug.reportedAt.slice(0, 10)}` : null,
+    bug.resolvedAt ? `> Resolved: ${bug.resolvedAt.slice(0, 10)}` : null,
+    ''].filter(l => l !== null);
+
+  if (bug.description) lines.push('## Description', '', bug.description, '');
+
+  const presentDocs = BUG_DOCS.filter(d => avail.has(d.file));
+  if (presentDocs.length > 0) {
+    lines.push('## Bug Documents', '');
+    const rows = [['Document', 'Purpose']];
+    for (const d of presentDocs) rows.push([`[${d.label}](${d.file})`, d.purpose]);
+    lines.push(padTable(rows), '');
+  }
+
+  return lines.join('\n') + '\n';
+}
+
+module.exports = { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex };
 
 // --- CLI ---
 if (require.main === module) {
@@ -347,6 +452,67 @@ function loadSprintEvents(sprintId) {
   }).filter(Boolean);
 }
 
+// --- Generate Sprint INDEX.md and Task INDEX.md ---
+function availableDocsIn(dir, knownDocs) {
+  if (!fs.existsSync(dir)) return [];
+  return knownDocs.map(d => d.file).filter(f => fs.existsSync(path.join(dir, f)));
+}
+
+let sprintIndexesWritten = 0;
+let taskIndexesWritten = 0;
+
+for (const sprint of targetSprints) {
+  let sprintDirName;
+  if (sprint.path) {
+    sprintDirName = path.basename(sprint.path.replace(/\/$/, ''));
+  } else {
+    sprintDirName = resolveDir(
+      path.join(engRoot, 'sprints'),
+      sprint.sprintId,
+      sprint.sprintId.split('-').pop()
+    );
+  }
+  const sprintDir = path.join(engRoot, 'sprints', sprintDirName);
+
+  // Sprint INDEX.md
+  const sprintTasks = (tasksBySprint[sprint.sprintId] || []).sort((a, b) => a.taskId.localeCompare(b.taskId));
+  const sprintAvailDocs = availableDocsIn(sprintDir, SPRINT_DOCS);
+  writeFile(path.join(sprintDir, 'INDEX.md'), buildSprintIndex(sprint, sprintTasks, sprintAvailDocs));
+  sprintIndexesWritten++;
+
+  // Task INDEX.md files
+  for (const task of sprintTasks) {
+    let taskDirName;
+    if (task.path) {
+      const normalizedPath = task.path.replace(/\\/g, '/').replace(/\/$/, '');
+      const normalizedEngPath = engPath.replace(/\\/g, '/').replace(/\/$/, '');
+      if (normalizedPath.startsWith(normalizedEngPath + '/')) {
+        taskDirName = path.basename(normalizedPath);
+      } else {
+        continue; // path points to source file, not a KB task folder — skip
+      }
+    } else {
+      taskDirName = resolveDir(sprintDir, task.taskId, task.taskId.split('-').pop());
+    }
+    const taskDir = path.join(sprintDir, taskDirName);
+    if (!fs.existsSync(taskDir)) continue;
+    const taskAvailDocs = availableDocsIn(taskDir, TASK_DOCS);
+    writeFile(path.join(taskDir, 'INDEX.md'), buildTaskIndex(task, taskAvailDocs));
+    taskIndexesWritten++;
+  }
+}
+
+// --- Generate Bug INDEX.md files ---
+let bugIndexesWritten = 0;
+for (const bug of allBugs) {
+  const bugDirName = resolveDir(path.join(engRoot, 'bugs'), bug.bugId, bug.bugId.split('-').pop());
+  const bugDir = path.join(engRoot, 'bugs', bugDirName);
+  if (!fs.existsSync(bugDir)) continue;
+  const bugAvailDocs = availableDocsIn(bugDir, BUG_DOCS);
+  writeFile(path.join(bugDir, 'INDEX.md'), buildBugIndex(bug, bugAvailDocs));
+  bugIndexesWritten++;
+}
+
 // --- Generate COST_REPORT.md per sprint ---
 const REVIEW_PHASES = new Set(['review', 'review-plan', 'review-code', 'review-implementation']);
 let costReportsWritten = 0;
@@ -521,7 +687,7 @@ if (DRY_RUN) {
 }
 
 const tag = DRY_RUN ? '[dry-run] ' : '';
-console.log(`${tag}Collated: ${targetSprints.length} sprint(s), ${allBugs.length} bug(s) → MASTER_INDEX.md updated, ${costReportsWritten} COST_REPORT(s) written`);
+console.log(`${tag}Collated: ${targetSprints.length} sprint(s), ${allBugs.length} bug(s) → MASTER_INDEX.md updated, ${sprintIndexesWritten} sprint INDEX(es), ${taskIndexesWritten} task INDEX(es), ${bugIndexesWritten} bug INDEX(es), ${costReportsWritten} COST_REPORT(s) written`);
 
 // --- Purge event directory if requested ---
 if (PURGE_EVENTS) {

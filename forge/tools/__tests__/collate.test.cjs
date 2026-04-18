@@ -1,7 +1,7 @@
 'use strict';
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED } = require('../collate.cjs');
+const { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex } = require('../collate.cjs');
 
 describe('collate.cjs — statusBadge', () => {
   test('completed returns badge with status name', () => {
@@ -139,5 +139,201 @@ describe('collate.cjs — GENERATED constant', () => {
   test('is the expected marker string', () => {
     assert.ok(GENERATED.includes('GENERATED'), `expected GENERATED marker, got "${GENERATED}"`);
     assert.ok(GENERATED.includes('collate'), `expected "collate" in marker, got "${GENERATED}"`);
+  });
+});
+
+describe('collate.cjs — buildSprintIndex', () => {
+  const sprint = {
+    sprintId: 'TST-S01',
+    title: 'Foundation Sprint',
+    description: 'Builds the foundation.',
+    goal: 'Deliver a working scaffold.',
+    status: 'active',
+    executionMode: 'sequential',
+  };
+  const tasks = [
+    { taskId: 'TST-S01-T01', title: 'Bootstrap scaffold', status: 'committed', estimate: 'S' },
+    { taskId: 'TST-S01-T02', title: 'Add CI pipeline', status: 'in-progress', estimate: 'M' },
+  ];
+
+  test('includes GENERATED marker', () => {
+    const result = buildSprintIndex(sprint, tasks, []);
+    assert.ok(result.includes('GENERATED'), 'should include GENERATED marker');
+  });
+
+  test('includes sprint title as heading', () => {
+    const result = buildSprintIndex(sprint, tasks, []);
+    assert.ok(result.includes('Foundation Sprint'), 'should include sprint title');
+  });
+
+  test('includes sprint ID', () => {
+    const result = buildSprintIndex(sprint, tasks, []);
+    assert.ok(result.includes('TST-S01'), 'should include sprint ID');
+  });
+
+  test('includes status badge', () => {
+    const result = buildSprintIndex(sprint, tasks, []);
+    assert.ok(result.includes('active'), 'should include status value');
+  });
+
+  test('includes goal', () => {
+    const result = buildSprintIndex(sprint, tasks, []);
+    assert.ok(result.includes('Deliver a working scaffold.'), 'should include sprint goal');
+  });
+
+  test('links to each task INDEX.md', () => {
+    const result = buildSprintIndex(sprint, tasks, []);
+    assert.ok(result.includes('TST-S01-T01/INDEX.md'), 'should link to first task INDEX.md');
+    assert.ok(result.includes('TST-S01-T02/INDEX.md'), 'should link to second task INDEX.md');
+  });
+
+  test('includes task titles in task table', () => {
+    const result = buildSprintIndex(sprint, tasks, []);
+    assert.ok(result.includes('Bootstrap scaffold'), 'should include first task title');
+    assert.ok(result.includes('Add CI pipeline'), 'should include second task title');
+  });
+
+  test('only includes sprint docs that are in availableDocs', () => {
+    const result = buildSprintIndex(sprint, tasks, ['SPRINT_PLAN.md', 'COST_REPORT.md']);
+    assert.ok(result.includes('SPRINT_PLAN.md'), 'should include available SPRINT_PLAN.md link');
+    assert.ok(result.includes('COST_REPORT.md'), 'should include available COST_REPORT.md link');
+    assert.ok(!result.includes('SPRINT_REQUIREMENTS.md'), 'should not include absent SPRINT_REQUIREMENTS.md');
+  });
+
+  test('renders with empty task list', () => {
+    const result = buildSprintIndex(sprint, [], []);
+    assert.ok(result.includes('TST-S01'), 'should still include sprint ID with no tasks');
+    assert.ok(result.includes('GENERATED'), 'should still include GENERATED marker');
+  });
+});
+
+describe('collate.cjs — buildTaskIndex', () => {
+  const task = {
+    taskId: 'TST-S01-T01',
+    sprintId: 'TST-S01',
+    title: 'Bootstrap scaffold',
+    description: 'Set up the monorepo scaffold.',
+    status: 'committed',
+    estimate: 'S',
+  };
+
+  test('includes GENERATED marker', () => {
+    const result = buildTaskIndex(task, []);
+    assert.ok(result.includes('GENERATED'), 'should include GENERATED marker');
+  });
+
+  test('includes task title as heading', () => {
+    const result = buildTaskIndex(task, []);
+    assert.ok(result.includes('Bootstrap scaffold'), 'should include task title');
+  });
+
+  test('includes task ID', () => {
+    const result = buildTaskIndex(task, []);
+    assert.ok(result.includes('TST-S01-T01'), 'should include task ID');
+  });
+
+  test('includes status badge', () => {
+    const result = buildTaskIndex(task, []);
+    assert.ok(result.includes('committed'), 'should include status value');
+  });
+
+  test('includes estimate', () => {
+    const result = buildTaskIndex(task, []);
+    assert.ok(result.includes('S'), 'should include estimate');
+  });
+
+  test('includes sprint back-link to parent INDEX.md', () => {
+    const result = buildTaskIndex(task, []);
+    assert.ok(result.includes('../INDEX.md'), 'should link back to sprint INDEX.md');
+    assert.ok(result.includes('TST-S01'), 'should reference sprint ID in back-link');
+  });
+
+  test('includes task description', () => {
+    const result = buildTaskIndex(task, []);
+    assert.ok(result.includes('Set up the monorepo scaffold.'), 'should include task description');
+  });
+
+  test('only links to docs that are in availableDocs', () => {
+    const result = buildTaskIndex(task, ['PLAN.md', 'PROGRESS.md']);
+    assert.ok(result.includes('PLAN.md'), 'should include available PLAN.md link');
+    assert.ok(result.includes('PROGRESS.md'), 'should include available PROGRESS.md link');
+    assert.ok(!result.includes('TASK_PROMPT.md'), 'should not include absent TASK_PROMPT.md');
+    assert.ok(!result.includes('CODE_REVIEW.md'), 'should not include absent CODE_REVIEW.md');
+  });
+
+  test('renders with no available docs', () => {
+    const result = buildTaskIndex(task, []);
+    assert.ok(result.includes('TST-S01-T01'), 'should still include task ID with no docs');
+  });
+});
+
+describe('collate.cjs — buildBugIndex', () => {
+  const bug = {
+    bugId: 'TST-B01',
+    title: 'Widget renders incorrectly',
+    description: 'The widget fails to render when the prop is null.',
+    severity: 'major',
+    status: 'fixed',
+    reportedAt: '2026-01-15T10:00:00Z',
+    resolvedAt: '2026-01-16T14:00:00Z',
+  };
+
+  test('includes GENERATED marker', () => {
+    const result = buildBugIndex(bug, []);
+    assert.ok(result.includes('GENERATED'), 'should include GENERATED marker');
+  });
+
+  test('includes bug title as heading', () => {
+    const result = buildBugIndex(bug, []);
+    assert.ok(result.includes('Widget renders incorrectly'), 'should include bug title');
+  });
+
+  test('includes bug ID', () => {
+    const result = buildBugIndex(bug, []);
+    assert.ok(result.includes('TST-B01'), 'should include bug ID');
+  });
+
+  test('includes severity', () => {
+    const result = buildBugIndex(bug, []);
+    assert.ok(result.includes('major'), 'should include severity');
+  });
+
+  test('includes status badge', () => {
+    const result = buildBugIndex(bug, []);
+    assert.ok(result.includes('fixed'), 'should include status value');
+  });
+
+  test('includes description', () => {
+    const result = buildBugIndex(bug, []);
+    assert.ok(result.includes('The widget fails to render when the prop is null.'), 'should include description');
+  });
+
+  test('includes reportedAt date', () => {
+    const result = buildBugIndex(bug, []);
+    assert.ok(result.includes('2026-01-15'), 'should include reportedAt date');
+  });
+
+  test('includes resolvedAt date when present', () => {
+    const result = buildBugIndex(bug, []);
+    assert.ok(result.includes('2026-01-16'), 'should include resolvedAt date');
+  });
+
+  test('omits resolvedAt when not present', () => {
+    const openBug = { ...bug, resolvedAt: undefined, status: 'reported' };
+    const result = buildBugIndex(openBug, []);
+    assert.ok(!result.includes('Resolved:'), 'should not include Resolved line for open bug');
+  });
+
+  test('only links to docs that are in availableDocs', () => {
+    const result = buildBugIndex(bug, ['ANALYSIS.md', 'PROGRESS.md']);
+    assert.ok(result.includes('ANALYSIS.md'), 'should include available ANALYSIS.md link');
+    assert.ok(result.includes('PROGRESS.md'), 'should include available PROGRESS.md link');
+    assert.ok(!result.includes('CODE_REVIEW.md'), 'should not include absent CODE_REVIEW.md');
+    assert.ok(!result.includes('BUG_FIX_PLAN.md'), 'should not include absent BUG_FIX_PLAN.md');
+  });
+
+  test('renders with no available docs', () => {
+    const result = buildBugIndex(bug, []);
+    assert.ok(result.includes('TST-B01'), 'should still include bug ID with no docs');
   });
 });
