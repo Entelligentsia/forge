@@ -1,4 +1,12 @@
 {
+  "0.15.0": {
+    "version": "0.16.0",
+    "date": "2026-04-19",
+    "notes": "Persona/skill by reference. Subagent prompts inject a compact persona/skill summary from .forge/cache/persona-pack.json instead of verbatim persona and skill file prose. build-persona-pack.cjs compiles YAML frontmatter from meta/personas/ and meta/skills/ into the pack, triggered by /forge:regenerate and /forge:materialize. FORGE_PROMPT_MODE=inline preserves legacy behaviour for one version as a rollback path.",
+    "regenerate": ["personas", "workflows"],
+    "breaking": false,
+    "manual": ["Run /forge:regenerate to rebuild the persona pack at .forge/cache/persona-pack.json."]
+  },
   "0.14.1": {
     "version": "0.15.0",
     "date": "2026-04-19",

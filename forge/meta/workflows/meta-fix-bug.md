@@ -175,8 +175,10 @@ elif preflight_result.exit_code == 2:
   break
 
 # --- Symmetric Injection: noun resolved from ROLE_TO_NOUN ---
-persona_content = read_file(f".forge/personas/{persona_noun}.md")
-skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
+# Mode is governed by FORGE_PROMPT_MODE (default: "reference"). See
+# meta-orchestrate.md § "Persona Injection Modes" for the helper definition —
+# the generated fix-bug orchestrator shares the same helper.
+role_block = compose_role_block(persona_noun)
 
 # --- Spawn subagent with progress reporting instructions (no banner command) ---
 spawn_subagent(
@@ -195,8 +197,7 @@ spawn_subagent(
     f"a `done` entry when you finish, or an `error` entry if something fails. "
     f"The orchestrator is monitoring this log in real time.\n\n"
     f"---\n\n"
-    f"{persona_content}\n\n"
-    f"{skill_content}\n\n"
+    f"{role_block}\n\n"
     f"### Current Working Context\n"
     f"- Bug Root:    {bug_root_path}\n"
     f"- Store Root:  {store_root_path}\n"

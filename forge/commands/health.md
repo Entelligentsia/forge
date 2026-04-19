@@ -131,7 +131,20 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
 11. Check concepts freshness:
     - Compare the modification timestamps of files in `$PROJECT_ROOT/docs/concepts/*.md` against the newest schema modification in `$FORGE_ROOT/meta/store-schema/`.
     - If any concept doc is older than the newest schema change, emit a notice that it may be stale.
-12. Check plugin integrity:
+12. Check persona pack freshness:
+    - If `$PROJECT_ROOT/.forge/cache/persona-pack.json` does not exist, emit:
+      > △ Persona pack missing — run `/forge:regenerate` to build it.
+      (The pack is consumed by `meta-orchestrate` and `meta-fix-bug` when `FORGE_PROMPT_MODE=reference`.)
+    - Otherwise read the pack's `source_hash`, then compute the current hash:
+      ```sh
+      CURRENT=$(node -e "const t=require('$FORGE_ROOT/tools/build-persona-pack.cjs'); console.log(t.computeSourceHash({personaDir:'$FORGE_ROOT/meta/personas', skillDir:'$FORGE_ROOT/meta/skills'}))")
+      STORED=$(node -e "console.log(require('$PROJECT_ROOT/.forge/cache/persona-pack.json').source_hash)")
+      ```
+      If `CURRENT != STORED`, emit:
+      > △ Persona pack stale — meta/ has changed since last build. Run `/forge:regenerate` to refresh.
+      Otherwise emit:
+      > 〇 Persona pack fresh.
+13. Check plugin integrity:
     First, verify the integrity verifier itself has not been tampered with:
     ```sh
     ACTUAL=$(node -e "const c=require('crypto'),f=require('fs'); console.log(c.createHash('sha256').update(f.readFileSync('$FORGE_ROOT/tools/verify-integrity.cjs')).digest('hex'))")

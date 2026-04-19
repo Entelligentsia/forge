@@ -592,6 +592,27 @@ If any step above fails unexpectedly, describe what went wrong and ask:
 
 ---
 
+## Post-regeneration persona pack
+
+Rebuild the compact persona/skill reference pack at
+`.forge/cache/persona-pack.json`. This is consumed by `meta-orchestrate` and
+`meta-fix-bug` to inject persona references (not verbatim prose) into
+subagent prompts when `FORGE_PROMPT_MODE=reference` (the default).
+
+The pack compiles YAML frontmatter from `$FORGE_ROOT/meta/personas/meta-*.md`
+and `$FORGE_ROOT/meta/skills/meta-*.md`. It is safe to rebuild on every
+regenerate run (cost: ~50ms, 16 files).
+
+```sh
+node "$FORGE_ROOT/tools/build-persona-pack.cjs" \
+  --out .forge/cache/persona-pack.json
+```
+
+- Exit 0: emit `〇 persona pack refreshed`
+- Exit 1: surface the stderr message (it includes the offending file path
+  for missing-frontmatter or malformed-YAML errors) and advise the user
+  to file a bug if the error is unexpected.
+
 ## Post-regeneration verification
 
 After all requested targets have been regenerated, verify structural completeness:

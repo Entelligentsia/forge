@@ -1,7 +1,19 @@
 ---
+id: bug-fixer-skills
 name: Bug-Fixer Meta-Skills
 description: Core capabilities and toolsets for the Bug-Fixer role.
 role: BugFixer
+applies_to: [bug-fixer]
+summary: >
+  Rapid reproduction, isolation, surgical remediation, and regression-safe
+  verification of reported bugs.
+capabilities:
+  - Create minimal reproducible examples
+  - Bisect commits and analyse logs to locate failure
+  - Apply surgical fixes that avoid collateral damage
+  - Write a regression test that fails without the fix and passes with it
+  - Verify fixes across environments and under stress
+file_ref: .forge/skills/bug-fixer-skills.md
 ---
 
 ## Generation Instructions

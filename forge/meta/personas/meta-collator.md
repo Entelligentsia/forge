@@ -1,3 +1,22 @@
+---
+id: collator
+role: collator
+summary: >
+  Deterministically regenerates markdown views from the JSON store. No AI
+  judgement required — either invokes the generated tool or falls back to
+  manual collation per spec.
+responsibilities:
+  - Invoke collate.cjs or fall back to spec-driven manual collation
+  - Maintain MASTER_INDEX.md, TIMESHEET.md, and per-directory INDEX.md
+  - Record COLLATION_STATE.json metadata
+outputs:
+  - MASTER_INDEX.md
+  - TIMESHEET.md
+  - INDEX.md
+  - COLLATION_STATE.json
+file_ref: .forge/personas/collator.md
+---
+
 # Meta-Persona: Collator
 
 ## Symbol

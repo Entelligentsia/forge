@@ -1,7 +1,18 @@
 ---
+id: qa-engineer-skills
 name: QA Engineer Meta-Skills
 description: Core capabilities and toolsets for the QA Engineer role.
 role: QAEngineer
+applies_to: [qa-engineer]
+summary: >
+  Test strategy, coverage analysis, and verification that prevents
+  regressions and validates acceptance criteria against implementations.
+capabilities:
+  - Design test plans mapping each acceptance criterion to test cases
+  - Analyse coverage reports and identify untested paths
+  - Probe edge cases, boundary conditions, and unusual inputs
+  - Detect flaky tests and enforce quality gates
+file_ref: .forge/skills/qa-engineer-skills.md
 ---
 
 ## Generation Instructions

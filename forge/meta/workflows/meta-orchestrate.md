@@ -208,6 +208,79 @@ The `.get(key, fallback)` pattern preserves the old role-literal behaviour for
 any role not yet in the table, which is a safe degradation path for custom
 pipeline roles.
 
+## Persona Injection Modes
+
+Subagent prompts include a **role block** that tells the agent who it is
+and what capabilities it has. Two modes are supported, selected by the
+`FORGE_PROMPT_MODE` environment variable:
+
+| Mode | Behaviour | Default |
+|------|-----------|---------|
+| `reference` | Compact summary from `.forge/cache/persona-pack.json`, plus a file_ref pointer to the full persona/skill definitions. | ✅ |
+| `inline` | Legacy: inject the full verbatim persona and skill file contents. Kept for one version as a rollback path. | |
+
+The pack is built by `/forge:regenerate` and `/forge:materialize` via
+`forge/tools/build-persona-pack.cjs`. It compiles YAML frontmatter from
+`$FORGE_ROOT/meta/personas/meta-*.md` and `$FORGE_ROOT/meta/skills/meta-*.md`
+into `.forge/cache/persona-pack.json`.
+
+### Helper: `compose_role_block(persona_noun)`
+
+```
+def compose_role_block(persona_noun):
+    mode = os.environ.get("FORGE_PROMPT_MODE", "reference")
+
+    if mode == "inline":
+        # Legacy behaviour — full persona + skill prose inline.
+        persona_content = read_file(f".forge/personas/{persona_noun}.md")
+        skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
+        return f"{persona_content}\n\n{skill_content}"
+
+    # Reference mode (default) — compact summary from the pack.
+    pack = read_json(".forge/cache/persona-pack.json")
+    persona = pack["personas"].get(persona_noun)
+    skill   = pack["skills"].get(f"{persona_noun}-skills")
+
+    if not persona:
+        # Fail loud rather than silently degrade. Missing pack entry is a
+        # regeneration bug and should be reported via /forge:report-bug.
+        raise OrchestratorError(
+            f"persona '{persona_noun}' not in persona-pack. "
+            "Run /forge:regenerate to rebuild the pack."
+        )
+
+    lines = [
+        f"You are acting as the {persona['role']}.",
+        "",
+        f"Persona: {persona['id']} — {persona['summary']}",
+        "",
+        "Your responsibilities:",
+    ]
+    for r in persona.get("responsibilities", []):
+        lines.append(f"- {r}")
+    if persona.get("outputs"):
+        lines.append("")
+        lines.append(f"Your outputs: {', '.join(persona['outputs'])}")
+
+    if skill:
+        lines.append("")
+        lines.append("Skill capabilities you have available:")
+        for c in skill.get("capabilities", []):
+            lines.append(f"- {c}")
+
+    lines.append("")
+    lines.append(
+        f"Full persona definition: {persona['file_ref']}. "
+        + (f"Full skill definition: {skill['file_ref']}. " if skill else "")
+        + "Read these only if the task requires deeper behavioural context "
+        + "than the summary above provides."
+    )
+    return "\n".join(lines)
+```
+
+**Rollback:** set `FORGE_PROMPT_MODE=inline`. No persisted state to revert.
+The `inline` branch will be removed one version after `reference` ships.
+
 ## Execution Algorithm
 
 The orchestrator MUST follow this procedure exactly. Do not deviate.
@@ -350,8 +423,9 @@ for each task in dependency_sorted(tasks):
     emit_event(task, phase, eventId=event_id, iteration=iteration, action="start")
 
     # Symmetric Injection Assembly: Persona -> Skill -> Workflow
-    persona_content = read_file(f".forge/personas/{persona_noun}.md")
-    skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
+    # Mode is governed by FORGE_PROMPT_MODE (default: "reference").
+    # See "Persona injection modes" below for the full helper definition.
+    role_block = compose_role_block(persona_noun)
 
     spawn_kwargs = dict(
       prompt=(
@@ -369,8 +443,7 @@ for each task in dependency_sorted(tasks):
         f"a `done` entry when you finish, or an `error` entry if something fails. "
         f"The orchestrator is monitoring this log in real time.\n\n"
         f"---\n\n"
-        f"{persona_content}\n\n"
-        f"{skill_content}\n\n"
+        f"{role_block}\n\n"
         f"### Current Working Context\n"
         f"- Sprint Root: {sprint_root_path}\n"
         f"- Task Root:   {task_root_path}\n"

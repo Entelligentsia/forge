@@ -1,7 +1,19 @@
 ---
+id: engineer-skills
 name: Engineer Meta-Skills
 description: Core capabilities and toolsets for the Engineer role.
 role: Engineer
+applies_to: [engineer]
+summary: >
+  Concrete capabilities the Engineer persona must use to execute a task:
+  code analysis, implementation, testing, debugging, and CI/CD alignment.
+capabilities:
+  - Analyse codebases using Grep, Read, Glob
+  - Implement features per approved plans and project conventions
+  - Write unit, integration, and end-to-end tests
+  - Perform root cause analysis and impact analysis
+  - Align commits and branches with the project's git flow
+file_ref: .forge/skills/engineer-skills.md
 ---
 
 ## Generation Instructions

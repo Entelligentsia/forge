@@ -1,7 +1,18 @@
 ---
+id: collator-skills
 name: Collator Meta-Skills
 description: Core capabilities and toolsets for the Collator role.
 role: Collator
+applies_to: [collator]
+summary: >
+  Deterministic data aggregation, markdown regeneration, and store
+  consistency — accurate writeback, entity linking, and index maintenance.
+capabilities:
+  - Regenerate MASTER_INDEX.md, TIMESHEET.md, and sprint summaries
+  - Cross-reference tasks, bugs, features, events in the store
+  - Detect referential integrity gaps and schema drift
+  - Merge multi-source subagent outputs atomically
+file_ref: .forge/skills/collator-skills.md
 ---
 
 ## Generation Instructions

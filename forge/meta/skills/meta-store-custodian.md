@@ -1,7 +1,18 @@
 ---
+id: store-custodian
 name: Store Custodian
 description: Delegate all store read/write operations to the deterministic store-cli.cjs gateway.
 role: Shared
+applies_to: [engineer, architect, bug-fixer, collator, orchestrator, product-manager, qa-engineer, supervisor]
+summary: >
+  Sole authorised gateway for the probabilistic layer to read and modify the
+  JSON store at .forge/store/. All mutations must go through store-cli.cjs.
+capabilities:
+  - Write sprint, task, bug, feature, and event records via store-cli.cjs
+  - Read, list, and validate entities against their JSON schemas
+  - Perform atomic status transitions with transition checks
+  - Emit events and manage sidecars (merge, purge)
+file_ref: .forge/skills/store-custodian-skills.md
 ---
 
 ## Generation Instructions

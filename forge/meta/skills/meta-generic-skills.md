@@ -1,7 +1,19 @@
 ---
+id: generic-skills
 name: Generic Meta-Skills
 description: Baseline capabilities for support and orchestration roles.
 role: Generic
+applies_to: [orchestrator, collator, supervisor]
+summary: >
+  Baseline coordination, information synthesis, and basic tooling that
+  every support role needs regardless of domain.
+capabilities:
+  - Schedule tasks and manage dependency resolution
+  - Hand off context between roles cleanly
+  - Aggregate progress from multiple agents
+  - Perform basic file and git operations
+  - Monitor logs and events for triggers
+file_ref: .forge/skills/generic-skills.md
 ---
 
 ## Generation Instructions

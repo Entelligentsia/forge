@@ -1,5 +1,5 @@
 {
-  "version": "0.15.0",
+  "version": "0.16.0",
   "generated": "2026-04-19",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
@@ -8,11 +8,11 @@
     "commands/ask.md": "df15f0aa68c93d65bfef05adb514c377bfc65617cafcd79534eb9b4149302657",
     "commands/calibrate.md": "3f99ed7e71be80c9b507a221525109d1974ca304b09d16a68e8eaafc0373b0ca",
     "commands/config.md": "67251316b806d706bb77f063128e29995c6b4abaf554f4d5558bd97a1a6cfcfe",
-    "commands/health.md": "8af62e3077d57fdc87d729b0548fcc459d7647cd9b0e9c5aa77f7a4b5797bd54",
+    "commands/health.md": "d97ae942ec5bbdea6e81149a5ed50ca1485271bda94cbc9918d270520637ec4b",
     "commands/init.md": "5ed304e6cc505e151a59b8244b69b680df4989493237f6b1eed4028e7dad5820",
-    "commands/materialize.md": "a9c542bd943efc5428ff7e3d73198e0c248cb7b7463ba4c4b8db0d9fbc04b42a",
+    "commands/materialize.md": "b65187350030c8e7d3950cdd2c1040413f1bde0d26154c28b389d5192e64fa43",
     "commands/migrate.md": "cfb2151f7c6e06694adfc47be2c5ae348eaa24e9c657d7494399169aacc95114",
-    "commands/regenerate.md": "d6a85530b849ccd05062d813625fa1ff533974b8a3066a1c568a1aa8530c3508",
+    "commands/regenerate.md": "c60e480b079ec56ee86a02d9f40f989624a43b31bbaf2a022d4f57c3fc3c378e",
     "commands/remove.md": "45c775a7268261d5c1a99cc251ecf9d841d75b670b217217389cdaca3f36f71c",
     "commands/report-bug.md": "af8a54bf8887b35e5c880898dd45783f6c2e80d3dc031d6479a6be613ac43053",
     "commands/store-repair.md": "9317be65deb400953b8642b4d353d5583d3b032546c0b8f73d6c3a9b3445ebdd",

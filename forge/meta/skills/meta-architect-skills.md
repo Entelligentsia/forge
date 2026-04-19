@@ -1,7 +1,19 @@
 ---
+id: architect-skills
 name: Architect Meta-Skills
 description: Core capabilities and toolsets for the Architect role.
 role: Architect
+applies_to: [architect]
+summary: >
+  High-level system design, strategic planning, and architecture review
+  capabilities that prioritise scalability, maintainability, and integrity.
+capabilities:
+  - Evaluate system structure for debt and bottlenecks
+  - Select design patterns and define interface contracts
+  - Map technical roadmaps across sprints
+  - Perform trade-off and scalability analysis
+  - Review implementations for architectural drift
+file_ref: .forge/skills/architect-skills.md
 ---
 
 ## Generation Instructions

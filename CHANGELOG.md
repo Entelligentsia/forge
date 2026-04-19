@@ -11,6 +11,24 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.16.0] — 2026-04-19
+
+**Persona/skill by reference: subagent prompts now inject a compact summary instead of the full persona and skill file prose.**
+
+Across a 10-task sprint with ~18 phase spawns per task, the old orchestrator re-injected ~479 lines of persona boilerplate on every subagent spawn — tokens that carried no per-task information. This release replaces the verbatim injection with a compact reference block compiled from YAML frontmatter.
+
+- **YAML frontmatter** on all 8 personas and 8 skill meta files (`id`, `summary`, `responsibilities`/`capabilities`, `outputs`, `file_ref`). Prose is preserved for human readers.
+- **`build-persona-pack.cjs`** — new tool that compiles frontmatter into `.forge/cache/persona-pack.json` with a stable `source_hash` and atomic write. Triggered by `/forge:regenerate` and `/forge:materialize`.
+- **Reference-mode prompts** in `meta-orchestrate.md` and `meta-fix-bug.md` via a shared `compose_role_block(persona_noun)` helper. The subagent gets the summary inline and a `file_ref` pointer if it needs deeper context.
+- **`FORGE_PROMPT_MODE=inline`** — one-version rollback path that preserves the legacy verbatim injection.
+- **`/forge:health`** step 12 now flags a missing or stale persona pack via `source_hash` comparison.
+
+**Regenerate:** `/forge:update` will prompt for `personas` and `workflows` regeneration. The pack is built as part of that step.
+
+> Manual: Run `/forge:regenerate` to rebuild the persona pack at `.forge/cache/persona-pack.json`.
+
+---
+
 ## [0.15.0] — 2026-04-19
 
 **Gate-check enforcement: orchestrator and atomic phase workflows halt loudly on missing prerequisites and malformed verdicts.**

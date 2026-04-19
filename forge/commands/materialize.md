@@ -66,8 +66,16 @@ workflow in `.forge/workflows/`. Work from a single collected list:
 3. Compute the union closure across all stubs/missing workflows.
 4. Fan-out materialisation following the lazy-materialize rulebook steps 5–10
    for the union closure (one pass, not per-workflow).
-5. Emit: `〇 forge:materialize complete — gaps filled (mode unchanged)`
-6. If `.forge/config.json` `mode` is still `"fast"`, append the promotion hint:
+5. Rebuild the persona pack so `meta-orchestrate` and `meta-fix-bug` use
+   a fresh reference index (consumed when `FORGE_PROMPT_MODE=reference`):
+   ```sh
+   node "$FORGE_ROOT/tools/build-persona-pack.cjs" \
+     --out .forge/cache/persona-pack.json
+   ```
+   On exit 1, surface the stderr message (it includes the offending file
+   path) and continue — the pack is refreshable later via `/forge:regenerate`.
+6. Emit: `〇 forge:materialize complete — gaps filled (mode unchanged)`
+7. If `.forge/config.json` `mode` is still `"fast"`, append the promotion hint:
    ```
    〇 To declare the project fully generated: /forge:config mode full
    ```
