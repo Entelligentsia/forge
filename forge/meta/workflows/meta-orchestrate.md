@@ -777,6 +777,30 @@ Adjusting a gate is a data change — edit the block above, regenerate workflows
 on the user side via `/forge:update`, and the new gate takes effect on the next
 orchestrator run. No code change required to relax or tighten a gate.
 
+## Write-Boundary Contract
+
+You MAY write Forge-owned JSON (`task.json`, `sprint.json`, `bug.json`,
+events sidecars, `COLLATION_STATE.json`, `progress.log`) directly with the
+`Write` or `Edit` tools. You do NOT need to route every write through
+`store-cli` — the probabilistic layer is free to bypass deterministic tools.
+
+However, **every write to a Forge-owned path is schema-validated at the
+filesystem boundary** by the `PreToolUse` hook at
+`hooks/validate-write.js`. A malformed write is rejected with a message
+naming the offending field and pointing at the relevant
+`forge/schemas/<kind>.schema.json`. Fix the data and retry — do NOT try to
+disable the hook.
+
+`store-cli` is still the most convenient path (it handles ID allocation,
+referential integrity, ghost-event semantics, and sidecar merging), but it
+is one route among several. The schema invariant is preserved whichever
+route you take.
+
+**Emergency bypass.** For operator-driven repair, set
+`FORGE_SKIP_WRITE_VALIDATION=1` for a single turn. The hook will let the
+write through and append an audit line to the affected sprint's
+`progress.log`.
+
 ## Iron Laws
 
 **YOU MUST NOT advance a phase until its gate checks pass.** Skipping a gate

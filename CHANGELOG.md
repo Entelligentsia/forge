@@ -11,6 +11,26 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.18.0] — 2026-04-19
+
+**Write-boundary schema enforcement: agents can write Forge-owned JSON directly with `Write` / `Edit` / `MultiEdit`, but every such write is schema-validated at the filesystem boundary by a new `PreToolUse` hook.**
+
+The Forge contract has always been: probabilistic agents MAY bypass deterministic tools, as long as schemas are enforced for data and messages. Until this release, the second half of that rule was leaky — `store-cli` validated most of its write paths, but agents could route around `store-cli` entirely by using `Write` or `Edit` on `.forge/store/*.json` directly, and four paths inside `store-cli` itself wrote unvalidated sidecar / progress / collation data.
+
+- **`hooks/validate-write.js`** — new `PreToolUse` hook registered on `Write`, `Edit`, and `MultiEdit`. Reads the proposed tool invocation, matches the target path against a write-boundary registry, computes the post-edit contents (for `Edit`/`MultiEdit`: applies `old_string` → `new_string` against the current file on disk), parses, and validates. Blocks the tool call with `exit 2` and a structured rejection naming the offending field. Passes through non-Forge paths and unmatched paths in under 20ms. Fails open on internal error so a broken validator can never block legitimate work.
+- **`hooks/lib/write-registry.js`** — maps `.forge/store/**` path patterns to their schemas. Entries cover features, sprints, tasks, bugs, events, event-sidecars, `COLLATION_STATE.json`, and `progress.log` (line-pipe-delimited).
+- **`tools/lib/validate.js`** — shared validator extracted from `store-cli.cjs` and extended with `pattern` and `format: date-time`. The hook and `store-cli` now run identical validation logic.
+- **`schemas/event-sidecar.schema.json`**, **`schemas/progress-entry.schema.json`**, **`schemas/collation-state.schema.json`** — three new schemas. Drift guard test asserts the sidecar schema stays a subset of the event schema.
+- **`store-cli.cjs` gap closures** — sidecar emit, sidecar→event merge, progress log append, and collation-state write now all validate against their schemas. Every `store-cli` write path is now schema-enforced.
+- **`meta-orchestrate.md`** — new "Write-Boundary Contract" section documents that subagents may write Forge-owned JSON directly and that the hook enforces the invariant regardless of route.
+- **Emergency bypass:** set `FORGE_SKIP_WRITE_VALIDATION=1` for a single turn. The hook allows the write through and appends an audit line to the affected sprint's `progress.log`.
+
+**Regenerate:** `hooks` and `schemas` must be regenerated so the new hook and schema files land in the project's `.forge/` instance.
+
+> Manual: Run `/forge:update` to install the new write-boundary hook. Any existing tooling that writes malformed JSON to `.forge/store/` will now be rejected at write time — fix the data, don't bypass the hook.
+
+---
+
 ## [0.17.1] — 2026-04-19
 
 **Architecture context pack: orchestrators inject a pre-computed architecture summary into every subagent prompt, reducing per-phase `stack.md` reads from ~12 to ~1.**

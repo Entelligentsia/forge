@@ -1,5 +1,5 @@
 {
-  "version": "0.17.1",
+  "version": "0.18.0",
   "generated": "2026-04-19",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
@@ -21,6 +21,7 @@
     "agents/tomoshibi.md": "162cb28e4d0e65b72dc027222dd54f7d3eb6b6fe60ebdd0cf80572842d39e89f",
     "hooks/check-update.js": "c7b2a4ae5172452ed842e92cb879dd463b9c4e7f19297ee2e356088df04b8e71",
     "hooks/triage-error.js": "b1e9c1c9a9f3e4868fff295f2caf87a2a72a817ee767af35f6334c88e45e16d4",
+    "hooks/validate-write.js": "bf17f740ae43d85a7f4b18bc08e2628534c3698ec5202cb51ebd3f0792375f24",
     "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
   }
 }

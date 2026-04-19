@@ -612,3 +612,119 @@ describe('store-cli.cjs — schema conformance for summaries field', () => {
     }
   });
 });
+
+describe('store-cli.cjs — write-boundary in-tool schema enforcement', () => {
+  function makeSprintStore() {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-wb-'));
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'S1'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'config.json'),
+      JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
+    );
+    return tmpDir;
+  }
+
+  test('emit --sidecar rejects sidecar with non-integer inputTokens', () => {
+    const tmpDir = makeSprintStore();
+    try {
+      const r = spawnSync('node', [STORE_CLI, 'emit', 'S1', JSON.stringify({ eventId: 'E1', inputTokens: 'oops' }), '--sidecar'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /inputTokens/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('emit --sidecar rejects sidecar with bogus tokenSource', () => {
+    const tmpDir = makeSprintStore();
+    try {
+      const r = spawnSync('node', [STORE_CLI, 'emit', 'S1', JSON.stringify({ eventId: 'E1', tokenSource: 'ouija' }), '--sidecar'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /tokenSource/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('merge-sidecar rejects when canonical event is malformed after merge', () => {
+    const tmpDir = makeSprintStore();
+    try {
+      // Write a malformed canonical event (missing required fields)
+      const eventsDir = path.join(tmpDir, '.forge', 'store', 'events', 'S1');
+      fs.writeFileSync(
+        path.join(eventsDir, 'E1.json'),
+        JSON.stringify({ eventId: 'E1', taskId: 'T1', sprintId: 'S1' })  // missing most required fields
+      );
+      // Write a valid sidecar
+      fs.writeFileSync(
+        path.join(eventsDir, '_E1_usage.json'),
+        JSON.stringify({ eventId: 'E1', inputTokens: 100 })
+      );
+      const r = spawnSync('node', [STORE_CLI, 'merge-sidecar', 'S1', 'E1'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /failed schema validation/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('progress rejects agentName with disallowed metachar', () => {
+    const tmpDir = makeSprintStore();
+    try {
+      const r = spawnSync('node', [STORE_CLI, 'progress', 'S1', 'engineer;rm', 'plan.start', 'start', 'hi'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /agentName/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('progress rejects overlong detail (>500 chars)', () => {
+    const tmpDir = makeSprintStore();
+    try {
+      const huge = 'x'.repeat(600);
+      const r = spawnSync('node', [STORE_CLI, 'progress', 'S1', 'engineer', 'plan.start', 'start', huge], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /detail/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('write-collation-state rejects negative count', () => {
+    const tmpDir = makeSprintStore();
+    try {
+      const bad = { collatedAt: '2026-04-19T10:00:00Z', featureCount: -1, sprintCount: 0, taskCount: 0, bugCount: 0 };
+      const r = spawnSync('node', [STORE_CLI, 'write-collation-state', JSON.stringify(bad)], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /featureCount/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('write-collation-state accepts a well-formed payload', () => {
+    const tmpDir = makeSprintStore();
+    try {
+      const good = { collatedAt: '2026-04-19T10:00:00Z', featureCount: 1, sprintCount: 2, taskCount: 3, bugCount: 0 };
+      const r = spawnSync('node', [STORE_CLI, 'write-collation-state', JSON.stringify(good)], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, r.stderr);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});

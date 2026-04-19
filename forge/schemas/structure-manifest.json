@@ -1,6 +1,6 @@
 {
-  "version": "0.13.0",
-  "generatedAt": "2026-04-17T12:08:06.035Z",
+  "version": "0.18.0",
+  "generatedAt": "2026-04-19T05:28:37.709Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -71,7 +71,6 @@
     "commands": {
       "logicalKey": "commands",
       "dir": ".claude/commands",
-      "prefixed": true,
       "files": [
         "approve.md",
         "collate.md",
@@ -93,8 +92,11 @@
       "dir": ".forge/schemas",
       "files": [
         "bug.schema.json",
+        "collation-state.schema.json",
+        "event-sidecar.schema.json",
         "event.schema.json",
         "feature.schema.json",
+        "progress-entry.schema.json",
         "sprint.schema.json",
         "task.schema.json"
       ]

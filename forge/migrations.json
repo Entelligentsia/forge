@@ -1,4 +1,12 @@
 {
+  "0.17.1": {
+    "version": "0.18.0",
+    "date": "2026-04-19",
+    "notes": "Write-boundary schema enforcement. New PreToolUse hook (hooks/validate-write.js) intercepts Write/Edit/MultiEdit against Forge-owned paths under .forge/store/ and validates the proposed contents against the matching schema — task, sprint, bug, feature, event, event-sidecar, collation-state, and progress-log entries. Three new schemas added (event-sidecar, progress-entry, collation-state). store-cli gains schema enforcement on the four previously unvalidated write paths (sidecar emit, sidecar merge, progress append, collation-state write). Shared validator extracted to tools/lib/validate.js and reused by both the hook and store-cli. Emergency bypass via FORGE_SKIP_WRITE_VALIDATION=1, which also appends an audit line to the affected sprint's progress.log.",
+    "regenerate": ["hooks", "schemas"],
+    "breaking": false,
+    "manual": ["Run /forge:update to install the new write-boundary hook. Any existing tooling that writes malformed JSON to .forge/store/ will now be rejected at write time — fix the data, don't bypass the hook."]
+  },
   "0.17.0": {
     "version": "0.17.1",
     "date": "2026-04-19",

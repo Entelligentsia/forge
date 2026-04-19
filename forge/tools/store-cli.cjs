@@ -30,8 +30,15 @@ function _getSchemas() {
   const inTreeDir    = path.join('forge', 'schemas');
   const pluginDir    = path.join(__dirname, '..', 'schemas');
 
-  for (const type of ENTITY_TYPES) {
-    const schemaFile = `${type}.schema.json`;
+  const AUX_SCHEMAS = {
+    'event-sidecar':    'event-sidecar.schema.json',
+    'progress-entry':   'progress-entry.schema.json',
+    'collation-state':  'collation-state.schema.json',
+  };
+
+  const allTypes = [...ENTITY_TYPES, ...Object.keys(AUX_SCHEMAS)];
+  for (const type of allTypes) {
+    const schemaFile = AUX_SCHEMAS[type] || `${type}.schema.json`;
     let schema = null;
 
     // 1. Try project-installed schemas first
@@ -90,11 +97,9 @@ const MINIMAL_REQUIRED = {
   feature: ['id', 'title', 'status', 'created_at']
 };
 
-// Fields that may legitimately be null (nullable FKs / optional timing)
-const NULLABLE_FIELDS = new Set([
-  'sprintId', 'taskId', 'endTimestamp', 'durationMinutes',
-  'feature_id', 'description', 'completedAt', 'resolvedAt'
-]);
+// Shared validator + nullable-field set live in ./lib/validate.js so the
+// write-boundary hook can reuse the exact same validation logic as tool writes.
+const { validateRecord, NULLABLE_FIELDS } = require('./lib/validate.js');
 
 // Valid phase keys for summaries (dot-delimited → underscore in JSON key)
 const VALID_SUMMARY_PHASES = new Set(['plan', 'review_plan', 'implementation', 'code_review', 'validation']);
@@ -114,87 +119,7 @@ const PHASE_SUMMARY_SCHEMA = {
   additionalProperties: false
 };
 
-function validateRecord(record, schema) {
-  const errors = [];
-  const required = schema.required || [];
-
-  // Required fields
-  for (const field of required) {
-    if (record[field] === undefined || record[field] === '') {
-      errors.push(`${field}: missing required field`);
-    } else if (record[field] === null && !NULLABLE_FIELDS.has(field)) {
-      errors.push(`${field}: missing required field`);
-    }
-  }
-
-  const properties = schema.properties || {};
-
-  // Type, enum, minimum, maxLength, maxItems checks for declared properties
-  for (const [field, def] of Object.entries(properties)) {
-    const val = record[field];
-    if (val === undefined || val === null) continue;
-
-    // Type check
-    if (def.type) {
-      const typeMatches = (expected, actualVal) => {
-        return expected === 'integer' ? Number.isInteger(actualVal)
-             : expected === 'number'  ? typeof actualVal === 'number'
-             : expected === 'array'   ? Array.isArray(actualVal)
-             : typeof actualVal === expected;
-      };
-      const ok = Array.isArray(def.type)
-        ? def.type.some(t => typeMatches(t, val))
-        : typeMatches(def.type, val);
-      if (!ok) {
-        errors.push(`${field}: expected ${def.type}, got ${Array.isArray(val) ? 'array' : typeof val}`);
-      }
-    }
-
-    // Enum check
-    if (def.enum && !def.enum.includes(val)) {
-      errors.push(`${field}: value "${val}" not in [${def.enum.join(', ')}]`);
-    }
-
-    // Minimum check
-    if (def.minimum !== undefined && typeof val === 'number' && val < def.minimum) {
-      errors.push(`${field}: value ${val} is below minimum ${def.minimum}`);
-    }
-
-    // maxLength check for strings
-    if (def.maxLength !== undefined && typeof val === 'string' && val.length > def.maxLength) {
-      errors.push(`${field}: value length ${val.length} exceeds maxLength ${def.maxLength}`);
-    }
-
-    // maxItems and items checks for arrays
-    if (Array.isArray(val)) {
-      if (def.maxItems !== undefined && val.length > def.maxItems) {
-        errors.push(`${field}: array has ${val.length} items, exceeds maxItems ${def.maxItems}`);
-      }
-      if (def.items) {
-        val.forEach((item, idx) => {
-          if (def.items.type && typeof item !== def.items.type) {
-            errors.push(`${field}[${idx}]: expected ${def.items.type}, got ${typeof item}`);
-          }
-          if (def.items.maxLength !== undefined && typeof item === 'string' && item.length > def.items.maxLength) {
-            errors.push(`${field}[${idx}]: item length ${item.length} exceeds maxLength ${def.items.maxLength}`);
-          }
-        });
-      }
-    }
-  }
-
-  // additionalProperties: false — reject undeclared fields
-  if (schema.additionalProperties === false) {
-    const allowedKeys = new Set(Object.keys(properties));
-    for (const key of Object.keys(record)) {
-      if (!allowedKeys.has(key)) {
-        errors.push(`${key}: undeclared field`);
-      }
-    }
-  }
-
-  return errors;
-}
+// validateRecord imported from ./lib/validate.js above.
 
 // ---------------------------------------------------------------------------
 // Transition tables
@@ -633,9 +558,12 @@ function cmdEmit() {
   }
 
   if (isSidecar) {
-    // Write sidecar file — validate that it has an eventId at minimum
-    if (!data.eventId) {
-      console.error('eventId: missing required field for sidecar');
+    // Write sidecar file — validate against the sidecar schema (eventId +
+    // optional token/cost fields). Full event-shape enforcement happens
+    // on merge into the canonical event.
+    const sidecarErrors = validateRecord(data, schemas['event-sidecar']);
+    if (sidecarErrors.length > 0) {
+      for (const e of sidecarErrors) console.error(e);
       process.exit(1);
     }
 
@@ -718,6 +646,16 @@ function cmdMergeSidecar() {
     }
   }
 
+  // Re-validate the merged canonical event against the event schema. Catches
+  // the case where a sidecar's token field is present but the canonical event
+  // was already malformed — we do not want to silently persist invalid data.
+  const mergedErrors = validateRecord(event, schemas.event);
+  if (mergedErrors.length > 0) {
+    console.error(`Merged event ${eventId} failed schema validation:`);
+    for (const e of mergedErrors) console.error(`  ${e}`);
+    process.exit(1);
+  }
+
   if (DRY_RUN) {
     console.log(`[dry-run] would merge sidecar into ${eventId} and delete sidecar`);
   } else {
@@ -762,6 +700,12 @@ function cmdWriteCollationState() {
     process.exit(1);
   }
 
+  const csErrors = validateRecord(data, schemas['collation-state']);
+  if (csErrors.length > 0) {
+    for (const e of csErrors) console.error(e);
+    process.exit(1);
+  }
+
   if (DRY_RUN) {
     console.log('[dry-run] would write COLLATION_STATE.json');
   } else {
@@ -783,13 +727,17 @@ function cmdProgress() {
     process.exit(1);
   }
 
-  const validStatuses = ['start', 'progress', 'done', 'error'];
-  if (!validStatuses.includes(status)) {
-    console.error(`Invalid status "${status}". Must be one of: ${validStatuses.join(', ')}`);
+  const timestamp = new Date().toISOString();
+
+  const progressErrors = validateRecord(
+    { timestamp, agentName, bannerKey, status, detail: detail || '' },
+    schemas['progress-entry']
+  );
+  if (progressErrors.length > 0) {
+    for (const e of progressErrors) console.error(e);
     process.exit(1);
   }
 
-  const timestamp = new Date().toISOString();
   const line = `${timestamp}|${agentName}|${bannerKey}|${status}|${detail}\n`;
 
   const dir = path.join('.forge', 'store', 'events', sprintOrBugId);
