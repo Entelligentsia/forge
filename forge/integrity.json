@@ -1,5 +1,5 @@
 {
-  "version": "0.18.1",
+  "version": "0.19.0",
   "generated": "2026-04-19",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
@@ -18,7 +18,7 @@
     "commands/store-repair.md": "9317be65deb400953b8642b4d353d5583d3b032546c0b8f73d6c3a9b3445ebdd",
     "commands/update-tools.md": "768c0d7ec07a17055c3d4b1b31370812f4292e03b1496723ba36f8caf596a609",
     "commands/update.md": "27f9228f35b6494d788fae100bae21d47aeefe0f2b63b848e6b9143974b12721",
-    "agents/tomoshibi.md": "162cb28e4d0e65b72dc027222dd54f7d3eb6b6fe60ebdd0cf80572842d39e89f",
+    "agents/tomoshibi.md": "fc427c9823a5655a18cc6f1b7191063d985706481e43c5ca58f570ba772dbbd1",
     "hooks/check-update.js": "c7b2a4ae5172452ed842e92cb879dd463b9c4e7f19297ee2e356088df04b8e71",
     "hooks/triage-error.js": "b1e9c1c9a9f3e4868fff295f2caf87a2a72a817ee767af35f6334c88e45e16d4",
     "hooks/validate-write.js": "bf17f740ae43d85a7f4b18bc08e2628534c3698ec5202cb51ebd3f0792375f24",

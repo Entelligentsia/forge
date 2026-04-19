@@ -14,6 +14,7 @@ Read the Forge config to determine available capabilities:
 ```sh
 node "$FORGE_ROOT/tools/manage-config.cjs" get project 2>/dev/null
 node "$FORGE_ROOT/tools/manage-config.cjs" get version 2>/dev/null
+PREFIX_LOWER=$(node -e "const p=require('.forge/config.json').project.prefix; console.log(p.toLowerCase())")
 ```
 
 Store `FORGE_ROOT` from the calling command's environment.
@@ -64,13 +65,19 @@ Permitted fields: `project.name`, `project.prefix` only.
 
 | Field | Impact |
 |---|---|
-| `project.prefix` | △ Requires regeneration — command folder renames from `.claude/commands/{old}/` to `.claude/commands/{new}/`, and generated workflow slash-command references become stale. Run `/forge:regenerate commands workflows` after confirming. |
+| `project.prefix` | △ Requires regeneration — command folder renames from `.claude/commands/{old_lower}/` to `.claude/commands/{new_lower}/`, and generated workflow slash-command references become stale. Run `/forge:regenerate commands workflows` after confirming. |
+
+*The prefix is stored as provided but the command namespace is always lowercase.*
 | `project.name` | 〇 No regeneration needed. |
 
 Protocol:
 1. Show current value.
 2. Describe the change.
-3. If the field requires regeneration, show the impact warning and the exact follow-up command before asking.
+3. If the field requires regeneration, derive the lowercased paths and show the impact warning before asking:
+   ```sh
+   NEW_PREFIX_LOWER=$(echo "$proposed_new_value" | tr '[:upper:]' '[:lower:]')
+   ```
+   Show the concrete path: `.claude/commands/${PREFIX_LOWER}/ → .claude/commands/${NEW_PREFIX_LOWER}/`
 4. Prompt `[Y/n]`.
 5. On yes:
    ```sh

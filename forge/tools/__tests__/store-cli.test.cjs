@@ -727,4 +727,42 @@ describe('store-cli.cjs — write-boundary in-tool schema enforcement', () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+
+  test('progress writes log line and emits human-readable summary to stdout', () => {
+    const tmpDir = makeSprintStore();
+    try {
+      const r = spawnSync('node', [STORE_CLI, 'progress', 'S1', 'engineer', 'oracle', 'progress', 'Mapping AC coverage'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, r.stderr);
+
+      // Verify log file was written with raw pipe-delimited format
+      const logPath = path.join(tmpDir, '.forge', 'store', 'events', 'S1', 'progress.log');
+      assert.ok(fs.existsSync(logPath), 'progress.log should exist');
+      const logContent = fs.readFileSync(logPath, 'utf8');
+      assert.match(logContent, /\|engineer\|oracle\|progress\|Mapping AC coverage/);
+
+      // Verify stdout emits human-readable summary with persona emoji
+      assert.ok(r.stdout.trim().length > 0, 'stdout should emit a summary line');
+      assert.ok(r.stdout.includes('🌕'), 'stdout should include oracle emoji 🌕');
+      assert.ok(r.stdout.includes('[progress]'), 'stdout should include bracketed status');
+      assert.ok(r.stdout.includes('Mapping AC coverage'), 'stdout should include detail');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('progress stdout falls back gracefully for unknown bannerKey', () => {
+    const tmpDir = makeSprintStore();
+    try {
+      const r = spawnSync('node', [STORE_CLI, 'progress', 'S1', 'engineer', 'unknown-key', 'start', 'Starting work'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, r.stderr);
+      assert.ok(r.stdout.includes('[start]'), 'stdout should include bracketed status even for unknown key');
+      assert.ok(r.stdout.includes('unknown-key'), 'stdout should use bannerKey as emoji substitute for unknown key');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
 });

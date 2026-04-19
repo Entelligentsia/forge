@@ -747,6 +747,16 @@ function cmdProgress() {
 
   const logPath = path.join(dir, 'progress.log');
   fs.appendFileSync(logPath, line, 'utf8');
+
+  // Emit human-readable summary to stdout
+  let banners;
+  try { banners = require('./banners.cjs'); } catch { banners = null; }
+  let emoji = bannerKey;
+  if (banners && typeof banners.mark === 'function') {
+    try { emoji = banners.mark(bannerKey); } catch { emoji = bannerKey; }
+  }
+  const summary = `${emoji}  ${agentName}  [${status}]${detail ? '  ' + detail : ''}`;
+  process.stdout.write(summary + '\n');
 }
 
 function cmdProgressClear() {

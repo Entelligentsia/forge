@@ -236,54 +236,31 @@ function loadManifest(projectRoot) {
 
 // ── _renderAnnouncement ──────────────────────────────────────────────────────
 //
-// Renders the standout fast-mode capability announcement: a framed em-dash
-// block with banner badge, two indented progress-bar lines (current vs after),
-// and a top + bottom rule. Single source of formatting — used by both the CLI
-// `--announce` mode and tests.
+// Renders the fast-mode capability announcement as a single summary line.
+// Single source of formatting — used by both the CLI `--announce` mode and tests.
 //
 // @param {object} p          predictCapabilitiesAfter() result
 // @param {object} [opts]
 // @param {boolean} [opts.allFlag]  Whether this is a `--all` invocation (changes
 //                                  the "already materialised" copy)
-// @returns {string} multi-line block (no trailing newline)
+// @returns {string} single line (no newlines, no trailing newline)
 
 function _renderAnnouncement(p, opts) {
   const o = opts || {};
-  // Lazy-require banners so test environments without the file (or with a
-  // shadowed copy) can still exercise the module exports above.
-  let banners;
-  try { banners = require('./banners.cjs'); } catch { banners = null; }
+  const prefix = '🔥 Forge capability: ';
 
-  const FAST_TINT = [255, 208, 122];   // lantern yellow
+  const before = `${p.currentBefore}/${p.total} (${p.percentBefore}%)`;
+  const after  = `${p.currentAfter}/${p.total} (${p.percentAfter}%)`;
 
-  // Em-dash horizontal rules — zen-blue tinted via banners.ruleLine for
-  // system-wide consistency. Falls back to plain em-dashes if banners is
-  // unavailable in the test environment.
-  const title = '🔥 Forge — Capability Upgrade (fast mode)';
-  const topRule    = banners ? banners.ruleLine(title)  : `━━━ ${title} ` + '━'.repeat(3);
-  const bottomRule = banners ? banners.ruleLine()       : '━'.repeat(65);
-
-  const labelBefore = 'Currently  ';
-  const labelAfter  = 'After      ';
-
-  // progressBar already prints "n/total"; we add a percentage on the right.
-  const bar = (cur) => banners
-    ? banners.progressBar(cur, p.total, { width: 12, color: FAST_TINT })
-    : `${cur}/${p.total}`;
-
-  const lineBefore = `  ${labelBefore}${bar(p.currentBefore)}   ·   ${String(p.percentBefore).padStart(3)}%`;
-
-  let lineAfter;
   if (p.added === 0) {
-    lineAfter = o.allFlag
-      ? `  ${labelAfter}${bar(p.currentBefore)}   ·   ${String(p.percentBefore).padStart(3)}%   already fully materialised — /forge:config mode full to flip the flag`
-      : `  ${labelAfter}${bar(p.currentBefore)}   ·   ${String(p.percentBefore).padStart(3)}%   closure already materialised — refreshing in place`;
-  } else {
-    const addedNote = `+${p.added} artifact${p.added === 1 ? '' : 's'}`;
-    lineAfter = `  ${labelAfter}${bar(p.currentAfter)}   ·   ${String(p.percentAfter).padStart(3)}%   ${addedNote}`;
+    if (o.allFlag) {
+      return `${prefix}${before} — fully materialised (/forge:config mode full)`;
+    }
+    return `${prefix}${before} — refreshing in place`;
   }
 
-  return [topRule, '', lineBefore, lineAfter, '', bottomRule].join('\n');
+  const addedNote = `+${p.added} artifact${p.added === 1 ? '' : 's'}`;
+  return `${prefix}${before} → ${after}, ${addedNote}`;
 }
 
 // ── exports (for testing) ─────────────────────────────────────────────────────
