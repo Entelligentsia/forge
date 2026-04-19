@@ -78,6 +78,7 @@ const BANNERS = {
     emoji:   '🔥',
     tagline: 'heat · ignition · drive',
     name:    'EMBER',
+    kanji:   '炎',
     color:   [255, 170, 60],
     art:     `  ${f(255,240,100)})  ${f(255,200,50)})  ${f(255,140,20)}(${f(230,80,10)}🔥${f(255,140,20)})  ${f(230,80,10)}~∿~  ${f(170,30,5)}≋≋≋`,
   },
@@ -86,6 +87,7 @@ const BANNERS = {
     emoji:   '🌊',
     tagline: 'rhythm · pull · depth',
     name:    'TIDE',
+    kanji:   '潮',
     color:   [110, 200, 255],
     art:     `  ${f(210,240,255)}∿  ${f(130,200,245)}≋≋≋  ${f(60,140,210)}≋≋≋  ${f(25,85,175)}▓▓▓  ${f(10,45,130)}▓▓▓`,
   },
@@ -94,6 +96,7 @@ const BANNERS = {
     emoji:   '🌕',
     tagline: 'sight · pattern · knowing',
     name:    'ORACLE',
+    kanji:   '神託',
     color:   [210, 160, 255],
     art:     `  ${f(160,80,240)}· ◌  ${f(190,110,255)}◎  ${f(255,220,100)}◉  ${f(190,110,255)}◎  ${f(160,80,240)}◌ ·`,
   },
@@ -102,6 +105,7 @@ const BANNERS = {
     emoji:   '⚡',
     tagline: 'edge · fracture · crossing',
     name:    'RIFT',
+    kanji:   '裂',
     color:   [100, 255, 240],
     art:     `  ${f(0,240,230)}▓▒░  ${f(180,0,220)}╲ ${f(0,255,240)}⚡${f(180,0,220)} ╱  ${f(0,240,230)}░▒▓`,
   },
@@ -110,6 +114,7 @@ const BANNERS = {
     emoji:   '🌸',
     tagline: 'growth · opening · becoming',
     name:    'BLOOM',
+    kanji:   '開花',
     color:   [255, 160, 190],
     art:     `  ${f(255,160,200)}✿ ✿  ${f(255,120,170)}✾  ${f(255,220,100)}✽  ${f(255,120,170)}✾  ${f(255,160,200)}✿ ✿`,
   },
@@ -118,6 +123,7 @@ const BANNERS = {
     emoji:   '🧭',
     tagline: 'direction · clarity · cold',
     name:    'NORTH',
+    kanji:   '北',
     color:   [190, 225, 255],
     art:     `  ${f(200,230,255)}✦  ${f(150,195,240)}╱  ${f(100,160,230)}◈  ${f(150,195,240)}╲  ${f(200,230,255)}✦`,
   },
@@ -126,6 +132,7 @@ const BANNERS = {
     emoji:   '✨',
     tagline: 'light · warmth · clarity',
     name:    'LUMEN',
+    kanji:   '光',
     color:   [255, 245, 150],
     art:     `  ${f(255,255,200)}✧  ${f(255,245,160)}──  ${f(255,255,255)}◉  ${f(255,245,160)}──  ${f(255,255,200)}✧`,
   },
@@ -134,6 +141,7 @@ const BANNERS = {
     emoji:   '🔨',
     tagline: 'making · heat · craft',
     name:    'FORGE',
+    kanji:   '鍛冶',
     color:   [255, 160, 40],
     art:     `  ${f(255,230,80)}✦  ${f(200,80,20)}▄${f(230,100,30)}▓▓▓▓▓${f(200,80,20)}▄  ${f(255,160,40)}≋ ≋ ≋`,
   },
@@ -142,6 +150,7 @@ const BANNERS = {
     emoji:   '🍃',
     tagline: 'ease · letting go · flow',
     name:    'DRIFT',
+    kanji:   '漂流',
     color:   [150, 200, 165],
     art:     `  ${f(160,200,170)}·  ${f(140,180,155)}·   ${f(120,165,140)}·  ${f(100,150,125)}·   ${f(80,135,110)}·`,
   },
@@ -150,6 +159,7 @@ const BANNERS = {
     emoji:   '🌑',
     tagline: 'depth · silence · potential',
     name:    'VOID',
+    kanji:   '虚空',
     color:   [130, 100, 200],
     art:     `  ${f(30,20,60)}  ·  ${f(70,50,120)}◌  ${f(50,35,90)}·  `,
   },
@@ -158,6 +168,7 @@ const BANNERS = {
     emoji:   '🔗',
     tagline: 'linked · intellect · becoming',
     name:    'ENTELLIGENTSIA',
+    kanji:   '知性',
     color:   [140, 200, 60],
     art:     `  ${f(110,110,115)}╭──╯  ${f(140,200,60)}─╮ ╭─  ${f(110,110,115)}╰──╮`,
   },
@@ -179,7 +190,8 @@ function rule() {
 function render(name) {
   const b = _get(name);
   const [r, g, bl] = b.color;
-  const label = `  ${b.emoji}  ${B}${f(r,g,bl)}${b.name}${R}   ${D}${f(r,g,bl)}${b.tagline}${R}`;
+  const kanji = b.kanji ? `  ${D}${f(r,g,bl)}${b.kanji}${R}` : '';
+  const label = `  ${b.emoji}  ${B}${f(r,g,bl)}${b.name}${R}${kanji}   ${D}${f(r,g,bl)}${b.tagline}${R}`;
   const out = '\n' + b.art + R + '\n' + label + '\n';
   return _maybePlain(out);
 }
@@ -193,7 +205,8 @@ function render(name) {
 function badge(name) {
   const b = _get(name);
   const [r, g, bl] = b.color;
-  return _maybePlain(`${b.emoji}  ${B}${f(r,g,bl)}${b.name}${R}  ${D}${f(r,g,bl)}${b.tagline}${R}`);
+  const kanji = b.kanji ? `  ${D}${f(r,g,bl)}${b.kanji}${R}` : '';
+  return _maybePlain(`${b.emoji}  ${B}${f(r,g,bl)}${b.name}${R}${kanji}  ${D}${f(r,g,bl)}${b.tagline}${R}`);
 }
 
 /**

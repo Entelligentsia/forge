@@ -1,4 +1,11 @@
 {
+  "0.19.1": {
+    "version": "0.19.2",
+    "notes": "Add Japanese kanji to each banner, shown alongside the name in render and badge",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.19.0": {
     "version": "0.19.1",
     "notes": "Collapse banner art from 5-line ASCII blocks to single creative lines",

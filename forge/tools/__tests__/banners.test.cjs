@@ -74,6 +74,7 @@ describe('banners.cjs', () => {
       assert.ok(banners.BANNERS[name].tagline, `${name} should have tagline`);
       assert.ok(banners.BANNERS[name].name, `${name} should have name`);
       assert.ok(typeof banners.BANNERS[name].art === 'string', `${name} should have art string`);
+      assert.ok(banners.BANNERS[name].kanji, `${name} should have kanji`);
     }
   });
 });

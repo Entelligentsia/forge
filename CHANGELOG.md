@@ -11,6 +11,14 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.19.2] — 2026-04-19
+
+Each banner now carries a Japanese kanji companion (e.g. BLOOM 開花, FORGE 鍛冶, VOID 虚空) displayed in dim tint alongside the name in both `render()` and `badge()` output.
+
+**Regenerate:** none required.
+
+---
+
 ## [0.19.1] — 2026-04-19
 
 Banner art collapsed from 5-line ASCII blocks to single creative lines — each banner's visual identity is preserved in one tinted unicode string, eliminating the line-count overhead that caused truncation in constrained CLI contexts.
