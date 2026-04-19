@@ -11,6 +11,14 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.19.1] — 2026-04-19
+
+Banner art collapsed from 5-line ASCII blocks to single creative lines — each banner's visual identity is preserved in one tinted unicode string, eliminating the line-count overhead that caused truncation in constrained CLI contexts.
+
+**Regenerate:** none required.
+
+---
+
 ## [0.19.0] — 2026-04-19
 
 UX polish across three surfaces: Tomoshibi now lowercases the project prefix before forming slash-command suggestions, preventing copy-paste failures when `project.prefix` is stored uppercase. The `store-cli progress` command now emits a human-readable persona heartbeat line to stdout (emoji + agent name + status + detail) in addition to its existing pipe-delimited log entry. The `ensure-ready --announce` banner is now a single summary line (`🔥 Forge capability: N/total (P%) → M/total (Q%), +X artifacts`) instead of a multi-line framed block — visible inline in Claude Code without Ctrl-O expansion.

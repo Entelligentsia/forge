@@ -73,7 +73,7 @@ describe('banners.cjs', () => {
       assert.ok(banners.BANNERS[name].emoji, `${name} should have emoji`);
       assert.ok(banners.BANNERS[name].tagline, `${name} should have tagline`);
       assert.ok(banners.BANNERS[name].name, `${name} should have name`);
-      assert.ok(Array.isArray(banners.BANNERS[name].art), `${name} should have art array`);
+      assert.ok(typeof banners.BANNERS[name].art === 'string', `${name} should have art string`);
     }
   });
 });
