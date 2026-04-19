@@ -61,7 +61,21 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
      - Fix description
      - Verification evidence
 
-5. Finalize:
+5. Summary Sidecars:
+   - After each phase completes its artifact, emit a summary sidecar and register it via `set-bug-summary`.
+   - **After Plan phase:**
+     Write `BUG-FIX-PLAN-SUMMARY.json` in the bug directory:
+     `{ "objective": "...", "key_changes": [...], "verdict": "n/a", "written_at": "...", "artifact_ref": "BUG_FIX_PLAN.md" }`
+     Then: `node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bug_id} plan engineering/bugs/{bug_dir}/BUG-FIX-PLAN-SUMMARY.json`
+   - **After Review phases:**
+     Write `REVIEW-PLAN-SUMMARY.json` or `REVIEW-IMPL-SUMMARY.json` with `findings`, `verdict` (approved|revision), and `artifact_ref`.
+     Then: `node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bug_id} review_plan|code_review ...SUMMARY.json`
+   - **After Implement phase:**
+     Write `IMPLEMENTATION-SUMMARY.json` with `key_changes` and `verdict: "n/a"`.
+     Then: `node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bug_id} implementation ...SUMMARY.json`
+   - If set-bug-summary exits non-zero, fix the JSON and retry before proceeding.
+
+6. Finalize:
    - Execute Token Reporting (see Generation Instructions) — do this
      first so the sidecar is written before the event directory is purged
    - Summarise accumulated cost data into the bug artifact:
@@ -180,6 +194,58 @@ elif preflight_result.exit_code == 2:
 # the generated fix-bug orchestrator shares the same helper.
 role_block = compose_role_block(persona_noun)
 
+# --- Compose architecture context block from context pack ---
+context_pack_path = ".forge/cache/context-pack.md"
+context_pack_json_path = ".forge/cache/context-pack.json"
+if file_exists(context_pack_path):
+  context_pack_md = read_file(context_pack_path)
+  try:
+    context_pack_json = read_json(context_pack_json_path)
+    full_doc_paths = "\n".join(f"- {s['path']}" for s in context_pack_json.get("sources", []))
+  except:
+    full_doc_paths = "engineering/architecture/ (see context-pack.json for full list)"
+  bug_architecture_block = (
+    "### Architecture context (summary — full docs available at paths listed below)\n\n"
+    + context_pack_md
+    + "\n\nRead full architecture docs only if the summary above is insufficient for "
+    + "your decision. Full docs:\n"
+    + full_doc_paths
+    + "\n\n"
+  )
+else:
+  bug_architecture_block = ""
+
+# --- Compose prior-phase summary block for bug context ---
+bug_record_fresh = read_json(f".forge/store/bugs/{bug_id}.json")
+bug_summaries = (bug_record_fresh or {}).get("summaries", {})
+
+SUMMARY_PHASE_LABELS = {
+  "plan": "Plan", "review_plan": "Plan review",
+  "implementation": "Implementation", "code_review": "Code review", "validation": "Validation"
+}
+bug_summary_lines = []
+for phase_key, label in SUMMARY_PHASE_LABELS.items():
+  s = bug_summaries.get(phase_key)
+  if s:
+    bug_summary_lines.append(f"- {label}: {s.get('objective', '(no objective)')}")
+    if s.get('key_changes'):
+      for c in s['key_changes'][:3]:
+        bug_summary_lines.append(f"    • {c}")
+    if s.get('findings'):
+      for f_ in s['findings'][:3]:
+        bug_summary_lines.append(f"    • {f_}")
+    if s.get('verdict') and s['verdict'] != 'n/a':
+      bug_summary_lines.append(f"    Verdict: {s['verdict']}  Full: {s.get('artifact_ref', '(unknown)')}")
+
+if bug_summary_lines:
+  bug_summary_block = (
+    "### Prior phase summaries (fast path — read full artifacts if you need more detail)\n\n"
+    + "\n".join(bug_summary_lines)
+    + "\n\nIf any summary above is missing or insufficient, read the corresponding full artifact from disk before proceeding.\n\n"
+  )
+else:
+  bug_summary_block = ""
+
 # --- Spawn subagent with progress reporting instructions (no banner command) ---
 spawn_subagent(
   prompt=(
@@ -197,6 +263,8 @@ spawn_subagent(
     f"a `done` entry when you finish, or an `error` entry if something fails. "
     f"The orchestrator is monitoring this log in real time.\n\n"
     f"---\n\n"
+    f"{bug_architecture_block}"
+    f"{bug_summary_block}"
     f"{role_block}\n\n"
     f"### Current Working Context\n"
     f"- Bug Root:    {bug_root_path}\n"

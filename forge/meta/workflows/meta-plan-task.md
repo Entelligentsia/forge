@@ -31,7 +31,12 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
 
 1. Load Context:
    - Read task prompt (source of truth)
-   - Read architecture docs and business domain docs relevant to the task
+   - Consult the architecture context summary injected in your prompt (under
+     "Architecture context"). If no summary was injected, read
+     `engineering/architecture/stack.md` directly.
+   - Read full architecture docs (paths listed in the injected context) only
+     when the summary is insufficient for your decision.
+   - Read business domain docs relevant to the task
    - Read stack checklist
 
 2. Research:
@@ -57,6 +62,24 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
    - Update task status via `/forge:store update-status task {taskId} status planned`
    - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
+
+6. Emit Summary Sidecar:
+   - Write `PLAN-SUMMARY.json` to the task directory with the following shape:
+     ```json
+     {
+       "objective":   "<one sentence — what this plan sets out to build>",
+       "key_changes": ["<up to 12 bullets, 200 chars each>"],
+       "verdict":     "n/a",
+       "written_at":  "<current ISO 8601 timestamp>",
+       "artifact_ref":"PLAN.md"
+     }
+     ```
+   - Call:
+     ```
+     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {task_id} plan \
+       engineering/sprints/{sprint}/{task}/PLAN-SUMMARY.json
+     ```
+   - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 
 ## Generation Instructions

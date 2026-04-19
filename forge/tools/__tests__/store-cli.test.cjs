@@ -1,7 +1,67 @@
 'use strict';
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { isLegalTransition, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, validateRecord, NULLABLE_FIELDS } = require('../store-cli.cjs');
+const { spawnSync } = require('child_process');
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
+const { isLegalTransition, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, validateRecord, NULLABLE_FIELDS, VALID_SUMMARY_PHASES, PHASE_SUMMARY_SCHEMA } = require('../store-cli.cjs');
+
+const STORE_CLI = path.join(__dirname, '..', 'store-cli.cjs');
+
+function makeTempStore() {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-test-'));
+  const tasksDir = path.join(tmpDir, '.forge', 'store', 'tasks');
+  const bugsDir  = path.join(tmpDir, '.forge', 'store', 'bugs');
+  fs.mkdirSync(tasksDir, { recursive: true });
+  fs.mkdirSync(bugsDir,  { recursive: true });
+  fs.writeFileSync(
+    path.join(tmpDir, '.forge', 'config.json'),
+    JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
+  );
+  return tmpDir;
+}
+
+function writeTaskFile(tmpDir, taskId, data) {
+  fs.writeFileSync(
+    path.join(tmpDir, '.forge', 'store', 'tasks', `${taskId}.json`),
+    JSON.stringify(data, null, 2)
+  );
+}
+
+function readTaskFile(tmpDir, taskId) {
+  return JSON.parse(
+    fs.readFileSync(path.join(tmpDir, '.forge', 'store', 'tasks', `${taskId}.json`), 'utf8')
+  );
+}
+
+function writeBugFile(tmpDir, bugId, data) {
+  fs.writeFileSync(
+    path.join(tmpDir, '.forge', 'store', 'bugs', `${bugId}.json`),
+    JSON.stringify(data, null, 2)
+  );
+}
+
+function readBugFile(tmpDir, bugId) {
+  return JSON.parse(
+    fs.readFileSync(path.join(tmpDir, '.forge', 'store', 'bugs', `${bugId}.json`), 'utf8')
+  );
+}
+
+const MINIMAL_TASK = {
+  taskId: 'T01', sprintId: 'S01', title: 'Test', status: 'implementing', path: 'eng/t01'
+};
+const MINIMAL_BUG = {
+  bugId: 'BUG-001', title: 'Test bug', severity: 'minor', status: 'in-progress',
+  path: 'eng/bugs/BUG-001', reportedAt: '2026-04-19T10:00:00Z'
+};
+const VALID_SUMMARY = {
+  objective: 'Add set-summary command to store-cli',
+  key_changes: ['Added cmdSetSummary function', 'Updated exports'],
+  written_at: '2026-04-19T10:00:00Z',
+  verdict: 'approved',
+  artifact_ref: 'PLAN.md'
+};
 
 describe('store-cli.cjs — isLegalTransition', () => {
   test('same-state transition is always legal (no-op)', () => {
@@ -242,5 +302,313 @@ describe('store-cli.cjs — NULLABLE_FIELDS', () => {
 
   test('contains durationMinutes', () => {
     assert.ok(NULLABLE_FIELDS.has('durationMinutes'), 'should contain durationMinutes');
+  });
+});
+
+describe('store-cli.cjs — VALID_SUMMARY_PHASES', () => {
+  test('contains plan', () => assert.ok(VALID_SUMMARY_PHASES.has('plan')));
+  test('contains review_plan', () => assert.ok(VALID_SUMMARY_PHASES.has('review_plan')));
+  test('contains implementation', () => assert.ok(VALID_SUMMARY_PHASES.has('implementation')));
+  test('contains code_review', () => assert.ok(VALID_SUMMARY_PHASES.has('code_review')));
+  test('contains validation', () => assert.ok(VALID_SUMMARY_PHASES.has('validation')));
+  test('does not contain unknown phase', () => assert.ok(!VALID_SUMMARY_PHASES.has('foo')));
+  test('does not contain plan-fix (bug phase)', () => assert.ok(!VALID_SUMMARY_PHASES.has('plan-fix')));
+});
+
+describe('store-cli.cjs — PHASE_SUMMARY_SCHEMA', () => {
+  test('is an object with required and properties', () => {
+    assert.ok(PHASE_SUMMARY_SCHEMA && typeof PHASE_SUMMARY_SCHEMA === 'object');
+    assert.ok(Array.isArray(PHASE_SUMMARY_SCHEMA.required));
+    assert.ok(typeof PHASE_SUMMARY_SCHEMA.properties === 'object');
+  });
+  test('requires objective and written_at', () => {
+    assert.ok(PHASE_SUMMARY_SCHEMA.required.includes('objective'));
+    assert.ok(PHASE_SUMMARY_SCHEMA.required.includes('written_at'));
+  });
+  test('has additionalProperties: false', () => {
+    assert.equal(PHASE_SUMMARY_SCHEMA.additionalProperties, false);
+  });
+  test('objective has maxLength 280', () => {
+    assert.equal(PHASE_SUMMARY_SCHEMA.properties.objective.maxLength, 280);
+  });
+  test('key_changes has maxItems 12', () => {
+    assert.equal(PHASE_SUMMARY_SCHEMA.properties.key_changes.maxItems, 12);
+  });
+  test('findings has maxItems 12', () => {
+    assert.equal(PHASE_SUMMARY_SCHEMA.properties.findings.maxItems, 12);
+  });
+  test('verdict enum has approved, revision, n/a', () => {
+    const en = PHASE_SUMMARY_SCHEMA.properties.verdict.enum;
+    assert.ok(en.includes('approved'));
+    assert.ok(en.includes('revision'));
+    assert.ok(en.includes('n/a'));
+  });
+});
+
+describe('store-cli.cjs — validateRecord maxLength/maxItems extensions', () => {
+  test('valid phaseSummary passes', () => {
+    const errors = validateRecord(VALID_SUMMARY, PHASE_SUMMARY_SCHEMA);
+    assert.equal(errors.length, 0, `unexpected errors: ${errors.join(', ')}`);
+  });
+
+  test('missing objective rejects', () => {
+    const { objective: _, ...rest } = VALID_SUMMARY;
+    const errors = validateRecord(rest, PHASE_SUMMARY_SCHEMA);
+    assert.ok(errors.length > 0);
+    assert.ok(errors.some(e => e.includes('objective')));
+  });
+
+  test('missing written_at rejects', () => {
+    const { written_at: _, ...rest } = VALID_SUMMARY;
+    const errors = validateRecord(rest, PHASE_SUMMARY_SCHEMA);
+    assert.ok(errors.length > 0);
+    assert.ok(errors.some(e => e.includes('written_at')));
+  });
+
+  test('objective at 281 chars rejects (maxLength: 280)', () => {
+    const errors = validateRecord({ ...VALID_SUMMARY, objective: 'x'.repeat(281) }, PHASE_SUMMARY_SCHEMA);
+    assert.ok(errors.length > 0, 'expected rejection for overlong objective');
+    assert.ok(errors.some(e => e.includes('maxLength') || e.includes('exceeds')));
+  });
+
+  test('objective at exactly 280 chars passes', () => {
+    const errors = validateRecord({ ...VALID_SUMMARY, objective: 'x'.repeat(280) }, PHASE_SUMMARY_SCHEMA);
+    assert.equal(errors.length, 0, `unexpected errors: ${errors.join(', ')}`);
+  });
+
+  test('key_changes with 13 items rejects (maxItems: 12)', () => {
+    const errors = validateRecord({ ...VALID_SUMMARY, key_changes: new Array(13).fill('change') }, PHASE_SUMMARY_SCHEMA);
+    assert.ok(errors.length > 0, 'expected rejection for >12 key_changes');
+    assert.ok(errors.some(e => e.includes('maxItems') || e.includes('exceeds')));
+  });
+
+  test('key_changes with exactly 12 items passes', () => {
+    const errors = validateRecord({ ...VALID_SUMMARY, key_changes: new Array(12).fill('change') }, PHASE_SUMMARY_SCHEMA);
+    assert.equal(errors.length, 0, `unexpected errors: ${errors.join(', ')}`);
+  });
+
+  test('key_changes item >200 chars rejects (items.maxLength)', () => {
+    const errors = validateRecord({ ...VALID_SUMMARY, key_changes: ['x'.repeat(201)] }, PHASE_SUMMARY_SCHEMA);
+    assert.ok(errors.length > 0, 'expected rejection for overlong array item');
+    assert.ok(errors.some(e => e.includes('maxLength') || e.includes('exceeds')));
+  });
+
+  test('key_changes item at exactly 200 chars passes', () => {
+    const errors = validateRecord({ ...VALID_SUMMARY, key_changes: ['x'.repeat(200)] }, PHASE_SUMMARY_SCHEMA);
+    assert.equal(errors.length, 0, `unexpected errors: ${errors.join(', ')}`);
+  });
+
+  test('invalid verdict rejects', () => {
+    const errors = validateRecord({ ...VALID_SUMMARY, verdict: 'bad-verdict' }, PHASE_SUMMARY_SCHEMA);
+    assert.ok(errors.length > 0);
+    assert.ok(errors.some(e => e.includes('not in')));
+  });
+
+  test('undeclared field rejects (additionalProperties: false)', () => {
+    const errors = validateRecord({ ...VALID_SUMMARY, unknown_field: 'foo' }, PHASE_SUMMARY_SCHEMA);
+    assert.ok(errors.length > 0);
+    assert.ok(errors.some(e => e.includes('undeclared field')));
+  });
+
+  test('findings with 13 items rejects (maxItems: 12)', () => {
+    const errors = validateRecord({ ...VALID_SUMMARY, findings: new Array(13).fill('finding') }, PHASE_SUMMARY_SCHEMA);
+    assert.ok(errors.length > 0, 'expected rejection for >12 findings');
+  });
+});
+
+describe('store-cli.cjs — set-summary CLI subprocess tests', () => {
+  test('round-trips a valid summary into task JSON', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const summaryFile = path.join(tmpDir, 'summary.json');
+      fs.writeFileSync(summaryFile, JSON.stringify(VALID_SUMMARY));
+
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'plan', summaryFile], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+      const task = readTaskFile(tmpDir, 'T01');
+      assert.ok(task.summaries, 'task should have summaries');
+      assert.ok(task.summaries.plan, 'task.summaries.plan should exist');
+      assert.equal(task.summaries.plan.objective, VALID_SUMMARY.objective);
+      assert.deepEqual(task.summaries.plan.key_changes, VALID_SUMMARY.key_changes);
+      assert.equal(task.summaries.plan.verdict, VALID_SUMMARY.verdict);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('repeated set-summary overwrites, does not append', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const summaryFile = path.join(tmpDir, 'summary.json');
+
+      fs.writeFileSync(summaryFile, JSON.stringify(VALID_SUMMARY));
+      spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'plan', summaryFile], { cwd: tmpDir, encoding: 'utf8' });
+
+      const updated = { ...VALID_SUMMARY, objective: 'Updated objective', verdict: 'revision' };
+      fs.writeFileSync(summaryFile, JSON.stringify(updated));
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'plan', summaryFile], { cwd: tmpDir, encoding: 'utf8' });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+      const task = readTaskFile(tmpDir, 'T01');
+      assert.equal(task.summaries.plan.objective, 'Updated objective');
+      assert.equal(task.summaries.plan.verdict, 'revision');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('missing task ID exits non-zero with task not found message', () => {
+    const tmpDir = makeTempStore();
+    try {
+      const summaryFile = path.join(tmpDir, 'summary.json');
+      fs.writeFileSync(summaryFile, JSON.stringify(VALID_SUMMARY));
+
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'NONEXISTENT', 'plan', summaryFile], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(result.status, 0, 'should exit non-zero for missing task');
+      assert.ok(result.stderr.includes('not found') || result.stderr.includes('NONEXISTENT'), `stderr: ${result.stderr}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('unknown phase name exits non-zero', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const summaryFile = path.join(tmpDir, 'summary.json');
+      fs.writeFileSync(summaryFile, JSON.stringify(VALID_SUMMARY));
+
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'unknown-phase', summaryFile], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(result.status, 0, 'should exit non-zero for unknown phase');
+      assert.ok(result.stderr.includes('phase') || result.stderr.includes('unknown-phase'), `stderr: ${result.stderr}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('schema violation (missing objective) exits non-zero', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const badSummary = { written_at: '2026-04-19T10:00:00Z' }; // missing objective
+      const summaryFile = path.join(tmpDir, 'summary.json');
+      fs.writeFileSync(summaryFile, JSON.stringify(badSummary));
+
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'plan', summaryFile], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(result.status, 0, 'should exit non-zero for schema violation');
+      assert.ok(result.stderr.includes('objective'), `expected 'objective' in stderr: ${result.stderr}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('overlong key_changes (>12 items) exits non-zero', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const badSummary = { ...VALID_SUMMARY, key_changes: new Array(13).fill('x') };
+      const summaryFile = path.join(tmpDir, 'summary.json');
+      fs.writeFileSync(summaryFile, JSON.stringify(badSummary));
+
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'plan', summaryFile], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(result.status, 0, 'should exit non-zero for >12 key_changes');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('overlong objective (>280 chars) exits non-zero', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const badSummary = { ...VALID_SUMMARY, objective: 'x'.repeat(281) };
+      const summaryFile = path.join(tmpDir, 'summary.json');
+      fs.writeFileSync(summaryFile, JSON.stringify(badSummary));
+
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'plan', summaryFile], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(result.status, 0, 'should exit non-zero for overlong objective');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('atomic write: prior JSON intact after successful set-summary', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', { ...MINIMAL_TASK, description: 'original' });
+      const summaryFile = path.join(tmpDir, 'summary.json');
+      fs.writeFileSync(summaryFile, JSON.stringify(VALID_SUMMARY));
+
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'plan', summaryFile], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+      const task = readTaskFile(tmpDir, 'T01');
+      assert.equal(task.description, 'original', 'existing fields must survive set-summary');
+      assert.ok(task.summaries.plan, 'summary must be present');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('set-bug-summary round-trips a valid summary into bug JSON', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeBugFile(tmpDir, 'BUG-001', MINIMAL_BUG);
+      const summaryFile = path.join(tmpDir, 'summary.json');
+      fs.writeFileSync(summaryFile, JSON.stringify(VALID_SUMMARY));
+
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-bug-summary', 'BUG-001', 'plan', summaryFile], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+      const bug = readBugFile(tmpDir, 'BUG-001');
+      assert.ok(bug.summaries, 'bug should have summaries');
+      assert.ok(bug.summaries.plan, 'bug.summaries.plan should exist');
+      assert.equal(bug.summaries.plan.objective, VALID_SUMMARY.objective);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('store-cli.cjs — schema conformance for summaries field', () => {
+  test('PHASE_SUMMARY_SCHEMA validates a minimal valid summary', () => {
+    const minimal = { objective: 'test', written_at: '2026-04-19T10:00:00Z' };
+    assert.equal(validateRecord(minimal, PHASE_SUMMARY_SCHEMA).length, 0);
+  });
+
+  test('PHASE_SUMMARY_SCHEMA rejects extra property', () => {
+    const withExtra = { objective: 'test', written_at: '2026-04-19T10:00:00Z', extra: 'bad' };
+    const errors = validateRecord(withExtra, PHASE_SUMMARY_SCHEMA);
+    assert.ok(errors.some(e => e.includes('undeclared field')));
+  });
+
+  test('empty summaries object ({}) satisfies the optional summaries field', () => {
+    assert.ok(typeof PHASE_SUMMARY_SCHEMA === 'object', 'schema exists');
+  });
+
+  test('all valid verdict values pass', () => {
+    for (const verdict of ['approved', 'revision', 'n/a']) {
+      const errors = validateRecord({ objective: 'x', written_at: '2026-04-19T10:00:00Z', verdict }, PHASE_SUMMARY_SCHEMA);
+      assert.equal(errors.length, 0, `verdict "${verdict}" should pass`);
+    }
   });
 });

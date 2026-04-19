@@ -613,6 +613,29 @@ node "$FORGE_ROOT/tools/build-persona-pack.cjs" \
   for missing-frontmatter or malformed-YAML errors) and advise the user
   to file a bug if the error is unexpected.
 
+## Post-regeneration context pack
+
+Rebuild the architecture context pack at `.forge/cache/context-pack.md` and
+`.forge/cache/context-pack.json`. This is injected into subagent prompts by
+`meta-orchestrate` and `meta-fix-bug` to reduce per-phase architecture doc reads.
+
+The pack summarises `engineering/architecture/*.md` (skips `*.draft.md`). If
+the existing pack has `manual: true` in its frontmatter, the builder skips
+and leaves it intact.
+
+```sh
+ENGINEERING=$(node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo engineering)
+node "$FORGE_ROOT/tools/build-context-pack.cjs" \
+  --arch-dir "$ENGINEERING/architecture" \
+  --out-md .forge/cache/context-pack.md \
+  --out-json .forge/cache/context-pack.json
+```
+
+- Exit 0: emit `〇 context pack refreshed`
+- Exit 1: surface the stderr message — most likely the architecture directory
+  does not exist yet (run after the knowledge-base category is populated).
+  This is non-fatal for regenerate: emit a warning and continue.
+
 ## Post-regeneration verification
 
 After all requested targets have been regenerated, verify structural completeness:

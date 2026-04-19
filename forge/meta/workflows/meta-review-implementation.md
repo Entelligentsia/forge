@@ -38,6 +38,11 @@ YOU MUST evaluate the code against the approved PLAN.md and the original task pr
    - Read approved PLAN.md
    - Read the implementation (code changes)
    - Read PROGRESS.md
+   - Consult the architecture context summary injected in your prompt (under
+     "Architecture context"). If no summary was injected, read
+     `engineering/architecture/stack.md` directly.
+   - Read full architecture docs (paths listed in the injected context) only
+     when the summary is insufficient for your review.
 
 2. Review:
    - Verify all plan steps were executed
@@ -57,6 +62,24 @@ YOU MUST evaluate the code against the approved PLAN.md and the original task pr
    - Update task status via `/forge:store update-status task {taskId} status review-approved` (if Approved) or `/forge:store update-status task {taskId} status code-revision-required` (if Revision Required)
    - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
+
+6. Emit Summary Sidecar:
+   - Write `REVIEW-IMPL-SUMMARY.json` to the task directory with the following shape:
+     ```json
+     {
+       "objective":   "<one sentence — what this review assessed>",
+       "findings":    ["<up to 12 bullets, 200 chars each — key issues or confirmations>"],
+       "verdict":     "<approved | revision>",
+       "written_at":  "<current ISO 8601 timestamp>",
+       "artifact_ref":"CODE_REVIEW.md"
+     }
+     ```
+   - Call:
+     ```
+     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {task_id} code_review \
+       engineering/sprints/{sprint}/{task}/REVIEW-IMPL-SUMMARY.json
+     ```
+   - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 
 ## Generation Instructions

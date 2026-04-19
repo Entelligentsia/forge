@@ -30,7 +30,12 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
    - Exit 0 → continue.
 
 1. Load Context:
-   - Read architecture and business domain docs
+   - Consult the architecture context summary injected in your prompt (under
+     "Architecture context"). If no summary was injected, read
+     `engineering/architecture/stack.md` directly.
+   - Read full architecture docs (paths listed in the injected context) only
+     when the summary is insufficient for your decision.
+   - Read business domain docs relevant to the task
    - Read the approved PLAN.md
 
 2. Implementation:
@@ -57,6 +62,24 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
    - Update task status via `/forge:store update-status task {taskId} status implemented`
    - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
+
+7. Emit Summary Sidecar:
+   - Write `IMPLEMENTATION-SUMMARY.json` to the task directory with the following shape:
+     ```json
+     {
+       "objective":   "<one sentence — what this implementation delivered>",
+       "key_changes": ["<up to 12 bullets, 200 chars each — files changed, key decisions>"],
+       "verdict":     "n/a",
+       "written_at":  "<current ISO 8601 timestamp>",
+       "artifact_ref":"PROGRESS.md"
+     }
+     ```
+   - Call:
+     ```
+     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {task_id} implementation \
+       engineering/sprints/{sprint}/{task}/IMPLEMENTATION-SUMMARY.json
+     ```
+   - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 
 ## Generation Instructions

@@ -9,6 +9,7 @@ deps:
   templates: []
   sub_workflows: [plan_task, implement_plan, review_plan, review_code, fix_bug, architect_approve, commit_task, validate_task]
   kb_docs: [architecture/stack.md]
+  context_pack: .forge/cache/context-pack.md
   config_fields: [paths.engineering]
 ---
 
@@ -427,6 +428,62 @@ for each task in dependency_sorted(tasks):
     # See "Persona injection modes" below for the full helper definition.
     role_block = compose_role_block(persona_noun)
 
+    # --- Compose prior-phase summary block (fast path for downstream context) ---
+    # Read task.summaries from disk (re-read after each phase so summaries accumulate)
+    task_record_fresh = read_json(f".forge/store/tasks/{task_id}.json")
+    summaries = (task_record_fresh or {}).get("summaries", {})
+
+    SUMMARY_PHASE_LABELS = {
+      "plan": "Plan", "review_plan": "Plan review",
+      "implementation": "Implementation", "code_review": "Code review", "validation": "Validation"
+    }
+    summary_lines = []
+    for phase_key, label in SUMMARY_PHASE_LABELS.items():
+      s = summaries.get(phase_key)
+      if s:
+        summary_lines.append(f"- {label}: {s.get('objective', '(no objective)')}")
+        if s.get('key_changes'):
+          for c in s['key_changes'][:3]:
+            summary_lines.append(f"    • {c}")
+        if s.get('findings'):
+          for f_ in s['findings'][:3]:
+            summary_lines.append(f"    • {f_}")
+        if s.get('verdict') and s['verdict'] != 'n/a':
+          summary_lines.append(f"    Verdict: {s['verdict']}  Full: {s.get('artifact_ref', '(unknown)')}")
+      else:
+        # Phase may not have run yet — omit from summary block
+        pass
+
+    if summary_lines:
+      summary_block = (
+        "### Prior phase summaries (fast path — read full artifacts if you need more detail)\n\n"
+        + "\n".join(summary_lines)
+        + "\n\nIf any summary above is missing or insufficient, read the corresponding full artifact from disk before proceeding.\n\n"
+      )
+    else:
+      summary_block = ""
+
+    # --- Compose architecture context block from context pack ---
+    context_pack_path = ".forge/cache/context-pack.md"
+    context_pack_json_path = ".forge/cache/context-pack.json"
+    if file_exists(context_pack_path):
+      context_pack_md = read_file(context_pack_path)
+      try:
+        context_pack_json = read_json(context_pack_json_path)
+        full_doc_paths = "\n".join(f"- {s['path']}" for s in context_pack_json.get("sources", []))
+      except:
+        full_doc_paths = "engineering/architecture/ (see context-pack.json for full list)"
+      architecture_block = (
+        "### Architecture context (summary — full docs available at paths listed below)\n\n"
+        + context_pack_md
+        + "\n\nRead full architecture docs only if the summary above is insufficient for "
+        + "your decision. Full docs:\n"
+        + full_doc_paths
+        + "\n\n"
+      )
+    else:
+      architecture_block = ""
+
     spawn_kwargs = dict(
       prompt=(
         f"### Progress Reporting\n"
@@ -443,6 +500,8 @@ for each task in dependency_sorted(tasks):
         f"a `done` entry when you finish, or an `error` entry if something fails. "
         f"The orchestrator is monitoring this log in real time.\n\n"
         f"---\n\n"
+        f"{architecture_block}"
+        f"{summary_block}"
         f"{role_block}\n\n"
         f"### Current Working Context\n"
         f"- Sprint Root: {sprint_root_path}\n"
@@ -825,6 +884,15 @@ When in doubt, read `.forge/schemas/event.schema.json` directly.
   merge and event emission), the generated orchestrator MUST print the appropriate
   exit signal: `✓` for completed/approved, `↻` for revision required (with iteration
   count), `⚠` for escalated.
+- **Include the context pack injection.** Before spawning each subagent, the
+  generated orchestrator MUST read `.forge/cache/context-pack.md` (if it exists)
+  and inline it into the subagent prompt under the heading
+  `### Architecture context (summary — full docs available at paths listed below)`.
+  If the pack is absent, omit this block silently — the subagent falls back to
+  reading architecture docs directly. This is the mechanism that replaces per-phase
+  `Read engineering/architecture/stack.md` calls with a single cached summary.
+  Subagents instructed by this block should read full docs **only** when the
+  summary is insufficient.
 - **Include post-phase /compact calls.** After each phase-exit signal (for every
   non-escalation outcome), the generated orchestrator MUST:
   1. Print a checkpoint line: `[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}`

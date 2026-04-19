@@ -24,6 +24,7 @@ Assess the health and currency of the project's SDLC knowledge base.
 | **Skill gaps** | Marketplace skills relevant to the stack that are not installed |
 | **Feature Test Coverage** | Features with zero tagged tests |
 | **Concepts freshness** | `docs/concepts/*.md` pages older than `forge/meta/store-schema/` updates |
+| **Context pack freshness** | `source_hash` in `.forge/cache/context-pack.json` vs. current hash of `engineering/architecture/*.md` |
 | **Plugin integrity** | Plugin command and agent files modified since last release hash was recorded |
 
 ## How to run
@@ -144,7 +145,28 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
       > △ Persona pack stale — meta/ has changed since last build. Run `/forge:regenerate` to refresh.
       Otherwise emit:
       > 〇 Persona pack fresh.
-13. Check plugin integrity:
+13. Check context pack freshness:
+    - Compute the current source hash over `engineering/architecture/*.md`
+      (excluding `*.draft.md`) using the same algorithm as `build-context-pack.cjs`:
+      ```sh
+      ENGINEERING=$(node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo engineering)
+      node "$FORGE_ROOT/tools/build-context-pack.cjs" --arch-dir "$ENGINEERING/architecture" 2>/dev/null
+      # The tool exports computeSourceHash — call it programmatically if preferred:
+      CURRENT=$(node -e "const t=require('$FORGE_ROOT/tools/build-context-pack.cjs'); try { console.log(t.computeSourceHash('$PROJECT_ROOT/$ENGINEERING/architecture')); } catch(e) { console.log('n/a'); }")
+      ```
+    - If `engineering/architecture/` does not exist, skip this check silently.
+    - If `.forge/cache/context-pack.json` does not exist, emit:
+      > △ Context pack missing — run `/forge:regenerate` to build it.
+      (The pack is injected by `meta-orchestrate` and `meta-fix-bug` to reduce per-phase architecture reads.)
+    - Otherwise read `source_hash` from `.forge/cache/context-pack.json` and compare:
+      ```sh
+      STORED=$(node -e "console.log(require('$PROJECT_ROOT/.forge/cache/context-pack.json').source_hash)")
+      ```
+      If `CURRENT != STORED` (and `CURRENT != 'n/a'`), emit:
+      > △ Context pack stale — architecture docs have changed since last build. Run `/forge:regenerate` or `/forge:collate` to rebuild.
+      Otherwise emit:
+      > 〇 Context pack fresh.
+14. Check plugin integrity:
     First, verify the integrity verifier itself has not been tampered with:
     ```sh
     ACTUAL=$(node -e "const c=require('crypto'),f=require('fs'); console.log(c.createHash('sha256').update(f.readFileSync('$FORGE_ROOT/tools/verify-integrity.cjs')).digest('hex'))")
@@ -162,9 +184,9 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
     Note: local verification is tamper-evident, not tamper-proof. `/forge:update` is
     the authoritative restore path.
 
-13. Report all findings with actionable recommendations.
+15. Report all findings with actionable recommendations.
     If `--path` was used, open the report with: `Health report for: $PROJECT_ROOT`
-14. Close the report with: `If you've found a bug in Forge itself, run /forge:report-bug`
+16. Close the report with: `If you've found a bug in Forge itself, run /forge:report-bug`
 
 ## Output
 

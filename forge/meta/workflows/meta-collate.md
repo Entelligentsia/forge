@@ -33,7 +33,20 @@ Regenerate markdown views from the JSON store. This is a deterministic operation
    - Generate per-sprint TIMESHEET.md (from events)
    - Generate any other configured views
 
-3. Finalize:
+3. Rebuild context pack:
+   - Rebuild the architecture context pack so orchestrators have a fresh summary
+     after any KB updates (architecture docs may have changed during the sprint):
+     ```
+     FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
+     ENGINEERING=$(node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo engineering)
+     node "$FORGE_ROOT/tools/build-context-pack.cjs" \
+       --arch-dir "$ENGINEERING/architecture" \
+       --out-md .forge/cache/context-pack.md \
+       --out-json .forge/cache/context-pack.json
+     ```
+   - On exit 1 (architecture directory absent), skip silently.
+
+4. Finalize:
    - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
    - Invoke Tomoshibi via Skill tool to refresh KB and workflow links in agent

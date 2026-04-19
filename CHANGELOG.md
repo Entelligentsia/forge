@@ -11,6 +11,41 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.17.1] — 2026-04-19
+
+**Architecture context pack: orchestrators inject a pre-computed architecture summary into every subagent prompt, reducing per-phase `stack.md` reads from ~12 to ~1.**
+
+Every phase workflow independently reads `engineering/architecture/stack.md` and related docs. In a 6-phase task with 2 revisions, architecture docs are read 12+ times — 120+ times across a 10-task sprint. This release pre-computes a compact summary and injects it once per subagent spawn.
+
+- **`build-context-pack.cjs`** — new tool that walks `engineering/architecture/*.md` (skips `*.draft.md`), extracts H1 titles, first paragraphs, and `## Key *` / `## Summary` sections, and emits `.forge/cache/context-pack.md` and `.forge/cache/context-pack.json`. Pack is capped at 400 lines with a truncation marker. Supports `manual: true` frontmatter to skip auto-rebuild.
+- **`meta-orchestrate.md` / `meta-fix-bug.md`** — read `.forge/cache/context-pack.md` before each subagent spawn and inline it under `### Architecture context` in the prompt. Falls back silently when pack is absent.
+- **Phase workflows** (`meta-plan-task.md`, `meta-implement.md`, `meta-review-plan.md`, `meta-review-implementation.md`) — updated to consult the injected context-pack summary first; read full architecture docs only when the summary is insufficient.
+- **`/forge:health`** — detects stale pack via hash comparison between `.forge/cache/context-pack.json` and current `engineering/architecture/*.md`.
+- **`/forge:regenerate`, `/forge:materialize`** — rebuild the pack after other generation steps.
+- **`meta-collate.md`** — rebuilds the pack after KB updates (architecture docs may change during a sprint).
+
+**Regenerate:** `workflows` and `tools` must be regenerated so the updated meta-files and new tool are reflected in the project's `.forge/` instance.
+
+> Manual: Run `/forge:regenerate` to build the initial context pack at `.forge/cache/context-pack.md`.
+
+---
+
+## [0.17.0] — 2026-04-19
+
+**Artifact summaries in task manifest: downstream subagent prompts now receive terse phase summaries instead of re-reading full artifacts.**
+
+Across a typical 10-task sprint, each task's PLAN.md and CODE_REVIEW.md are re-read by 6+ downstream subagents. This release caches terse structured summaries on the task record as each phase completes, then injects those summaries into downstream prompts as a fast path. Full artifacts remain on disk and are always available by reference.
+
+- **`summaries` field** on task and bug schemas (optional; additive — old records remain valid). Each key (`plan`, `review_plan`, `implementation`, `code_review`, `validation`) holds a `phaseSummary` object with bounded size (objective ≤ 280 chars, key_changes/findings ≤ 12 × 200 chars).
+- **`store-cli set-summary <taskId> <phase> <jsonFile>`** — new subcommand that validates a summary JSON against the `phaseSummary` schema and merges it into the task record atomically (tmp + rename). `set-bug-summary` is the bug analogue.
+- **Phase workflows emit summary sidecars** at the end of each phase (`PLAN-SUMMARY.json`, `IMPLEMENTATION-SUMMARY.json`, etc.) and register them via `set-summary`. If validation fails, the workflow retries before proceeding.
+- **Orchestrator injects summaries** as a "Prior phase summaries" block in subagent prompts when available, with a pointer to the full artifact for escalation. Old tasks without summaries fall back to the previous behaviour (prompt instructs subagent to read the full artifact from disk).
+- **`validateRecord` extended** with `maxLength` (strings), `maxItems` (arrays), and `items.maxLength`/`items.type` constraints — generalises the validation used by set-summary for future schemas.
+
+**Regenerate:** `workflows` and `tools` must be regenerated so that updated workflow meta-files and the new store-cli are reflected in the project's `.forge/` instance.
+
+---
+
 ## [0.16.0] — 2026-04-19
 
 **Persona/skill by reference: subagent prompts now inject a compact summary instead of the full persona and skill file prose.**

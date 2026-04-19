@@ -96,6 +96,24 @@ const NULLABLE_FIELDS = new Set([
   'feature_id', 'description', 'completedAt', 'resolvedAt'
 ]);
 
+// Valid phase keys for summaries (dot-delimited → underscore in JSON key)
+const VALID_SUMMARY_PHASES = new Set(['plan', 'review_plan', 'implementation', 'code_review', 'validation']);
+
+// Schema for a single phase summary (used by set-summary / set-bug-summary)
+const PHASE_SUMMARY_SCHEMA = {
+  type: 'object',
+  required: ['objective', 'written_at'],
+  properties: {
+    objective:   { type: 'string', maxLength: 280 },
+    key_changes: { type: 'array', items: { type: 'string', maxLength: 200 }, maxItems: 12 },
+    findings:    { type: 'array', items: { type: 'string', maxLength: 200 }, maxItems: 12 },
+    verdict:     { type: 'string', enum: ['approved', 'revision', 'n/a'] },
+    written_at:  { type: 'string' },
+    artifact_ref:{ type: 'string' }
+  },
+  additionalProperties: false
+};
+
 function validateRecord(record, schema) {
   const errors = [];
   const required = schema.required || [];
@@ -111,7 +129,7 @@ function validateRecord(record, schema) {
 
   const properties = schema.properties || {};
 
-  // Type, enum, minimum checks for declared properties
+  // Type, enum, minimum, maxLength, maxItems checks for declared properties
   for (const [field, def] of Object.entries(properties)) {
     const val = record[field];
     if (val === undefined || val === null) continue;
@@ -140,6 +158,28 @@ function validateRecord(record, schema) {
     // Minimum check
     if (def.minimum !== undefined && typeof val === 'number' && val < def.minimum) {
       errors.push(`${field}: value ${val} is below minimum ${def.minimum}`);
+    }
+
+    // maxLength check for strings
+    if (def.maxLength !== undefined && typeof val === 'string' && val.length > def.maxLength) {
+      errors.push(`${field}: value length ${val.length} exceeds maxLength ${def.maxLength}`);
+    }
+
+    // maxItems and items checks for arrays
+    if (Array.isArray(val)) {
+      if (def.maxItems !== undefined && val.length > def.maxItems) {
+        errors.push(`${field}: array has ${val.length} items, exceeds maxItems ${def.maxItems}`);
+      }
+      if (def.items) {
+        val.forEach((item, idx) => {
+          if (def.items.type && typeof item !== def.items.type) {
+            errors.push(`${field}[${idx}]: expected ${def.items.type}, got ${typeof item}`);
+          }
+          if (def.items.maxLength !== undefined && typeof item === 'string' && item.length > def.items.maxLength) {
+            errors.push(`${field}[${idx}]: item length ${item.length} exceeds maxLength ${def.items.maxLength}`);
+          }
+        });
+      }
     }
   }
 
@@ -231,7 +271,7 @@ function isLegalTransition(entityType, field, currentValue, newValue) {
   return allowed.includes(newValue);
 }
 
-module.exports = { isLegalTransition, validateRecord, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, ENTITY_TYPES, MINIMAL_REQUIRED, NULLABLE_FIELDS };
+module.exports = { isLegalTransition, validateRecord, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, ENTITY_TYPES, MINIMAL_REQUIRED, NULLABLE_FIELDS, VALID_SUMMARY_PHASES, PHASE_SUMMARY_SCHEMA };
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -376,8 +416,11 @@ Commands:
   progress-clear <sprintOrBugId>              Clear (truncate) the progress log
   write-collation-state '<json>'             Write COLLATION_STATE.json
   validate <entity> '<json>'                  Validate against schema without writing
+  set-summary <taskId> <phase> <jsonFile>     Set a phase summary on a task record
+  set-bug-summary <bugId> <phase> <jsonFile>  Set a phase summary on a bug record
 
 Entities: sprint, task, bug, event, feature
+Phases (summaries): plan, review_plan, implementation, code_review, validation
 
 Flags:
   --dry-run    Validate and preview without writing (applies to all write commands)
@@ -807,6 +850,86 @@ function cmdValidate() {
   console.log(JSON.stringify({ ok: true, entity, valid: true }));
 }
 
+function _setSummaryOnEntity(entityKind, entityId, phase, summaryFilePath) {
+  if (!VALID_SUMMARY_PHASES.has(phase)) {
+    console.error(`Unknown phase "${phase}". Valid phases: ${[...VALID_SUMMARY_PHASES].join(', ')}`);
+    process.exit(1);
+  }
+
+  // Read and validate summary JSON
+  if (!fs.existsSync(summaryFilePath)) {
+    console.error(`Summary file not found: ${summaryFilePath}`);
+    process.exit(1);
+  }
+
+  let summary;
+  try {
+    summary = JSON.parse(fs.readFileSync(summaryFilePath, 'utf8'));
+  } catch (e) {
+    console.error(`Invalid JSON in summary file: ${e.message}`);
+    process.exit(1);
+  }
+
+  const errors = validateRecord(summary, PHASE_SUMMARY_SCHEMA);
+  if (errors.length > 0) {
+    for (const e of errors) console.error(e);
+    process.exit(1);
+  }
+
+  // Load entity
+  const record = entityKind === 'task' ? store.getTask(entityId) : store.getBug(entityId);
+  if (!record) {
+    console.error(`${entityKind} not found: ${entityId}`);
+    process.exit(1);
+  }
+
+  // Merge summary
+  if (!record.summaries) record.summaries = {};
+  record.summaries[phase] = summary;
+
+  // Atomic write: tmp + rename
+  const entityDirKey = entityKind === 'task' ? 'tasks' : 'bugs';
+  const idField = entityKind === 'task' ? record.taskId : record.bugId;
+  const storeRoot = store.impl.storeRoot;
+  const filePath = path.join(storeRoot, entityDirKey, `${idField}.json`);
+  const tmpPath = filePath + '.tmp';
+
+  if (DRY_RUN) {
+    console.log(`[dry-run] would set ${entityKind} ${entityId} summaries.${phase}`);
+  } else {
+    fs.writeFileSync(tmpPath, JSON.stringify(record, null, 2) + '\n', 'utf8');
+    fs.renameSync(tmpPath, filePath);
+  }
+
+  console.log(JSON.stringify({ ok: true, entityKind, id: entityId, phase, dryRun: DRY_RUN }));
+}
+
+function cmdSetSummary() {
+  const taskId      = args[1];
+  const phase       = args[2];
+  const summaryFile = args[3];
+
+  if (!taskId || !phase || !summaryFile) {
+    console.error('Usage: store-cli.cjs set-summary <taskId> <phase> <jsonFile>');
+    process.exit(1);
+  }
+
+  _setSummaryOnEntity('task', taskId, phase, summaryFile);
+}
+
+function cmdSetBugSummary() {
+  const bugId       = args[1];
+  const phase       = args[2];
+  const summaryFile = args[3];
+
+  if (!bugId || !phase || !summaryFile) {
+    console.error('Usage: store-cli.cjs set-bug-summary <bugId> <phase> <jsonFile>');
+    process.exit(1);
+  }
+
+  _setSummaryOnEntity('bug', bugId, phase, summaryFile);
+}
+
 // ---------------------------------------------------------------------------
 // Command dispatch
 // ---------------------------------------------------------------------------
@@ -824,6 +947,8 @@ switch (command) {
   case 'validate':             cmdValidate(); break;
   case 'progress':             cmdProgress(); break;
   case 'progress-clear':       cmdProgressClear(); break;
+  case 'set-summary':          cmdSetSummary(); break;
+  case 'set-bug-summary':      cmdSetBugSummary(); break;
   default:
     console.error(`Unknown command: ${command}`);
     console.error('Run with --help for usage information.');

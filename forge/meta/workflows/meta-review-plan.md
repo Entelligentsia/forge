@@ -36,7 +36,12 @@ YOU MUST evaluate the plan against what the task actually requires, not against 
 1. Load Context:
    - Read task prompt (source of truth)
    - Read PLAN.md (subject of review)
-   - Read relevant architecture docs and stack checklist
+   - Consult the architecture context summary injected in your prompt (under
+     "Architecture context"). If no summary was injected, read
+     `engineering/architecture/stack.md` directly.
+   - Read full architecture docs (paths listed in the injected context) only
+     when the summary is insufficient for your review.
+   - Read stack checklist
 
 2. Review:
    - Evaluate feasibility, completeness, security, architecture alignment, and testing strategy
@@ -55,6 +60,24 @@ YOU MUST evaluate the plan against what the task actually requires, not against 
    - Update task status via `/forge:store update-status task {taskId} status review-approved` (if Approved) or `/forge:store update-status task {taskId} status plan-revision-required` (if Revision Required)
    - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
+
+6. Emit Summary Sidecar:
+   - Write `REVIEW-PLAN-SUMMARY.json` to the task directory with the following shape:
+     ```json
+     {
+       "objective":   "<one sentence — what this review assessed>",
+       "findings":    ["<up to 12 bullets, 200 chars each — key issues or confirmations>"],
+       "verdict":     "<approved | revision>",
+       "written_at":  "<current ISO 8601 timestamp>",
+       "artifact_ref":"PLAN_REVIEW.md"
+     }
+     ```
+   - Call:
+     ```
+     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {task_id} review_plan \
+       engineering/sprints/{sprint}/{task}/REVIEW-PLAN-SUMMARY.json
+     ```
+   - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 
 ## Generation Instructions

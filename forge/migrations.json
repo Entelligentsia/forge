@@ -1,4 +1,20 @@
 {
+  "0.17.0": {
+    "version": "0.17.1",
+    "date": "2026-04-19",
+    "notes": "Architecture context pack. build-context-pack.cjs walks engineering/architecture/*.md and emits .forge/cache/context-pack.md and context-pack.json. Orchestrators inject the pack summary into every subagent prompt, replacing per-phase stack.md reads with a single cached summary. Phase workflows updated to consult the injected summary first and read full docs only on escalation. /forge:health detects stale packs. /forge:regenerate, /forge:collate, and /forge:materialize rebuild the pack.",
+    "regenerate": ["workflows", "tools"],
+    "breaking": false,
+    "manual": ["Run /forge:regenerate to build the initial context pack at .forge/cache/context-pack.md."]
+  },
+  "0.16.0": {
+    "version": "0.17.0",
+    "date": "2026-04-19",
+    "notes": "Artifact summaries in task manifest. Tasks and bugs gain an optional summaries field (plan, review_plan, implementation, code_review, validation). Phase workflows emit terse JSON sidecars via store-cli set-summary / set-bug-summary. Orchestrator injects summaries into downstream subagent prompts as a fast path, falling back to full artifact paths when summaries are absent. Old tasks without summaries continue to work unchanged.",
+    "regenerate": ["workflows", "tools"],
+    "breaking": false,
+    "manual": []
+  },
   "0.15.0": {
     "version": "0.16.0",
     "date": "2026-04-19",

@@ -50,6 +50,24 @@ The Supervisor performs a final validation of the implementation against the acc
    - Update task status via `/forge:store update-status task {taskId} status review-approved` (if Approved) or `/forge:store update-status task {taskId} status code-revision-required` (if Revision Required)
    - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
+
+5. Emit Summary Sidecar:
+   - Write `VALIDATION-SUMMARY.json` to the task directory with the following shape:
+     ```json
+     {
+       "objective":   "<one sentence — what acceptance criteria were validated>",
+       "findings":    ["<up to 12 bullets, 200 chars each — pass/fail per criterion>"],
+       "verdict":     "<approved | revision>",
+       "written_at":  "<current ISO 8601 timestamp>",
+       "artifact_ref":"VALIDATION_REPORT.md"
+     }
+     ```
+   - Call:
+     ```
+     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {task_id} validation \
+       engineering/sprints/{sprint}/{task}/VALIDATION-SUMMARY.json
+     ```
+   - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 
 ## Generation Instructions

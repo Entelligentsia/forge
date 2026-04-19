@@ -71,4 +71,47 @@ stateDiagram-v2
 
 *(Note: Internal JSON schema uses hyphens, e.g., `plan-approved`, `code-revision-required`.)*
 
+## Optional Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `estimate` | `"S"` \| `"M"` \| `"L"` \| `"XL"` | Effort estimate |
+| `dependencies` | `string[]` | Task IDs this task depends on |
+| `pipeline` | `string` | Named pipeline from `config.pipelines` |
+| `assignedModel` | `string` | Model override for this task |
+| `planIterations` | `integer ≥ 0` | Number of plan revision loops taken |
+| `codeReviewIterations` | `integer ≥ 0` | Number of code review revision loops taken |
+| `summaries` | `object` | Terse phase summaries (see below) |
+
+### `summaries` field
+
+Added in v0.17.0. Stores terse structured summaries of each completed phase artifact. Used by the orchestrator to inject compressed context into downstream subagent prompts instead of re-reading full artifacts.
+
+The full artifacts on disk (PLAN.md, CODE_REVIEW.md, etc.) remain authoritative. Summaries are a read-optimisation, not a replacement.
+
+Each key maps a phase name to a `phaseSummary` object:
+
+| Phase key | Written by |
+|-----------|-----------|
+| `plan` | `meta-plan-task` workflow |
+| `review_plan` | `meta-review-plan` workflow |
+| `implementation` | `meta-implement` workflow |
+| `code_review` | `meta-review-implementation` workflow |
+| `validation` | `meta-validate` workflow |
+
+A `phaseSummary` object has the following shape:
+
+```json
+{
+  "objective":   "<one sentence, max 280 chars>",
+  "key_changes": ["<up to 12 bullets, 200 chars each>"],
+  "findings":    ["<up to 12 bullets, 200 chars each — review phases only>"],
+  "verdict":     "approved | revision | n/a",
+  "written_at":  "<ISO 8601 timestamp>",
+  "artifact_ref":"<relative path to full artifact>"
+}
+```
+
+Summaries are written via `store-cli set-summary <taskId> <phase> <summaryFile>`. Old tasks that lack summaries continue to work — the orchestrator falls back to injecting the full artifact path.
+
 For commands related to tasks, see the [Commands Reference](../commands/INDEX.md).

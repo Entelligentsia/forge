@@ -74,8 +74,18 @@ workflow in `.forge/workflows/`. Work from a single collected list:
    ```
    On exit 1, surface the stderr message (it includes the offending file
    path) and continue — the pack is refreshable later via `/forge:regenerate`.
-6. Emit: `〇 forge:materialize complete — gaps filled (mode unchanged)`
-7. If `.forge/config.json` `mode` is still `"fast"`, append the promotion hint:
+6. Rebuild the architecture context pack:
+   ```sh
+   ENGINEERING=$(node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo engineering)
+   node "$FORGE_ROOT/tools/build-context-pack.cjs" \
+     --arch-dir "$ENGINEERING/architecture" \
+     --out-md .forge/cache/context-pack.md \
+     --out-json .forge/cache/context-pack.json
+   ```
+   On exit 1 (architecture directory not yet present), emit a warning and
+   continue — the pack can be built later via `/forge:regenerate`.
+7. Emit: `〇 forge:materialize complete — gaps filled (mode unchanged)`
+8. If `.forge/config.json` `mode` is still `"fast"`, append the promotion hint:
    ```
    〇 To declare the project fully generated: /forge:config mode full
    ```
