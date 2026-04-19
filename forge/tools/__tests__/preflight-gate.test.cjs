@@ -199,6 +199,56 @@ describe('preflight-gate.cjs :: preflight()', () => {
     assert.equal(r.status, 2);
   });
 
+  test('CLI shim finds phase gates in a non-meta-named workflow file', () => {
+    const { spawnSync } = require('node:child_process');
+    const tool = path.resolve(__dirname, '..', 'preflight-gate.cjs');
+
+    const dir = tmpdir();
+    const workflowsDir = path.join(dir, '.forge', 'workflows');
+    fs.mkdirSync(workflowsDir, { recursive: true });
+    fs.writeFileSync(path.join(workflowsDir, 'orchestrate_task.md'), [
+      '# Orchestrate Task Workflow',
+      '',
+      '```gates phase=plan',
+      'forbid task.status == completed',
+      '```',
+    ].join('\n'));
+
+    const r = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'plan', '--task', 'T1'],
+      { encoding: 'utf8', cwd: dir },
+    );
+
+    // Should NOT exit 2 ("could not locate workflow file") — gate is found so exit 0 or 1
+    assert.notEqual(r.status, 2, `Expected phase to be found, got: ${r.stderr}`);
+  });
+
+  test('CLI shim exits 2 when no workflow file contains the requested phase', () => {
+    const { spawnSync } = require('node:child_process');
+    const tool = path.resolve(__dirname, '..', 'preflight-gate.cjs');
+
+    const dir = tmpdir();
+    const workflowsDir = path.join(dir, '.forge', 'workflows');
+    fs.mkdirSync(workflowsDir, { recursive: true });
+    fs.writeFileSync(path.join(workflowsDir, 'orchestrate_task.md'), [
+      '# Workflow',
+      '',
+      '```gates phase=implement',
+      'forbid task.status == completed',
+      '```',
+    ].join('\n'));
+
+    const r = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'plan', '--task', 'T1'],
+      { encoding: 'utf8', cwd: dir },
+    );
+
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /could not locate/);
+  });
+
   test('multiple failures are all reported, not just the first', () => {
     const dir = tmpdir();
     const workflowMd = [

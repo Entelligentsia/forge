@@ -11,6 +11,16 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.18.1] — 2026-04-19
+
+**Bug fix: `preflight-gate` workflow discovery works correctly in user projects.**
+
+`preflight-gate.cjs` was searching for workflow files using two hardcoded filenames (`meta-orchestrate.md`, `meta-fix-bug.md`) that only exist in the Forge development dogfooding environment. In user projects these files are absent, causing `preflight-gate` to always exit with "could not locate workflow file" (exit 2) regardless of which phases were defined. It also used a `## Phase: <name>` heading pattern that never matched — workflows define gates via ` ```gates phase=<name>` fence labels. The fix scans all `.md` files under `.forge/workflows/` and matches on the correct fence-label pattern.
+
+**Regenerate:** run `/forge:update` to get the updated `preflight-gate.cjs`.
+
+---
+
 ## [0.18.0] — 2026-04-19
 
 **Write-boundary schema enforcement: agents can write Forge-owned JSON directly with `Write` / `Edit` / `MultiEdit`, but every such write is schema-validated at the filesystem boundary by a new `PreToolUse` hook.**

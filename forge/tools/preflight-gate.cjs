@@ -195,19 +195,18 @@ function safe(fn) {
   try { return fn(); } catch (_) { return null; }
 }
 
-function loadWorkflowMarkdown(_phaseName) {
-  // Search the dogfooded/installed workflows for one containing a `## Phase: <name>` heading.
-  const candidates = [
-    path.resolve(process.cwd(), '.forge/workflows/meta-orchestrate.md'),
-    path.resolve(process.cwd(), '.forge/workflows/meta-fix-bug.md'),
-  ];
-  for (const c of candidates) {
-    if (fs.existsSync(c)) {
-      const md = fs.readFileSync(c, 'utf8');
-      if (new RegExp(`^##\\s+Phase:\\s+${escapeRegex(_phaseName)}\\s*$`, 'm').test(md)) {
-        return md;
-      }
-    }
+function loadWorkflowMarkdown(phaseName) {
+  const workflowsDir = path.resolve(process.cwd(), '.forge/workflows');
+  let entries;
+  try {
+    entries = fs.readdirSync(workflowsDir).filter((f) => f.endsWith('.md'));
+  } catch (_) {
+    return null;
+  }
+  const fencePattern = new RegExp('^```gates\\s+phase=' + escapeRegex(phaseName) + '\\s*$', 'm');
+  for (const entry of entries) {
+    const md = fs.readFileSync(path.join(workflowsDir, entry), 'utf8');
+    if (fencePattern.test(md)) return md;
   }
   return null;
 }

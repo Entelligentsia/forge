@@ -1,4 +1,12 @@
 {
+  "0.18.0": {
+    "version": "0.18.1",
+    "date": "2026-04-19",
+    "notes": "Bug fix: preflight-gate.cjs now scans all .forge/workflows/*.md files for gates phase blocks instead of looking only for two hardcoded meta-*.md filenames that only exist in the Forge development environment.",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": []
+  },
   "0.17.1": {
     "version": "0.18.0",
     "date": "2026-04-19",
