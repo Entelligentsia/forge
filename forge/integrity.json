@@ -1,6 +1,6 @@
 {
-  "version": "0.14.1",
-  "generated": "2026-04-18",
+  "version": "0.15.0",
+  "generated": "2026-04-19",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
     "commands/add-pipeline.md": "d917d987954c370ee119bf7c8419af7ef115c4fac0aad45f77f7979b49f1b459",

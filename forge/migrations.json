@@ -1,4 +1,12 @@
 {
+  "0.14.1": {
+    "version": "0.15.0",
+    "date": "2026-04-19",
+    "notes": "Gate-check enforcement. Orchestrator and atomic phase workflows now run preflight-gate.cjs before every subagent spawn and parse verdicts via parse-verdict.cjs (closed vocabulary). Missing artifacts, forbidden states, and malformed verdicts halt loudly with structured events instead of silently advancing. No schema changes.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
   "0.14.0": {
     "version": "0.14.1",
     "date": "2026-04-18",

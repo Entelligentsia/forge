@@ -11,6 +11,26 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.15.0] — 2026-04-19
+
+**Gate-check enforcement: orchestrator and atomic phase workflows halt loudly on missing prerequisites and malformed verdicts.**
+
+The orchestrator's documented invariant — *"YOU MUST NOT advance a phase until its gate checks pass"* — was documentation-only. The algorithm never actually validated prerequisites before spawning a subagent, and verdict detection was a raw `**Verdict:**` pattern match that silently misclassified typos and prose drift as "approved". Symptoms: phantom revisions, stub `PLAN.md` files treated as real, subagents "succeeding" on empty inputs.
+
+This release ships a declarative gate layer:
+
+- **`parse-verdict.cjs`** — closed verdict vocabulary (`approved`, `revision`, null). Unknown values never silently classify as approved. CLI shim exits 0/1/2 so both the orchestrator and manual users can script around it.
+- **`parse-gates.cjs`** — minimal, dep-free DSL for per-phase gate declarations. Gates live in `` ```gates phase=<name> `` fenced blocks inside each meta-workflow. Grammar: `artifact`, `require`, `forbid`, `after`. Unknown directives throw with line numbers.
+- **`preflight-gate.cjs`** — pure function + CLI shim that evaluates a phase's declared gates against the current task/bug state. Pre-spawn check returns `{ok, missing[]}` with every failure enumerated, not just the first.
+- **Orchestrator + atomic workflows wired.** `meta-orchestrate.md` and `meta-fix-bug.md` run `preflight-gate.cjs` before every subagent spawn and use `parse-verdict.cjs` in place of ad-hoc string matching. Atomic workflows (`meta-plan-task`, `meta-implement`, `meta-review-plan`, `meta-review-implementation`, `meta-approve`, `meta-commit`, `meta-validate`) gain a "0. Pre-flight Gate Check" step so that users invoking `/plan`, `/implement`, etc. directly also hit the safety net.
+- **Structural invariant test.** `phase-workflow-guards.test.cjs` fails the build if any phase workflow is added that forgets the preflight invocation.
+
+Per-phase gates now declared: PLAN.md existence + size floor before `implement` and `review-plan`; predecessor verdict chains across `implement → review-code → approve → commit`; status-based guards on `plan` and `implement`. Adjusting a gate is a data change — edit the `gates` block, regenerate workflows.
+
+**Regenerate:** `workflows` — run `/forge:update` to pull in the new gate-aware meta-workflows.
+
+---
+
 ## [0.14.1] — 2026-04-18
 
 **collate now generates Sprint, Task, and Bug INDEX.md files — fixing broken knowledge graph links.**
