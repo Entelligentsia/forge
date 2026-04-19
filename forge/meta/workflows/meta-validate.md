@@ -21,6 +21,14 @@ The Supervisor performs a final validation of the implementation against the acc
 ## Algorithm
 
 ```
+
+0. Pre-flight Gate Check:
+   - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
+   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase validate --task {taskId}`
+   - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
+   - Exit 2 (misconfiguration) → print stderr and HALT.
+   - Exit 0 → continue.
+
 1. Load Context:
    - Read task prompt
    - Read approved PLAN.md

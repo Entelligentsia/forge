@@ -21,6 +21,14 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
 ## Algorithm
 
 ```
+
+0. Pre-flight Gate Check:
+   - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
+   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase plan --task {taskId}`
+   - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
+   - Exit 2 (misconfiguration) → print stderr and HALT.
+   - Exit 0 → continue.
+
 1. Load Context:
    - Read task prompt (source of truth)
    - Read architecture docs and business domain docs relevant to the task

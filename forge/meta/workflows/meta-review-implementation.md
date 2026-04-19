@@ -25,6 +25,14 @@ YOU MUST evaluate the code against the approved PLAN.md and the original task pr
 ## Algorithm
 
 ```
+
+0. Pre-flight Gate Check:
+   - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
+   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase review-code --task {taskId}`
+   - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
+   - Exit 2 (misconfiguration) → print stderr and HALT.
+   - Exit 0 → continue.
+
 1. Load Context:
    - Read task prompt
    - Read approved PLAN.md

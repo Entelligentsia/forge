@@ -21,6 +21,14 @@ Seal a completed and approved task by committing its artifacts to the VCS and up
 ## Algorithm
 
 ```
+
+0. Pre-flight Gate Check:
+   - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
+   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase commit --task {taskId}`
+   - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
+   - Exit 2 (misconfiguration) → print stderr and HALT.
+   - Exit 0 → continue.
+
 1. Load Context:
    - Read task manifest
    - Read ARCHITECT_APPROVAL.md
