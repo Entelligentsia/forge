@@ -6,6 +6,7 @@
   "required": ["taskId", "sprintId", "title", "status", "path"],
   "properties": {
     "taskId":               { "type": "string" },
+    "feature_id":           { "type": ["string", "null"] },
     "sprintId":             { "type": "string" },
     "title":                { "type": "string" },
     "description":          { "type": "string" },
@@ -24,8 +25,7 @@
     "planIterations":       { "type": "integer", "minimum": 0 },
     "codeReviewIterations": { "type": "integer", "minimum": 0 },
     "assignedModel":        { "type": "string" },
-    "pipeline":             { "type": "string" },
-    "feature_id":           { "type": ["string", "null"] }
+    "pipeline":             { "type": "string" }
   },
   "additionalProperties": false
 }

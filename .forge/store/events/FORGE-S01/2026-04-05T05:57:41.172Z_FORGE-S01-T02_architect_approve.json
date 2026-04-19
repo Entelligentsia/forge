@@ -4,7 +4,6 @@
   "taskId": "FORGE-S01-T02",
   "phase": "architect_approve",
   "model": "claude-opus-4-6",
-  "timestamp": "2026-04-05T05:57:41.172Z",
   "endTimestamp": "2026-04-05T05:57:41.172Z",
   "durationMinutes": 1,
   "notes": "Architect approval granted. Comment-only change; no functional impact. Version bump deferred to T08.",

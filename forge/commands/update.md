@@ -1,4 +1,5 @@
 ---
+name: update
 description: Check for Forge updates, review changes, install, and apply migrations — all in one command
 ---
 
@@ -17,18 +18,112 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 Detect install mode:
 
 ```
-IS_CANARY = FORGE_ROOT does not contain "/.claude/plugins/cache/"
+IS_CANARY = FORGE_ROOT does not contain "/.claude/plugins/"
 ```
 
-- **Marketplace install** (`IS_CANARY = false`): plugin lives in the Claude Code
-  cache and is updated via the plugin manager.
-- **Canary / source install** (`IS_CANARY = true`): plugin is loaded directly
-  from a local source directory. The source is already at the correct version —
-  there is nothing to install. Only migration steps apply.
+- **Managed install** (`IS_CANARY = false`): plugin lives under the Claude Code
+  plugins directory (either `/.claude/plugins/cache/` or
+  `/.claude/plugins/marketplaces/`). Updated via the plugin manager.
+- **Canary / source install** (`IS_CANARY = true`): FORGE_ROOT is outside the
+  Claude Code plugins directory — a local source path (e.g. `/home/user/src/forge/forge`).
+  The source is already at the correct version — there is nothing to install.
+  Only migration steps apply.
+
+---
+
+## Model-alias auto-suppression pre-check
+
+**Reusable sub-procedure — invoked from Steps 2A, 2B, and 4 after
+aggregating `manual` items.**
+
+When a migration chain includes the 0.6.13→0.7.0 step (or any step whose
+`manual` list contains an item about custom model overrides), this pre-check
+determines whether that manual item is a false positive for the current
+project and removes it if so.
+
+### Procedure
+
+After the aggregation step has produced the `manual` list (and `breaking`
+flag), but **before** displaying the breaking-change block or prompting for
+confirmation:
+
+1. **Identify model-override manual items.** Scan the aggregated `manual`
+   list for any item whose text contains the substring
+   `custom 'model' overrides in config.pipelines`. If none found, skip this
+   entire sub-procedure — nothing to suppress.
+
+2. **Read `.forge/config.json`.** If the file does not exist, or if it
+   contains no `pipelines` key, or if `pipelines` is empty — there are no
+   custom model overrides. Remove the matching manual item(s) and jump to
+   step 4 below.
+
+3. **Scan pipeline phases.** For every pipeline in `config.pipelines`, for
+   every phase that has a `model` field, classify the value:
+   - **Standard Forge aliases:** `sonnet`, `opus`, `haiku`
+   - **Non-standard:** anything else (e.g. raw model IDs like
+     `claude-3-opus`, `claude-sonnet-4-6`, or unknown aliases)
+
+   If **all** `model` values across all pipelines are standard aliases or
+   absent (no `model` field on the phase), the model-override manual item is
+   a false positive. Remove it from `manual`.
+
+   If **any** non-standard `model` value is found, the manual item is
+   legitimate — keep it in `manual` and do not suppress the confirmation.
+
+4. **Re-evaluate `breaking` flag.** After removing model-override items, if
+   `manual` is now empty, set `breaking = false` for the current step's
+   display/confirmation logic. A breaking-change section with zero manual
+   items must not be shown.
+
+### Result
+
+The `manual` list and `breaking` flag are updated in-place. The calling step
+then renders its summary and confirmation prompts using the filtered values —
+no further changes to the step logic are needed.
+
+---
+
+## Progress Output Format
+
+Open the run with the ember hero, then a subtitle:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" ember
+node "$FORGE_ROOT/tools/banners.cjs" --subtitle "Updating Forge — checking remote, applying migrations, verifying state"
+```
+
+At the start of each step, emit a step header via `banners.cjs --phase`:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase {N} 7 "{Step Name}" {bannerKey} \
+  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+```
+
+Step ↔ banner key map:
+
+| Step | Name | Banner key |
+|------|------|------------|
+| 1 | Check for updates | `north` |
+| 2A | Plugin update available | `rift` |
+| 2B | Apply project migrations | `drift` |
+| 3 | Verify installation | `lumen` |
+| 4 | Apply migrations | `forge` |
+| 5 | Pipeline audit | `oracle` |
+| 6 | Record state | `drift` |
+| 7 | Tomoshibi | `lumen` |
+
+The `--phase` helper replaces the older `━━━ Step N/7 — <name> ━━━` emits
+— do not emit a second em-dash banner after the helper. `banners.cjs`
+strips ANSI in `NO_COLOR` / non-tty / `--plain` contexts.
 
 ---
 
 ## Step 1 — Check for updates
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 1 7 "Check for updates" north \
+  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+```
 
 Read `$FORGE_ROOT/.claude-plugin/plugin.json`. Extract `"version"` → `LOCAL_VERSION`.
 
@@ -38,6 +133,7 @@ marketplace name and is more reliable than reading fields from `plugin.json`:
 | FORGE_ROOT contains | Distribution |
 |---------------------|-------------|
 | `/cache/skillforge/forge/` | `forge@skillforge` |
+| `/marketplaces/skillforge/forge/` | `forge@skillforge` |
 | anything else | `forge@forge` / canary |
 
 For **both** distributions, resolve `UPDATE_URL` and `MIGRATIONS_URL` from the
@@ -105,6 +201,11 @@ Now evaluate — **stop at the first matching row and follow only that row's act
 
 ## Step 2A — Plugin update available
 
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 2 7 "Plugin update available" rift \
+  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+```
+
 > **Only reached when `REMOTE_VERSION` != `LOCAL_VERSION` (row 4 above).**
 
 Fetch the **remote** migrations manifest from GitHub:
@@ -116,7 +217,7 @@ URL: {MIGRATIONS_URL}
 Parse the response JSON. Walk the migration chain from `LOCAL_VERSION` forward
 to `REMOTE_VERSION`. Aggregate across all steps:
 - Union of all `regenerate` targets, applying the dominance rule: for each
-  category (`workflows`, `knowledge-base`, `commands`), if any step lists a
+  category (`workflows`, `knowledge-base`, `commands`, `tools`), if any step lists a
   bare category name (e.g. `"workflows"`), that category is flagged for full
   rebuild. If all steps for a category use sub-targets (e.g.
   `"workflows:plan_task"`), collect the union of those sub-targets
@@ -124,6 +225,10 @@ to `REMOTE_VERSION`. Aggregate across all steps:
 - Concatenated `notes` (one line per step)
 - `breaking: true` if any step is breaking
 - Union of all `manual` items
+
+**Run the Model-alias auto-suppression pre-check** (see section above)
+on the aggregated `manual` list and `breaking` flag before displaying
+the summary below.
 
 Present the update summary:
 
@@ -192,6 +297,11 @@ Wait for the user to confirm the install completed.
 
 ## Step 2B — Project migration pending (plugin already current)
 
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 2 7 "Apply project migrations" drift \
+  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+```
+
 > **Only reached from rows 2 or 3 — the plugin is already at the right version.**
 > **Do NOT show an install prompt here. There is nothing to install.**
 
@@ -199,7 +309,7 @@ Read `$FORGE_ROOT/migrations.json` (local).
 
 Walk the migration chain from `baseline` forward to `LOCAL_VERSION`. Aggregate:
 - Union of all `regenerate` targets, applying the dominance rule: for each
-  category (`workflows`, `knowledge-base`, `commands`), if any step lists a
+  category (`workflows`, `knowledge-base`, `commands`, `tools`), if any step lists a
   bare category name (e.g. `"workflows"`), that category is flagged for full
   rebuild. If all steps for a category use sub-targets (e.g.
   `"workflows:plan_task"`), collect the union of those sub-targets
@@ -207,6 +317,10 @@ Walk the migration chain from `baseline` forward to `LOCAL_VERSION`. Aggregate:
 - Concatenated `notes`
 - `breaking: true` if any step is breaking
 - Union of all `manual` items
+
+**Run the Model-alias auto-suppression pre-check** (see section above)
+on the aggregated `manual` list and `breaking` flag before printing
+the summary below.
 
 Print:
 
@@ -244,6 +358,11 @@ Then jump to **Step 4** to execute the regeneration.
 
 ## Step 3 — Verify installation
 
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 3 7 "Verify installation" lumen \
+  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+```
+
 After the user confirms the install:
 
 Re-read the local plugin version:
@@ -259,9 +378,31 @@ $FORGE_ROOT/.claude-plugin/plugin.json   →   extract "version"   →   NEW_LOC
 
 Update `LOCAL_VERSION` to `NEW_LOCAL_VERSION` for subsequent steps.
 
+### Re-derive FORGE_ROOT
+
+After verifying the new version, re-derive `FORGE_ROOT`. A managed plugin
+install changes the cache path (e.g. `…/cache/forge/forge/0.9.6/` →
+`…/cache/forge/forge/0.9.9/`), so the `FORGE_ROOT` captured at the top of
+this command is stale.
+
+```sh
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+```
+
+If the re-derived `FORGE_ROOT` differs from the original value, print:
+> 〇 FORGE_ROOT updated: {old} → {new}
+
+If `IS_CANARY` is true, `FORGE_ROOT` never changes (it is a local source
+path) — skip the re-derivation and keep the original value.
+
 ---
 
 ## Step 4 — Apply migrations
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 4 7 "Apply migrations" forge \
+  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+```
 
 Determine the baseline version:
 - Use `migratedFrom` from `CACHE_FILE` (set in Step 1)
@@ -300,12 +441,35 @@ Walk the migration chain from baseline forward to `LOCAL_VERSION`:
   Then exit.
 
 Aggregate across all steps in the path, applying the dominance rule:
-- For each category (`workflows`, `knowledge-base`, `commands`):
+- For each category (`workflows`, `knowledge-base`, `commands`, `tools`):
   - If ANY step has a bare entry for this category → full rebuild for that category.
   - Otherwise → union of all sub-targets across all steps (deduplicated, order preserved).
 - Concatenated `notes` (one line per step)
 - `breaking: true` if any step is breaking
 - Union of all `manual` items
+
+**Run the Model-alias auto-suppression pre-check** (see section above)
+on the aggregated `manual` list and `breaking` flag before displaying
+the confirmation prompt below.
+
+### Regeneration order
+
+Execute regeneration targets in this order:
+
+| Order | Target | Can run after |
+|-------|--------|---------------|
+| 1 | `tools` | — (independent) |
+| 2 | `workflows` | — (independent) |
+| 3 | `templates` | — (independent) |
+| 4 | `personas` | — (independent) |
+| 5 | `commands` | Must run after `workflows` |
+| 6 | `knowledge-base` sub-targets | — (independent) |
+
+`commands` depends on `workflows` because command wrappers reference workflow
+filenames. All other targets are independent and could run in parallel, but
+are executed sequentially here to keep the output readable.
+
+Only execute targets that appear in the aggregated result — skip absent ones.
 
 ### Confirm and regenerate
 
@@ -341,16 +505,65 @@ reading and following `$FORGE_ROOT/commands/regenerate.md`:
 - If sub-targets collected: invoke `/forge:regenerate <category> <sub-target>`
   for each sub-target in order
 
-Run non-knowledge-base targets first (workflows, templates, commands), then
-knowledge-base sub-targets if present.
+**Category-to-command mapping:** most categories are handled by
+`/forge:regenerate`, but the `tools` category is special. When `tools`
+appears in the aggregated result, invoke `/forge:update-tools` instead of
+`/forge:regenerate tools`. The update-tools command copies JSON schemas from
+`$FORGE_ROOT/schemas/` to `.forge/schemas/` and validates the store. It does
+not use the regeneration framework — tools ship with the plugin and are invoked
+directly via `$FORGE_ROOT/tools/`.
+
+Run non-knowledge-base targets first (workflows, templates, commands, tools),
+then knowledge-base sub-targets if present.
+
+**Sub-target filename resolution:** a sub-target like `architect_sprint_plan`
+maps to the file `.forge/workflows/architect_sprint_plan.md` — append `.md`
+to the sub-target name as written. Do NOT strip any prefix or suffix.
+
+### Post-migration structure check
+
+After all regeneration targets complete, run:
+```sh
+node "$FORGE_ROOT/tools/check-structure.cjs" --path .
+```
+
+If exit 0 (all present):
+> 〇 All expected generated files are present.
+
+If exit 1 (gaps remain):
+> △ Structure check: N file(s) still missing after migration:
+>   (list missing files)
+>
+> This may indicate a failed regeneration step. Re-run `/forge:regenerate <namespace>`
+> for each affected namespace, or `/forge:regenerate` to rebuild all targets.
+> Note: skills entries require an explicit `/forge:regenerate skills` — they are not
+> included in the default regenerate run.
+
+Do NOT block migration success on gaps — surface them as a warning only. The user
+is already informed of failed regeneration steps by the Iron Laws above; this check
+is an additional safety net.
+
+### Iron Laws for Step 4
+
+- YOU MUST NOT call `generation-manifest.cjs record` directly for migration targets.
+  The regenerate command records hashes after writing — calling record on a file that
+  has not been regenerated yet produces a stale hash and silently corrupts the manifest.
+- YOU MUST NOT inline the regeneration. Read `$FORGE_ROOT/commands/regenerate.md`
+  and follow it as the authoritative procedure for every target.
+- YOU MUST NOT declare success if any regeneration step errors. Surface the error
+  to the user and stop. Do not continue to Step 5 with a failed regeneration.
 
 ---
 
-## Step 5 — Custom pipeline command audit
+## Step 5 — Pipeline and configuration audit
 
-This step runs whenever pipelines are configured. It detects non-standard phase
-commands and offers targeted, per-item improvements with explicit confirmation
-at every point. **Nothing is written without the user saying yes.**
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 5 7 "Pipeline audit" oracle \
+  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+```
+
+Runs on every update. Collects all findings first, then presents a single
+consolidated prompt. **Nothing is written without the user saying yes.**
 
 ### 5a — Locate tools
 
@@ -364,58 +577,67 @@ All tools are invoked directly from the plugin:
 
 If `.forge/config.json` does not exist, skip this step and proceed to **Step 6**.
 
-### 5b-pre — Check for retired generated files
+### 5b-collect — Run all sub-checks silently
 
-This step runs on every update, regardless of version. It checks for known
-retired filenames that Forge no longer generates. These may exist on any
-project that was initialised before a rename — including projects that ran
-a prior update before this check was added.
+Run each sub-check without prompting. Accumulate findings into an `AUDIT_ITEMS`
+list. Each item has:
 
-Check both slash commands (`.claude/commands/`) and workflow files
-(`.forge/workflows/`).
+| Field | Description |
+|-------|-------------|
+| `type` | `delete-command`, `delete-workflow`, `update-pipeline-cmd`, `legacy-model-field`, `add-workflow-field`, `add-persona-symbol`, `add-paths-key`, `missing-command-file`, `add-gitignore-entry` |
+| `label` | Human-readable one-line description |
+| `action` | What will be done if approved |
+| `path` | File or pipeline affected |
+| `modified` | `true` if user edits detected (from manifest check); `false` otherwise |
+| `required` | `true` for items requiring confirmation; `false` for auto-applied or advisory items |
 
-#### Old command files
+**Item classification:**
 
-The retired list is **exact** — only these two files, nothing else:
+| Type | `required` | `modified` can be true? | Notes |
+|------|-----------|------------------------|-------|
+| `delete-command` | true | yes (△) | Retired command file |
+| `delete-workflow` | true | yes (△) | Retired workflow file |
+| `update-pipeline-cmd` | true | no | Retired command name in pipeline config |
+| `legacy-model-field` | false | no | Auto-migrated by regeneration |
+| `add-workflow-field` | true | no | Missing workflow field in pipeline phase |
+| `add-persona-symbol` | false | no | Optional decoration |
+| `add-paths-key` | true | no | Missing config key |
+| `missing-command-file` | false | no | Advisory only |
+| `add-gitignore-entry` | true | no | Transient store path not gitignored |
+
+Items where `modified: true` must be flagged with `△` in the label.
+
+**Sub-checks to run silently** (logic unchanged from previous Step 5, just no
+prompts — accumulate items instead):
+
+**5b-pre — Retired generated files.** Check both `.claude/commands/` and
+`.forge/workflows/` for retired filenames.
+
+Old command files (exact match only):
 - `engineer.md` → retired in favour of `plan.md`
 - `supervisor.md` → retired in favour of `review-plan.md` / `review-code.md`
 
-Do NOT match partial names, prefixes, or variants (`supervisor-code.md`,
-`engineer-security.md`, etc.) — those are custom commands and must not be touched.
+Do NOT match partial names, prefixes, or variants — those are custom commands.
 
-For each filename in the retired list, check if the file exists:
-
-```sh
-ls .claude/commands/{old-name}.md 2>/dev/null
-```
-
-For each found file, determine whether it is pristine or user-modified:
-
+For each found command file, check manifest status:
 ```sh
 node "$FORGE_ROOT/tools/generation-manifest.cjs" check .claude/commands/{old-name}.md
 ```
 
-Report and offer:
+- Pristine/untracked → add item: `type: delete-command`, `modified: false`,
+  `path: .claude/commands/{old-name}.md`,
+  `label: ".claude/commands/{old-name}.md — retired name, safe to remove"`,
+  `action: "Delete old file"`
+- Modified (exit 1) → add item: `type: delete-command`, `modified: true`,
+  `path: .claude/commands/{old-name}.md`,
+  `label: "△ .claude/commands/{old-name}.md — retired name, user edits detected. Merge into {new-name}.md before deleting"`,
+  `action: "Delete old file after merge"`
+- Manifest tool absent → add item: `type: delete-command`, `modified: false`,
+  `path: .claude/commands/{old-name}.md`,
+  `label: ".claude/commands/{old-name}.md — retired name, cannot verify modifications"`,
+  `action: "Delete old file"`
 
-**If pristine (exit 0) or untracked:**
-> 〇 `.claude/commands/{old-name}.md` — generated file, no user edits detected.
->    This file was renamed to `{new-name}.md` in a recent Forge update.
->    Safe to remove. Delete it? (yes / no)
-
-**If modified (exit 1):**
-> △ `.claude/commands/{old-name}.md` — manually modified since generation.
->    This file was renamed to `{new-name}.md` but contains your edits.
->    Review your changes and merge them into `.claude/commands/{new-name}.md` manually.
->    Delete the old file after migrating? (yes / no)
-
-**If generation-manifest tool is absent** — cannot verify; always ask before deleting:
-> ── `.claude/commands/{old-name}.md` exists.
->    This file was renamed to `{new-name}.md`. Cannot verify if it has been modified.
->    Delete it? (yes / no / show contents)
-
-#### Old workflow files
-
-For each filename in the **old workflow name list**, check if it exists:
+Old workflow files:
 
 ```
 engineer_plan_task.md        → renamed to plan_task.md
@@ -428,40 +650,37 @@ supervisor_review_plan.md    → renamed to review_plan.md
 supervisor_review_implementation.md → renamed to review_code.md
 ```
 
-```sh
-ls .forge/workflows/{old-name}.md 2>/dev/null
-```
-
-For each found file, check manifest status:
-
+For each found workflow file, check manifest status:
 ```sh
 node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/workflows/{old-name}.md
 ```
 
-**If pristine or untracked:**
-> 〇 `.forge/workflows/{old-name}.md` — generated file, no user edits.
->    The orchestrator now reads `.forge/workflows/{new-name}.md` instead.
->    Safe to remove. Delete it? (yes / no)
+- Pristine/untracked → add item: `type: delete-workflow`, `modified: false`,
+  `path: .forge/workflows/{old-name}.md`,
+  `label: ".forge/workflows/{old-name}.md — retired workflow, safe to remove"`,
+  `action: "Delete old workflow"`
+- Modified (exit 1) → add item: `type: delete-workflow`, `modified: true`,
+  `path: .forge/workflows/{old-name}.md`,
+  `label: "△ .forge/workflows/{old-name}.md — retired workflow, user edits detected"`,
+  `action: "Delete old workflow after merge"`
+- Manifest tool absent → add item: `type: delete-workflow`, `modified: false`,
+  `path: .forge/workflows/{old-name}.md`,
+  `label: ".forge/workflows/{old-name}.md — retired workflow, cannot verify modifications"`,
+  `action: "Delete old workflow"`
 
-**If modified (exit 1):**
-> △ `.forge/workflows/{old-name}.md` — manually modified since generation.
->    The orchestrator now uses `.forge/workflows/{new-name}.md`.
->    Merge your changes into the new file before deleting.
->    Delete the old file? (yes / no)
+**5b-portability — Legacy model fields in workflows.** Scan all `.md` files
+in `.forge/workflows/` for the pattern `^model:\s+.+$` (multiline).
 
-**If generation-manifest tool is absent:**
-> ── `.forge/workflows/{old-name}.md` exists. Cannot verify if modified.
->    Delete it? (yes / no / show contents)
+For each file containing legacy `model:` fields, add item:
+`type: legacy-model-field`, `required: false`,
+`path: .forge/workflows/{filename}`,
+`label: ".forge/workflows/{filename} — legacy model: field detected"`,
+`action: "Will be auto-migrated by /forge:regenerate workflows"`
 
-Never delete without explicit confirmation.
+**5b-rename — Retired command names in pipeline config.** Scan every configured
+pipeline for phases that use retired built-in command names.
 
-### 5b-rename — Rename retired built-in command names in pipeline config
-
-This step runs on every update. Scan every configured pipeline for phases
-that use retired built-in command names. These were renamed in 0.5.0 but
-`config.json` is never auto-rewritten — the update must offer to fix them.
-
-**Retired command name map** (command → replacement, derived from the phase `role`):
+Retired command name map:
 
 | Retired command | Role | Replacement |
 |----------------|------|-------------|
@@ -479,216 +698,266 @@ For each pipeline, read its full phase list:
 node "$FORGE_ROOT/tools/manage-config.cjs" pipeline get {NAME}
 ```
 
-Collect every phase where `command` is `engineer` or `supervisor`.
-If none found across all pipelines, skip to **Step 5b**.
+For each phase with a retired command, add item:
+`type: update-pipeline-cmd`, `required: true`,
+`path: pipeline "{name}" phase {N}`,
+`label: "pipeline \"{name}\" phase {N} — command \"{cmd}\" is retired"`,
+`action: "Rename command to \"{replacement}\""`
 
-For each affected pipeline, show a diff preview of all changes at once:
+Do not match custom commands like `supervisor-code` or `engineer-security`.
 
-> ── Pipeline `{name}` — {N} phase(s) use retired command names:
->
-> ```diff
-> - {"command": "engineer",  "role": "plan",        "model": "sonnet"}
-> + {"command": "plan",      "role": "plan",        "model": "sonnet"}
->
-> - {"command": "supervisor","role": "review-plan", "model": "opus"}
-> + {"command": "review-plan","role": "review-plan","model": "opus"}
-> ```
->
-> Update this pipeline? (yes / no)
-
-If yes: reconstruct the full phases JSON with the renamed commands and write:
-```sh
-node "$FORGE_ROOT/tools/manage-config.cjs" pipeline add {NAME} --description "{desc}" --phases '{updated_phases_json}'
-```
-
-Print `〇 Pipeline '{name}' updated.` on success.
-
-Do not rename any command that is not in the retired list above — custom
-commands like `supervisor-code` or `engineer-security` are left as-is.
-
-### 5b — Check whether pipelines exist
-
-```sh
-node "$FORGE_ROOT/tools/manage-config.cjs" list-pipelines 2>/dev/null
-```
-
-If no pipelines are configured, skip to **Step 6**.
-
-### 5c — Check for `paths.customCommands`
+**5c — Missing `paths.customCommands` key.**
 
 ```sh
 node "$FORGE_ROOT/tools/manage-config.cjs" get paths.customCommands 2>/dev/null
 ```
 
-If the key is missing from config, offer to add it:
+If the key is missing from config, add item:
+`type: add-paths-key`, `required: true`,
+`path: .forge/config.json`,
+`label: "New config field available: paths.customCommands"`,
+`action: "Add paths.customCommands with default \"engineering/commands\""`
 
-> ── New config field available: `paths.customCommands`
->    Default: `"engineering/commands"`
->    This is where `/forge:add-pipeline` places new custom phase command files.
->
->    Add it? (yes / no / use a different path)
+**5d/5e — Custom phase workflow field audit.** For each pipeline, identify
+phases whose `command` is not in the built-in list
+(`plan`, `review-plan`, `implement`, `review-code`, `validate`, `approve`, `commit`).
 
-If yes (or a path was given):
-```sh
-node "$FORGE_ROOT/tools/manage-config.cjs" set paths.customCommands "engineering/commands"
-```
-
-If no, note it and continue — the rest of the audit still runs.
-
-### 5d — Identify non-built-in phase commands
-
-Built-in command names — skip any phase whose `command` matches one of these:
-`plan`, `review-plan`, `implement`, `review-code`, `validate`, `approve`, `commit`
-
-For each pipeline, read its full definition:
-```sh
-node "$FORGE_ROOT/tools/manage-config.cjs" pipeline get {NAME}
-```
-
-Collect every phase where `command` is **not** in the built-in list above.
-Call this the **custom phase list**.
-
-If the custom phase list is empty, print:
-> 〇 No custom phase commands found — nothing to audit.
-
-Then skip to **Step 6**.
-
-### 5e — Audit each custom phase
-
-Work through the custom phase list one at a time. For each entry:
-
-**If `workflow` field is already set** — skip. It is already wired correctly.
-Print: `〇 {pipeline} / phase {N} ({cmd}) — workflow field present, skipping.`
-
-**If `workflow` field is NOT set** — check both standard locations for the file:
+For each custom phase where `workflow` field is NOT set, check both locations:
 ```sh
 ls engineering/commands/{cmd}.md 2>/dev/null && echo "found:engineering"
 ls .claude/commands/{cmd}.md 2>/dev/null && echo "found:claude"
 ```
 
-Display findings:
+- Found in exactly one location → add item:
+  `type: add-workflow-field`, `required: true`,
+  `path: pipeline "{name}" phase {N}`,
+  `label: "pipeline \"{name}\" phase {N} (role: {role}) — no workflow field, file found at {path}"`,
+  `action: "Add workflow field: \"{found_path}\""`
 
-> ── Pipeline `{pipeline}`, phase {N} (role: `{role}`) — command `{cmd}`
->    No `workflow` field set.
->
->    File locations checked:
->    {〇 / △}  engineering/commands/{cmd}.md
->    {〇 / △}  .claude/commands/{cmd}.md
+- Found in both locations → add item:
+  `type: add-workflow-field`, `required: true`,
+  `path: pipeline "{name}" phase {N}`,
+  `label: "pipeline \"{name}\" phase {N} (role: {role}) — no workflow field, file found in two locations"`,
+  `action: "Add workflow field (user chooses which path)"`
 
-Then branch on what was found:
+- Not found → add item:
+  `type: missing-command-file`, `required: false`,
+  `path: command "{cmd}"`,
+  `label: "pipeline \"{name}\" phase {N} — command file missing for \"{cmd}\""`,
+  `action: "Run /forge:add-pipeline to create it, or create manually"`
 
----
+**5g — Transient store gitignore audit.** `.forge/store/events/` accumulates
+one JSON per agent phase per task or bug — these are transient logs that
+should not be committed. Detect projects where the path is not yet ignored.
 
-**Case A — found in exactly one location (`{found_path}`)**
-
-> The orchestrator can read this file directly if a `workflow` field is added.
->
-> Preview:
-> ```
-> pipeline "{pipeline}", phase {N}: add "workflow": "{found_path}"
-> ```
-> Add the `workflow` field? (yes / no)
-
-If yes, invoke:
-```sh
-node "$FORGE_ROOT/tools/manage-config.cjs" pipeline get {pipeline}
-```
-Reconstruct the full phases JSON with the `workflow` field added to phase {N},
-then write:
-```sh
-node "$FORGE_ROOT/tools/manage-config.cjs" pipeline add {pipeline} --description "{desc}" --phases '{updated_phases_json}'
-```
-
----
-
-**Case B — found in both locations**
-
-> The command file exists in two places:
->   1. `engineering/commands/{cmd}.md`
->   2. `.claude/commands/{cmd}.md`
->
-> Which should the `workflow` field point to?
-> (1 / 2 / neither — I'll handle this manually)
-
-On 1 or 2, follow the same write flow as Case A with the chosen path.
-On "neither", skip this phase — no config change.
-
----
-
-**Case C — not found anywhere**
-
-> △ No file found for command `{cmd}`.
->
-> Options:
->   1. Create it now — run `/forge:add-pipeline` after this step and it will guide you
->   2. I'll create it manually and wire it later
->   3. This command is a slash command defined elsewhere — leave as-is
->
-> (1 / 2 / 3)
-
-For option 1: note it. After the audit finishes, remind the user:
-> ── Run `/forge:add-pipeline` to create the missing command file(s) for: {list}
-
-For options 2 and 3: skip, no change.
-
----
-
-### 5f — Offer persona decoration (per-file, preview-first, never automatic)
-
-After the `workflow` audit is complete, check each command file that was found
-for missing persona symbols. Persona decoration is purely cosmetic — it is **always
-optional and always skippable**.
-
-For each found command file:
-
-1. If `MANIFEST_TOOL` is available, check the file's manifest status first:
+1. Check whether the project root has a `.gitignore`:
    ```sh
-   node "$FORGE_ROOT/tools/generation-manifest.cjs" check {filepath}
+   ls .gitignore 2>/dev/null
    ```
-   - Exit 0 (pristine) → file is unmodified; decoration offer is low-risk
-   - Exit 1 (modified) → file has user edits; surface this before offering:
-     > △ `{filepath}` has been manually modified — your edits will be preserved.
-     >    The decoration only adds one line after `## Persona`.
-   - Exit 2 (untracked) → no manifest baseline; offer normally
-2. Read the file.
-3. Find the `## Persona` heading (if any). If absent, skip this file.
-4. Look at the first non-blank line after the heading. If it already begins with
-   one of `🌱 🌿 ⛰️ 🌊 🍂 🍃`, skip — decoration already present.
-5. Otherwise, propose a minimal decoration.
+   If absent, skip this sub-check entirely (no items added — the project is
+   not under git or has no gitignore convention; do not auto-create).
 
-**Derive the decoration:**
-- Symbol — based on the phase role in the pipeline:
-  - `plan` / `implement` / `commit` → 🌱
-  - `review-plan` / `review-code` → 🌿
-  - `approve` → ⛰️
-  - any other → 🌿
-- Announcement line — take the existing first line of the Persona content and
-  convert it to first-person present tense. Do not invent content; work with
-  what is there. Keep it to one quiet sentence.
+2. Read `.gitignore` and search for any of these match strings on a
+   non-comment, non-blank line (literal substring match):
+   - `.forge/store/events/`
+   - `.forge/store/events`
+   - `.forge/store/`
+   - `.forge/`
 
-Show the user a precise diff — only the insertion point:
+   If any match → already ignored, no item added.
 
-> ── `{filepath}` — Persona section found, no symbol line.
->
->    Proposed addition (one line only — nothing else changes):
->
->    ```diff
->      ## Persona
->    + {symbol} **{Project} {name}** — {announcement}
->    
->      {existing first line of persona content...}
->    ```
->
->    Apply? (yes / no / skip all remaining decoration)
+3. If no match → add item:
+   `type: add-gitignore-entry`, `required: true`,
+   `path: .gitignore`,
+   `label: ".gitignore — .forge/store/events/ is not ignored (transient agent event logs)"`,
+   `action: "Append .forge/store/events/ to .gitignore"`
 
-If yes: prepend the symbol line immediately after the `## Persona` heading.
-Touch **nothing else** in the file — not punctuation, not spacing, not other lines.
+This sub-check runs whether or not pipelines are configured — it depends
+only on `.gitignore` and the project's `.forge/` layout (always present
+post-init).
 
-If "skip all remaining decoration": stop offering decoration for subsequent files.
+**5f — Persona decoration.** For each command file found during 5d/5e that
+has a `## Persona` section but no symbol line (first non-blank line after the
+heading does not start with one of `🌱 🌿 ⛰️ 🌊 🍂 🍃`), add item:
+
+Check manifest status:
+```sh
+node "$FORGE_ROOT/tools/generation-manifest.cjs" check {filepath}
+```
+
+- Unmodified → `modified: false`
+- Modified (exit 1) → `modified: true`, flag with `△` in label
+
+`type: add-persona-symbol`, `required: false`,
+`path: {filepath}`,
+`label: "{filepath} — Persona section, no symbol line (optional)"`,
+`action: "Add: {symbol} **{Project} {name}** — {announcement}"`
+
+Symbol is derived from the phase role:
+- `plan` / `implement` / `commit` → 🌱
+- `review-plan` / `review-code` → 🌿
+- `approve` → ⛰️
+- any other → 🌿
+
+**Pipeline gate behavior:** All sub-checks always run. Pipeline-dependent
+sub-checks (5b-rename, 5c, 5d, 5e, 5f) naturally produce zero items when
+no pipelines are configured. Project-wide sub-checks (5b-pre, 5b-portability,
+5g) run regardless of pipeline state. If `.forge/config.json` does not exist,
+Step 5 is skipped entirely (handled by 5a above).
+
+### 5b-present — Present consolidated prompt
+
+If `AUDIT_ITEMS` is empty:
+> 〇 Pipeline audit complete — nothing to update.
+
+Skip to **Step 6**.
+
+If `AUDIT_ITEMS` has entries, separate them into required and optional groups
+and emit:
+
+```
+## Step 5 — Audit (N items)
+
+  [1] △ .claude/commands/supervisor.md — retired name, user edits detected.
+         Merge into review-plan.md before deleting. Delete old file?
+  [2] 〇 .forge/workflows/architect_sprint_plan.md — legacy model: field detected.
+         Will be auto-migrated by /forge:regenerate workflows. No action needed.
+  [3] 〇 pipeline "main" phase 3 — no workflow field.
+         Add: "workflow": "engineering/commands/qa.md"
+  [4] 〇 pipeline "main" phase 4 — command file missing.
+         No file found for command "security-check". Create via /forge:add-pipeline.
+  [5] 〇 engineering/commands/qa.md — Persona section, no symbol line. (optional)
+         Add: 🌿 **QA Engineer** — I validate implementations...
+
+  Apply required? [Y]  Apply all (including optional)? [a]  Review individually [r]  Skip [n]
+```
+
+**Ordering within the list:**
+
+1. Deletion items (`delete-command`, `delete-workflow`) first — highest urgency
+2. Pipeline config updates (`update-pipeline-cmd`, `add-paths-key`) second
+3. Workflow field additions (`add-workflow-field`) third
+4. Gitignore entries (`add-gitignore-entry`) fourth — repo hygiene
+5. Missing file warnings (`missing-command-file`) fifth — always advisory
+6. Legacy model field items (`legacy-model-field`) sixth — auto-applied
+7. Optional decoration items (`add-persona-symbol`) last — marked `(optional)`
+
+**Behavior for each choice:**
+
+---
+
+**[Y] — Apply required items:**
+
+For each item where `required: true`:
+- If `modified: true` (△): prompt individually for that specific item before
+  acting. Use the original prompt text from the corresponding sub-check
+  (5b-pre for deletions, 5b-rename for command renames, 5c for paths key,
+  5e for workflow fields).
+- If `modified: false`: apply automatically, emit `  〇 applied: <label>`
+
+For `legacy-model-field` items (`required: false`): acknowledge automatically,
+emit `  〇 acknowledged: <label>`
+
+For `add-persona-symbol` items: skip, emit
+`  ── skipped: <label> (optional)`
+
+For `missing-command-file` items: emit advisory reminder at the end.
+
+**`add-gitignore-entry` apply rule:** append the following two lines to
+`.gitignore` (preserve existing trailing newline; do not introduce a
+duplicate if either line is already present after a re-read):
+
+```
+# Forge — transient agent event logs (one file per phase, do not commit)
+.forge/store/events/
+```
+
+Touch nothing else in `.gitignore`. Emit `〇 applied: appended .forge/store/events/ to .gitignore`.
+
+After processing, if any optional items were skipped:
+```
+  ── N optional decoration item(s) skipped (re-run with [a] to include, or [r] for individual review)
+```
+
+---
+
+**[a] — Apply all including optional:**
+
+Same as [Y] for all required items, plus apply `add-persona-symbol` items.
+Each decoration is applied by prepending the symbol line immediately after the
+`## Persona` heading in the target file. Touch **nothing else** in the file
+— not punctuation, not spacing, not other lines.
+
+For `modified: true` files targeted for decoration, show the diff before applying:
+```
+  △ {filepath} has been manually modified — your edits will be preserved.
+    The decoration only adds one line after ## Persona.
+```
+
+---
+
+**[r] — Review individually:**
+
+Fall back to the original per-item behavior. Walk through each item in order
+using the existing prompts from the corresponding sub-checks:
+
+- `delete-command` / `delete-workflow` items → follow 5b-pre prompts
+- `legacy-model-field` items → follow 5b-portability acknowledgment prompt
+- `update-pipeline-cmd` items → follow 5b-rename diff preview and confirmation
+- `add-paths-key` items → follow 5c prompt
+- `add-workflow-field` items → follow 5e audit (Case A, B, or C)
+- `missing-command-file` items → follow 5e Case C prompt
+- `add-gitignore-entry` items → confirm append, then write the entry per 5g
+- `add-persona-symbol` items → follow 5f persona decoration prompt
+
+This preserves backward compatibility exactly — each item type uses the same
+prompt text and confirmation flow as the original sub-checks.
+
+---
+
+**[n] — Skip all:**
+
+Emit summary of skipped items:
+```
+  ── N item(s) skipped:
+  ── [1] <label>
+  ── [2] <label>
+  ...
+```
+
+For any `legacy-model-field` items in the skipped list, add:
+```
+  △ Some workflows may not resolve models correctly until regenerated.
+```
+
+Proceed to **Step 6**.
+
+---
+
+### Key behavioral invariants
+
+- `△` items (user-modified files) must never be deleted without explicit confirmation
+  even in bulk-apply mode — if `[Y]` or `[a]` is chosen and an item is `modified: true`,
+  prompt for that specific item before acting
+- `missing-command-file` items are always advisory — never blocked, always result
+  in a reminder at the end
+- `legacy-model-field` items are auto-acknowledged in `[Y]` and `[a]` modes (no
+  individual prompt), but shown in the list for transparency
+- `add-persona-symbol` items are excluded from `[Y]` bulk-apply but included in `[a]`
+- The individual review mode `[r]` must behave identically to the original
+  per-item prompts from 5b-pre, 5b-portability, 5b-rename, 5c, 5e, and 5f
+- If `.forge/config.json` does not exist, Step 5 is skipped entirely
+- If `AUDIT_ITEMS` is empty (no findings at all), print the "nothing to update"
+  message and proceed to Step 6
 
 ---
 
 ## Step 6 — Record state and summarise
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 6 7 "Record state" drift \
+  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+```
 
 **Refresh `paths.forgeRoot` in `.forge/config.json`:**
 
@@ -741,6 +1010,37 @@ Print the final summary:
    • Generated workflows and tools are ready to use
    {if files missing:}• Run /forge:add-pipeline to create missing command file(s){end if}
 ```
+
+**Fast-mode promotion hint.** After printing the summary, read
+`.forge/config.json` `mode`:
+
+```sh
+CURRENT_MODE=$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo "unset")
+```
+
+If `CURRENT_MODE == "fast"`, also emit:
+
+```
+〇 Migration applied in fast mode. Materialized artifacts refreshed; stubs will pick up changes on first use.
+〇 To fully promote: /forge:config mode full
+```
+
+This is informational only — no behavioural change. Do not block on it.
+
+---
+
+## Step 7 — Link KB to Agent Instruction Files
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --phase 7 7 "Tomoshibi" lumen \
+  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+```
+
+Invoke Tomoshibi to ensure every coding-agent instruction file in the project
+has up-to-date links to the Forge knowledge base and generated workflow entry points.
+
+Use the Skill tool:
+  skill: "forge:refresh-kb-links"
 
 ---
 

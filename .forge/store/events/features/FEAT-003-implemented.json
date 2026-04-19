@@ -1,0 +1,16 @@
+{
+  "id": "FEAT-003-implemented",
+  "type": "feature_implemented",
+  "feature_id": "FEAT-003",
+  "timestamp": "2026-04-17T00:00:00Z",
+  "version": "0.12.0",
+  "summary": "Fast-mode init implemented. 37 files created or modified. All 286 tests pass. Security scan clean (0 critical, 0 warnings). Version bumped 0.11.3 → 0.12.0.",
+  "artifacts": [
+    "forge/tools/ensure-ready.cjs",
+    "forge/init/generation/lazy-materialize.md",
+    "forge/commands/materialize.md",
+    "forge/schemas/structure-manifest.json",
+    "forge/schemas/sdlc-config.schema.json",
+    "docs/security/scan-v0.12.0.md"
+  ]
+}

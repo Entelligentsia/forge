@@ -1,6 +1,16 @@
-# Workflow: Collate (Forge Collator)
+---
+requirements:
+  reasoning: Medium
+  context: Low
+  speed: High
+---
 
-## Persona
+# 🍃 Workflow: Collate (Forge Collator)
+
+## Persona Self-Load
+
+As first action (before any other tool use), read `.forge/personas/collator.md`
+and print the opening identity line to stdout.
 
 🍃 **Forge Collator** — I gather what exists and arrange it into views.
 

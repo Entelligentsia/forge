@@ -1,0 +1,14 @@
+{
+  "bugId": "BUG-007",
+  "title": "collate: COST_REPORT.md path fallback fails when sprint.path absent + (unknown) attribution in usage events",
+  "description": "Two bugs in forge/tools/collate.cjs (v0.6.11). Bug 1: resolveDir fallback uses only sprintId and sprintId.split('-').pop() as candidates — for IDs without hyphens (e.g. S31) both are identical, neither matches sprint_31_slug/ naming convention, creating a stub S31/ dir. Bug 1 is a regression/incomplete-fix of BUG-006 (which added sprint.path precedence but left fallback broken for user projects where sprint.path is absent). Bug 2: usage event files written to .forge/store/events/{sprintId}/ contain only bare token counts with no taskId/role/model attribution; collate renders all fields as (unknown). The filename itself encodes attribution but loadSprintEvents ignores it. Linked to GitHub issue #25.",
+  "severity": "major",
+  "status": "fixed",
+  "path": "forge/tools/collate.cjs",
+  "rootCauseCategory": "business-rule",
+  "similarBugs": ["BUG-006"],
+  "checklistItemAdded": false,
+  "businessRuleUpdated": false,
+  "reportedAt": "2026-04-11T14:05:36Z",
+  "resolvedAt": "2026-04-12T11:25:58Z"
+}

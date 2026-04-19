@@ -1,0 +1,19 @@
+{
+  "sprintId": "FORGE-S06",
+  "title": "Sprint S06",
+  "status": "active",
+  "taskIds": [
+    "FORGE-S06-T01",
+    "FORGE-S06-T02",
+    "FORGE-S06-T03",
+    "FORGE-S06-T04",
+    "FORGE-S06-T05",
+    "FORGE-S06-T06",
+    "FORGE-S06-T07",
+    "FORGE-S06-T08",
+    "FORGE-S06-T09",
+    "FORGE-S06-T10"
+  ],
+  "createdAt": "2026-04-16T02:10:57.096Z",
+  "path": "engineering/sprints/FORGE-S06"
+}

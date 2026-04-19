@@ -1,0 +1,19 @@
+{
+  "id": "FEAT-004",
+  "title": "Interactive Mode Prompt for /forge:init",
+  "description": "Replace flag-only fast-mode discovery with an interactive prompt that surfaces fast vs. full mode by default. Mode-specific pre-flight tables, --full and --fast escape hatches, conflict detection, and resume-time mode switching with skipped-phase handling.",
+  "status": "implemented",
+  "requirements": [
+    "Mode prompt rendered after resume detection and before pre-flight; default = Full",
+    "Mode-specific pre-flight tables (Full = 12 phases; Fast = 7 [runs]/[skeleton]/[stubs] + 5 [deferred])",
+    "--fast and --full flags suppress the prompt; --fast --full halts with conflict error",
+    "Mode persisted to .forge/init-progress.json pre-Phase-1 and propagated into .forge/config.json by Phase 1",
+    "Resume sub-prompt offers stored mode as default with switch option; switch warnings emitted (Fast→Full regenerates skipped, Full→Fast retains artifacts)",
+    "Resume into a skipped phase emits △ advance message and jumps to the next active phase per fast-mode phase map (1, 2, 3, 7, 9, 10, 11, 12)"
+  ],
+  "sprints": [],
+  "tasks": [],
+  "version": "unreleased",
+  "created_at": "2026-04-17T00:00:00Z",
+  "updated_at": "2026-04-17T00:00:00Z"
+}

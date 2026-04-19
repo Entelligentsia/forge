@@ -18,8 +18,36 @@
     "similarBugs":         { "type": "array", "items": { "type": "string" } },
     "checklistItemAdded":  { "type": "boolean" },
     "businessRuleUpdated": { "type": "boolean" },
+    "githubIssue":         { "type": "string", "format": "uri" },
     "reportedAt":          { "type": "string", "format": "date-time" },
-    "resolvedAt":          { "type": "string", "format": "date-time" }
+    "resolvedAt":          { "type": "string", "format": "date-time" },
+    "summaries": {
+      "type": "object",
+      "description": "Terse structured summaries of phase artifacts. Optional; full artifacts on disk remain authoritative.",
+      "properties": {
+        "plan":           { "$ref": "#/$defs/phaseSummary" },
+        "review_plan":    { "$ref": "#/$defs/phaseSummary" },
+        "implementation": { "$ref": "#/$defs/phaseSummary" },
+        "code_review":    { "$ref": "#/$defs/phaseSummary" },
+        "validation":     { "$ref": "#/$defs/phaseSummary" }
+      },
+      "additionalProperties": false
+    }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "phaseSummary": {
+      "type": "object",
+      "required": ["objective", "written_at"],
+      "properties": {
+        "objective":   { "type": "string", "maxLength": 280 },
+        "key_changes": { "type": "array", "items": { "type": "string", "maxLength": 200 }, "maxItems": 12 },
+        "findings":    { "type": "array", "items": { "type": "string", "maxLength": 200 }, "maxItems": 12 },
+        "verdict":     { "type": "string", "enum": ["approved", "revision", "n/a"] },
+        "written_at":  { "type": "string", "format": "date-time" },
+        "artifact_ref":{ "type": "string", "description": "Relative path to the full artifact" }
+      },
+      "additionalProperties": false
+    }
+  }
 }

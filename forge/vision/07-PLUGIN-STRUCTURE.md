@@ -278,4 +278,22 @@ Forge's generated workflows can coexist with other skills. A project might use `
 
 ---
 
+## Generation Integrity
+
+Generated commands are thin wrappers that delegate to workflow files. This
+pattern is sound but fragile — see
+[Generation Integrity Audit](../../docs/generation-integrity.md) for observed
+fleet-wide issues, analysis of the delegation pattern, and remediation
+guidelines.
+
+Key invariant: **commands must not pre-load MASTER_INDEX.** The workflow loads
+context in a controlled sequence; pre-loading gives the model enough context to
+bypass the workflow entirely.
+
+Key invariant: **every generated command must include `effort:` frontmatter.**
+Without it, the model allocates reasoning budget blindly across commands that
+range from mechanical (`/collate`) to architectural (`/approve`).
+
+---
+
 **Next**: [08-IMPLEMENTATION-PLAN.md](08-IMPLEMENTATION-PLAN.md) — Build sequence and success criteria

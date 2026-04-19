@@ -1,10 +1,7 @@
 {
   "taskId": "FORGE-S02-T08",
   "sprintId": "FORGE-S02",
-  "title": "forge:health — per-feature FEAT-ID test coverage reporting",
-  "status": "committed",
-  "path": "forge/commands/health.md",
-  "estimate": "M",
-  "dependencies": ["FORGE-S02-T06"],
-  "pipeline": "default"
+  "title": "PLAN — FORGE-S02-T08: forge:health — per-feature FEAT-ID test coverage reporting",
+  "status": "planned",
+  "path": "engineering/sprints/FORGE-S02/T08"
 }

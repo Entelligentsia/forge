@@ -1,10 +1,7 @@
 {
   "taskId": "FORGE-S02-T03",
   "sprintId": "FORGE-S02",
-  "title": "JSON schemas — add feature.schema.json; add nullable feature_id to sprint and task schemas",
+  "title": "FORGE-S02-T03: Plan",
   "status": "committed",
-  "path": "forge/schemas/feature.schema.json",
-  "estimate": "S",
-  "dependencies": ["FORGE-S02-T02"],
-  "pipeline": "default"
+  "path": "engineering/sprints/FORGE-S02/T03"
 }

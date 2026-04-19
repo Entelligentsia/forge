@@ -47,7 +47,7 @@ Users upgrade with:
 /forge:update                  (propagate changes into project artifacts)
 ```
 
-## No CI/CD [?]
+## No CI/CD
 
 No `.github/workflows/` found. Release quality is maintained via the pre-push
 security scan requirement documented in `CLAUDE.md`.

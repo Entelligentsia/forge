@@ -9,6 +9,7 @@
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `taskId` | string | yes | e.g. `ACME-S01-T01` |
+| `feature_id` | string\|null | no | Primary feature linkage (nullable FK) |
 | `sprintId` | string | yes | e.g. `S01` |
 | `title` | string | yes | Task title |
 | `description` | string | no | Detailed description |
@@ -26,7 +27,7 @@
 
 `draft` → `planned` → `plan-approved` → `implementing` → `implemented` → `review-approved` → `approved` → `committed`
 
-Failed states: `plan-revision-required`, `code-revision-required`, `blocked`, `escalated`
+Failed states: `plan-revision-required`, `code-revision-required`, `blocked`, `escalated`, `abandoned`
 
 ## Knowledge Updates Schema
 
@@ -51,6 +52,7 @@ This block is the canonical machine-readable definition embedded in `validate-st
   "required": ["taskId", "sprintId", "title", "status", "path"],
   "properties": {
     "taskId":               { "type": "string" },
+    "feature_id":           { "type": ["string", "null"] },
     "sprintId":             { "type": "string" },
     "title":                { "type": "string" },
     "description":          { "type": "string" },
@@ -59,7 +61,7 @@ This block is the canonical machine-readable definition embedded in `validate-st
       "enum": [
         "draft", "planned", "plan-approved", "implementing",
         "implemented", "review-approved", "approved", "committed",
-        "plan-revision-required", "code-revision-required", "blocked", "escalated"
+        "plan-revision-required", "code-revision-required", "blocked", "escalated", "abandoned"
       ]
     },
     "path":                 { "type": "string" },

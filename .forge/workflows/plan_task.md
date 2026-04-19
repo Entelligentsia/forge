@@ -1,4 +1,11 @@
-# Workflow: Plan Task (Forge Engineer)
+---
+requirements:
+  reasoning: High
+  context: Medium
+  speed: Low
+---
+
+# 🌱 Workflow: Plan Task (Forge Engineer)
 
 ## Persona
 

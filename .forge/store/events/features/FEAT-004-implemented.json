@@ -1,0 +1,15 @@
+{
+  "id": "FEAT-004-implemented",
+  "type": "feature_implemented",
+  "feature_id": "FEAT-004",
+  "timestamp": "2026-04-17T00:00:00Z",
+  "version": "unreleased",
+  "summary": "Interactive mode prompt for /forge:init implemented. forge/commands/init.md gains Mode Selection section, mode-specific pre-flight tables, --fast/--full flag handling with conflict detection, and resume-time stored-mode sub-prompt with skipped-phase advancement. forge/init/sdlc-init.md fast-mode detection now reads mode from .forge/init-progress.json (no longer branches on $ARGUMENTS) and Phase 1 propagates the value into config.json. CHANGELOG.md gains an [Unreleased] entry. All 286 tests pass.",
+  "artifacts": [
+    "forge/commands/init.md",
+    "forge/init/sdlc-init.md",
+    "CHANGELOG.md",
+    "engineering/features/FEAT-004.md",
+    "engineering/features/FEAT-004-progress.md"
+  ]
+}

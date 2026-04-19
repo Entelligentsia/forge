@@ -1,0 +1,9 @@
+{
+  "taskId": "FORGE-S10-T01",
+  "sprintId": "FORGE-S10",
+  "title": "Tomoshibi agent + KB path configurability + workflow links",
+  "status": "committed",
+  "estimate": "L",
+  "pipeline": "default",
+  "path": "engineering/sprints/FORGE-S10/FORGE-S10-T01-tomoshibi-kb-path"
+}

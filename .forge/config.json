@@ -29,7 +29,7 @@
     "commands": ".claude/commands",
     "templates": ".forge/templates",
     "customCommands": "engineering/commands",
-    "forgeRoot": "/home/boni/.claude/plugins/cache/skillforge/forge/0.6.8"
+    "forgeRoot": "/home/boni/.claude/plugins/cache/skillforge/forge/0.10.0"
   },
   "pipeline": {
     "maxReviewIterations": 3
@@ -39,6 +39,8 @@
     "forge",
     "frontend-design",
     "llm-patterns",
-    "security-watchdog"
+    "plugin-dev",
+    "security-watchdog",
+    "vimeo-transcript"
   ]
 }

@@ -1,0 +1,7 @@
+{
+  "taskId": "FORGE-S06-T04",
+  "sprintId": "FORGE-S06",
+  "title": "PLAN — FORGE-S06-T04: Fix ghost event files in store.cjs and validate-store.cjs",
+  "status": "committed",
+  "path": "engineering/sprints/FORGE-S06/FORGE-S06-T04-fix-ghost-event-files"
+}

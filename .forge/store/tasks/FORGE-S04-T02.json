@@ -1,0 +1,11 @@
+{
+  "taskId": "FORGE-S04-T02",
+  "feature_id": "FEAT-001",
+  "sprintId": "FORGE-S04",
+  "title": "Port `validate-store.cjs` to store facade",
+  "status": "committed",
+  "path": "forge/tools/validate-store.cjs",
+  "estimate": "L",
+  "dependencies": ["FORGE-S04-T01"],
+  "pipeline": "default"
+}

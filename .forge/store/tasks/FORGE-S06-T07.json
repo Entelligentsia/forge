@@ -1,0 +1,7 @@
+{
+  "taskId": "FORGE-S06-T07",
+  "sprintId": "FORGE-S06",
+  "title": "PLAN — FORGE-S06-T07: Slug-aware seed-store discovery and path construction",
+  "status": "committed",
+  "path": "engineering/sprints/FORGE-S06/FORGE-S06-T07-slug-aware-seed-store"
+}

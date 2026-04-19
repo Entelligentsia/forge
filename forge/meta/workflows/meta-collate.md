@@ -1,41 +1,69 @@
-# Meta-Workflow: Collate
+---
+requirements:
+  reasoning: Medium
+  context: Low
+  speed: High
+deps:
+  personas: [collator]
+  skills: [collator, generic]
+  templates: []
+  sub_workflows: []
+  kb_docs: [MASTER_INDEX.md]
+  config_fields: [paths.engineering]
+---
+
+# 🍃 Meta-Workflow: Collate
 
 ## Purpose
 
-Regenerate markdown views from the JSON store. This is a deterministic
-operation — prefer the generated tool, fall back to manual collation.
+Regenerate markdown views from the JSON store. This is a deterministic operation — prefer the generated tool, fall back to manual collation.
 
 ## Algorithm
 
-### Step 1 — Preferred: Run Plugin Tool
+```
+1. Preferred: Run Plugin Tool
+   - Read `paths.forgeRoot` from `.forge/config.json` as `FORGE_ROOT`
+   - Run: `node "$FORGE_ROOT/tools/collate.cjs" [SPRINT_ID]`
+   - If tool succeeds, proceed to Finalize
 
-Read `paths.forgeRoot` from `.forge/config.json` → set as `FORGE_ROOT`. Then run:
-```bash
-node "$FORGE_ROOT/tools/collate.cjs" [SPRINT_ID]
+2. Fallback: Manual Collation
+   - Read `.forge/config.json` for prefix, paths, project description
+   - Read all sprint/task/bug/event JSONs from `.forge/store/`
+   - Generate MASTER_INDEX.md (sprint registry, task registry, bug registry)
+   - Generate per-sprint TIMESHEET.md (from events)
+   - Generate any other configured views
+
+3. Rebuild context pack:
+   - Rebuild the architecture context pack so orchestrators have a fresh summary
+     after any KB updates (architecture docs may have changed during the sprint):
+     ```
+     FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
+     ENGINEERING=$(node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo engineering)
+     node "$FORGE_ROOT/tools/build-context-pack.cjs" \
+       --arch-dir "$ENGINEERING/architecture" \
+       --out-md .forge/cache/context-pack.md \
+       --out-json .forge/cache/context-pack.json
+     ```
+   - On exit 1 (architecture directory absent), skip silently.
+
+4. Finalize:
+   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Execute Token Reporting (see Generation Instructions)
+   - Invoke Tomoshibi via Skill tool to refresh KB and workflow links in agent
+     instruction files:
+     ```
+     Use the Skill tool:
+       skill: "forge:refresh-kb-links"
+     ```
 ```
 
-If the tool succeeds, the workflow is complete.
-
-### Step 2 — Fallback: Manual Collation
-If the tool is unavailable or fails:
-
-1. Read .forge/config.json for prefix, paths, project description
-2. Read all sprint/task/bug/event JSONs from .forge/store/
-3. Generate MASTER_INDEX.md (sprint registry, task registry, bug registry)
-4. Generate per-sprint TIMESHEET.md (from events)
-5. Generate per-directory INDEX.md (navigation hubs)
-6. Write COLLATION_STATE.json
-
-### Output Files
-- `engineering/MASTER_INDEX.md`
-- `engineering/sprints/{SPRINT_ID}/TIMESHEET.md`
-- `engineering/bugs/TIMESHEET.md`
-- `INDEX.md` in each sprint/task/bug directory
-
 ## Generation Instructions
-- Emit the runtime-read pattern exactly as shown above — do NOT substitute
-  `paths.forgeRoot` as a literal string at generation time. The `$FORGE_ROOT`
-  variable must remain in the generated file so the path resolves from
-  `.forge/config.json` when the workflow runs, not when it is generated.
-- Include the project's language for invoking the tool
-- Reference .forge/store/ paths
+
+- **Persona Self-Load:** The generated workflow MUST begin by reading `.forge/personas/collator.md` as its first step (before any other tool use). This replaces the former inline `## Persona` section. The persona identity line (emoji, name, tagline) should be printed to stdout after reading the file.
+- **Workflow Structure:** The generated `collate.md` must follow the strict "Algorithm" block format.
+- **Context Isolation:** Forbid inline execution of large-scale file generation; use the `Agent` tool for sub-tasks.
+- **Token Reporting:** The generated workflow MUST mandate the following before returning:
+  1. Run `/cost` to retrieve session token usage.
+  2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
+  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+- **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

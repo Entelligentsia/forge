@@ -1,4 +1,4 @@
-# Workflow: Run Sprint (Forge)
+# 🌊 Workflow: Run Sprint (Forge)
 
 ## Purpose
 
@@ -75,6 +75,11 @@ for each task in dependency_sorted(tasks):
 
   # Terminal: "committed" → success. "escalated" → note and continue.
   # Never halt the whole sprint on one escalation.
+
+  # Compact context before next task: all state is on disk
+  remaining = count of tasks not yet in terminal status
+  print(f"[checkpoint] sprint={SPRINT_ID} task={task.taskId} status={task_status} remaining={remaining}")
+  /compact
 ```
 
 **All verdict detection, revision loops, escalation, and event emission are
@@ -99,7 +104,15 @@ every task is independent (no dependencies at all).
 
 Once all tasks have reached a terminal status:
 
-1. Run collation: `node forge/tools/collate.cjs`
+1. Run collation using the runtime-read pattern:
+   ```bash
+   FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
+   node "$FORGE_ROOT/tools/collate.cjs"
+   ```
+   Or — since this repository is Forge itself — use the in-tree tool:
+   ```bash
+   node forge/tools/collate.cjs
+   ```
 2. Summarise outcomes:
    ```
    🌊 Sprint {SPRINT_ID} complete.

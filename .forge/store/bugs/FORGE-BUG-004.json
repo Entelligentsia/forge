@@ -1,0 +1,8 @@
+{
+  "bugId": "FORGE-BUG-004",
+  "title": "PROGRESS — BUG-004: validate-store rejects valid null timing fields and has no event backfill",
+  "severity": "minor",
+  "status": "reported",
+  "path": "engineering/bugs/BUG-004-event-schema-validation",
+  "reportedAt": "2026-04-16T02:10:57.112Z"
+}

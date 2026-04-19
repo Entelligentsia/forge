@@ -1,0 +1,11 @@
+{
+  "taskId": "FORGE-S05-T08",
+  "feature_id": null,
+  "sprintId": "FORGE-S05",
+  "title": "Create task prompt",
+  "status": "approved",
+  "path": "engineering/sprints/FORGE-S05/FORGE-S05-T08/TASK_PROMPT.md",
+  "estimate": "S",
+  "dependencies": [],
+  "pipeline": "default"
+}

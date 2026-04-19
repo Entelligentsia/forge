@@ -1,0 +1,19 @@
+{
+  "eventId": "20260415T173443000Z_FORGE-BUG-008_review-plan_review-plan",
+  "taskId": "FORGE-BUG-008",
+  "sprintId": "bugs",
+  "role": "review-plan",
+  "action": "review-plan",
+  "phase": "review-plan",
+  "iteration": 1,
+  "startTimestamp": "2026-04-15T17:34:43Z",
+  "endTimestamp": "2026-04-15T17:38:05Z",
+  "durationMinutes": 3.37,
+  "model": "claude-opus-4-6",
+  "verdict": "Approved",
+  "inputTokens": 62000,
+  "outputTokens": 4200,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0,
+  "estimatedCostUSD": 1.245
+}

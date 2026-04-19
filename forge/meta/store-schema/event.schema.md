@@ -27,6 +27,12 @@ Example: `20260415T141523000Z_ACME-S02-T03_engineer_implement`
 | `model` | string | yes | Full model identifier as reported by the host CLI (e.g. `claude-sonnet-4-6`, `gpt-4o`, `o3`) — use the full ID, not a short alias |
 | `verdict` | string | no | For review phases: Approved / Revision Required |
 | `notes` | string | no | Free-form notes |
+| `inputTokens` | integer | no | Input token count (minimum 0) |
+| `outputTokens` | integer | no | Output token count (minimum 0) |
+| `cacheReadTokens` | integer | no | Cache-read token count (minimum 0) |
+| `cacheWriteTokens` | integer | no | Cache-write token count (minimum 0) |
+| `estimatedCostUSD` | number | no | Estimated cost in USD (minimum 0) |
+| `tokenSource` | enum | no | `reported` / `estimated` — how token counts were obtained |
 
 ## JSON Schema
 
@@ -54,8 +60,14 @@ This block is the canonical machine-readable definition embedded in `validate-st
     "endTimestamp":    { "type": "string", "format": "date-time" },
     "durationMinutes": { "type": "number", "minimum": 0 },
     "model":           { "type": "string" },
-    "verdict":         { "type": "string" },
-    "notes":           { "type": "string" }
+    "verdict":            { "type": "string" },
+    "notes":              { "type": "string" },
+    "inputTokens":        { "type": "integer", "minimum": 0 },
+    "outputTokens":       { "type": "integer", "minimum": 0 },
+    "cacheReadTokens":    { "type": "integer", "minimum": 0 },
+    "cacheWriteTokens":   { "type": "integer", "minimum": 0 },
+    "estimatedCostUSD":   { "type": "number",  "minimum": 0 },
+    "tokenSource":        { "type": "string",  "enum": ["reported", "estimated"] }
   },
   "additionalProperties": false
 }

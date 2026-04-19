@@ -1,0 +1,8 @@
+{
+  "inputTokens": 52400,
+  "outputTokens": 3800,
+  "cacheReadTokens": 18500,
+  "cacheWriteTokens": 4200,
+  "estimatedCostUSD": 0.21,
+  "_note": "Estimated: /cost cannot be invoked programmatically; values are approximations based on files read and output written."
+}

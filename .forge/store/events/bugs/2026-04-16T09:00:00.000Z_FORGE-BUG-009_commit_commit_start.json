@@ -1,0 +1,14 @@
+{
+  "eventId": "FORGE-BUG-009-E-commit-start",
+  "taskId": "FORGE-BUG-009",
+  "role": "commit",
+  "action": "commit",
+  "phase": "commit",
+  "iteration": 1,
+  "startTimestamp": "2026-04-16T09:00:00.000Z",
+  "endTimestamp": "2026-04-16T09:00:00.000Z",
+  "durationMinutes": 0,
+  "model": "claude-sonnet-4-6",
+  "verdict": "started",
+  "notes": "Committing FORGE-BUG-009 fix: structure manifest and clear-namespace for generation-manifest stale entries"
+}

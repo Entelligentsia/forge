@@ -1,0 +1,15 @@
+{
+  "sprintId": "FORGE-S08",
+  "title": "Sprint S08",
+  "status": "completed",
+  "taskIds": [
+    "FORGE-S08-T01",
+    "FORGE-S08-T02",
+    "FORGE-S08-T03",
+    "FORGE-S08-T04",
+    "FORGE-S08-T05",
+    "FORGE-S08-T06"
+  ],
+  "createdAt": "2026-04-16T02:10:57.104Z",
+  "path": "engineering/sprints/FORGE-S08-cli-engagement"
+}

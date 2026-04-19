@@ -1,5 +1,50 @@
 # Forge — Project Guidelines for Claude
 
+## Two-Layer Architecture — Read This First
+
+This repo contains two entirely separate things. Confusing them causes wrong edits.
+
+```
+forge/          ← PLUGIN SOURCE. You develop here.
+                  Meta-definitions, hooks, tools, commands, schemas.
+                  Changes here ship to all Forge users on next install.
+
+.forge/         ← DOGFOODING INSTANCE. Generated output. Do not edit directly.
+engineering/    ← DOGFOODING KB. Sprint artifacts for this project's own dev.
+                  Managed by Forge commands (/plan, /implement, /sprint-plan…).
+```
+
+### Decision rule — before touching any file, ask:
+
+> **"Am I fixing/building Forge itself?"** → work in `forge/`
+> **"Am I executing a sprint task for this project?"** → use Forge commands; they write to `engineering/` and `.forge/`
+
+### Hard boundaries
+
+**NEVER** edit `.forge/workflows/`, `.forge/personas/`, or `.forge/skills/` to fix
+a plugin behaviour. The fix goes in `forge/meta/` — `.forge/` is regenerated output.
+
+**NEVER** edit `engineering/` as part of implementing a plugin feature.
+
+**NEVER** regenerate `.forge/` as a side-effect of plugin development work —
+regeneration is a user action (`/forge:regenerate`) that runs after they upgrade.
+
+### Where things live
+
+| You want to… | Edit this |
+|---|---|
+| Fix a workflow bug | `forge/meta/workflows/meta-*.md` |
+| Fix a persona or skill | `forge/meta/personas/` or `forge/meta/skills/` |
+| Fix a hook | `forge/hooks/` |
+| Fix a tool | `forge/tools/` |
+| Add a command | `forge/commands/` |
+| Change a schema | `forge/schemas/` |
+| Update a sprint task (dogfooding) | Use `/plan`, `/implement`, etc. |
+| Check dogfooding project health | `/forge:health` |
+| Rebuild structure manifest | Edit mapping in `forge/tools/build-manifest.cjs`, then `node forge/tools/build-manifest.cjs --forge-root forge/` |
+
+---
+
 ## Versioning
 
 **Bump `forge/.claude-plugin/plugin.json` version for every material change.**
@@ -12,12 +57,12 @@ already installed Forge. This includes:
 - Changes to command files (`forge/commands/`) that alter how commands behave
 - Changes to hooks (`forge/hooks/`)
 - New commands or tools
-- Schema changes to `.forge/store/` or `.forge/config.json`
+- Schema changes to `forge/schemas/` (the source schemas that get copied to user projects)
 
 **Invariant: schema change → update concepts diagram:**
 If a schema change affects the lifecycle (state machinery) of a Forge entity (Sprint, Task, Bug, Feature), the corresponding handwritten state diagram in `docs/concepts/*.md` MUST be manually updated to reflect the new state enums.
 
-**Also required with every version bump:**
+**Also required with every version bump (steps 1 and 2 are parallel — do both before moving on):**
 
 1. Add a migration entry to `forge/migrations.json` with:
    - `"from"` key = previous version
@@ -27,10 +72,38 @@ If a schema change affects the lifecycle (state machinery) of a Forge entity (Sp
    - `"breaking"` = `true` if manual steps are needed before regenerating
    - `"manual"` = list of manual step descriptions (empty array if none)
 
-2. If `"tools"` or `"workflows"` is in `regenerate`, users will need to run
+2. Add an entry to `CHANGELOG.md` (repo root) for the new version. Use the
+   format already established in that file:
+   - Heading: `## [X.Y.Z] — YYYY-MM-DD` (append `**△ Breaking**` if applicable)
+   - One-paragraph description of what changed
+   - `**Regenerate:** ...` line if regeneration is required
+   - `> Manual: ...` block quote for any manual steps
+   - Prepend at the top (newest-first order)
+
+3. If `"tools"` or `"workflows"` is in `regenerate`, users will need to run
    `/forge:update` after installing — make sure the migration notes are clear.
 
-3. **Run a security scan before pushing.** A version bump means new code is
+4. **All script tests must pass before bumping.** Run
+   `node --test forge/tools/__tests__/*.test.cjs` — if any test fails, the
+   version bump and push are blocked until all tests pass and the failures are
+   resolved.
+
+5. **Regenerate `integrity.json` after bumping.** After bumping the version and
+   finalising all plugin file changes (commands, agents, hooks), regenerate the
+   hash manifest and update the verifier hash baked into `forge/commands/health.md`:
+
+   ```
+   node forge/tools/gen-integrity.cjs --forge-root forge/
+   # → writes forge/integrity.json with the new version and fresh SHA-256 hashes
+
+   # Then update the EXPECTED hash literal in forge/commands/health.md
+   #   to match the new hash of tools/verify-integrity.cjs:
+   node -e "const c=require('crypto'),f=require('fs'); \
+     console.log(c.createHash('sha256').update(f.readFileSync('forge/tools/verify-integrity.cjs')).digest('hex'))"
+   # Copy that output and replace the EXPECTED= value in the health.md integrity check step.
+   ```
+
+6. **Run a security scan before pushing.** A version bump means new code is
    being distributed to every user who has Forge installed. Scan the
    **source directory** (`forge/`), not the cached install under
    `~/.claude/plugins/cache/`:
@@ -47,9 +120,18 @@ If a schema change affects the lifecycle (state machinery) of a Forge entity (Sp
    `docs/security/scan-v{VERSION}.md` and commit it together with the
    version bump in the same commit or a follow-up `security:` commit.
 
-   Add a row to the Security Scan History table in `README.md` under
-   `## Security`. If that section does not yet exist, create it directly
-   above `## Supported Stacks`:
+   Update the security scan index and README table:
+
+   a. **`docs/security/index.md`** — prepend a new row at the top of the
+      table (below the header). This page holds the complete history.
+
+   b. **`README.md` `## Security` table** — prepend the new row, then
+      remove the oldest row so the table always shows exactly the 3 most
+      recent scans. The line below the table must remain:
+      `[Full scan history →](docs/security/index.md)`
+
+   If the `## Security` section does not yet exist in `README.md`, create
+   it directly above `## Supported Stacks` with this structure:
 
    ```markdown
    ## Security
@@ -60,10 +142,59 @@ If a schema change affects the lifecycle (state machinery) of a Forge entity (Sp
 
    | Version | Date | Report | Summary |
    |---------|------|--------|---------|
+
+   [Full scan history →](docs/security/index.md)
    ```
+
+7. **Run `build-manifest.cjs` after any meta/ file change:**
+   If you add, rename, or remove any file in `forge/meta/personas/`,
+   `forge/meta/workflows/`, `forge/meta/templates/`, or `forge/schemas/*.schema.json`,
+   update the corresponding mapping table in `forge/tools/build-manifest.cjs` and
+   re-run it to regenerate `forge/schemas/structure-manifest.json`. Commit both the
+   updated tool and the updated manifest together.
+   Note: `CUSTOM_COMMAND_TEMPLATE.md` is a one-shot init artifact (no meta source).
+   Do not add a meta source for it — keep its TEMPLATE_MAP entry as `[null, 'CUSTOM_COMMAND_TEMPLATE.md']`.
 
 **What does NOT need a version bump:** documentation-only changes, typo fixes
 in `docs/`, README updates, or changes that have no effect on installed projects.
+
+---
+
+## Script Test Suite — Mandatory Rules
+
+Every `.cjs` tool in `forge/tools/` has a corresponding test file in
+`forge/tools/__tests__/*.test.cjs`. The suite is run with:
+
+```sh
+node --test forge/tools/__tests__/*.test.cjs
+```
+
+### Before committing any change to `forge/tools/`
+
+1. **All 241 tests must pass.** If any test fails, the commit is blocked.
+   Run the full suite and confirm zero failures before staging changes.
+
+2. **Every change to a `.cjs` script must be preceded by a failing test.**
+   If you are modifying `collate.cjs`, `store-cli.cjs`, `build-manifest.cjs`,
+   or any other tool script, you MUST first write or update the corresponding
+   test that exposes the bug or validates the new behaviour — watch it fail —
+   then make the script change, then watch it pass. No exceptions.
+
+   This means:
+   - **Bug fix:** Write a test that reproduces the bug → see it fail → fix the
+     code → see it pass.
+   - **New feature:** Write a test that defines the expected behaviour → see it
+     fail → implement the feature → see it pass.
+   - **Refactor:** Run existing tests before touching code → refactor → run tests
+     again — they must still pass. If behaviour changes intentionally, write
+     the test for the new behaviour first.
+
+3. **New exports require new tests.** If you add a function to `module.exports`
+   in any tool, add at least one test for it in the matching test file.
+
+4. **Test-only helpers belong in `__tests__/`.** If a test needs shared
+   fixtures or helpers (e.g. `MemoryImpl`), keep them inside
+   `forge/tools/__tests__/` — never in the tool scripts themselves.
 
 ## Official Documentation
 

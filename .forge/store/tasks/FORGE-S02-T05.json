@@ -1,13 +1,7 @@
 {
   "taskId": "FORGE-S02-T05",
   "sprintId": "FORGE-S02",
-  "title": "validate-store.cjs — referential integrity for feature_id on tasks and sprints",
-  "status": "committed",
-  "path": "forge/tools/validate-store.cjs",
-  "estimate": "M",
-  "dependencies": [
-    "FORGE-S02-T03"
-  ],
-  "pipeline": "default",
-  "feature_id": null
+  "title": "PLAN — FORGE-S02-T05: validate-store.cjs — referential integrity for feature_id on tasks and sprints",
+  "status": "implemented",
+  "path": "engineering/sprints/FORGE-S02/T05"
 }

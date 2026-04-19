@@ -1,0 +1,7 @@
+{
+  "inputTokens": 12500,
+  "outputTokens": 1200,
+  "cacheReadTokens": 8000,
+  "cacheWriteTokens": 0,
+  "estimatedCostUSD": 0.045
+}

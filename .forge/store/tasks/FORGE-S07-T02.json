@@ -1,0 +1,7 @@
+{
+  "taskId": "FORGE-S07-T02",
+  "sprintId": "FORGE-S07",
+  "title": "PLAN — FORGE-S07-T02: Store facade extension — writeCollationState, purgeEvents, listEventFilenames",
+  "status": "committed",
+  "path": "engineering/sprints/FORGE-S07-store-custodian/FORGE-S07-T02-store-facade-extension"
+}

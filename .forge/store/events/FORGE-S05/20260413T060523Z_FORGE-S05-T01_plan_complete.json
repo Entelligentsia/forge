@@ -1,0 +1,13 @@
+{
+  "eventId": "20260413T060523Z_FORGE-S05-T01_plan_complete",
+  "taskId": "FORGE-S05-T01",
+  "sprintId": "FORGE-S05",
+  "role": "plan",
+  "action": "/plan",
+  "phase": "plan",
+  "iteration": 1,
+  "startTimestamp": "2026-04-13T06:05:05Z",
+  "endTimestamp": "2026-04-13T06:05:23Z",
+  "durationMinutes": 0.3,
+  "model": "unknown"
+}

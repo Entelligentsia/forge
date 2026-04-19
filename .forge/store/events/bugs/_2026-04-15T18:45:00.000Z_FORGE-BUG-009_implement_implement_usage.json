@@ -1,0 +1,8 @@
+{
+  "inputTokens": null,
+  "outputTokens": null,
+  "cacheReadTokens": null,
+  "cacheWriteTokens": null,
+  "estimatedCostUSD": null,
+  "note": "Token usage unavailable — /cost is a CLI-only command and cannot be called from within a subagent. Run /cost in the parent session and update this file manually."
+}

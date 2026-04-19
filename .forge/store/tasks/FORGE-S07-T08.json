@@ -1,0 +1,7 @@
+{
+  "taskId": "FORGE-S07-T08",
+  "sprintId": "FORGE-S07",
+  "title": "PLAN — FORGE-S07-T08: Update migrate.md command — replace direct store writes with custodian references",
+  "status": "committed",
+  "path": "engineering/sprints/FORGE-S07-store-custodian/FORGE-S07-T08-command-migration"
+}
