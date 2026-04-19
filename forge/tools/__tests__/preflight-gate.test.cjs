@@ -20,8 +20,7 @@ describe('preflight-gate.cjs :: preflight()', () => {
     fs.writeFileSync(reviewPath, '**Verdict:** Approved\n');
 
     const workflowMd = [
-      '## Phase: implement',
-      '```gates',
+      '```gates phase=implement',
       `artifact ${dir}/PLAN.md min=200`,
       'require task.status in [plan-approved, implementing]',
       `after review-plan = approved`,
@@ -43,8 +42,7 @@ describe('preflight-gate.cjs :: preflight()', () => {
   test('missing artifact blocks the phase', () => {
     const dir = tmpdir();
     const workflowMd = [
-      '## Phase: implement',
-      '```gates',
+      '```gates phase=implement',
       `artifact ${dir}/PLAN.md min=200`,
       '```',
     ].join('\n');
@@ -64,8 +62,7 @@ describe('preflight-gate.cjs :: preflight()', () => {
     const stubPath = path.join(dir, 'PLAN.md');
     fs.writeFileSync(stubPath, '');
     const workflowMd = [
-      '## Phase: implement',
-      '```gates',
+      '```gates phase=implement',
       `artifact ${stubPath} min=200`,
       '```',
     ].join('\n');
@@ -77,8 +74,7 @@ describe('preflight-gate.cjs :: preflight()', () => {
 
   test('forbidden state blocks: task.status == completed blocks plan phase', () => {
     const workflowMd = [
-      '## Phase: plan',
-      '```gates',
+      '```gates phase=plan',
       'forbid task.status == completed',
       '```',
     ].join('\n');
@@ -95,8 +91,7 @@ describe('preflight-gate.cjs :: preflight()', () => {
 
   test('required state predicate: status not in allowed set blocks', () => {
     const workflowMd = [
-      '## Phase: implement',
-      '```gates',
+      '```gates phase=implement',
       'require task.status in [plan-approved, implementing]',
       '```',
     ].join('\n');
@@ -119,8 +114,7 @@ describe('preflight-gate.cjs :: preflight()', () => {
     fs.writeFileSync(planPath, 'x'.repeat(300));
 
     const workflowMd = [
-      '## Phase: implement',
-      '```gates',
+      '```gates phase=implement',
       `artifact ${dir}/{sprint}/{task}/PLAN.md min=200`,
       '```',
     ].join('\n');
@@ -140,8 +134,7 @@ describe('preflight-gate.cjs :: preflight()', () => {
     fs.writeFileSync(reviewPath, '**Verdict:** Revision Required\n');
 
     const workflowMd = [
-      '## Phase: implement',
-      '```gates',
+      '```gates phase=implement',
       'after review-plan = approved',
       '```',
     ].join('\n');
@@ -159,8 +152,7 @@ describe('preflight-gate.cjs :: preflight()', () => {
 
   test('predecessor verdict file missing → blocks', () => {
     const workflowMd = [
-      '## Phase: implement',
-      '```gates',
+      '```gates phase=implement',
       'after review-plan = approved',
       '```',
     ].join('\n');
@@ -176,7 +168,7 @@ describe('preflight-gate.cjs :: preflight()', () => {
   });
 
   test('unknown phase returns ok: false with explanatory missing entry', () => {
-    const gates = parseGates('## Phase: plan\n```gates\nforbid task.status == completed\n```\n');
+    const gates = parseGates('```gates phase=plan\nforbid task.status == completed\n```\n');
     const result = preflight({ phase: 'nonexistent', gates, state: {}, substitutions: {} });
     assert.equal(result.ok, false);
     assert.ok(result.missing.some((m) => /no gate|unknown/i.test(m)));
@@ -210,8 +202,7 @@ describe('preflight-gate.cjs :: preflight()', () => {
   test('multiple failures are all reported, not just the first', () => {
     const dir = tmpdir();
     const workflowMd = [
-      '## Phase: implement',
-      '```gates',
+      '```gates phase=implement',
       `artifact ${dir}/MISSING.md min=1`,
       'require task.status in [plan-approved]',
       '```',

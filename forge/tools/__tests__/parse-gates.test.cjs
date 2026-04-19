@@ -6,15 +6,12 @@ const { parseGates } = require('../parse-gates.cjs');
 describe('parse-gates.cjs :: parseGates()', () => {
   test('parses a single phase with all directive types', () => {
     const md = [
-      '## Phase: implement',
-      '',
-      '```gates',
+      '```gates phase=implement',
       'artifact engineering/sprints/{sprint}/tasks/{task}/PLAN.md min=200',
       'require task.status in [plan-approved, implementing]',
       'forbid  task.status == completed',
       'after   review-plan = approved',
       '```',
-      '',
     ].join('\n');
     const gates = parseGates(md);
     assert.deepEqual(gates, {
@@ -37,13 +34,13 @@ describe('parse-gates.cjs :: parseGates()', () => {
 
   test('parses multiple phases from one file', () => {
     const md = [
-      '## Phase: plan',
-      '```gates',
+      '```gates phase=plan',
       'forbid task.status == completed',
       '```',
       '',
-      '## Phase: implement',
-      '```gates',
+      'Some prose between blocks.',
+      '',
+      '```gates phase=implement',
       'after plan = approved',
       '```',
     ].join('\n');
@@ -56,8 +53,7 @@ describe('parse-gates.cjs :: parseGates()', () => {
 
   test('artifact without min= defaults to minBytes 0', () => {
     const md = [
-      '## Phase: review',
-      '```gates',
+      '```gates phase=review',
       'artifact engineering/sprints/{sprint}/REVIEW.md',
       '```',
     ].join('\n');
@@ -69,8 +65,7 @@ describe('parse-gates.cjs :: parseGates()', () => {
 
   test('blank lines and # comments are ignored', () => {
     const md = [
-      '## Phase: plan',
-      '```gates',
+      '```gates phase=plan',
       '# top comment',
       '',
       'forbid task.status == completed',
@@ -84,8 +79,7 @@ describe('parse-gates.cjs :: parseGates()', () => {
 
   test('require with != op', () => {
     const md = [
-      '## Phase: implement',
-      '```gates',
+      '```gates phase=implement',
       'require task.status != completed',
       '```',
     ].join('\n');
@@ -97,44 +91,39 @@ describe('parse-gates.cjs :: parseGates()', () => {
 
   test('unknown directive throws with line number', () => {
     const md = [
-      '## Phase: plan',
-      '```gates',
+      '```gates phase=plan',
       'banana task.status == completed',
       '```',
     ].join('\n');
-    assert.throws(() => parseGates(md), /line 3.*banana/i);
+    assert.throws(() => parseGates(md), /line 2.*banana/i);
   });
 
   test('unknown op in predicate throws', () => {
     const md = [
-      '## Phase: plan',
-      '```gates',
+      '```gates phase=plan',
       'require task.status =~ completed',
       '```',
     ].join('\n');
     assert.throws(() => parseGates(md), /op|predicate/i);
   });
 
-  test('gates fence without preceding Phase heading throws', () => {
+  test('fence without phase= label is ignored (not a gates fence)', () => {
     const md = [
-      '# Something Else',
-      '',
       '```gates',
       'forbid task.status == completed',
       '```',
     ].join('\n');
-    assert.throws(() => parseGates(md), /phase heading/i);
+    // Missing phase attribute → not recognised as a gates fence → empty result.
+    assert.deepEqual(parseGates(md), {});
   });
 
   test('duplicate phase throws', () => {
     const md = [
-      '## Phase: plan',
-      '```gates',
+      '```gates phase=plan',
       'forbid task.status == completed',
       '```',
       '',
-      '## Phase: plan',
-      '```gates',
+      '```gates phase=plan',
       'forbid task.status == archived',
       '```',
     ].join('\n');
@@ -143,8 +132,7 @@ describe('parse-gates.cjs :: parseGates()', () => {
 
   test('after directive requires approved|revision verdict', () => {
     const md = [
-      '## Phase: implement',
-      '```gates',
+      '```gates phase=implement',
       'after review-plan = maybe',
       '```',
     ].join('\n');
@@ -156,15 +144,9 @@ describe('parse-gates.cjs :: parseGates()', () => {
     assert.deepEqual(parseGates('# just a doc\n\nNo gates here.\n'), {});
   });
 
-  test('phase name is taken from nearest preceding ## Phase: heading', () => {
+  test('phase names may contain dashes and digits', () => {
     const md = [
-      '## Phase: review-plan',
-      '',
-      'Some prose about the phase.',
-      '',
-      '### Subsection',
-      '',
-      '```gates',
+      '```gates phase=review-plan',
       'after plan = approved',
       '```',
     ].join('\n');
@@ -174,12 +156,20 @@ describe('parse-gates.cjs :: parseGates()', () => {
 
   test('list values tolerate extra whitespace', () => {
     const md = [
-      '## Phase: plan',
-      '```gates',
+      '```gates phase=plan',
       'require task.status in [  a,b ,  c]',
       '```',
     ].join('\n');
     const gates = parseGates(md);
     assert.deepEqual(gates.plan.require[0].value, ['a', 'b', 'c']);
+  });
+
+  test('unterminated fence throws', () => {
+    const md = [
+      '```gates phase=plan',
+      'forbid task.status == completed',
+      '',
+    ].join('\n');
+    assert.throws(() => parseGates(md), /unterminated/i);
   });
 });

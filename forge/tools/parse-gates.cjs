@@ -10,11 +10,12 @@
 //
 // Predicate ops: ==, !=, in [v1, v2, ...]
 // Blank lines and lines beginning with # (optionally indented) are ignored.
-// Gates live in ```gates fenced blocks; the owning phase is taken from the
-// nearest preceding `## Phase: <name>` heading.
+// Gates live in fenced blocks self-identified by phase via a fence-label
+// attribute, e.g. ```gates phase=implement . The fence is self-contained;
+// gate blocks can appear anywhere in the workflow file without depending on
+// surrounding heading structure.
 
-const PHASE_HEADING = /^##\s+Phase:\s+(.+?)\s*$/;
-const FENCE_OPEN = /^```gates\s*$/;
+const FENCE_OPEN = /^```gates\s+phase=([A-Za-z0-9_-]+)\s*$/;
 const FENCE_CLOSE = /^```\s*$/;
 
 const VALID_VERDICTS = new Set(['approved', 'revision']);
@@ -34,17 +35,9 @@ function parseGates(markdown) {
     const lineNo = i + 1;
 
     if (!inFence) {
-      const m = line.match(PHASE_HEADING);
+      const m = line.match(FENCE_OPEN);
       if (m) {
-        currentPhase = m[1].trim();
-        continue;
-      }
-      if (FENCE_OPEN.test(line)) {
-        if (currentPhase === null) {
-          throw new Error(
-            `parse-gates: line ${lineNo}: gates fence with no preceding Phase heading`,
-          );
-        }
+        currentPhase = m[1];
         if (result[currentPhase]) {
           throw new Error(
             `parse-gates: line ${lineNo}: duplicate gates block for phase "${currentPhase}"`,
