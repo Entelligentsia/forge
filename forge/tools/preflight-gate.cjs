@@ -147,10 +147,28 @@ if (require.main === module) {
   if (taskRecord) state.task = taskRecord;
   if (bugRecord) state.bug = bugRecord;
 
+  // Resolve engineering root from config; path templates can reference {engineering}.
+  let engineeringRoot = 'engineering';
+  try {
+    const cfg = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), '.forge/config.json'), 'utf8'));
+    if (cfg.paths && cfg.paths.engineering) engineeringRoot = cfg.paths.engineering;
+  } catch (_) { /* fall back to default */ }
+
+  // {task} / {bug} in path templates refer to the artifact directory suffix
+  // (e.g., "T01", "BUG-007-broken-foo"), taken from the store record's path.
+  // If unavailable, fall back to the raw id.
+  function lastSegment(p) {
+    const parts = String(p || '').split('/').filter(Boolean);
+    return parts[parts.length - 1] || '';
+  }
+  const taskDir = taskRecord && taskRecord.path ? lastSegment(taskRecord.path) : args.task;
+  const bugDir = bugRecord && bugRecord.path ? lastSegment(bugRecord.path) : args.bug;
+
   const substitutions = {
+    engineering: engineeringRoot,
     sprint: taskRecord ? taskRecord.sprintId : undefined,
-    task: args.task,
-    bug: args.bug,
+    task: taskDir,
+    bug: bugDir,
   };
 
   const verdictSources = resolveVerdictSources(gates[args.phase].after || [], taskRecord, bugRecord);
@@ -198,15 +216,24 @@ function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// Canonical review artifact filenames per phase. Centralised here so the
+// orchestrator, manual commands, and tests all agree on where a given phase's
+// verdict lives.
+const VERDICT_ARTIFACTS = {
+  'review-plan': 'PLAN_REVIEW.md',
+  'review-code': 'CODE_REVIEW.md',
+  'validate':    'VALIDATION_REPORT.md',
+  'approve':     'ARCHITECT_APPROVAL.md',
+};
+
 function resolveVerdictSources(afterList, taskRecord, bugRecord) {
   const sources = {};
   const base = taskRecord ? taskRecord.path : bugRecord ? bugRecord.path : null;
   if (!base) return sources;
-  // Convention: review artifacts live at <base>/<PHASE>_REVIEW.md
-  // (Reviewer phases write to this canonical location.)
   for (const entry of afterList) {
-    const upper = entry.phase.toUpperCase().replace(/-/g, '_');
-    sources[entry.phase] = path.resolve(process.cwd(), base, `${upper}.md`);
+    const filename = VERDICT_ARTIFACTS[entry.phase];
+    if (!filename) continue; // unknown predecessor phase — preflight will flag it via missing-source
+    sources[entry.phase] = path.resolve(process.cwd(), base, filename);
   }
   return sources;
 }

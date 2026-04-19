@@ -326,6 +326,26 @@ for each task in dependency_sorted(tasks):
       persistent=False
     )
 
+    # --- Pre-flight gate check (see Phase Gates below) ---
+    # Resolve FORGE_ROOT once so the CLI shim can locate the gate parser.
+    FORGE_ROOT = resolve_forge_root()
+    preflight_result = run_bash(
+      f'node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase {phase.role} --task {task_id}'
+    )
+    if preflight_result.exit_code == 1:
+      # Gate failed: halt the orchestrator loop for THIS task. Do not retry,
+      # do not spawn. Missing prerequisites are listed on stderr.
+      print(f"  ✗ {task_id}  {phase.role}  — gate failed\n{preflight_result.stderr}")
+      append_progress(progress_log_path, f"❌ Gate failed for {phase.role}: {preflight_result.stderr}")
+      emit_event(task, phase, action="gate_failed", notes=preflight_result.stderr)
+      escalate_to_human(task, phase, reason=f"gate_failed: {preflight_result.stderr}")
+      break                                   # stop processing this task
+    elif preflight_result.exit_code == 2:
+      # Misconfiguration (unknown phase, malformed gates block). Fail loud.
+      print(f"  ⚠ {task_id}  {phase.role}  — gate misconfigured\n{preflight_result.stderr}")
+      escalate_to_human(task, phase, reason=f"gate_misconfigured: {preflight_result.stderr}")
+      break
+
     # --- Invoke phase as subagent (fresh context per phase) ---
     emit_event(task, phase, eventId=event_id, iteration=iteration, action="start")
 
@@ -390,8 +410,24 @@ for each task in dependency_sorted(tasks):
       /compact
       continue
 
-    # --- Review phase: detect verdict ---
-    verdict = read_verdict(task, phase)     # see Verdict Detection below
+    # --- Review phase: detect verdict via parse-verdict.cjs (see Verdict Detection below) ---
+    # The CLI returns exit 0/1/2 for approved/revision/unknown. Never pattern-match
+    # the **Verdict:** line manually — the closed vocabulary lives in the tool.
+    verdict_result = run_bash(
+      f'node "$FORGE_ROOT/tools/parse-verdict.cjs" {review_artifact_path(phase, task)}'
+    )
+    if verdict_result.exit_code == 0:
+      verdict = "Approved"
+    elif verdict_result.exit_code == 1:
+      verdict = "Revision Required"
+    else:
+      # exit 2: malformed, missing verdict line, or missing artifact. Never guess.
+      print(f"  ⚠ {task_id}  {phase.role}  — verdict_malformed, escalating\n")
+      emit_event(task, phase, action="verdict_malformed",
+                 notes=f"parse-verdict exit={verdict_result.exit_code}")
+      escalate_to_human(task, phase,
+        reason="verdict_malformed: review artifact missing or verdict line unparseable")
+      break
 
     if verdict == "Approved":
       print(f"  ✓ {task_id}  {phase.role}  — Approved\n")
@@ -415,11 +451,9 @@ for each task in dependency_sorted(tasks):
       print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
       /compact
 
-    else:
-      # Unexpected verdict (empty, malformed, or unknown)
-      print(f"  ⚠ {task_id}  {phase.role}  — escalated to human\n")
-      escalate_to_human(task, phase, reason=f"unrecognised verdict: {verdict}")
-      break
+    # No `else:` branch needed — parse-verdict.cjs already exhausts the
+    # possibilities (approved | revision | verdict_malformed), and the
+    # malformed case is handled above before this if/elif chain.
 ```
 
 ## Agent Naming Convention
@@ -523,11 +557,26 @@ or
 **Verdict:** Revision Required
 ```
 
-Parse the value after `**Verdict:**` (trimmed). Any value other than `Approved`
-or `Revision Required` is unrecognised — escalate.
+**Parse the verdict via `parse-verdict.cjs`** — do NOT pattern-match the
+line manually. The tool enforces a closed verdict vocabulary so typos, case
+drift, and reviewer prose cannot cause silent misclassification:
 
-If the artifact does not exist after the review phase completes, treat it as
-an unrecognised verdict and escalate.
+```
+FORGE_ROOT = resolve_forge_root()
+result = run_bash(f'node "$FORGE_ROOT/tools/parse-verdict.cjs" {artifact_path}')
+# exit 0 → approved   (stdout "approved")
+# exit 1 → revision   (stdout "revision")
+# exit 2 → unknown/malformed/missing (stdout "unknown")
+```
+
+Recognised values (case-insensitive):
+
+- **approved** — `Approved`, `Approve`, `[Approved]`
+- **revision** — `Revision Required`, `Revision`, `Needs Revision`, `Changes Requested`
+
+Anything else — including free-form prose, missing bold markers, a missing
+verdict line, or a missing artifact — yields exit 2. Do NOT treat unknown
+as approved or revision; halt the loop and escalate via `verdict_malformed`.
 
 ## Escalation Procedure
 
@@ -542,6 +591,59 @@ When escalating to the human:
    Resume with: /{phase.command} {TASK_ID} after addressing the issues.
    ```
 4. Stop processing this task. Continue to the next task in the sprint.
+
+## Phase Gates
+
+Declarative pre-flight gates for each phase. The orchestrator evaluates these
+via `forge/tools/preflight-gate.cjs` **before** every subagent spawn. A failing
+gate halts the loop for this task — no retry, no fall-through to the subagent,
+no silent recovery. Gates are data, not prose: the grammar is defined in
+`forge/tools/parse-gates.cjs` and validated by its test suite.
+
+Grammar (one directive per line):
+- `artifact <path> [min=<bytes>]` — file must exist and meet size floor. Path
+  templates: `{sprint}` → sprintId, `{task}` → task suffix, `{bug}` → bugId.
+- `require <field> <op> <value>` — predicate must hold. Ops: `==`, `!=`,
+  `in [v1, v2, ...]`. Fields are dotted paths against the store record, e.g.
+  `task.status`.
+- `forbid <field> <op> <value>` — predicate must NOT hold.
+- `after <phase> = <approved|revision>` — predecessor phase's review artifact
+  must carry the stated verdict (parsed by `parse-verdict.cjs`).
+
+```gates phase=plan
+forbid task.status == committed
+forbid task.status == abandoned
+```
+
+```gates phase=implement
+artifact {engineering}/sprints/{sprint}/{task}/PLAN.md min=200
+after review-plan = approved
+forbid task.status == committed
+```
+
+```gates phase=review-plan
+artifact {engineering}/sprints/{sprint}/{task}/PLAN.md min=200
+```
+
+```gates phase=review-code
+after review-plan = approved
+```
+
+```gates phase=validate
+after review-code = approved
+```
+
+```gates phase=approve
+after review-code = approved
+```
+
+```gates phase=commit
+after approve = approved
+```
+
+Adjusting a gate is a data change — edit the block above, regenerate workflows
+on the user side via `/forge:update`, and the new gate takes effect on the next
+orchestrator run. No code change required to relax or tighten a gate.
 
 ## Iron Laws
 

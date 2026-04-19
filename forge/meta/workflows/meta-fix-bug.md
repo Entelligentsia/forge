@@ -158,6 +158,22 @@ start_monitor(
   persistent=False
 )
 
+# --- Pre-flight gate check (see Phase Gates below) ---
+# Halts the fix-bug loop if prerequisites are missing or a predecessor
+# review did not clear. Same tool as meta-orchestrate.
+FORGE_ROOT = resolve_forge_root()
+preflight_result = run_bash(
+  f'node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase {phase.role} --bug {bug_id}'
+)
+if preflight_result.exit_code == 1:
+  print(f"  ✗ {bug_id}  {phase.role}  — gate failed\n{preflight_result.stderr}")
+  escalate_to_human(bug, phase, reason=f"gate_failed: {preflight_result.stderr}")
+  break
+elif preflight_result.exit_code == 2:
+  print(f"  ⚠ {bug_id}  {phase.role}  — gate misconfigured\n{preflight_result.stderr}")
+  escalate_to_human(bug, phase, reason=f"gate_misconfigured: {preflight_result.stderr}")
+  break
+
 # --- Symmetric Injection: noun resolved from ROLE_TO_NOUN ---
 persona_content = read_file(f".forge/personas/{persona_noun}.md")
 skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
@@ -212,6 +228,40 @@ stop_monitor(progress_log_path)
   1. Print a checkpoint line: `[checkpoint] bug={bug_id} phase={phase.role} iterations={iteration_counts}`
   2. Run `/compact` to free orchestrator context before the next phase.
   All durable state is on disk; the checkpoint line ensures the compact summary preserves the loop bookkeeping. Do NOT compact on escalation — the human needs full context.
+
+## Phase Gates
+
+Declarative pre-flight gates for each fix-bug phase. Evaluated by
+`forge/tools/preflight-gate.cjs` before every subagent spawn. Grammar is
+identical to `meta-orchestrate.md` — see that file's "Phase Gates" section
+for the directive reference.
+
+```gates phase=plan-fix
+forbid bug.status == fixed
+forbid bug.status == abandoned
+```
+
+```gates phase=review-plan
+artifact {engineering}/bugs/{bug}/BUG_FIX_PLAN.md min=200
+```
+
+```gates phase=implement
+artifact {engineering}/bugs/{bug}/BUG_FIX_PLAN.md min=200
+after review-plan = approved
+forbid bug.status == fixed
+```
+
+```gates phase=review-code
+after review-plan = approved
+```
+
+```gates phase=approve
+after review-code = approved
+```
+
+```gates phase=commit
+after approve = approved
+```
 
 ## Progress Reporting
 
