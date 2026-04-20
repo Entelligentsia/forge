@@ -14,15 +14,15 @@
 
 ## Tasks
 
-| Task                                    | Title                                                                                                   | Status      | Estimate |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------- | -------- |
-| [FORGE-S07-T01](FORGE-S07-T01/INDEX.md) | PLAN — FORGE-S07-T01: Schema reconciliation — add goal and features to sprint.schema.json               | ✅ committed | —        |
-| [FORGE-S07-T02](FORGE-S07-T02/INDEX.md) | PLAN — FORGE-S07-T02: Store facade extension — writeCollationState, purgeEvents, listEventFilenames     | ✅ committed | —        |
-| [FORGE-S07-T03](FORGE-S07-T03/INDEX.md) | PLAN — FORGE-S07-T03: Fix collate.cjs facade bypasses — writeCollationState and purgeEvents             | 📋 planned  | —        |
-| [FORGE-S07-T04](FORGE-S07-T04/INDEX.md) | PLAN — FORGE-S07-T04: Refactor validate-store.cjs — remove embedded schemas and fix facade bypass       | ✅ committed | —        |
-| [FORGE-S07-T05](FORGE-S07-T05/INDEX.md) | PLAN — FORGE-S07-T05: Implement store-cli.cjs — deterministic store custodian CLI                       | ✅ committed | —        |
-| [FORGE-S07-T06](FORGE-S07-T06/INDEX.md) | PLAN — FORGE-S07-T06: Create store custodian skill and tool spec                                        | ✅ committed | —        |
-| [FORGE-S07-T07](FORGE-S07-T07/INDEX.md) | PLAN — FORGE-S07-T07: Migrate all 16 meta-workflows to store custodian                                  | ✅ committed | —        |
-| [FORGE-S07-T08](FORGE-S07-T08/INDEX.md) | PLAN — FORGE-S07-T08: Update migrate.md command — replace direct store writes with custodian references | ✅ committed | —        |
-| [FORGE-S07-T09](FORGE-S07-T09/INDEX.md) | PLAN — FORGE-S07-T09: Release engineering — version bump to 0.9.0, migration entry, security scan       | ✅ committed | —        |
+| Task                                                            | Title                                                                                                   | Status      | Estimate |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------- | -------- |
+| [FORGE-S07-T01](FORGE-S07-T01-schema-reconciliation/INDEX.md)   | PLAN — FORGE-S07-T01: Schema reconciliation — add goal and features to sprint.schema.json               | ✅ committed | —        |
+| [FORGE-S07-T02](FORGE-S07-T02-store-facade-extension/INDEX.md)  | PLAN — FORGE-S07-T02: Store facade extension — writeCollationState, purgeEvents, listEventFilenames     | ✅ committed | —        |
+| [FORGE-S07-T03](FORGE-S07-T03-collate-facade-fix/INDEX.md)      | PLAN — FORGE-S07-T03: Fix collate.cjs facade bypasses — writeCollationState and purgeEvents             | 📋 planned  | —        |
+| [FORGE-S07-T04](FORGE-S07-T04-validate-store-refactor/INDEX.md) | PLAN — FORGE-S07-T04: Refactor validate-store.cjs — remove embedded schemas and fix facade bypass       | ✅ committed | —        |
+| [FORGE-S07-T05](FORGE-S07-T05-store-custodian-cli/INDEX.md)     | PLAN — FORGE-S07-T05: Implement store-cli.cjs — deterministic store custodian CLI                       | ✅ committed | —        |
+| [FORGE-S07-T06](FORGE-S07-T06-store-custodian-skill/INDEX.md)   | PLAN — FORGE-S07-T06: Create store custodian skill and tool spec                                        | ✅ committed | —        |
+| [FORGE-S07-T07](FORGE-S07-T07-workflow-migration/INDEX.md)      | PLAN — FORGE-S07-T07: Migrate all 16 meta-workflows to store custodian                                  | ✅ committed | —        |
+| [FORGE-S07-T08](FORGE-S07-T08-command-migration/INDEX.md)       | PLAN — FORGE-S07-T08: Update migrate.md command — replace direct store writes with custodian references | ✅ committed | —        |
+| [FORGE-S07-T09](FORGE-S07-T09-release-engineering/INDEX.md)     | PLAN — FORGE-S07-T09: Release engineering — version bump to 0.9.0, migration entry, security scan       | ✅ committed | —        |
 

@@ -4,8 +4,9 @@
 
 > Bug ID: FORGE-BUG-011
 > Severity: major
-> Status: 🔵 in-progress
+> Status: ✅ fixed
 > Reported: 2026-04-19
+> Resolved: 2026-04-19
 
 ## Description
 
@@ -13,10 +14,12 @@ Three UX issues: (1) gh#51 tomoshibi emits /CAR: instead of /car: causing unknow
 
 ## Bug Documents
 
-| Document                      | Purpose                 |
-| ----------------------------- | ----------------------- |
-| [Analysis](ANALYSIS.md)       | Bug analysis and triage |
-| [Fix Plan](BUG_FIX_PLAN.md)   | Fix implementation plan |
-| [Plan Review](PLAN_REVIEW.md) | Fix plan review         |
-| [Progress](PROGRESS.md)       | Fix progress log        |
+| Document                                    | Purpose                 |
+| ------------------------------------------- | ----------------------- |
+| [Analysis](ANALYSIS.md)                     | Bug analysis and triage |
+| [Fix Plan](BUG_FIX_PLAN.md)                 | Fix implementation plan |
+| [Plan Review](PLAN_REVIEW.md)               | Fix plan review         |
+| [Progress](PROGRESS.md)                     | Fix progress log        |
+| [Architect Approval](ARCHITECT_APPROVAL.md) | Architecture approval   |
+| [Code Review](CODE_REVIEW.md)               | Code review             |
 

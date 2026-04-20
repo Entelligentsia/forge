@@ -15,15 +15,15 @@
 
 ## Tasks
 
-| Task                                    | Title                                                                                      | Status      | Estimate |
-| --------------------------------------- | ------------------------------------------------------------------------------------------ | ----------- | -------- |
-| [FORGE-S09-T01](FORGE-S09-T01/INDEX.md) | PLAN — FORGE-S09-T01: Renumber sdlc-init.md phases to sequential integers                  | ✅ committed | —        |
-| [FORGE-S09-T02](FORGE-S09-T02/INDEX.md) | PLAN — FORGE-S09-T02: Config schema — add calibrationBaseline + required-field annotations | ✅ committed | —        |
-| [FORGE-S09-T03](FORGE-S09-T03/INDEX.md) | PLAN — FORGE-S09-T03: Init — calibration baseline write + incomplete init guard            | ✅ committed | —        |
-| [FORGE-S09-T04](FORGE-S09-T04/INDEX.md) | PLAN — FORGE-S09-T04: Health — KB freshness check + config-completeness check              | ✅ committed | —        |
-| [FORGE-S09-T05](FORGE-S09-T05/INDEX.md) | PLAN — FORGE-S09-T05: Calibrate command — drift detection, categories, surgical patches    | ✅ committed | —        |
-| [FORGE-S09-T06](FORGE-S09-T06/INDEX.md) | PLAN — FORGE-S09-T06: SPRINT_PLAN.md output path in meta-sprint-plan                       | ✅ committed | —        |
-| [FORGE-S09-T07](FORGE-S09-T07/INDEX.md) | Add-task mid-sprint command                                                                | ✅ committed | M        |
-| [FORGE-S09-T08](FORGE-S09-T08/INDEX.md) | Task T08                                                                                   | ✅ committed | —        |
-| [FORGE-S09-T09](FORGE-S09-T09/INDEX.md) | Task T09                                                                                   | ✅ committed | —        |
+| Task                                                           | Title                                                                                      | Status      | Estimate |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ----------- | -------- |
+| [FORGE-S09-T01](FORGE-S09-T01-renumber-phases/INDEX.md)        | PLAN — FORGE-S09-T01: Renumber sdlc-init.md phases to sequential integers                  | ✅ committed | —        |
+| [FORGE-S09-T02](FORGE-S09-T02-config-schema/INDEX.md)          | PLAN — FORGE-S09-T02: Config schema — add calibrationBaseline + required-field annotations | ✅ committed | —        |
+| [FORGE-S09-T03](FORGE-S09-T03-init-calibration-guard/INDEX.md) | PLAN — FORGE-S09-T03: Init — calibration baseline write + incomplete init guard            | ✅ committed | —        |
+| [FORGE-S09-T04](FORGE-S09-T04-health-checks/INDEX.md)          | PLAN — FORGE-S09-T04: Health — KB freshness check + config-completeness check              | ✅ committed | —        |
+| [FORGE-S09-T05](FORGE-S09-T05-calibrate-command/INDEX.md)      | PLAN — FORGE-S09-T05: Calibrate command — drift detection, categories, surgical patches    | ✅ committed | —        |
+| [FORGE-S09-T06](FORGE-S09-T06-sprint-plan-path/INDEX.md)       | PLAN — FORGE-S09-T06: SPRINT_PLAN.md output path in meta-sprint-plan                       | ✅ committed | —        |
+| [FORGE-S09-T07](FORGE-S09-T07-add-task-command/INDEX.md)       | Add-task mid-sprint command                                                                | ✅ committed | M        |
+| [FORGE-S09-T08](FORGE-S09-T08-close-bugs/INDEX.md)             | Task T08                                                                                   | ✅ committed | —        |
+| [FORGE-S09-T09](FORGE-S09-T09-release-engineering/INDEX.md)    | Task T09                                                                                   | ✅ committed | —        |
 

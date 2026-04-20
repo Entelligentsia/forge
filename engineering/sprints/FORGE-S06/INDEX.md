@@ -14,16 +14,16 @@
 
 ## Tasks
 
-| Task                                    | Title                                                                                               | Status          | Estimate |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------- | -------- |
-| [FORGE-S06-T01](FORGE-S06-T01/INDEX.md) | PLAN — FORGE-S06-T01: Fix orchestrator persona lookup + model announcement                          | ✅ committed     | —        |
-| [FORGE-S06-T02](FORGE-S06-T02/INDEX.md) | PLAN — FORGE-S06-T02: Purify meta-workflows — remove Persona sections, reassign sprint-intake to PM | ✅ committed     | —        |
-| [FORGE-S06-T03](FORGE-S06-T03/INDEX.md) | PLAN — FORGE-S06-T03: Add personas to forge:regenerate defaults                                     | 🔧 implementing | —        |
-| [FORGE-S06-T04](FORGE-S06-T04/INDEX.md) | PLAN — FORGE-S06-T04: Fix ghost event files in store.cjs and validate-store.cjs                     | ✅ committed     | —        |
-| [FORGE-S06-T05](FORGE-S06-T05/INDEX.md) | PLAN — FORGE-S06-T05: Suppress false breaking-change confirmation in forge:update                   | ✅ committed     | —        |
-| [FORGE-S06-T06](FORGE-S06-T06/INDEX.md) | PLAN — FORGE-S06-T06: Add `path` field to sprint schema                                             | ✅ committed     | —        |
-| [FORGE-S06-T07](FORGE-S06-T07/INDEX.md) | PLAN — FORGE-S06-T07: Slug-aware seed-store discovery and path construction                         | ✅ committed     | —        |
-| [FORGE-S06-T08](FORGE-S06-T08/INDEX.md) | PLAN — FORGE-S06-T08: Update collate path resolution for slug-named directories                     | 📋 planned      | —        |
-| [FORGE-S06-T09](FORGE-S06-T09/INDEX.md) | PLAN — FORGE-S06-T09: Update validate-store discovery for slug-named directories                    | 📋 planned      | —        |
-| [FORGE-S06-T10](FORGE-S06-T10/INDEX.md) | PLAN — FORGE-S06-T10: Release engineering — version bump, migration, security scan                  | ✅ committed     | —        |
+| Task                                                                    | Title                                                                                               | Status          | Estimate |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------- | -------- |
+| [FORGE-S06-T01](FORGE-S06-T01-fix-orchestrator-persona-lookup/INDEX.md) | PLAN — FORGE-S06-T01: Fix orchestrator persona lookup + model announcement                          | ✅ committed     | —        |
+| [FORGE-S06-T02](FORGE-S06-T02-purify-meta-workflows/INDEX.md)           | PLAN — FORGE-S06-T02: Purify meta-workflows — remove Persona sections, reassign sprint-intake to PM | ✅ committed     | —        |
+| [FORGE-S06-T03](FORGE-S06-T03-regenerate-personas-default/INDEX.md)     | PLAN — FORGE-S06-T03: Add personas to forge:regenerate defaults                                     | 🔧 implementing | —        |
+| [FORGE-S06-T04](FORGE-S06-T04-fix-ghost-event-files/INDEX.md)           | PLAN — FORGE-S06-T04: Fix ghost event files in store.cjs and validate-store.cjs                     | ✅ committed     | —        |
+| [FORGE-S06-T05](FORGE-S06-T05-suppress-false-breaking-change/INDEX.md)  | PLAN — FORGE-S06-T05: Suppress false breaking-change confirmation in forge:update                   | ✅ committed     | —        |
+| [FORGE-S06-T06](FORGE-S06-T06-add-path-to-sprint-schema/INDEX.md)       | PLAN — FORGE-S06-T06: Add `path` field to sprint schema                                             | ✅ committed     | —        |
+| [FORGE-S06-T07](FORGE-S06-T07-slug-aware-seed-store/INDEX.md)           | PLAN — FORGE-S06-T07: Slug-aware seed-store discovery and path construction                         | ✅ committed     | —        |
+| [FORGE-S06-T08](FORGE-S06-T08-collate-slug-path-resolution/INDEX.md)    | PLAN — FORGE-S06-T08: Update collate path resolution for slug-named directories                     | 📋 planned      | —        |
+| [FORGE-S06-T09](FORGE-S06-T09-validate-store-slug-discovery/INDEX.md)   | PLAN — FORGE-S06-T09: Update validate-store discovery for slug-named directories                    | 📋 planned      | —        |
+| [FORGE-S06-T10](FORGE-S06-T10-release-engineering/INDEX.md)             | PLAN — FORGE-S06-T10: Release engineering — version bump, migration, security scan                  | ✅ committed     | —        |
 

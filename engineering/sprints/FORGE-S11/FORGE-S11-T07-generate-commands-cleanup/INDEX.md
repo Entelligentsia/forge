@@ -4,7 +4,7 @@
 
 > Task ID: FORGE-S11-T07
 > Sprint: [FORGE-S11](../INDEX.md)
-> Status: 📋 planned
+> Status: ✅ committed
 > Estimate: S
 
 ## Description
@@ -13,7 +13,11 @@ generate-commands.md lacks quiz-agent.md in its explicit output list, and never 
 
 ## Task Documents
 
-| Document                      | Purpose                    |
-| ----------------------------- | -------------------------- |
-| [Task Prompt](TASK_PROMPT.md) | Task definition and prompt |
+| Document                                    | Purpose                    |
+| ------------------------------------------- | -------------------------- |
+| [Task Prompt](TASK_PROMPT.md)               | Task definition and prompt |
+| [Plan](PLAN.md)                             | Implementation plan        |
+| [Architect Approval](ARCHITECT_APPROVAL.md) | Architecture review        |
+| [Code Review](CODE_REVIEW.md)               | Code review                |
+| [Validation Report](VALIDATION_REPORT.md)   | Validation results         |
 

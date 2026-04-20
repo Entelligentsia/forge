@@ -1,0 +1,11 @@
+{
+  "bugId": "FORGE-BUG-011",
+  "title": "UX polish: tomoshibi uppercase prefix, progress IPC personality, ensure-ready banner",
+  "description": "Three UX issues: (1) gh#51 tomoshibi emits /CAR: instead of /car: causing unknown command errors; (2) gh#52 progress IPC monitor events are bare pipe-delimited log lines lacking persona/emoji/context; (3) gh#54 ensure-ready.cjs multi-line banner collapses to single visible line in Claude Code inline display.",
+  "severity": "major",
+  "status": "fixed",
+  "path": "engineering/bugs/FORGE-BUG-011-ux-polish-tomoshibi-progress-banner",
+  "githubIssue": "https://github.com/Entelligentsia/forge/issues/51",
+  "reportedAt": "2026-04-19T00:00:00Z",
+  "resolvedAt": "2026-04-19T08:23:32Z"
+}

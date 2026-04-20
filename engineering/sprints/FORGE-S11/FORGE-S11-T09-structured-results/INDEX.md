@@ -4,7 +4,7 @@
 
 > Task ID: FORGE-S11-T09
 > Sprint: [FORGE-S11](../INDEX.md)
-> Status: 📋 planned
+> Status: ✅ committed
 > Estimate: XL
 
 ## Description
@@ -13,7 +13,10 @@ Refactor exported functions in forge/tools/*.cjs from throw/null-return patterns
 
 ## Task Documents
 
-| Document                      | Purpose                    |
-| ----------------------------- | -------------------------- |
-| [Task Prompt](TASK_PROMPT.md) | Task definition and prompt |
+| Document                                  | Purpose                    |
+| ----------------------------------------- | -------------------------- |
+| [Task Prompt](TASK_PROMPT.md)             | Task definition and prompt |
+| [Plan](PLAN.md)                           | Implementation plan        |
+| [Code Review](CODE_REVIEW.md)             | Code review                |
+| [Validation Report](VALIDATION_REPORT.md) | Validation results         |
 

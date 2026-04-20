@@ -1,0 +1,102 @@
+{
+  "project": {
+    "name": "Forge",
+    "prefix": "FORGE"
+  },
+  "commands": {
+    "syntaxCheck": {
+      "javascript": "node --check"
+    },
+    "test": "node forge/tools/validate-store.cjs --dry-run",
+    "build": "",
+    "lint": "node --check forge/tools/collate.cjs forge/tools/validate-store.cjs forge/tools/seed-store.cjs forge/tools/manage-config.cjs forge/tools/estimate-usage.cjs forge/hooks/check-update.js forge/hooks/triage-error.js forge/hooks/list-skills.js"
+  },
+  "paths": {
+    "engineering": "engineering",
+    "store": ".forge/store",
+    "workflows": ".forge/workflows",
+    "commands": ".claude/commands",
+    "templates": ".forge/templates",
+    "customCommands": "engineering/commands",
+    "forgeRoot": "/home/boni/.claude/plugins/cache/forge/forge/0.18.0"
+  },
+  "personas": [
+    {
+      "role": "architect",
+      "file": ".forge/personas/architect.md",
+      "symbol": "·",
+      "oneLiner": "Run this command using the Bash tool as your first action (before any file reads or other tool use):"
+    },
+    {
+      "role": "bug-fixer",
+      "file": ".forge/personas/bug-fixer.md",
+      "symbol": "·",
+      "oneLiner": "Run this command using the Bash tool as your first action (before any file reads or other tool use):"
+    },
+    {
+      "role": "collator",
+      "file": ".forge/personas/collator.md",
+      "symbol": "·",
+      "oneLiner": "Run this command using the Bash tool as your first action (before any file reads or other tool use):"
+    },
+    {
+      "role": "engineer",
+      "file": ".forge/personas/engineer.md",
+      "symbol": "·",
+      "oneLiner": "Run this command using the Bash tool as your first action (before any file reads or other tool use):"
+    },
+    {
+      "role": "product-manager",
+      "file": ".forge/personas/product-manager.md",
+      "symbol": "🌸",
+      "oneLiner": "🌸 **Forge Product Manager** — I capture what we're building and why. I do not move forward until requirements are clear."
+    },
+    {
+      "role": "qa-engineer",
+      "file": ".forge/personas/qa-engineer.md",
+      "symbol": "🍵",
+      "oneLiner": "🍵 **Forge QA Engineer** — I validate against what was promised. The code compiling is not enough."
+    },
+    {
+      "role": "supervisor",
+      "file": ".forge/personas/supervisor.md",
+      "symbol": "·",
+      "oneLiner": "Run this command using the Bash tool as your first action (before any file reads or other tool use):"
+    }
+  ],
+  "templates": [
+    "CODE_REVIEW_TEMPLATE",
+    "CUSTOM_COMMAND_TEMPLATE",
+    "PLAN_REVIEW_TEMPLATE",
+    "PLAN_TEMPLATE",
+    "PROGRESS_TEMPLATE",
+    "RETROSPECTIVE_TEMPLATE",
+    "SPRINT_MANIFEST_TEMPLATE",
+    "SPRINT_REQUIREMENTS_TEMPLATE",
+    "TASK_PROMPT_TEMPLATE"
+  ],
+  "architectureDocs": [
+    "INDEX.md",
+    "database.md",
+    "deployment.md",
+    "processes.md",
+    "routing.md",
+    "stack.md"
+  ],
+  "entities": [],
+  "skillWiring": [
+    {
+      "skill": "agent-sdk-dev",
+      "personas": [
+        "engineer"
+      ]
+    },
+    {
+      "skill": "frontend-design",
+      "personas": [
+        "engineer",
+        "supervisor"
+      ]
+    }
+  ]
+}

@@ -14,9 +14,9 @@
 
 ## Tasks
 
-| Task                                    | Title                                                                                        | Status          | Estimate |
-| --------------------------------------- | -------------------------------------------------------------------------------------------- | --------------- | -------- |
-| [FORGE-S03-T01](FORGE-S03-T01/INDEX.md) | PLAN — FORGE-S03-T01: Eliminate tools regenerate target and embed store schemas              | 📋 planned      | —        |
-| [FORGE-S03-T02](FORGE-S03-T02/INDEX.md) | PLAN — FORGE-S03-T02: Introduce granular migration target format and correct migrations.json | 🔧 implementing | —        |
-| [FORGE-S03-T03](FORGE-S03-T03/INDEX.md) | PLAN — FORGE-S03-T03: Version bump to 0.6.1 with security scan and release commit            | 🔧 implementing | —        |
+| Task                          | Title                                                                                        | Status          | Estimate |
+| ----------------------------- | -------------------------------------------------------------------------------------------- | --------------- | -------- |
+| [FORGE-S03-T01](T01/INDEX.md) | PLAN — FORGE-S03-T01: Eliminate tools regenerate target and embed store schemas              | 📋 planned      | —        |
+| [FORGE-S03-T02](T02/INDEX.md) | PLAN — FORGE-S03-T02: Introduce granular migration target format and correct migrations.json | 🔧 implementing | —        |
+| [FORGE-S03-T03](T03/INDEX.md) | PLAN — FORGE-S03-T03: Version bump to 0.6.1 with security scan and release commit            | 🔧 implementing | —        |
 

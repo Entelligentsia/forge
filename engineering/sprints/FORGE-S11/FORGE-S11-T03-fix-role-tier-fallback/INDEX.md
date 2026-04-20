@@ -4,7 +4,7 @@
 
 > Task ID: FORGE-S11-T03
 > Sprint: [FORGE-S11](../INDEX.md)
-> Status: 🔧 implemented
+> Status: ✅ committed
 > Estimate: M
 
 ## Description
@@ -13,8 +13,10 @@ When ANTHROPIC_DEFAULT_PRIMARY/SECONDARY/FAST_MODEL env vars are unset, orchestr
 
 ## Task Documents
 
-| Document                      | Purpose                    |
-| ----------------------------- | -------------------------- |
-| [Task Prompt](TASK_PROMPT.md) | Task definition and prompt |
-| [Plan](PLAN.md)               | Implementation plan        |
+| Document                                    | Purpose                    |
+| ------------------------------------------- | -------------------------- |
+| [Task Prompt](TASK_PROMPT.md)               | Task definition and prompt |
+| [Plan](PLAN.md)                             | Implementation plan        |
+| [Architect Approval](ARCHITECT_APPROVAL.md) | Architecture review        |
+| [Code Review](CODE_REVIEW.md)               | Code review                |
 

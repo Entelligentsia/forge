@@ -14,12 +14,12 @@
 
 ## Tasks
 
-| Task                                    | Title                                                                              | Status      | Estimate |
-| --------------------------------------- | ---------------------------------------------------------------------------------- | ----------- | -------- |
-| [FORGE-S08-T01](FORGE-S08-T01/INDEX.md) | PLAN — FORGE-S08-T01: Init pre-flight plan + phase progress banners                | ✅ committed | —        |
-| [FORGE-S08-T02](FORGE-S08-T02/INDEX.md) | PLAN — FORGE-S08-T02: Init checkpoint and resume mechanism                         | ✅ committed | —        |
-| [FORGE-S08-T03](FORGE-S08-T03/INDEX.md) | PLAN — FORGE-S08-T03: Regenerate per-file status lines                             | ✅ committed | —        |
-| [FORGE-S08-T04](FORGE-S08-T04/INDEX.md) | PLAN — FORGE-S08-T04: Update step banners and explicit sequencing                  | ✅ committed | —        |
-| [FORGE-S08-T05](FORGE-S08-T05/INDEX.md) | PLAN — FORGE-S08-T05: Update Step 5 collect-all-then-confirm audit                 | ✅ committed | —        |
-| [FORGE-S08-T06](FORGE-S08-T06/INDEX.md) | PLAN — FORGE-S08-T06: Release engineering — version bump, migration, security scan | ✅ committed | —        |
+| Task                                                              | Title                                                                              | Status      | Estimate |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------- | -------- |
+| [FORGE-S08-T01](FORGE-S08-T01-init-preflight-banners/INDEX.md)    | PLAN — FORGE-S08-T01: Init pre-flight plan + phase progress banners                | ✅ committed | —        |
+| [FORGE-S08-T02](FORGE-S08-T02-init-checkpoint-resume/INDEX.md)    | PLAN — FORGE-S08-T02: Init checkpoint and resume mechanism                         | ✅ committed | —        |
+| [FORGE-S08-T03](FORGE-S08-T03-regenerate-status-lines/INDEX.md)   | PLAN — FORGE-S08-T03: Regenerate per-file status lines                             | ✅ committed | —        |
+| [FORGE-S08-T04](FORGE-S08-T04-update-banners-sequencing/INDEX.md) | PLAN — FORGE-S08-T04: Update step banners and explicit sequencing                  | ✅ committed | —        |
+| [FORGE-S08-T05](FORGE-S08-T05-update-batch-step5/INDEX.md)        | PLAN — FORGE-S08-T05: Update Step 5 collect-all-then-confirm audit                 | ✅ committed | —        |
+| [FORGE-S08-T06](FORGE-S08-T06-release-engineering/INDEX.md)       | PLAN — FORGE-S08-T06: Release engineering — version bump, migration, security scan | ✅ committed | —        |
 

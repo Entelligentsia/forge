@@ -17,7 +17,7 @@ Add the Tomoshibi agent to keep coding-agent instruction files linked to the For
 
 ## Tasks
 
-| Task                                    | Title                                                      | Status      | Estimate |
-| --------------------------------------- | ---------------------------------------------------------- | ----------- | -------- |
-| [FORGE-S10-T01](FORGE-S10-T01/INDEX.md) | Tomoshibi agent + KB path configurability + workflow links | ✅ committed | L        |
+| Task                                                      | Title                                                      | Status      | Estimate |
+| --------------------------------------------------------- | ---------------------------------------------------------- | ----------- | -------- |
+| [FORGE-S10-T01](FORGE-S10-T01-tomoshibi-kb-path/INDEX.md) | Tomoshibi agent + KB path configurability + workflow links | ✅ committed | L        |
 

@@ -1,28 +1,28 @@
 {
   "files": {
     ".forge/schemas/bug.schema.json": {
-      "hash": "sha256:0a7707dd9d0906658e3060803612455edfb520a22273752ccb942fde79b3f05c",
-      "generatedAt": "2026-04-16T08:52:11.038Z",
+      "hash": "sha256:8a57cc2e4d66162c6801a8f981bb4189ad3faf37f19744d705f031f7c5c929e6",
+      "generatedAt": "2026-04-20T01:07:23.842Z",
       "generatedByVersion": "1.0"
     },
     ".forge/schemas/event.schema.json": {
       "hash": "sha256:7002c064478b85fc8eaba0bb7d5d0d48a832a3042a1852ad69eadcca260631d1",
-      "generatedAt": "2026-04-16T08:52:11.061Z",
+      "generatedAt": "2026-04-20T01:07:23.871Z",
       "generatedByVersion": "1.0"
     },
     ".forge/schemas/feature.schema.json": {
       "hash": "sha256:bd5016b2dc0c9235d204facbd70d11861a26e1a650646782f7ab96d3409f04b1",
-      "generatedAt": "2026-04-16T08:52:11.084Z",
+      "generatedAt": "2026-04-20T01:07:23.900Z",
       "generatedByVersion": "1.0"
     },
     ".forge/schemas/sprint.schema.json": {
       "hash": "sha256:38f509a0bb08de58dbfa0dace7f678b1e1950751a246231d6f09964d1ab38de0",
-      "generatedAt": "2026-04-16T08:52:11.109Z",
+      "generatedAt": "2026-04-20T01:07:23.927Z",
       "generatedByVersion": "1.0"
     },
     ".forge/schemas/task.schema.json": {
-      "hash": "sha256:3fbb355f05888c8809cb5bdd70b3bf495786d52b16bcf3a3de1729a7623591fa",
-      "generatedAt": "2026-04-16T08:52:11.141Z",
+      "hash": "sha256:07a0f6888633777157530cf9d6b1ffa83b3a885502ec82b03c07e3f915c79a5d",
+      "generatedAt": "2026-04-20T01:07:23.940Z",
       "generatedByVersion": "1.0"
     },
     ".forge/workflows/orchestrate_task.md": {
@@ -298,6 +298,21 @@
     ".forge/skills/generic-skills.md": {
       "hash": "sha256:85cb7d75ba166cf47280dcb21629fa87c8ba3d48058f134164fc7cab12782fc6",
       "generatedAt": "2026-04-16T09:01:20.219Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/schemas/collation-state.schema.json": {
+      "hash": "sha256:a48ccc1116699531e0222276b99dbb9e9bb4067622130fd42bc53ab30ee7cd0a",
+      "generatedAt": "2026-04-20T01:07:23.857Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/schemas/event-sidecar.schema.json": {
+      "hash": "sha256:2e088fa79764a629a41332d405478abaae99a7f61f9efa81c5b5eb2ad7253de1",
+      "generatedAt": "2026-04-20T01:07:23.886Z",
+      "generatedByVersion": "1.0"
+    },
+    ".forge/schemas/progress-entry.schema.json": {
+      "hash": "sha256:52bbcf58fc3611f823973dd3ff453cb5d9eb9be8a1c261cd727319b6867a6887",
+      "generatedAt": "2026-04-20T01:07:23.914Z",
       "generatedByVersion": "1.0"
     }
   }
