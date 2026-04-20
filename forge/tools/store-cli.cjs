@@ -226,7 +226,26 @@ function _normalizeBugTimestamps(data) {
   return data;
 }
 
-module.exports = { isLegalTransition, validateRecord, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, ENTITY_TYPES, MINIMAL_REQUIRED, NULLABLE_FIELDS, VALID_SUMMARY_PHASES, PHASE_SUMMARY_SCHEMA, _isDateOnly, _dateOnlyToISO, _normalizeBugTimestamps };
+// ---------------------------------------------------------------------------
+// Model discovery
+// ---------------------------------------------------------------------------
+
+// Deterministic model discovery — probes environment variables in priority
+// order to resolve the actual runtime model identifier. Returns "unknown"
+// when no signal is available instead of guessing an Anthropic model name.
+function discoverModel() {
+  const candidates = [
+    process.env.CLAUDE_CODE_SUBAGENT_MODEL,
+    process.env.ANTHROPIC_MODEL,
+    process.env.CLAUDE_MODEL,
+  ];
+  for (const val of candidates) {
+    if (val && val.trim()) return val.trim();
+  }
+  return 'unknown';
+}
+
+module.exports = { isLegalTransition, validateRecord, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, ENTITY_TYPES, MINIMAL_REQUIRED, NULLABLE_FIELDS, VALID_SUMMARY_PHASES, PHASE_SUMMARY_SCHEMA, _isDateOnly, _dateOnlyToISO, _normalizeBugTimestamps, discoverModel };
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -654,6 +673,13 @@ function cmdEmit() {
     // date-only values (T00:00:00Z) get real time-of-day stamped in (#56).
     _normalizeEventTimestamps(data);
 
+    // Auto-populate model from environment when missing or empty (FORGE-S12-T06).
+    // Callers who set model explicitly take priority — discoverModel() is only
+    // used as a fallback so we never silently record a wrong model name.
+    if (!data.model || !data.model.trim()) {
+      data.model = discoverModel();
+    }
+
     // Validate as event entity
     const errors = validateRecord(data, schemas.event);
     if (errors.length > 0) {
@@ -782,6 +808,12 @@ function cmdRecordUsage() {
     } else if (arg === '--duration-minutes' && flagArgs[i + 1]) {
       sidecar.durationMinutes = parseFloat(flagArgs[++i]);
     }
+  }
+
+  // Auto-populate model from environment when --model flag not provided (FORGE-S12-T06).
+  // An explicit --model flag takes priority — discoverModel() is only a fallback.
+  if (!sidecar.model) {
+    sidecar.model = discoverModel();
   }
 
   // Validate against sidecar schema

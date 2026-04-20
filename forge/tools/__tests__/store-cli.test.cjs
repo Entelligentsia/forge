@@ -5,7 +5,7 @@ const { spawnSync } = require('child_process');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const { isLegalTransition, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, validateRecord, NULLABLE_FIELDS, VALID_SUMMARY_PHASES, PHASE_SUMMARY_SCHEMA, _isDateOnly, _dateOnlyToISO, _normalizeBugTimestamps } = require('../store-cli.cjs');
+const { isLegalTransition, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, validateRecord, NULLABLE_FIELDS, VALID_SUMMARY_PHASES, PHASE_SUMMARY_SCHEMA, _isDateOnly, _dateOnlyToISO, _normalizeBugTimestamps, discoverModel } = require('../store-cli.cjs');
 
 const STORE_CLI = path.join(__dirname, '..', 'store-cli.cjs');
 
@@ -1195,6 +1195,246 @@ describe('store-cli.cjs — record-usage subcommand', () => {
       ));
       assert.equal(sidecar.model, 'claude-sonnet-4-6');
       assert.equal(sidecar.durationMinutes, 5.2);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('store-cli.cjs — discoverModel', () => {
+  test('returns CLAUDE_CODE_SUBAGENT_MODEL when set', () => {
+    // We test discoverModel via a subprocess so env vars are isolated
+    const r = spawnSync(process.execPath, ['-e', `
+      const { discoverModel } = require('./forge/tools/store-cli.cjs');
+      process.stdout.write(discoverModel());
+    `], {
+      cwd: '/home/boni/src/forge',
+      encoding: 'utf8',
+      env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: 'glm-5.1:cloud' },
+    });
+    assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+    assert.equal(r.stdout.trim(), 'glm-5.1:cloud');
+  });
+
+  test('falls back to ANTHROPIC_MODEL when CLAUDE_CODE_SUBAGENT_MODEL is not set', () => {
+    const r = spawnSync(process.execPath, ['-e', `
+      const { discoverModel } = require('./forge/tools/store-cli.cjs');
+      process.stdout.write(discoverModel());
+    `], {
+      cwd: '/home/boni/src/forge',
+      encoding: 'utf8',
+      env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: '', ANTHROPIC_MODEL: 'claude-sonnet-4-6' },
+    });
+    assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+    assert.equal(r.stdout.trim(), 'claude-sonnet-4-6');
+  });
+
+  test('falls back to CLAUDE_MODEL when CLAUDE_CODE_SUBAGENT_MODEL and ANTHROPIC_MODEL are not set', () => {
+    const r = spawnSync(process.execPath, ['-e', `
+      const { discoverModel } = require('./forge/tools/store-cli.cjs');
+      process.stdout.write(discoverModel());
+    `], {
+      cwd: '/home/boni/src/forge',
+      encoding: 'utf8',
+      env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: '', ANTHROPIC_MODEL: '', CLAUDE_MODEL: 'gpt-4o' },
+    });
+    assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+    assert.equal(r.stdout.trim(), 'gpt-4o');
+  });
+
+  test('returns "unknown" when no model env var is set', () => {
+    const r = spawnSync(process.execPath, ['-e', `
+      const { discoverModel } = require('./forge/tools/store-cli.cjs');
+      process.stdout.write(discoverModel());
+    `], {
+      cwd: '/home/boni/src/forge',
+      encoding: 'utf8',
+      env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: '', ANTHROPIC_MODEL: '', CLAUDE_MODEL: '' },
+    });
+    assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+    assert.equal(r.stdout.trim(), 'unknown');
+  });
+
+  test('CLAUDE_CODE_SUBAGENT_MODEL takes priority over ANTHROPIC_MODEL', () => {
+    const r = spawnSync(process.execPath, ['-e', `
+      const { discoverModel } = require('./forge/tools/store-cli.cjs');
+      process.stdout.write(discoverModel());
+    `], {
+      cwd: '/home/boni/src/forge',
+      encoding: 'utf8',
+      env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: 'glm-5.1:cloud', ANTHROPIC_MODEL: 'claude-sonnet-4-6' },
+    });
+    assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+    assert.equal(r.stdout.trim(), 'glm-5.1:cloud');
+  });
+
+  test('trims whitespace from model env var values', () => {
+    const r = spawnSync(process.execPath, ['-e', `
+      const { discoverModel } = require('./forge/tools/store-cli.cjs');
+      process.stdout.write(discoverModel());
+    `], {
+      cwd: '/home/boni/src/forge',
+      encoding: 'utf8',
+      env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: '  claude-opus-4-5  ' },
+    });
+    assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+    assert.equal(r.stdout.trim(), 'claude-opus-4-5');
+  });
+});
+
+describe('store-cli.cjs — emit auto-populates model via discoverModel', () => {
+  function makeEmitStoreForModel() {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-model-'));
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'S1'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'config.json'),
+      JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
+    );
+    return tmpDir;
+  }
+
+  const BASE_EVENT = {
+    eventId: 'E-MODEL-001',
+    taskId: 'T01',
+    sprintId: 'S1',
+    role: 'plan',
+    action: 'plan-task',
+    phase: 'plan',
+    iteration: 1,
+    startTimestamp: '2026-04-20T14:32:07.123Z',
+    endTimestamp: '2026-04-20T14:35:07.123Z',
+    durationMinutes: 3,
+  };
+
+  test('emit auto-populates model when model is missing', () => {
+    const tmpDir = makeEmitStoreForModel();
+    try {
+      // Event without model field
+      const eventNoModel = { ...BASE_EVENT };
+      delete eventNoModel.model;
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'S1', JSON.stringify(eventNoModel)], {
+        cwd: tmpDir, encoding: 'utf8',
+        env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: 'glm-5.1:cloud' },
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const ev = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'events', 'S1', 'E-MODEL-001.json'), 'utf8'
+      ));
+      assert.equal(ev.model, 'glm-5.1:cloud', 'model should be auto-populated from env var');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('emit auto-populates model when model is empty string', () => {
+    const tmpDir = makeEmitStoreForModel();
+    try {
+      const eventEmptyModel = { ...BASE_EVENT, model: '' };
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'S1', JSON.stringify(eventEmptyModel)], {
+        cwd: tmpDir, encoding: 'utf8',
+        env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: 'glm-5.1:cloud' },
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const ev = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'events', 'S1', 'E-MODEL-001.json'), 'utf8'
+      ));
+      assert.equal(ev.model, 'glm-5.1:cloud', 'model should be auto-populated when empty string');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('emit preserves explicitly provided model', () => {
+    const tmpDir = makeEmitStoreForModel();
+    try {
+      const eventExplicitModel = { ...BASE_EVENT, model: 'claude-sonnet-4-6' };
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'S1', JSON.stringify(eventExplicitModel)], {
+        cwd: tmpDir, encoding: 'utf8',
+        env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: 'glm-5.1:cloud' },
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const ev = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'events', 'S1', 'E-MODEL-001.json'), 'utf8'
+      ));
+      assert.equal(ev.model, 'claude-sonnet-4-6', 'explicitly provided model must be preserved');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('emit sets model to "unknown" when no env var is set and model is missing', () => {
+    const tmpDir = makeEmitStoreForModel();
+    try {
+      const eventNoModel = { ...BASE_EVENT };
+      delete eventNoModel.model;
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'S1', JSON.stringify(eventNoModel)], {
+        cwd: tmpDir, encoding: 'utf8',
+        env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: '', ANTHROPIC_MODEL: '', CLAUDE_MODEL: '' },
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const ev = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'events', 'S1', 'E-MODEL-001.json'), 'utf8'
+      ));
+      assert.equal(ev.model, 'unknown', 'model should be "unknown" when no env var is set');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('store-cli.cjs — record-usage auto-populates model via discoverModel', () => {
+  function makeUsageStoreForModel() {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-rumodel-'));
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'S1'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'config.json'),
+      JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
+    );
+    return tmpDir;
+  }
+
+  test('record-usage auto-populates model when --model flag not provided', () => {
+    const tmpDir = makeUsageStoreForModel();
+    try {
+      const r = spawnSync(process.execPath, [
+        STORE_CLI, 'record-usage', 'S1', 'E-RU-MODEL',
+        '--input-tokens', '100',
+      ], {
+        cwd: tmpDir, encoding: 'utf8',
+        env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: 'glm-5.1:cloud' },
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const sidecar = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'events', 'S1', '_E-RU-MODEL_usage.json'), 'utf8'
+      ));
+      assert.equal(sidecar.model, 'glm-5.1:cloud', 'model should be auto-populated from env var');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('record-usage preserves explicit --model flag', () => {
+    const tmpDir = makeUsageStoreForModel();
+    try {
+      const r = spawnSync(process.execPath, [
+        STORE_CLI, 'record-usage', 'S1', 'E-RU-MODEL2',
+        '--input-tokens', '100',
+        '--model', 'claude-opus-4-5',
+      ], {
+        cwd: tmpDir, encoding: 'utf8',
+        env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: 'glm-5.1:cloud' },
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const sidecar = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'events', 'S1', '_E-RU-MODEL2_usage.json'), 'utf8'
+      ));
+      assert.equal(sidecar.model, 'claude-opus-4-5', 'explicit --model flag must be preserved');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
