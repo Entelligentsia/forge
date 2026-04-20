@@ -4,9 +4,24 @@
   "sprintId": "FORGE-S12",
   "title": "Collate bug-ID first-class argument — no --purge-events required",
   "description": "Make collate.cjs accept bug IDs as a first-class positional argument. `collate.cjs HELLO-B02` should work identically to `collate.cjs HELLO-B02 --purge-events`. Bug IDs are not a side effect of a flag.",
-  "status": "planned",
+  "status": "implemented",
   "path": "forge/tools/collate.cjs",
   "estimate": "M",
   "dependencies": [],
-  "pipeline": "default"
+  "pipeline": "default",
+  "summaries": {
+    "plan": {
+      "objective": "Make collate.cjs accept bug IDs as first-class positional arguments, auto-enabling event purging without requiring --purge-events",
+      "key_changes": [
+        "Added isBugId() helper function detecting BUG-\\d+ and *-B\\d+ patterns",
+        "Auto-enable PURGE_EVENTS when positional argument matches bug-ID pattern",
+        "Improved error message when ID not found in store (distinguishes bug vs sprint)",
+        "Updated usage comment to document bug-ID first-class argument support",
+        "Added 12 new tests for isBugId covering all pattern variants"
+      ],
+      "verdict": "n/a",
+      "written_at": "2026-04-20T14:30:00Z",
+      "artifact_ref": "PLAN.md"
+    }
+  }
 }

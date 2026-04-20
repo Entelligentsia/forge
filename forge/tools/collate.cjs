@@ -3,13 +3,18 @@
 
 // Forge tool: collate
 // Regenerate markdown views from the JSON store. Deterministic — no AI needed.
-// Usage: collate [SPRINT_ID] [--dry-run] [--purge-events]
+// Usage: collate [SPRINT_ID | BUG_ID] [--dry-run] [--purge-events]
+//
+// Positional argument can be a sprint ID (e.g. FORGE-S12) or a bug ID
+// (e.g. FORGE-BUG-007, HELLO-B02). Bug IDs are first-class arguments:
+// passing a bug ID automatically enables event purging for that entity,
+// so `collate HELLO-B02` works identically to `collate HELLO-B02 --purge-events`.
 //
 // --purge-events  After generating COST_REPORT.md for the given SPRINT_ID,
 //                 delete .forge/store/events/{SPRINT_ID}/ entirely.
 //                 If SPRINT_ID is not a known sprint (e.g. a bug ID), no
 //                 COST_REPORT is generated but the event directory is still
-//                 purged. Requires a SPRINT_ID argument. Safe to combine with
+//                 purged. Requires a positional argument. Safe to combine with
 //                 --dry-run (reports what would be deleted without deleting).
 
 const fs = require('fs');
@@ -223,14 +228,30 @@ function buildBugIndex(bug, availableDocs) {
   return lines.join('\n') + '\n';
 }
 
-module.exports = { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex, resolveTaskDir };
+/**
+ * Detect whether a string matches the bug-ID pattern.
+ * Bug IDs match one of these patterns:
+ * 1. Contains 'BUG-' followed by digits (e.g., BUG-001, FORGE-BUG-007)
+ * 2. Contains '-B' followed by digits at a segment boundary (e.g., HELLO-B02)
+ * Sprint IDs (FORGE-S12) and task IDs (FORGE-S12-T03) are excluded.
+ */
+function isBugId(id) {
+  if (!id || typeof id !== 'string') return false;
+  return /BUG-\d+/.test(id) || /-B\d+\b/.test(id);
+}
+
+module.exports = { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex, resolveTaskDir, isBugId };
 
 // --- CLI ---
 if (require.main === module) {
 
 const DRY_RUN = process.argv.includes('--dry-run');
-const PURGE_EVENTS = process.argv.includes('--purge-events');
 const SPRINT_ARG = process.argv.slice(2).find(a => !a.startsWith('--'));
+
+// Bug IDs are first-class arguments — auto-enable purge when a bug ID is passed.
+// This makes `collate.cjs HELLO-B02` work identically to `collate.cjs HELLO-B02 --purge-events`.
+const IS_BUG_ARG = isBugId(SPRINT_ARG);
+const PURGE_EVENTS = process.argv.includes('--purge-events') || IS_BUG_ARG;
 
 if (PURGE_EVENTS && !SPRINT_ARG) {
   console.error('Error: --purge-events requires a sprint or bug ID argument');
@@ -305,11 +326,11 @@ const targetSprints = SPRINT_ARG
   : allSprints;
 
 if (SPRINT_ARG && targetSprints.length === 0) {
-  if (PURGE_EVENTS) {
-    // ID may be a bug ID or other non-sprint entity — skip sprint processing,
-    // fall through to the purge step at the end.
+  if (IS_BUG_ARG || PURGE_EVENTS) {
+    // Bug ID or non-sprint entity with --purge-events — skip sprint processing,
+    // fall through to bug INDEX generation and purge step.
   } else {
-    console.error(`Error: sprint '${SPRINT_ARG}' not found in store`);
+    console.error(`Error: '${SPRINT_ARG}' not found as a sprint or bug in store`);
     process.exit(1);
   }
 }

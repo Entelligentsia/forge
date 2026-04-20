@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex, resolveTaskDir } = require('../collate.cjs');
+const { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex, resolveTaskDir, isBugId } = require('../collate.cjs');
 
 describe('collate.cjs — statusBadge', () => {
   test('completed returns badge with status name', () => {
@@ -400,5 +400,55 @@ describe('collate.cjs — resolveTaskDir', () => {
     assert.equal(result.code, 'MISSING_DIR', `expected code MISSING_DIR, got "${result.code}"`);
     assert.equal(typeof result.message, 'string', 'expected message to be a string');
     assert.ok(result.message.length > 0, 'expected non-empty message');
+  });
+});
+
+describe('collate.cjs — isBugId', () => {
+  test('recognizes simple bug IDs with -B prefix (BUG-001)', () => {
+    assert.equal(isBugId('BUG-001'), true, 'BUG-001 should be a bug ID');
+  });
+
+  test('recognizes multi-segment bug IDs (FORGE-BUG-007)', () => {
+    assert.equal(isBugId('FORGE-BUG-007'), true, 'FORGE-BUG-007 should be a bug ID');
+  });
+
+  test('recognizes project-prefixed bug IDs (HELLO-B02)', () => {
+    assert.equal(isBugId('HELLO-B02'), true, 'HELLO-B02 should be a bug ID');
+  });
+
+  test('recognizes single-digit bug numbers (PROJ-B1)', () => {
+    assert.equal(isBugId('PROJ-B1'), true, 'PROJ-B1 should be a bug ID');
+  });
+
+  test('recognizes large bug numbers (ORG-BUG-999)', () => {
+    assert.equal(isBugId('ORG-BUG-999'), true, 'ORG-BUG-999 should be a bug ID');
+  });
+
+  test('rejects sprint IDs (FORGE-S12)', () => {
+    assert.equal(isBugId('FORGE-S12'), false, 'FORGE-S12 should not be a bug ID');
+  });
+
+  test('rejects task IDs (FORGE-S12-T03)', () => {
+    assert.equal(isBugId('FORGE-S12-T03'), false, 'FORGE-S12-T03 should not be a bug ID');
+  });
+
+  test('rejects plain strings without -B pattern (HELLO)', () => {
+    assert.equal(isBugId('HELLO'), false, 'HELLO should not be a bug ID');
+  });
+
+  test('rejects empty string', () => {
+    assert.equal(isBugId(''), false, 'empty string should not be a bug ID');
+  });
+
+  test('rejects strings where -B is not followed by digits (BUG-ABC)', () => {
+    assert.equal(isBugId('BUG-ABC'), false, 'BUG-ABC should not be a bug ID');
+  });
+
+  test('rejects lowercase bug patterns (bug-001)', () => {
+    assert.equal(isBugId('bug-001'), false, 'bug-001 (lowercase) should not be a bug ID');
+  });
+
+  test('rejects feature IDs (FEAT-005)', () => {
+    assert.equal(isBugId('FEAT-005'), false, 'FEAT-005 should not be a bug ID');
   });
 });
