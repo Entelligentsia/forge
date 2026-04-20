@@ -33,10 +33,11 @@ PREFIX: !`node -e "console.log(require('.forge/config.json').project.prefix.toLo
 - `retrospective.md` → `/{PREFIX}:retrospective {SPRINT_ID}`
 - `approve.md` → `/{PREFIX}:approve {TASK_ID}`
 - `commit.md` → `/{PREFIX}:commit {TASK_ID}`
+- `quiz-agent.md` → `/{PREFIX}:quiz-agent $ARGUMENTS`
 
 ## Instructions
 
-**Scope boundary:** Only ever read, write, or delete files in the explicit output list above.
+**Scope boundary:** Only ever read, write, or delete files in the explicit output list above (14 files).
 Never touch any other file in `.claude/commands/` — custom commands, project-specific
 wrappers, and unrecognised files must be left completely untouched.
 
@@ -95,6 +96,7 @@ Where:
 | `sprint-plan.md` | Decompose sprint requirements into tasks with dependencies |
 | `collate.md` | Regenerate KB documents from the JSON store |
 | `retrospective.md` | Produce sprint retrospective and lessons-learned document |
+| `quiz-agent.md` | Verify an agent has read and understood the project KB before high-stakes tasks |
 
 **Effort levels** — use `effort:` frontmatter (capability request, model-agnostic):
 
@@ -113,6 +115,7 @@ Where:
 | `retrospective.md` | `medium` | Reflection and summary |
 | `collate.md` | `low` | Mechanical markdown regeneration |
 | `commit.md` | `low` | Staging and committing completed work |
+| `quiz-agent.md` | `medium` | Short factual quiz — moderate reasoning, no deep codebase traversal |
 
 Do **not** include `model:` frontmatter — that directive pins a specific model and is
 not appropriate for user command files.
@@ -123,3 +126,42 @@ node "$FORGE_ROOT/tools/generation-manifest.cjs" record {paths.commands}/{PREFIX
 ```
 
 (`FORGE_ROOT` is available from the parent init flow; tool invocations use `$FORGE_ROOT/tools/` throughout.)
+
+## Post-generation: flat-file cleanup
+
+After all 14 command files have been written and recorded, scan for pre-v0.13.0
+flat command files that were never namespaced. These are the **13 known flat filenames**:
+
+```
+sprint-intake.md  sprint-plan.md  run-task.md   run-sprint.md  plan.md
+review-plan.md    implement.md    review-code.md fix-bug.md     approve.md
+commit.md         collate.md      retrospective.md
+```
+
+Check for each at `.claude/commands/{filename}.md` (the flat path, NOT the namespaced
+subdirectory).
+
+**Logic:**
+
+- If **none** of the 13 files exist at the flat path — skip silently. No prompt.
+
+- If **one or more** exist, display the list:
+  ```
+  Found pre-v0.13.0 flat command files that are no longer used:
+    .claude/commands/plan.md
+    .claude/commands/implement.md
+    ... (list each found file)
+
+  These have been replaced by namespaced commands under .claude/commands/{PREFIX}/.
+  Remove them now? (yes / skip)
+  ```
+
+  - **On `yes`:** Delete each found file. For each deletion, print:
+    `Removed: .claude/commands/{filename}.md`
+    When done: `Flat command cleanup complete.`
+
+  - **On `skip`:** Print:
+    `Skipped. Remember to delete these files manually to avoid command name collisions.`
+
+**Do NOT delete any file that is not in the 13-filename list above.** Custom commands,
+project-specific wrappers, and unrecognised files are strictly off-limits.
