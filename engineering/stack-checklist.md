@@ -48,6 +48,8 @@ consult this before approving any change to `forge/`.
 - [ ] Event files written by pipeline phases must include full attribution (`taskId`, `role`, `action`, `phase`, `model`) — bare token-only files produce `(unknown)` rows in COST_REPORT (BUG-007)
 - [ ] Any regeneration loop that rewrites a full namespace (personas, skills, workflows, commands, templates) must call `generation-manifest.cjs clear-namespace <prefix>` before writing — omitting this causes stale entries that permanently show as "× missing" in `forge:health` (FORGE-BUG-009)
 - [ ] After adding, renaming, or removing any file in `forge/meta/personas/`, `forge/meta/workflows/`, `forge/meta/templates/`, or `forge/schemas/*.schema.json`, run `node forge/tools/build-manifest.cjs --forge-root forge/` and commit the updated `forge/schemas/structure-manifest.json` (FORGE-BUG-009)
+- [ ] `resolveTaskDir` and `estimateTokens` return `{ ok, value }` / `{ ok: false, code, message }` Result objects — check `.ok` before accessing `.value`; never treat the return value as a raw string/null (FORGE-S11-T09)
+- [ ] When invoking `preflight-gate.cjs` from a workflow or tool, pass `--workflow <filename>` so the correct gate is selected; without it, alphabetical-first match applies and may load the wrong workflow's gate (FORGE-S11-T02)
 
 ## Agent / Plugin UX
 

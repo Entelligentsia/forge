@@ -12,7 +12,7 @@
 
 | Sprint    | Title                                                                              | Status               | Tasks |
 | --------- | ---------------------------------------------------------------------------------- | -------------------- | ----- |
-| FORGE-S11 | Sprint S11 — Tech Debt: Pipeline Bug Fixes, Command Gaps, and UX Completeness      | 🔵 active            | 9/9   |
+| FORGE-S11 | Sprint S11 — Tech Debt: Pipeline Bug Fixes, Command Gaps, and UX Completeness      | ✅ retrospective-done | 9/9   |
 | FORGE-S10 | Sprint S10 — Tomoshibi: KB Visibility Agent + Configurable KB Path                 | ✅ retrospective-done | 1/1   |
 | FORGE-S09 | Sprint S09                                                                         | ✅ completed          | 9/9   |
 | FORGE-S08 | Sprint S08                                                                         | ✅ completed          | 6/6   |
