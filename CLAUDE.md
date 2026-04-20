@@ -238,20 +238,37 @@ declared in the installed `plugin.json` — no patching required.
 
 ## Promoting to skillforge
 
-Skillforge uses a `git-subdir` source pointing at the `release` branch of this
-repo. No changes to skillforge are ever needed for a promotion.
+Skillforge uses a `git-subdir` source pointing at version tags in this repo.
+Tags ensure fresh clones and break version caching in the plugin installation
+system.
 
 To promote a version to skillforge users:
 
-```bash
-git checkout release
-git merge main
-git push origin release
-```
+1. **Merge main into release:**
+   ```bash
+   git checkout release
+   git merge main
+   git push origin release
+   ```
 
-That's it. Users installing via skillforge will get the new version on their
-next install or `/forge:update`. The `release` branch's `updateUrl` ensures
-their update checks track the release branch, not main.
+2. **Create and push a version tag:**
+   ```bash
+   git tag -a vX.Y.Z release -m "Release vX.Y.Z"
+   git push origin vX.Y.Z
+   ```
+   (Replace `X.Y.Z` with the actual version from `forge/.claude-plugin/plugin.json`)
+
+3. **Update skillforge to reference the tag:**
+   - In `../skillforge/.claude-plugin/marketplace.json`, change the forge entry's
+     `ref` from `"release"` to `"vX.Y.Z"`:
+     ```json
+     "ref": "vX.Y.Z"
+     ```
+   - Commit and push: `git commit -am "chore: pin forge to vX.Y.Z tag" && git push`
+
+Users installing via skillforge will get the pinned version on their next
+install or `/forge:update`. The tag reference forces a fresh clone, breaking
+version caches in Claude Code's plugin installation system.
 
 <!-- forge-kb-links: managed by Forge — do not edit manually -->
 ## Forge Knowledge Base
