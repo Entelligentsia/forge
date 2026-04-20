@@ -1,4 +1,12 @@
 {
+  "0.21.0": {
+    "version": "0.22.0",
+    "date": "2026-04-20",
+    "notes": "Calibrate baseline auto-initialization: /forge:calibrate now computes and writes the initial calibration baseline when absent instead of dead-ending with 'run /forge:init'. health.md recommends /forge:calibrate for missing baseline.",
+    "regenerate": ["commands"],
+    "breaking": false,
+    "manual": []
+  },
   "0.20.0": {
     "version": "0.21.0",
     "date": "2026-04-20",

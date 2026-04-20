@@ -70,7 +70,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
      Do **not** cascade into subsequent checks that may fail on incomplete config.
 2. **KB freshness check** — Read `calibrationBaseline` from `$PROJECT_ROOT/.forge/config.json`.
    - If `calibrationBaseline` is absent, emit:
-     > △ No calibration baseline found — run `/forge:init` to establish one.
+     > △ No calibration baseline found — run `/forge:calibrate` to establish one.
      Skip the freshness check and proceed to step 3.
    - If `calibrationBaseline` exists, compute the current hash of `MASTER_INDEX.md` using the same algorithm as `/forge:init`:
      ```sh

@@ -1,14 +1,14 @@
 {
-  "version": "0.21.0",
+  "version": "0.22.0",
   "generated": "2026-04-20",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
     "commands/add-pipeline.md": "d917d987954c370ee119bf7c8419af7ef115c4fac0aad45f77f7979b49f1b459",
     "commands/add-task.md": "867a4b8f1138ad38378aae301a3cc9b41f4a7ccb6f7b30e9f9bca4c5d58c6a04",
     "commands/ask.md": "df15f0aa68c93d65bfef05adb514c377bfc65617cafcd79534eb9b4149302657",
-    "commands/calibrate.md": "3f99ed7e71be80c9b507a221525109d1974ca304b09d16a68e8eaafc0373b0ca",
+    "commands/calibrate.md": "8933a7ef7f675a929f15c0aae475f44944fbaf977a41bdc5a69f763cdf53620d",
     "commands/config.md": "67251316b806d706bb77f063128e29995c6b4abaf554f4d5558bd97a1a6cfcfe",
-    "commands/health.md": "7bb4f74c9d1380e913ce7396249ad47afa584d19c9f195ec234c7ce3a9d29d02",
+    "commands/health.md": "cf8a59cfb403ba268922bc60abcdd9255a3b5690ae0175bb2819b3f6789debc0",
     "commands/init.md": "5ed304e6cc505e151a59b8244b69b680df4989493237f6b1eed4028e7dad5820",
     "commands/materialize.md": "195292c9e98f50773c1b0c84f9bbc42438c4c8c989a84bd98092f6692799d6d6",
     "commands/migrate.md": "cfb2151f7c6e06694adfc47be2c5ae348eaa24e9c657d7494399169aacc95114",

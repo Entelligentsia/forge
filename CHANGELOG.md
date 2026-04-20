@@ -11,6 +11,14 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.22.0] — 2026-04-20
+
+Calibrate baseline auto-initialization. `/forge:calibrate` now computes and writes the initial `calibrationBaseline` (MASTER_INDEX.md hash + completed sprint IDs) when the field is absent from `.forge/config.json`, instead of dead-ending with "run `/forge:init`". The algorithm mirrors init Phase 5/6-b. `/forge:health` now recommends `/forge:calibrate` instead of `/forge:init` when a missing baseline is detected. No schema changes.
+
+**Regenerate:** run `/forge:update` — `commands` must be regenerated.
+
+---
+
 ## [0.21.0] — 2026-04-20
 
 Structured Result returns for CJS module APIs. Two exported functions are refactored from null-return failure patterns to `{ ok: true, value }` / `{ ok: false, code, message }` Results: `resolveTaskDir` in `collate.cjs` and `estimateTokens` in `estimate-usage.cjs`. A new shared library `forge/tools/lib/result.js` provides `ok()`, `fail()`, and `RESULT_CODES` constants so callers can branch on `result.code` rather than null-checking. All internal call sites are updated. 14 new tests added (526 total, 0 fail). CLI exit-code contract unchanged.
