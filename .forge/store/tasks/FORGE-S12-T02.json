@@ -1,0 +1,12 @@
+{
+  "taskId": "FORGE-S12-T02",
+  "feature_id": "FEAT-005",
+  "sprintId": "FORGE-S12",
+  "title": "Fix-bug Finalize phase gate — collate must succeed before bug closes",
+  "description": "Add a Finalize phase gate to fix_bug.md that checks for INDEX.md existence in the bug directory before allowing the workflow to mark the bug as resolved. Collate must succeed; the bug cannot close without it.",
+  "status": "planned",
+  "path": "forge/meta/workflows/meta-fix-bug.md",
+  "estimate": "S",
+  "dependencies": [],
+  "pipeline": "default"
+}

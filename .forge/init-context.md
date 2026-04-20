@@ -10,7 +10,7 @@
 commands     = .claude/commands
 customCommands = engineering/commands
 engineering  = engineering
-forgeRoot    = /home/boni/.claude/plugins/cache/forge/forge/0.18.0
+forgeRoot    = /home/boni/.claude/plugins/cache/forge/forge/0.21.0
 store        = .forge/store
 templates    = .forge/templates
 workflows    = .forge/workflows

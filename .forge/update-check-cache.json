@@ -1,6 +1,6 @@
 {
-  "migratedFrom": "0.19.2",
-  "localVersion": "0.19.2",
+  "migratedFrom": "0.21.0",
+  "localVersion": "0.21.0",
   "distribution": "forge@forge",
-  "forgeRoot": "/home/boni/.claude/plugins/marketplaces/forge/forge"
+  "forgeRoot": "/home/boni/.claude/plugins/cache/forge/forge/0.21.0"
 }

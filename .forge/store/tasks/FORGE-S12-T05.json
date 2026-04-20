@@ -1,0 +1,12 @@
+{
+  "taskId": "FORGE-S12-T05",
+  "feature_id": "FEAT-005",
+  "sprintId": "FORGE-S12",
+  "title": "Sprint planning store-write verification loop",
+  "description": "Agents executing architect_sprint_plan.md must verify that every write to the Forge store succeeds. If a PreToolUse hook rejects a write due to a schema violation, the agent must parse the error, correct the JSON, and retry — halting all further progress until the write is confirmed successful.",
+  "status": "planned",
+  "path": "forge/meta/workflows/meta-sprint-plan.md",
+  "estimate": "M",
+  "dependencies": [],
+  "pipeline": "default"
+}

@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "built_at": "2026-04-20T08:00:56.389Z",
+  "source_hash": "sha256:f58ae7195dba0c9a7b1a4004fac99baa20118c8080ec03ad7ea77135b07c98f9",
+  "sources": [
+    {
+      "path": "engineering/architecture/INDEX.md",
+      "size": 606,
+      "mtime": "2026-04-04T12:09:01.714Z"
+    },
+    {
+      "path": "engineering/architecture/database.md",
+      "size": 5033,
+      "mtime": "2026-04-05T06:37:21.169Z"
+    },
+    {
+      "path": "engineering/architecture/deployment.md",
+      "size": 2922,
+      "mtime": "2026-04-06T18:50:25.687Z"
+    },
+    {
+      "path": "engineering/architecture/processes.md",
+      "size": 1573,
+      "mtime": "2026-04-19T06:21:39.337Z"
+    },
+    {
+      "path": "engineering/architecture/routing.md",
+      "size": 2823,
+      "mtime": "2026-04-19T06:21:39.337Z"
+    },
+    {
+      "path": "engineering/architecture/stack.md",
+      "size": 1297,
+      "mtime": "2026-04-10T06:47:58.546Z"
+    }
+  ],
+  "summary_path": ".forge/cache/context-pack.md"
+}

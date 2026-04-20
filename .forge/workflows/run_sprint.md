@@ -1,4 +1,4 @@
-# 🌊 Workflow: Run Sprint (Forge)
+# Workflow: Run Sprint (Forge)
 
 ## Purpose
 
@@ -24,13 +24,56 @@ Update sprint `status` to `active`.
 - Compute waves: tasks with no inter-wave edges can run in parallel.
 - Validate: no cycles. If a cycle is detected, stop and escalate to the user.
 
+### Wave Computation Algorithm
+
+```
+function compute_waves(tasks):
+    # Build adjacency list from task.dependencies
+    graph = {task_id: set() for task_id in tasks}
+    in_degree = {task_id: 0 for task_id in tasks}
+    task_map = {task.taskId: task for task in tasks}
+
+    for task in tasks:
+        for dep_id in task.get("dependencies", []):
+            if dep_id in graph:
+                graph[dep_id].add(task.taskId)
+                in_degree[task.taskId] += 1
+
+    # Kahn's algorithm — each "wave" is all nodes with in_degree == 0
+    waves = []
+    queue = [tid for tid, deg in in_degree.items() if deg == 0]
+
+    while queue:
+        wave = sorted(queue)   # deterministic ordering within a wave
+        waves.append(wave)
+        next_queue = []
+        for tid in wave:
+            for successor in graph[tid]:
+                in_degree[successor] -= 1
+                if in_degree[successor] == 0:
+                    next_queue.append(successor)
+        queue = next_queue
+
+    # If any nodes remain, there is a cycle
+    remaining = [tid for tid, deg in in_degree.items() if deg > 0]
+    if remaining:
+        raise CycleError(f"Dependency cycle detected among: {remaining}")
+
+    return waves
+```
+
 ## Step 3 — Execute
 
-Each task runs as an Agent tool subagent — **never inline**. This keeps the
-sprint runner's context minimal regardless of sprint size. The subagent
-runs the full task pipeline (plan → review-plan → implement → review-code
-→ approve → commit) in its own fresh context window, reading and writing
-disk as the source of truth.
+### Clear Progress Log at Sprint Start
+
+Before dispatching any task, clear the progress log for this sprint:
+
+```bash
+FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
+node "$FORGE_ROOT/tools/store-cli.cjs" progress-clear {SPRINT_ID}
+```
+
+This ensures a clean log for each sprint run.
 
 ### Sequential Mode (default)
 
@@ -71,7 +114,7 @@ for each task in dependency_sorted(tasks):
       # Two attempts exhausted — escalate and continue with remaining tasks.
       escalate("Task {task.taskId} did not reach terminal state after re-spawn "
                "(status: {task_status}). Manual intervention required.")
-      continue
+      # DO NOT compact mid re-spawn guard — compact only after final status read.
 
   # Terminal: "committed" → success. "escalated" → note and continue.
   # Never halt the whole sprint on one escalation.
@@ -89,16 +132,30 @@ handled inside the task subagent.** See `orchestrate_task.md`.
 
 For each wave in dependency order:
 
-1. Create a git worktree per task in the wave: `git worktree add ../worktrees/{TASK_ID} HEAD`
+1. Create a git worktree per task in the wave:
+   ```bash
+   git worktree add ../worktrees/{TASK_ID} HEAD
+   ```
 2. Spawn one subagent per task in parallel, each running `orchestrate_task.md` inside its worktree
 3. Wait for all subagents in the wave to finish
 4. Merge strategy: rebase each completed worktree onto `main`; on conflict → escalate that task, continue with the rest
-5. Remove worktrees: `git worktree remove ../worktrees/{TASK_ID}`
+5. Remove worktrees:
+   ```bash
+   git worktree remove ../worktrees/{TASK_ID}
+   ```
 
 ### Full-Parallel Mode
 
 Same as wave-parallel but all tasks start simultaneously. Use only when
 every task is independent (no dependencies at all).
+
+## Execution Modes
+
+| Mode | Behaviour |
+|---|---|
+| `sequential` | One task at a time (default) |
+| `wave-parallel` | Tasks in the same dependency wave run in parallel worktrees |
+| `full-parallel` | All tasks run in parallel (use only when fully independent) |
 
 ## Step 4 — Post-Sprint
 
@@ -121,21 +178,21 @@ Once all tasks have reached a terminal status:
    ── Carried over / abandoned: N tasks
    ```
 3. Update sprint `status` to `completed` or `partially-completed`
-4. Suggest: "Run `/retrospective {SPRINT_ID}` to close out the sprint."
+4. Suggest: "Run `/forge:retrospective {SPRINT_ID}` to close out the sprint."
+
+## Sprint Lifecycle Hooks
+
+| Hook | When | Action |
+|---|---|---|
+| `collate` | After all tasks terminal | Run `node "$FORGE_ROOT/tools/collate.cjs"` |
+| `report` | After collation | Print outcome summary (committed/escalated/carried-over counts) |
+| `suggest` | After report | Suggest `/forge:retrospective {SPRINT_ID}` |
 
 ## Resume Semantics
 
-If interrupted, re-run `/run-sprint {SPRINT_ID}`. Already-committed tasks are
+If interrupted, re-run `/forge:run-sprint {SPRINT_ID}`. Already-committed tasks are
 skipped. Tasks in mid-pipeline state resume from their current phase
 (the task-level orchestrator reads `status` from disk and continues).
-
-## Execution Modes
-
-| Mode | Behaviour |
-|---|---|
-| `sequential` | One task at a time (default) |
-| `wave-parallel` | Tasks in the same dependency wave run in parallel worktrees |
-| `full-parallel` | All tasks run in parallel (use only when fully independent) |
 
 ## Event Emission
 

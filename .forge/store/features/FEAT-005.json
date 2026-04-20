@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-005",
+  "title": "Pipeline Reliability and Bug-Fix Workflow Hardening",
+  "description": "Eliminate dead ends, silent failures, and data-loss gaps across the fix-bug workflow, sprint planning, calibration, and telemetry — ensuring every phase gate is enforced, every store write is verified, and every record carries real timestamps and cost data.",
+  "status": "active",
+  "requirements": [
+    "/forge:calibrate initializes a missing baseline instead of requiring /forge:init",
+    "fix-bug Finalize is enforced by a phase gate (collate must succeed before sprint can close)",
+    "collate.cjs accepts bug IDs as first-class arguments without requiring --purge-events",
+    "Bug records carry real ISO datetimes (not T00:00:00Z); store-cli auto-populates when agent supplies date-only",
+    "Bug cost data is captured programmatically (store-cli subcommand or collate pre-purge aggregation) instead of relying on /cost",
+    "Sprint planning agents verify every store write succeeded and retry on schema violations",
+    "Model discovery records the actual model in use, not a hardcoded fallback"
+  ],
+  "sprints": ["FORGE-S12"],
+  "tasks": [
+    "FORGE-S12-T01",
+    "FORGE-S12-T02",
+    "FORGE-S12-T03",
+    "FORGE-S12-T04",
+    "FORGE-S12-T05",
+    "FORGE-S12-T06"
+  ],
+  "created_at": "2026-04-20T00:00:00Z",
+  "updated_at": "2026-04-20T00:00:00Z"
+}

@@ -1,0 +1,12 @@
+{
+  "taskId": "FORGE-S12-T06",
+  "feature_id": "FEAT-005",
+  "sprintId": "FORGE-S12",
+  "title": "Deterministic model discovery for event records",
+  "description": "Event records should capture the actual model being used, not a hardcoded or stale fallback. Detect model identity from environment variables and platform signals; fall back to a reasonable default but never silently record an incorrect model name.",
+  "status": "planned",
+  "path": "forge/tools/store-cli.cjs",
+  "estimate": "M",
+  "dependencies": [],
+  "pipeline": "default"
+}

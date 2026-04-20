@@ -6,12 +6,13 @@
 
 ## Feature Registry
 
-[Browse all 3 features ↗](features/INDEX.md)
+[Browse all 4 features ↗](features/INDEX.md)
 
 ## Sprint Registry
 
 | Sprint    | Title                                                                              | Status               | Tasks |
 | --------- | ---------------------------------------------------------------------------------- | -------------------- | ----- |
+| FORGE-S12 | Pipeline Reliability and Bug-Fix Workflow Hardening                                | 🔵 active            | 0/6   |
 | FORGE-S11 | Sprint S11 — Tech Debt: Pipeline Bug Fixes, Command Gaps, and UX Completeness      | ✅ retrospective-done | 9/9   |
 | FORGE-S10 | Sprint S10 — Tomoshibi: KB Visibility Agent + Configurable KB Path                 | ✅ retrospective-done | 1/1   |
 | FORGE-S09 | Sprint S09                                                                         | ✅ completed          | 9/9   |
@@ -25,6 +26,17 @@
 | FORGE-S01 | Sprint FORGE-S01 — Token Usage Tracking                                            | 🔵 active            | 7/8   |
 
 ## Task Registry
+
+### FORGE-S12
+
+| Task                                              | Title                                                                         | Status     | Estimate |
+| ------------------------------------------------- | ----------------------------------------------------------------------------- | ---------- | -------- |
+| [FORGE-S12-T01](../forge/commands/INDEX.md)       | Calibrate baseline auto-initialization — remove dead end                      | 📋 planned | S        |
+| [FORGE-S12-T02](../forge/meta/workflows/INDEX.md) | Fix-bug Finalize phase gate — collate must succeed before bug closes          | 📋 planned | S        |
+| [FORGE-S12-T03](../forge/tools/INDEX.md)          | Collate bug-ID first-class argument — no --purge-events required              | 📋 planned | M        |
+| [FORGE-S12-T04](../forge/tools/INDEX.md)          | Store-cli timestamp auto-population + record-usage + collate cost aggregation | 📋 planned | L        |
+| [FORGE-S12-T05](../forge/meta/workflows/INDEX.md) | Sprint planning store-write verification loop                                 | 📋 planned | M        |
+| [FORGE-S12-T06](../forge/tools/INDEX.md)          | Deterministic model discovery for event records                               | 📋 planned | M        |
 
 ### FORGE-S11
 
