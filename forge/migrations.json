@@ -1,4 +1,12 @@
 {
+  "0.22.0": {
+    "version": "0.22.1",
+    "date": "2026-04-20",
+    "notes": "Fix preflight-gate.cjs task directory resolution: scan sprint directory for artifact directory name instead of extracting source filename from task.path. Also fixes resolveVerdictSources to use the correct artifact directory path for verdict files.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.21.0": {
     "version": "0.22.0",
     "date": "2026-04-20",

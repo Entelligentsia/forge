@@ -11,6 +11,12 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.22.1] — 2026-04-20
+
+Fix preflight-gate.cjs task directory resolution. `lastSegment(taskRecord.path)` extracted the source filename (e.g., `store-cli.cjs`) instead of the artifact directory name (e.g., `FORGE-S12-T06-model-discovery`), breaking `{task}` path substitution and verdict source resolution in `resolveVerdictSources`. New `resolveTaskArtifactDir()` scans the sprint directory for the matching `{taskId}-*` subdirectory, falling back to `lastSegment` for legacy records. 1 new test, 578 total.
+
+---
+
 ## [0.22.0] — 2026-04-20
 
 Calibrate baseline auto-initialization. `/forge:calibrate` now computes and writes the initial `calibrationBaseline` (MASTER_INDEX.md hash + completed sprint IDs) when the field is absent from `.forge/config.json`, instead of dead-ending with "run `/forge:init`". The algorithm mirrors init Phase 5/6-b. `/forge:health` now recommends `/forge:calibrate` instead of `/forge:init` when a missing baseline is detected. No schema changes.

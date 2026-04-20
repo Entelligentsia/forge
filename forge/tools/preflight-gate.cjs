@@ -124,6 +124,25 @@ module.exports = { preflight };
 
 // CLI shim: `node preflight-gate.cjs --phase <name> --task <taskId> [--bug <bugId>] [--workflow <name>]`
 // exit codes: 0 ok, 1 gate(s) failed, 2 invalid args / missing definitions
+// Scan the sprint directory for a subdirectory matching the task ID prefix.
+// Returns the directory name (e.g. "FORGE-S12-T06-model-discovery") or null.
+function resolveTaskArtifactDir(taskRecord, engineeringRoot) {
+  if (!taskRecord || !taskRecord.sprintId || !taskRecord.taskId) return null;
+  const sprintDir = path.resolve(process.cwd(), engineeringRoot, 'sprints', taskRecord.sprintId);
+  try {
+    const entries = fs.readdirSync(sprintDir);
+    for (const entry of entries) {
+      try {
+        if (fs.statSync(path.join(sprintDir, entry)).isDirectory() &&
+            entry.startsWith(taskRecord.taskId + '-')) {
+          return entry;
+        }
+      } catch (_) { /* skip unreadable entries */ }
+    }
+  } catch (_) { /* sprint directory not found */ }
+  return null;
+}
+
 if (require.main === module) {
   const args = parseArgs(process.argv.slice(2));
   if (!args.phase || (!args.task && !args.bug)) {
@@ -165,14 +184,25 @@ if (require.main === module) {
   } catch (_) { /* fall back to default */ }
 
   // {task} / {bug} in path templates refer to the artifact directory suffix
-  // (e.g., "T01", "BUG-007-broken-foo"), taken from the store record's path.
-  // If unavailable, fall back to the raw id.
+  // (e.g., "FORGE-S12-T06-model-discovery", "BUG-007-broken-foo").
+  // task.path is the primary source file in forge/, NOT the artifact directory.
+  // Scan the sprint directory to find the correct artifact directory name.
   function lastSegment(p) {
     const parts = String(p || '').split('/').filter(Boolean);
     return parts[parts.length - 1] || '';
   }
-  const taskDir = taskRecord && taskRecord.path ? lastSegment(taskRecord.path) : args.task;
+  const taskArtifactDir = resolveTaskArtifactDir(taskRecord, engineeringRoot);
+  const taskDir = taskArtifactDir
+    || (taskRecord && taskRecord.path ? lastSegment(taskRecord.path) : args.task);
   const bugDir = bugRecord && bugRecord.path ? lastSegment(bugRecord.path) : args.bug;
+
+  // Compute the full artifact directory path for verdict source resolution.
+  let taskArtifactPath = null;
+  if (taskArtifactDir && taskRecord && taskRecord.sprintId) {
+    taskArtifactPath = path.join(engineeringRoot, 'sprints', taskRecord.sprintId, taskArtifactDir);
+  } else if (taskRecord && taskRecord.path) {
+    taskArtifactPath = taskRecord.path;
+  }
 
   const substitutions = {
     engineering: engineeringRoot,
@@ -181,7 +211,7 @@ if (require.main === module) {
     bug: bugDir,
   };
 
-  const verdictSources = resolveVerdictSources(gates[args.phase].after || [], taskRecord, bugRecord);
+  const verdictSources = resolveVerdictSources(gates[args.phase].after || [], taskArtifactPath, bugRecord);
 
   const result = preflight({ phase: args.phase, gates, state, substitutions, verdictSources });
   if (result.ok) process.exit(0);
@@ -237,9 +267,9 @@ function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function resolveVerdictSources(afterList, taskRecord, bugRecord) {
+function resolveVerdictSources(afterList, taskArtifactPath, bugRecord) {
   const sources = {};
-  const base = taskRecord ? taskRecord.path : bugRecord ? bugRecord.path : null;
+  const base = taskArtifactPath || (bugRecord ? bugRecord.path : null);
   if (!base) return sources;
   for (const entry of afterList) {
     const filename = VERDICT_ARTIFACTS[entry.phase];
