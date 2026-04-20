@@ -371,28 +371,34 @@ describe('collate.cjs — resolveTaskDir', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns slug-named task dir when task.path is under engPath', () => {
+  test('returns { ok: true, value } with slug dir when task.path is under engPath', () => {
     const task = { taskId: 'TST-S01-T01', path: 'engineering/sprints/FORGE-S11/TST-S01-T01-my-task' };
     const result = resolveTaskDir(task, tmpDir, 'engineering');
-    assert.equal(result, 'TST-S01-T01-my-task', `expected slug dir name, got "${result}"`);
+    assert.equal(result.ok, true, `expected ok:true, got ok:${result.ok}`);
+    assert.equal(result.value, 'TST-S01-T01-my-task', `expected slug dir name, got "${result.value}"`);
   });
 
-  test('resolves by filesystem lookup when task.path is a plugin source (not under engPath)', () => {
+  test('returns { ok: true, value } via filesystem lookup when task.path is a plugin source (not under engPath)', () => {
     // task.path points to a plugin source file — should fall back to filesystem resolution
     const task = { taskId: 'TST-S01-T01', path: 'forge/tools/collate.cjs' };
     const result = resolveTaskDir(task, tmpDir, 'engineering');
-    assert.equal(result, 'TST-S01-T01-my-task', `expected slug dir found by filesystem scan, got "${result}"`);
+    assert.equal(result.ok, true, `expected ok:true, got ok:${result.ok}`);
+    assert.equal(result.value, 'TST-S01-T01-my-task', `expected slug dir found by filesystem scan, got "${result.value}"`);
   });
 
-  test('resolves by filesystem lookup when task.path is absent', () => {
+  test('returns { ok: true, value } via filesystem lookup when task.path is absent', () => {
     const task = { taskId: 'TST-S01-T02' };
     const result = resolveTaskDir(task, tmpDir, 'engineering');
-    assert.equal(result, 'TST-S01-T02', `expected exact-match dir, got "${result}"`);
+    assert.equal(result.ok, true, `expected ok:true, got ok:${result.ok}`);
+    assert.equal(result.value, 'TST-S01-T02', `expected exact-match dir, got "${result.value}"`);
   });
 
-  test('returns null when no matching task directory exists on disk', () => {
+  test('returns { ok: false, code: MISSING_DIR } when no matching task directory exists on disk', () => {
     const task = { taskId: 'TST-S01-T99', path: 'forge/tools/something.cjs' };
     const result = resolveTaskDir(task, tmpDir, 'engineering');
-    assert.equal(result, null, `expected null when no dir found, got "${result}"`);
+    assert.equal(result.ok, false, `expected ok:false, got ok:${result.ok}`);
+    assert.equal(result.code, 'MISSING_DIR', `expected code MISSING_DIR, got "${result.code}"`);
+    assert.equal(typeof result.message, 'string', 'expected message to be a string');
+    assert.ok(result.message.length > 0, 'expected non-empty message');
   });
 });

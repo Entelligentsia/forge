@@ -1,4 +1,12 @@
 {
+  "0.20.0": {
+    "version": "0.21.0",
+    "date": "2026-04-20",
+    "notes": "Structured Result returns for resolveTaskDir (collate.cjs) and estimateTokens (estimate-usage.cjs): both now return { ok, value } / { ok, code, message } instead of null. Shared error codes in forge/tools/lib/result.js. Callers checking for null must update to check result.ok.",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": []
+  },
   "0.19.2": {
     "version": "0.20.0",
     "date": "2026-04-20",

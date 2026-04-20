@@ -11,6 +11,14 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.21.0] — 2026-04-20
+
+Structured Result returns for CJS module APIs. Two exported functions are refactored from null-return failure patterns to `{ ok: true, value }` / `{ ok: false, code, message }` Results: `resolveTaskDir` in `collate.cjs` and `estimateTokens` in `estimate-usage.cjs`. A new shared library `forge/tools/lib/result.js` provides `ok()`, `fail()`, and `RESULT_CODES` constants so callers can branch on `result.code` rather than null-checking. All internal call sites are updated. 14 new tests added (526 total, 0 fail). CLI exit-code contract unchanged.
+
+**Regenerate:** run `/forge:update` — `tools` must be regenerated.
+
+---
+
 ## [0.20.0] — 2026-04-20
 
 Sprint S11 tech-debt sweep across pipeline bugs, command gaps, and UX completeness. Seven fixes ship in this release: event timestamps no longer zero the time component (store-cli.cjs was serialising a truncated ISO string); preflight-gate now scans all `.forge/workflows/*.md` files instead of two hardcoded development-environment filenames; the ROLE_TIER model fallback in `meta-orchestrate.md` is applied correctly when a tiered cluster is detected; `collate.cjs` generates per-task `INDEX.md` files with correct relative links from `MASTER_INDEX.md`; `calibrationBaseline` is written during fast-mode init and backfilled during update; the `quiz-agent` slash command file is added; and `generate-commands.cjs` registers the quiz-agent entry and performs post-generation flat-file cleanup.

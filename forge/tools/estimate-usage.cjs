@@ -15,6 +15,8 @@
 let store;
 function _getStore() { return store || (store = require('./store')); }
 
+const { ok: resultOk, fail: resultFail, RESULT_CODES } = require('./lib/result.js');
+
 // ---------------------------------------------------------------------------
 // Heuristic tables (documented — these are estimates, not measurements)
 // ---------------------------------------------------------------------------
@@ -80,12 +82,15 @@ function estimateTokens(event) {
   const model = event.model || null;
   const phase = event.phase || null;
 
-  // Guard: missing or zero duration
-  if (duration === null || duration === undefined || duration === 0) {
-    if (duration === 0) {
-      console.warn(`  [warn] durationMinutes is 0 for event ${event.eventId} — estimation will produce 0 tokens`);
-    }
-    return null;
+  // Guard: missing duration (null or undefined)
+  if (duration === null || duration === undefined) {
+    return resultFail(RESULT_CODES.E_MISSING_DURATION, `durationMinutes is missing for event ${event.eventId}`);
+  }
+
+  // Guard: zero duration
+  if (duration === 0) {
+    console.warn(`  [warn] durationMinutes is 0 for event ${event.eventId} — estimation will produce 0 tokens`);
+    return resultFail(RESULT_CODES.E_ZERO_DURATION, `durationMinutes is 0 for event ${event.eventId}`);
   }
 
   const tokensPerMin = lookupByModel(TOKENS_PER_MINUTE, DEFAULT_TOKENS_PER_MINUTE, model);
@@ -99,7 +104,7 @@ function estimateTokens(event) {
     ((inputTokens + outputTokens) / 1_000_000 * pricePerMillion).toFixed(6)
   );
 
-  return { inputTokens, outputTokens, estimatedCostUSD, tokenSource: 'estimated' };
+  return resultOk({ inputTokens, outputTokens, estimatedCostUSD, tokenSource: 'estimated' });
 }
 
 function processEvent(event, dryRun) {
@@ -117,10 +122,11 @@ function processEvent(event, dryRun) {
     return 'skipped';
   }
 
-  const estimates = estimateTokens(event);
-  if (!estimates) {
+  const estimatesResult = estimateTokens(event);
+  if (!estimatesResult.ok) {
     return 'skipped';
   }
+  const estimates = estimatesResult.value;
 
   const updated = Object.assign({}, event, estimates);
 

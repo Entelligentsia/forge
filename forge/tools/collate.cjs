@@ -14,6 +14,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { ok: resultOk, fail: resultFail, RESULT_CODES } = require('./lib/result.js');
 
 let _store;
 function _getStore() { return _store || (_store = require('./store.cjs')); }
@@ -103,18 +104,18 @@ function resolveTaskDir(task, sprintDirPath, engPath) {
 
   // Case 1: path is under the engineering root — it IS the task directory
   if (normalizedTaskPath && normalizedEngPath && normalizedTaskPath.startsWith(normalizedEngPath + '/')) {
-    return path.basename(normalizedTaskPath);
+    return resultOk(path.basename(normalizedTaskPath));
   }
 
   // Case 2 (and fallback for case 1 missing): filesystem scan
   if (fs.existsSync(sprintDirPath)) {
     const entries = fs.readdirSync(sprintDirPath).sort();
     // Prefer exact match first
-    if (entries.includes(task.taskId)) return task.taskId;
+    if (entries.includes(task.taskId)) return resultOk(task.taskId);
     // Then prefix match (slug-named dirs like TST-S01-T01-my-feature)
     const prefix = task.taskId + '-';
     const slugMatch = entries.find(e => e.startsWith(prefix) && fs.statSync(path.join(sprintDirPath, e)).isDirectory());
-    if (slugMatch) return slugMatch;
+    if (slugMatch) return resultOk(slugMatch);
     // Numeric fallback: match first integer in taskId
     const numMatch = task.taskId.match(/\d+/g);
     const targetNum = numMatch ? parseInt(numMatch[numMatch.length - 1], 10) : null;
@@ -122,13 +123,13 @@ function resolveTaskDir(task, sprintDirPath, engPath) {
       for (const e of entries) {
         const em = e.match(/\d+/g);
         if (em && parseInt(em[em.length - 1], 10) === targetNum && fs.statSync(path.join(sprintDirPath, e)).isDirectory()) {
-          return e;
+          return resultOk(e);
         }
       }
     }
   }
 
-  return null;
+  return resultFail(RESULT_CODES.MISSING_DIR, `No task directory found for ${task.taskId} in ${sprintDirPath}`);
 }
 
 function buildSprintIndex(sprint, tasks, availableDocs) {
@@ -520,8 +521,8 @@ for (const sprint of targetSprints) {
   // Resolve task directories for all tasks in this sprint
   const rawSprintTasks = (tasksBySprint[sprint.sprintId] || []).sort((a, b) => a.taskId.localeCompare(b.taskId));
   const sprintTasks = rawSprintTasks.map(t => {
-    const dir = resolveTaskDir(t, sprintDir, engPath);
-    return dir ? Object.assign({}, t, { _taskDir: dir }) : t;
+    const dirResult = resolveTaskDir(t, sprintDir, engPath);
+    return dirResult.ok ? Object.assign({}, t, { _taskDir: dirResult.value }) : t;
   });
 
   // Sprint INDEX.md — pass tasks with _taskDir so links resolve correctly
