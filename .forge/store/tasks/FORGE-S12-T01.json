@@ -4,7 +4,7 @@
   "sprintId": "FORGE-S12",
   "title": "Calibrate baseline auto-initialization — remove dead end",
   "description": "When calibrationBaseline is absent from .forge/config.json, /forge:calibrate computes and writes the initial baseline (MASTER_INDEX.md hash + completed sprint IDs) instead of dead-ending with 'run /forge:init'. Mirrors init Phase 5 behavior.",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/commands/calibrate.md",
   "estimate": "S",
   "dependencies": [],
