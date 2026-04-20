@@ -1,7 +1,10 @@
 'use strict';
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex } = require('../collate.cjs');
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
+const { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex, resolveTaskDir } = require('../collate.cjs');
 
 describe('collate.cjs — statusBadge', () => {
   test('completed returns badge with status name', () => {
@@ -205,6 +208,22 @@ describe('collate.cjs — buildSprintIndex', () => {
     assert.ok(result.includes('TST-S01'), 'should still include sprint ID with no tasks');
     assert.ok(result.includes('GENERATED'), 'should still include GENERATED marker');
   });
+
+  test('uses _taskDir for task link path when provided', () => {
+    const tasksWithDir = [
+      { taskId: 'TST-S01-T01', title: 'Bootstrap scaffold', status: 'committed', estimate: 'S', _taskDir: 'TST-S01-T01-bootstrap-scaffold' },
+      { taskId: 'TST-S01-T02', title: 'Add CI pipeline', status: 'in-progress', estimate: 'M', _taskDir: 'TST-S01-T02-add-ci-pipeline' },
+    ];
+    const result = buildSprintIndex(sprint, tasksWithDir, []);
+    assert.ok(result.includes('TST-S01-T01-bootstrap-scaffold/INDEX.md'), 'should use _taskDir slug for first task link');
+    assert.ok(result.includes('TST-S01-T02-add-ci-pipeline/INDEX.md'), 'should use _taskDir slug for second task link');
+    assert.ok(!result.includes('TST-S01-T01/INDEX.md'), 'should not use bare taskId as link when _taskDir is set');
+  });
+
+  test('falls back to taskId for task link when _taskDir is absent', () => {
+    const result = buildSprintIndex(sprint, tasks, []);
+    assert.ok(result.includes('TST-S01-T01/INDEX.md'), 'should fall back to taskId when no _taskDir');
+  });
 });
 
 describe('collate.cjs — buildTaskIndex', () => {
@@ -335,5 +354,45 @@ describe('collate.cjs — buildBugIndex', () => {
   test('renders with no available docs', () => {
     const result = buildBugIndex(bug, []);
     assert.ok(result.includes('TST-B01'), 'should still include bug ID with no docs');
+  });
+});
+
+describe('collate.cjs — resolveTaskDir', () => {
+  let tmpDir;
+
+  // Set up a temporary sprint directory with a real task subdirectory
+  test.before(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-collate-test-'));
+    fs.mkdirSync(path.join(tmpDir, 'TST-S01-T01-my-task'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, 'TST-S01-T02'), { recursive: true });
+  });
+
+  test.after(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('returns slug-named task dir when task.path is under engPath', () => {
+    const task = { taskId: 'TST-S01-T01', path: 'engineering/sprints/FORGE-S11/TST-S01-T01-my-task' };
+    const result = resolveTaskDir(task, tmpDir, 'engineering');
+    assert.equal(result, 'TST-S01-T01-my-task', `expected slug dir name, got "${result}"`);
+  });
+
+  test('resolves by filesystem lookup when task.path is a plugin source (not under engPath)', () => {
+    // task.path points to a plugin source file — should fall back to filesystem resolution
+    const task = { taskId: 'TST-S01-T01', path: 'forge/tools/collate.cjs' };
+    const result = resolveTaskDir(task, tmpDir, 'engineering');
+    assert.equal(result, 'TST-S01-T01-my-task', `expected slug dir found by filesystem scan, got "${result}"`);
+  });
+
+  test('resolves by filesystem lookup when task.path is absent', () => {
+    const task = { taskId: 'TST-S01-T02' };
+    const result = resolveTaskDir(task, tmpDir, 'engineering');
+    assert.equal(result, 'TST-S01-T02', `expected exact-match dir, got "${result}"`);
+  });
+
+  test('returns null when no matching task directory exists on disk', () => {
+    const task = { taskId: 'TST-S01-T99', path: 'forge/tools/something.cjs' };
+    const result = resolveTaskDir(task, tmpDir, 'engineering');
+    assert.equal(result, null, `expected null when no dir found, got "${result}"`);
   });
 });

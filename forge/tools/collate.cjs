@@ -89,6 +89,48 @@ const TASK_DOCS = [
   { file: 'VALIDATION_REPORT.md',   label: 'Validation Report',   purpose: 'Validation results' },
 ];
 
+// Resolve the task directory name within a sprint directory.
+// Returns the directory name string, or null if no directory can be found.
+//
+// Resolution order:
+// 1. If task.path is under engPath (an engineering KB path) — basename of that path.
+// 2. Filesystem scan of sprintDirPath for a directory whose name starts with taskId
+//    or whose leading integer matches that of taskId (slug-named dirs).
+// 3. null if nothing matches.
+function resolveTaskDir(task, sprintDirPath, engPath) {
+  const normalizedTaskPath = task.path ? task.path.replace(/\\/g, '/').replace(/\/$/, '') : null;
+  const normalizedEngPath  = engPath   ? engPath.replace(/\\/g, '/').replace(/\/$/, '')  : '';
+
+  // Case 1: path is under the engineering root — it IS the task directory
+  if (normalizedTaskPath && normalizedEngPath && normalizedTaskPath.startsWith(normalizedEngPath + '/')) {
+    return path.basename(normalizedTaskPath);
+  }
+
+  // Case 2 (and fallback for case 1 missing): filesystem scan
+  if (fs.existsSync(sprintDirPath)) {
+    const entries = fs.readdirSync(sprintDirPath).sort();
+    // Prefer exact match first
+    if (entries.includes(task.taskId)) return task.taskId;
+    // Then prefix match (slug-named dirs like TST-S01-T01-my-feature)
+    const prefix = task.taskId + '-';
+    const slugMatch = entries.find(e => e.startsWith(prefix) && fs.statSync(path.join(sprintDirPath, e)).isDirectory());
+    if (slugMatch) return slugMatch;
+    // Numeric fallback: match first integer in taskId
+    const numMatch = task.taskId.match(/\d+/g);
+    const targetNum = numMatch ? parseInt(numMatch[numMatch.length - 1], 10) : null;
+    if (targetNum !== null) {
+      for (const e of entries) {
+        const em = e.match(/\d+/g);
+        if (em && parseInt(em[em.length - 1], 10) === targetNum && fs.statSync(path.join(sprintDirPath, e)).isDirectory()) {
+          return e;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 function buildSprintIndex(sprint, tasks, availableDocs) {
   const avail = new Set(availableDocs);
   const lines = [GENERATED, '', `# Sprint: ${sprint.title || sprint.sprintId}`, '',
@@ -112,7 +154,8 @@ function buildSprintIndex(sprint, tasks, availableDocs) {
   if (tasks.length > 0) {
     const rows = [['Task', 'Title', 'Status', 'Estimate']];
     for (const t of tasks) {
-      rows.push([`[${t.taskId}](${t.taskId}/INDEX.md)`, t.title || '—', statusBadge(t.status), t.estimate || '—']);
+      const linkDir = t._taskDir || t.taskId;
+      rows.push([`[${t.taskId}](${linkDir}/INDEX.md)`, t.title || '—', statusBadge(t.status), t.estimate || '—']);
     }
     lines.push(padTable(rows), '');
   } else {
@@ -179,7 +222,7 @@ function buildBugIndex(bug, availableDocs) {
   return lines.join('\n') + '\n';
 }
 
-module.exports = { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex };
+module.exports = { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex, resolveTaskDir };
 
 // --- CLI ---
 if (require.main === module) {
@@ -474,27 +517,22 @@ for (const sprint of targetSprints) {
   }
   const sprintDir = path.join(engRoot, 'sprints', sprintDirName);
 
-  // Sprint INDEX.md
-  const sprintTasks = (tasksBySprint[sprint.sprintId] || []).sort((a, b) => a.taskId.localeCompare(b.taskId));
+  // Resolve task directories for all tasks in this sprint
+  const rawSprintTasks = (tasksBySprint[sprint.sprintId] || []).sort((a, b) => a.taskId.localeCompare(b.taskId));
+  const sprintTasks = rawSprintTasks.map(t => {
+    const dir = resolveTaskDir(t, sprintDir, engPath);
+    return dir ? Object.assign({}, t, { _taskDir: dir }) : t;
+  });
+
+  // Sprint INDEX.md — pass tasks with _taskDir so links resolve correctly
   const sprintAvailDocs = availableDocsIn(sprintDir, SPRINT_DOCS);
   writeFile(path.join(sprintDir, 'INDEX.md'), buildSprintIndex(sprint, sprintTasks, sprintAvailDocs));
   sprintIndexesWritten++;
 
-  // Task INDEX.md files
+  // Task INDEX.md files — generate for every task that has a KB directory
   for (const task of sprintTasks) {
-    let taskDirName;
-    if (task.path) {
-      const normalizedPath = task.path.replace(/\\/g, '/').replace(/\/$/, '');
-      const normalizedEngPath = engPath.replace(/\\/g, '/').replace(/\/$/, '');
-      if (normalizedPath.startsWith(normalizedEngPath + '/')) {
-        taskDirName = path.basename(normalizedPath);
-      } else {
-        continue; // path points to source file, not a KB task folder — skip
-      }
-    } else {
-      taskDirName = resolveDir(sprintDir, task.taskId, task.taskId.split('-').pop());
-    }
-    const taskDir = path.join(sprintDir, taskDirName);
+    if (!task._taskDir) continue;
+    const taskDir = path.join(sprintDir, task._taskDir);
     if (!fs.existsSync(taskDir)) continue;
     const taskAvailDocs = availableDocsIn(taskDir, TASK_DOCS);
     writeFile(path.join(taskDir, 'INDEX.md'), buildTaskIndex(task, taskAvailDocs));
