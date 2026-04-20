@@ -110,9 +110,19 @@ function describePredicate(pred) {
   return `${pred.field} ${pred.op} ${pred.value}`;
 }
 
+// Canonical review artifact filenames per phase. Centralised here so the
+// orchestrator, manual commands, and tests all agree on where a given phase's
+// verdict lives.
+const VERDICT_ARTIFACTS = {
+  'review-plan': 'PLAN_REVIEW.md',
+  'review-code': 'CODE_REVIEW.md',
+  'validate':    'VALIDATION_REPORT.md',
+  'approve':     'ARCHITECT_APPROVAL.md',
+};
+
 module.exports = { preflight };
 
-// CLI shim: `node preflight-gate.cjs --phase <name> --task <taskId> [--bug <bugId>]`
+// CLI shim: `node preflight-gate.cjs --phase <name> --task <taskId> [--bug <bugId>] [--workflow <name>]`
 // exit codes: 0 ok, 1 gate(s) failed, 2 invalid args / missing definitions
 if (require.main === module) {
   const args = parseArgs(process.argv.slice(2));
@@ -124,7 +134,7 @@ if (require.main === module) {
   const { parseGates } = require('./parse-gates.cjs');
   const store = require('./store.cjs');
 
-  const workflowMd = loadWorkflowMarkdown(args.phase);
+  const workflowMd = loadWorkflowMarkdown(args.phase, args.workflow);
   if (!workflowMd) {
     process.stderr.write(`preflight-gate: could not locate workflow file defining phase "${args.phase}"\n`);
     process.exit(2);
@@ -187,6 +197,7 @@ function parseArgs(argv) {
     if (a === '--phase') out.phase = argv[++i];
     else if (a === '--task') out.task = argv[++i];
     else if (a === '--bug') out.bug = argv[++i];
+    else if (a === '--workflow') out.workflow = argv[++i];
   }
   return out;
 }
@@ -195,7 +206,7 @@ function safe(fn) {
   try { return fn(); } catch (_) { return null; }
 }
 
-function loadWorkflowMarkdown(phaseName) {
+function loadWorkflowMarkdown(phaseName, workflowName) {
   const workflowsDir = path.resolve(process.cwd(), '.forge/workflows');
   let entries;
   try {
@@ -204,6 +215,17 @@ function loadWorkflowMarkdown(phaseName) {
     return null;
   }
   const fencePattern = new RegExp('^```gates\\s+phase=' + escapeRegex(phaseName) + '\\s*$', 'm');
+
+  // If a specific workflow file was requested, try it first before scanning all files.
+  // This prevents alphabetically-earlier files from shadowing the caller's workflow.
+  if (workflowName) {
+    const normalised = workflowName.endsWith('.md') ? workflowName : workflowName + '.md';
+    if (entries.includes(normalised)) {
+      const md = fs.readFileSync(path.join(workflowsDir, normalised), 'utf8');
+      if (fencePattern.test(md)) return md;
+    }
+  }
+
   for (const entry of entries) {
     const md = fs.readFileSync(path.join(workflowsDir, entry), 'utf8');
     if (fencePattern.test(md)) return md;
@@ -214,16 +236,6 @@ function loadWorkflowMarkdown(phaseName) {
 function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
-
-// Canonical review artifact filenames per phase. Centralised here so the
-// orchestrator, manual commands, and tests all agree on where a given phase's
-// verdict lives.
-const VERDICT_ARTIFACTS = {
-  'review-plan': 'PLAN_REVIEW.md',
-  'review-code': 'CODE_REVIEW.md',
-  'validate':    'VALIDATION_REPORT.md',
-  'approve':     'ARCHITECT_APPROVAL.md',
-};
 
 function resolveVerdictSources(afterList, taskRecord, bugRecord) {
   const sources = {};

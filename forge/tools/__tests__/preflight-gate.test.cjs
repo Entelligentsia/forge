@@ -267,4 +267,79 @@ describe('preflight-gate.cjs :: preflight()', () => {
     assert.equal(result.ok, false);
     assert.ok(result.missing.length >= 2);
   });
+
+  // Regression: Bug #58 — alphabetical-first gate selection uses wrong workflow's gate
+  test('[regression #58] --workflow arg selects correct workflow when multiple files define same phase', () => {
+    const { spawnSync } = require('node:child_process');
+    const tool = path.resolve(__dirname, '..', 'preflight-gate.cjs');
+
+    const dir = tmpdir();
+    const workflowsDir = path.join(dir, '.forge', 'workflows');
+    fs.mkdirSync(workflowsDir, { recursive: true });
+
+    // aaa_wrong.md sorts alphabetically before implement_plan.md
+    // Its gate requires task.status == wrong-status (will block if used)
+    fs.writeFileSync(path.join(workflowsDir, 'aaa_wrong.md'), [
+      '```gates phase=implement',
+      'require task.status in [wrong-status]',
+      '```',
+    ].join('\n'));
+
+    // implement_plan.md has no gate conditions — should pass immediately
+    fs.writeFileSync(path.join(workflowsDir, 'implement_plan.md'), [
+      '```gates phase=implement',
+      '```',
+    ].join('\n'));
+
+    // With --workflow implement_plan.md, should use the correct (empty-gates) workflow
+    // and exit 0 (no gate conditions = passes). Without the fix, aaa_wrong.md wins
+    // and blocks with exit 1.
+    const r = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'implement', '--task', 'T1', '--workflow', 'implement_plan'],
+      { encoding: 'utf8', cwd: dir },
+    );
+
+    assert.equal(r.status, 0, `Expected exit 0 (correct workflow selected), got ${r.status}. stderr: ${r.stderr}`);
+  });
+
+  // Regression: Bug #59 — ReferenceError: VERDICT_ARTIFACTS accessed before initialization
+  test('[regression #59] implement phase with after-clause does not crash with ReferenceError', () => {
+    const { spawnSync } = require('node:child_process');
+    const tool = path.resolve(__dirname, '..', 'preflight-gate.cjs');
+
+    const dir = tmpdir();
+    const workflowsDir = path.join(dir, '.forge', 'workflows');
+    fs.mkdirSync(workflowsDir, { recursive: true });
+    fs.writeFileSync(path.join(workflowsDir, 'implement_plan.md'), [
+      '```gates phase=implement',
+      'after review-plan = approved',
+      '```',
+    ].join('\n'));
+
+    // Create a minimal .forge/store structure with a real task record so
+    // resolveVerdictSources actually iterates the afterList and accesses VERDICT_ARTIFACTS
+    const storeDir = path.join(dir, '.forge', 'store', 'tasks');
+    fs.mkdirSync(storeDir, { recursive: true });
+    fs.writeFileSync(path.join(storeDir, 'FORGE-S11-T02.json'), JSON.stringify({
+      taskId: 'FORGE-S11-T02',
+      sprintId: 'FORGE-S11',
+      title: 'Test task',
+      status: 'plan-approved',
+      path: 'engineering/sprints/FORGE-S11/FORGE-S11-T02-fix-preflight-gate',
+    }));
+
+    const r = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'implement', '--task', 'FORGE-S11-T02'],
+      { encoding: 'utf8', cwd: dir },
+    );
+
+    // Must NOT crash with a ReferenceError (that would produce a non-0/1/2 exit or
+    // a 'ReferenceError' message in stderr). exit 0, 1, or 2 are all acceptable —
+    // what matters is no uncaught exception.
+    const hasReferenceError = r.stderr.includes('ReferenceError') || r.stderr.includes('before initialization');
+    assert.ok(!hasReferenceError, `Should not crash with ReferenceError. stderr: ${r.stderr}`);
+    assert.ok([0, 1, 2].includes(r.status), `Exit code should be 0, 1, or 2, got ${r.status}. stderr: ${r.stderr}`);
+  });
 });
