@@ -303,6 +303,51 @@ describe('preflight-gate.cjs :: preflight()', () => {
     assert.equal(r.status, 0, `Expected exit 0 (correct workflow selected), got ${r.status}. stderr: ${r.stderr}`);
   });
 
+  // FORGE-S12-T02: Finalize phase gate for bug workflows — collate must produce INDEX.md
+  test('[FORGE-S12-T02] finalize gate blocks when bug INDEX.md is missing (collate failed)', () => {
+    const dir = tmpdir();
+    const bugDir = path.join(dir, 'bugs', 'BUG-007-some-slug');
+    fs.mkdirSync(bugDir, { recursive: true });
+    // No INDEX.md — collate did not run or failed
+
+    const workflowMd = [
+      '```gates phase=finalize',
+      `artifact ${dir}/bugs/{bug}/INDEX.md`,
+      '```',
+    ].join('\n');
+    const gates = parseGates(workflowMd);
+    const result = preflight({
+      phase: 'finalize',
+      gates,
+      state: { bug: { bugId: 'BUG-007', status: 'in-progress', path: 'engineering/bugs/BUG-007-some-slug' } },
+      substitutions: { bug: 'BUG-007-some-slug' },
+    });
+    assert.equal(result.ok, false);
+    assert.ok(result.missing.some(m => m.includes('INDEX.md')));
+  });
+
+  test('[FORGE-S12-T02] finalize gate passes when bug INDEX.md exists (collate succeeded)', () => {
+    const dir = tmpdir();
+    const bugDir = path.join(dir, 'bugs', 'BUG-007-some-slug');
+    fs.mkdirSync(bugDir, { recursive: true });
+    fs.writeFileSync(path.join(bugDir, 'INDEX.md'), '# Bug: Something\n');
+
+    const workflowMd = [
+      '```gates phase=finalize',
+      `artifact ${dir}/bugs/{bug}/INDEX.md`,
+      '```',
+    ].join('\n');
+    const gates = parseGates(workflowMd);
+    const result = preflight({
+      phase: 'finalize',
+      gates,
+      state: { bug: { bugId: 'BUG-007', status: 'in-progress' } },
+      substitutions: { bug: 'BUG-007-some-slug' },
+    });
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.missing, []);
+  });
+
   // Regression: Bug #59 — ReferenceError: VERDICT_ARTIFACTS accessed before initialization
   test('[regression #59] implement phase with after-clause does not crash with ReferenceError', () => {
     const { spawnSync } = require('node:child_process');

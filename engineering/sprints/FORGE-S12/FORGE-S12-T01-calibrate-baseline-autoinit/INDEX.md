@@ -4,7 +4,7 @@
 
 > Task ID: FORGE-S12-T01
 > Sprint: [FORGE-S12](../INDEX.md)
-> Status: 📋 planned
+> Status: ✅ committed
 > Estimate: S
 
 ## Description
@@ -13,7 +13,12 @@ When calibrationBaseline is absent from .forge/config.json, /forge:calibrate com
 
 ## Task Documents
 
-| Document                      | Purpose                    |
-| ----------------------------- | -------------------------- |
-| [Task Prompt](TASK_PROMPT.md) | Task definition and prompt |
+| Document                                    | Purpose                     |
+| ------------------------------------------- | --------------------------- |
+| [Task Prompt](TASK_PROMPT.md)               | Task definition and prompt  |
+| [Plan](PLAN.md)                             | Implementation plan         |
+| [Progress](PROGRESS.md)                     | Implementation progress log |
+| [Architect Approval](ARCHITECT_APPROVAL.md) | Architecture review         |
+| [Code Review](CODE_REVIEW.md)               | Code review                 |
+| [Validation Report](VALIDATION_REPORT.md)   | Validation results          |
 

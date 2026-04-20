@@ -91,6 +91,14 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
      The cost summary written to the bug artifact above is the durable
      record; no COST_REPORT.md is generated for bug IDs (collate skips
      sprint processing when the ID is not a known sprint).
+   - **Finalize gate: verify collate succeeded.** Run the finalize
+     phase gate before marking the bug as fixed:
+       `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase finalize --bug {bugId}`
+     This checks that `INDEX.md` exists in the bug's engineering directory.
+     If the gate fails (exit 1), collate did not produce the required
+     INDEX.md — do NOT mark the bug as fixed. Escalate to the human
+     with the missing artifacts listed on stderr.
+     If exit 2 (misconfiguration), escalate immediately.
    - Update bug status via `/forge:store update-status bug {bugId} status fixed`
    - Emit the complete event via `/forge:store emit {bugId} '{event-json}'`
      (tombstone — written after the purge; the only event that will remain)
@@ -330,6 +338,10 @@ after review-code = approved
 
 ```gates phase=commit
 after approve = approved
+```
+
+```gates phase=finalize
+artifact {engineering}/bugs/{bug}/INDEX.md
 ```
 
 ## Progress Reporting
