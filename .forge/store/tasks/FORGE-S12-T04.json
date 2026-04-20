@@ -4,7 +4,7 @@
   "sprintId": "FORGE-S12",
   "title": "Store-cli timestamp auto-population + record-usage + collate cost aggregation",
   "description": "Three related tool-layer fixes: (1) store-cli write bug auto-populates real ISO datetimes when agent supplies date-only YYYY-MM-DD values; (2) new store-cli record-usage subcommand writes token-usage sidecars programmatically; (3) collate --purge-events aggregates cost data from event files into bug markdown artifact before purging.",
-  "status": "implemented",
+  "status": "committed",
   "path": "forge/tools/store-cli.cjs",
   "estimate": "L",
   "dependencies": ["FORGE-S12-T03"],

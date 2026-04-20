@@ -39,16 +39,27 @@ Break sprint requirements into a set of estimated tasks with a dependency graph.
 
 4. Documentation:
    - Write SPRINT_PLAN.md to `engineering/sprints/{sprintId}/SPRINT_PLAN.md`
-   - Create each task via `/forge:store write task '{task-json}'`
-   - Update the sprint record with all new task IDs via `/forge:store write sprint '{updated-sprint-json}'` (the sprint JSON must include the complete `taskIds` array with all newly created task IDs)
+   - Create each task via `/forge:store write task '{task-json}'`.
+     If the command exits non-zero or the PreToolUse hook blocks the write:
+     parse the error, correct the JSON, and retry (see Store-Write Verification).
+     Do not proceed to the next task until this write succeeds.
+   - Update the sprint record with all new task IDs via `/forge:store write sprint '{updated-sprint-json}'` (the sprint JSON must include the complete `taskIds` array with all newly created task IDs).
+     If the command exits non-zero or the PreToolUse hook blocks the write:
+     parse the error, correct the JSON, and retry (see Store-Write Verification).
+     Do not proceed until this write succeeds.
    - For each task, create its task folder and write TASK_PROMPT.md:
      * Folder: `engineering/sprints/{sprintId}/{taskId}/`
      * File: `TASK_PROMPT.md` — populate from `.forge/templates/TASK_PROMPT_TEMPLATE.md`
        filling in title, objective, acceptance criteria, entities, DSL/CLI changes, and operational impact
-   - Update sprint status via `/forge:store update-status sprint {sprintId} status active`
+   - Update sprint status via `/forge:store update-status sprint {sprintId} status active`.
+     If the command exits non-zero, parse the error and retry
+     (see Store-Write Verification). Do not proceed until this write succeeds.
 
 5. Finalize:
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`.
+     If the command exits non-zero or the PreToolUse hook blocks the write:
+     parse the error, correct the JSON, and retry (see Store-Write Verification).
+     Do not proceed until this write succeeds.
    - Execute Token Reporting (see Generation Instructions)
 ```
 
@@ -67,6 +78,36 @@ after the Purpose heading and before the Algorithm block:
   stop. Return to step 1 of the Algorithm and proceed from there.
 ```
 
+## Store-Write Verification
+
+Every write to the Forge store MUST succeed before the agent proceeds to the next
+step. Store writes include `store-cli` commands (`write`, `update-status`, `emit`)
+and direct `Write`/`Edit` tool calls against Forge-owned paths under
+`.forge/store/`.
+
+If a write is rejected — either by `store-cli` exiting non-zero or by the
+`PreToolUse` write-boundary hook blocking the call with exit code 2 — the agent
+MUST:
+
+1. **Parse the error.** Both `store-cli` and the write-boundary hook emit
+   structured messages naming the offending field and referencing the relevant
+   schema file (e.g. `forge/schemas/task.schema.json`). Read the error carefully
+   to identify which field is wrong and what the schema expects.
+2. **Correct the data.** Fix the JSON payload to satisfy the schema: add missing
+   required fields, fix type mismatches, remove undeclared properties, correct
+   enum values, etc. If the hook message mentions a schema file, read that file
+   to understand the full shape.
+3. **Retry the write.** Re-attempt the same store write with the corrected payload.
+4. **Repeat until success.** Do NOT advance past the current step, emit events,
+   or produce further artifacts until the write is confirmed successful.
+
+**Maximum retries: 3.** If the write still fails after 3 correction attempts,
+halt and escalate to the human. Include the original payload, the corrected
+payload, and all error messages in the escalation.
+
+**Do NOT** set `FORGE_SKIP_WRITE_VALIDATION=1` to bypass a schema error. That
+environment variable is reserved for emergency operator repair only.
+
 ## Generation Instructions
 
 - **Persona Self-Load:** The generated workflow MUST begin by reading `.forge/personas/architect.md` as its first step (before any other tool use). This replaces the former inline `## Persona` section. The persona identity line (emoji, name, tagline) should be printed to stdout after reading the file.
@@ -80,3 +121,9 @@ after the Purpose heading and before the Algorithm block:
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
   3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.
+- **Store-Write Verification:** The generated workflow MUST include the "Store-Write
+  Verification" section verbatim. Every `store-cli write`, `store-cli update-status`,
+  and `store-cli emit` command in the Algorithm must be annotated with the
+  parse-correct-retry instruction: "If the command exits non-zero or the
+  PreToolUse hook blocks the write: parse the error, correct the JSON, and retry
+  (see Store-Write Verification). Do not proceed until this write succeeds."
