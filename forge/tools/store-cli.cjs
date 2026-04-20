@@ -539,6 +539,36 @@ function cmdUpdateStatus() {
   console.log(JSON.stringify({ ok: true, entity, id, field, from: currentValue, to: value, force, dryRun: DRY_RUN }));
 }
 
+// ---------------------------------------------------------------------------
+// Timestamp normalization helpers (#56)
+// ---------------------------------------------------------------------------
+
+// Returns true if the timestamp string has a zeroed time component (T00:00:00),
+// which indicates the caller provided a date-only value instead of a real
+// time-of-day. Midnight UTC is treated as "not set" for event timing purposes.
+function _isZeroedTimestamp(ts) {
+  if (typeof ts !== 'string') return true;  // null / missing → normalize
+  return /T00:00:00/.test(ts);
+}
+
+// Normalize event timestamps before writing. Replaces any zeroed or absent
+// startTimestamp / endTimestamp with the current real time, then recomputes
+// durationMinutes from the two timestamps so cost reports are accurate.
+function _normalizeEventTimestamps(data) {
+  const now = new Date().toISOString();
+
+  if (_isZeroedTimestamp(data.startTimestamp)) data.startTimestamp = now;
+  if (_isZeroedTimestamp(data.endTimestamp))   data.endTimestamp   = now;
+
+  // Recompute durationMinutes whenever both timestamps are present.
+  if (data.startTimestamp && data.endTimestamp) {
+    const diffMs = new Date(data.endTimestamp) - new Date(data.startTimestamp);
+    data.durationMinutes = Math.max(0, diffMs / 60000);
+  }
+
+  return data;
+}
+
 function cmdEmit() {
   const sprintId = args[1];
   const jsonStr = args[2];
@@ -582,6 +612,10 @@ function cmdEmit() {
     }
     console.log(JSON.stringify({ ok: true, sidecar: true, eventId: data.eventId, sprintId, dryRun: DRY_RUN }));
   } else {
+    // Normalize zeroed timestamps before validation so agents that provide
+    // date-only values (T00:00:00Z) get real time-of-day stamped in (#56).
+    _normalizeEventTimestamps(data);
+
     // Validate as event entity
     const errors = validateRecord(data, schemas.event);
     if (errors.length > 0) {

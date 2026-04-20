@@ -766,3 +766,125 @@ describe('store-cli.cjs — write-boundary in-tool schema enforcement', () => {
     }
   });
 });
+
+describe('store-cli.cjs — emit timestamp normalization (#56)', () => {
+  function makeEmitStore() {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-ts-'));
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'S1'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'config.json'),
+      JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
+    );
+    return tmpDir;
+  }
+
+  const ZEROED_EVENT = {
+    eventId: 'E-TS-001',
+    taskId: 'T01',
+    sprintId: 'S1',
+    role: 'plan',
+    action: 'plan-task',
+    phase: 'plan',
+    iteration: 1,
+    startTimestamp: '2026-04-20T00:00:00.000Z',
+    endTimestamp: '2026-04-20T00:00:00.000Z',
+    durationMinutes: 0,
+    model: 'claude-sonnet-4-6'
+  };
+
+  test('emit normalizes zeroed startTimestamp to real time-of-day', () => {
+    const tmpDir = makeEmitStore();
+    try {
+      const before = Date.now();
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'S1', JSON.stringify(ZEROED_EVENT)], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      const after = Date.now();
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const evPath = path.join(tmpDir, '.forge', 'store', 'events', 'S1', 'E-TS-001.json');
+      assert.ok(fs.existsSync(evPath), 'event file should be written');
+      const ev = JSON.parse(fs.readFileSync(evPath, 'utf8'));
+
+      assert.ok(
+        !ev.startTimestamp.includes('T00:00:00'),
+        `startTimestamp should not be zeroed midnight, got: ${ev.startTimestamp}`
+      );
+      const ts = new Date(ev.startTimestamp).getTime();
+      assert.ok(ts >= before && ts <= after + 1000,
+        `startTimestamp should fall within execution window, got: ${ev.startTimestamp}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('emit normalizes zeroed endTimestamp to real time-of-day', () => {
+    const tmpDir = makeEmitStore();
+    try {
+      const before = Date.now();
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'S1', JSON.stringify(ZEROED_EVENT)], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      const after = Date.now();
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const ev = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'events', 'S1', 'E-TS-001.json'), 'utf8'
+      ));
+
+      assert.ok(
+        !ev.endTimestamp.includes('T00:00:00'),
+        `endTimestamp should not be zeroed midnight, got: ${ev.endTimestamp}`
+      );
+      const ts = new Date(ev.endTimestamp).getTime();
+      assert.ok(ts >= before && ts <= after + 1000,
+        `endTimestamp should fall within execution window, got: ${ev.endTimestamp}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('emit preserves non-zeroed timestamps provided by caller', () => {
+    const tmpDir = makeEmitStore();
+    try {
+      const realTs = '2026-04-20T14:32:07.123Z';
+      const event = { ...ZEROED_EVENT, eventId: 'E-TS-002', startTimestamp: realTs, endTimestamp: realTs };
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'S1', JSON.stringify(event)], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const ev = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'events', 'S1', 'E-TS-002.json'), 'utf8'
+      ));
+
+      assert.equal(ev.startTimestamp, realTs,
+        'non-zeroed startTimestamp must be preserved unchanged');
+      assert.equal(ev.endTimestamp, realTs,
+        'non-zeroed endTimestamp must be preserved unchanged');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('emit recomputes durationMinutes when timestamps are normalized', () => {
+    const tmpDir = makeEmitStore();
+    try {
+      // Both timestamps zeroed → both normalized to ~now → duration should be >= 0
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'S1', JSON.stringify(ZEROED_EVENT)], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const ev = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'events', 'S1', 'E-TS-001.json'), 'utf8'
+      ));
+
+      // After normalization both timestamps are real — durationMinutes must be a non-negative number
+      assert.ok(typeof ev.durationMinutes === 'number' && ev.durationMinutes >= 0,
+        `durationMinutes should be a non-negative number, got: ${ev.durationMinutes}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});

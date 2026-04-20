@@ -1,0 +1,12 @@
+{
+  "taskId": "FORGE-S11-T05",
+  "feature_id": null,
+  "sprintId": "FORGE-S11",
+  "title": "Fix calibrationBaseline missing from fast-mode init and update (#55)",
+  "description": "/forge:init --fast bypasses Phase 5/6-b where calibrationBaseline is written, leaving config.json without it. /forge:update also does not refresh it. Fix: write calibrationBaseline after Phase 7-fast stub writes; refresh in update after successful artifact materialization.",
+  "status": "committed",
+  "path": "forge/init/sdlc-init.md",
+  "estimate": "M",
+  "dependencies": [],
+  "pipeline": "default"
+}

@@ -543,6 +543,37 @@ Do NOT block migration success on gaps — surface them as a warning only. The u
 is already informed of failed regeneration steps by the Iron Laws above; this check
 is an additional safety net.
 
+### Refresh calibrationBaseline
+
+After the structure check, if at least one regeneration target was applied (the
+aggregated `regenerate` list was non-empty), refresh `calibrationBaseline` in
+`.forge/config.json`. This keeps the calibration baseline in sync with the newly
+materialized artifacts so `/forge:calibrate` does not report false drift.
+
+Skip this step if no regeneration targets were applied (e.g. all targets were absent
+from the migration path, or Step 4 was entered with `baseline == LOCAL_VERSION`).
+
+1. Read `$FORGE_ROOT/.claude-plugin/plugin.json` → `version`.
+2. Resolve `KB_PATH`:
+   ```sh
+   KB_PATH=$(node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo "engineering")
+   ```
+3. Hash `{KB_PATH}/MASTER_INDEX.md` (strip blank lines + `<!--` lines, SHA-256):
+   ```sh
+   node -e "const crypto=require('crypto'),fs=require('fs'); const lines=fs.readFileSync('${KB_PATH}/MASTER_INDEX.md','utf8').split('\n').filter(l=>l.trim()&&!l.trim().startsWith('<!--')); console.log(crypto.createHash('sha256').update(lines.join('\n')).digest('hex'))"
+   ```
+4. List done sprint IDs from `.forge/store/sprints/`:
+   ```sh
+   node -e "const fs=require('fs'),p='.forge/store/sprints'; try{const files=fs.readdirSync(p).filter(f=>f.endsWith('.json')); const done=files.map(f=>JSON.parse(fs.readFileSync(p+'/'+f,'utf8'))).filter(s=>['done','retrospective-done'].includes(s.status)).map(s=>s.sprintId); console.log(JSON.stringify(done));}catch(e){console.log('[]')}"
+   ```
+5. Today's ISO date: `date -u +"%Y-%m-%d"`
+6. Merge into config:
+   ```sh
+   node -e "const fs=require('fs'); const cfg=JSON.parse(fs.readFileSync('.forge/config.json','utf8')); cfg.calibrationBaseline={lastCalibrated:'<date>',version:'<ver>',masterIndexHash:'<hash>',sprintsCovered:<array>}; fs.writeFileSync('.forge/config.json',JSON.stringify(cfg,null,2)+'\n')"
+   ```
+
+Emit: `〇 calibrationBaseline refreshed — version <ver>, hash <first-8-chars-of-hash>...`
+
 ### Iron Laws for Step 4
 
 - YOU MUST NOT call `generation-manifest.cjs record` directly for migration targets.

@@ -1,0 +1,21 @@
+{
+  "sprintId": "FORGE-S11",
+  "feature_id": null,
+  "title": "Sprint S11 — Tech Debt: Pipeline Bug Fixes, Command Gaps, and UX Completeness",
+  "goal": "Fix six confirmed pipeline bugs (timestamps, gate crash, model fallback, collate links, calibration baseline, and no quiz-agent command), close flat-file cleanup gap, and optionally refactor CJS APIs to structured Results — so the core pipeline runs without workarounds.",
+  "status": "active",
+  "taskIds": [
+    "FORGE-S11-T01",
+    "FORGE-S11-T02",
+    "FORGE-S11-T03",
+    "FORGE-S11-T04",
+    "FORGE-S11-T05",
+    "FORGE-S11-T06",
+    "FORGE-S11-T07",
+    "FORGE-S11-T08",
+    "FORGE-S11-T09"
+  ],
+  "executionMode": "wave-parallel",
+  "path": "engineering/sprints/FORGE-S11",
+  "createdAt": "2026-04-20T00:00:00.000Z"
+}
