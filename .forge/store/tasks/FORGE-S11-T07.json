@@ -4,7 +4,7 @@
   "sprintId": "FORGE-S11",
   "title": "Update generate-commands: add quiz-agent + post-generation flat-file cleanup (#48/#50)",
   "description": "generate-commands.md lacks quiz-agent.md in its explicit output list, and never scans for flat-path orphans after generation. Add quiz-agent.md to known commands list and add a post-generation step that scans .claude/commands/ for the 13 known flat filenames and prompts user to remove them.",
-  "status": "approved",
+  "status": "committed",
   "path": "forge/init/generation/generate-commands.md",
   "estimate": "S",
   "dependencies": ["FORGE-S11-T06"],
