@@ -5,7 +5,7 @@ const { spawnSync } = require('child_process');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const { isLegalTransition, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, validateRecord, NULLABLE_FIELDS, VALID_SUMMARY_PHASES, PHASE_SUMMARY_SCHEMA } = require('../store-cli.cjs');
+const { isLegalTransition, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, validateRecord, NULLABLE_FIELDS, VALID_SUMMARY_PHASES, PHASE_SUMMARY_SCHEMA, _isDateOnly, _dateOnlyToISO, _normalizeBugTimestamps } = require('../store-cli.cjs');
 
 const STORE_CLI = path.join(__dirname, '..', 'store-cli.cjs');
 
@@ -883,6 +883,318 @@ describe('store-cli.cjs — emit timestamp normalization (#56)', () => {
       // After normalization both timestamps are real — durationMinutes must be a non-negative number
       assert.ok(typeof ev.durationMinutes === 'number' && ev.durationMinutes >= 0,
         `durationMinutes should be a non-negative number, got: ${ev.durationMinutes}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('store-cli.cjs — _isDateOnly', () => {
+  test('returns true for YYYY-MM-DD date-only strings', () => {
+    assert.equal(_isDateOnly('2026-04-20'), true);
+    assert.equal(_isDateOnly('2025-01-01'), true);
+  });
+
+  test('returns false for full ISO datetimes', () => {
+    assert.equal(_isDateOnly('2026-04-20T14:32:07.123Z'), false);
+    assert.equal(_isDateOnly('2026-04-20T00:00:00Z'), false);
+  });
+
+  test('returns false for non-string types', () => {
+    assert.equal(_isDateOnly(null), false);
+    assert.equal(_isDateOnly(undefined), false);
+    assert.equal(_isDateOnly(12345), false);
+  });
+
+  test('returns false for empty string', () => {
+    assert.equal(_isDateOnly(''), false);
+  });
+
+  test('returns false for partial date strings', () => {
+    assert.equal(_isDateOnly('2026-04'), false);
+    assert.equal(_isDateOnly('2026'), false);
+  });
+});
+
+describe('store-cli.cjs — _dateOnlyToISO', () => {
+  test('converts date-only string to full ISO datetime preserving date portion', () => {
+    const result = _dateOnlyToISO('2026-04-20');
+    assert.ok(result.startsWith('2026-04-20T'), `result should start with original date, got: ${result}`);
+    assert.ok(!result.startsWith('2026-04-20$'), 'should not be date-only anymore');
+  });
+
+  test('result is parseable as a Date', () => {
+    const result = _dateOnlyToISO('2026-01-15');
+    const parsed = new Date(result);
+    assert.ok(!isNaN(parsed.getTime()), `result should be a valid date, got: ${result}`);
+  });
+});
+
+describe('store-cli.cjs — _normalizeBugTimestamps', () => {
+  test('normalizes date-only reportedAt', () => {
+    const bug = { reportedAt: '2026-04-20' };
+    _normalizeBugTimestamps(bug);
+    assert.ok(bug.reportedAt.includes('T'), `reportedAt should contain T, got: ${bug.reportedAt}`);
+    assert.ok(bug.reportedAt.startsWith('2026-04-20T'), `date portion preserved, got: ${bug.reportedAt}`);
+  });
+
+  test('normalizes date-only resolvedAt', () => {
+    const bug = { reportedAt: '2026-04-20T10:00:00Z', resolvedAt: '2026-04-21' };
+    _normalizeBugTimestamps(bug);
+    assert.equal(bug.reportedAt, '2026-04-20T10:00:00Z', 'full ISO reportedAt should be preserved');
+    assert.ok(bug.resolvedAt.startsWith('2026-04-21T'), `date portion preserved, got: ${bug.resolvedAt}`);
+  });
+
+  test('leaves full ISO datetimes untouched', () => {
+    const bug = { reportedAt: '2026-04-20T14:32:07.123Z' };
+    _normalizeBugTimestamps(bug);
+    assert.equal(bug.reportedAt, '2026-04-20T14:32:07.123Z');
+  });
+
+  test('returns the same object for chaining', () => {
+    const bug = { reportedAt: '2026-04-20' };
+    const result = _normalizeBugTimestamps(bug);
+    assert.equal(result, bug, 'should return the same object');
+  });
+});
+
+describe('store-cli.cjs — write bug timestamp auto-population', () => {
+  function makeBugStore() {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-bugts-'));
+    const bugsDir = path.join(tmpDir, '.forge', 'store', 'bugs');
+    fs.mkdirSync(bugsDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'config.json'),
+      JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
+    );
+    return tmpDir;
+  }
+
+  const BUG_DATE_ONLY = {
+    bugId: 'BUG-TS-001',
+    title: 'Timestamp test bug',
+    severity: 'minor',
+    status: 'reported',
+    path: 'engineering/bugs/BUG-TS-001',
+    reportedAt: '2026-04-20'
+  };
+
+  test('write bug auto-populates date-only reportedAt to full ISO datetime', () => {
+    const tmpDir = makeBugStore();
+    try {
+      const before = Date.now();
+      const r = spawnSync(process.execPath, [STORE_CLI, 'write', 'bug', JSON.stringify(BUG_DATE_ONLY)], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      const after = Date.now();
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const bug = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'bugs', 'BUG-TS-001.json'), 'utf8'
+      ));
+
+      // reportedAt should now be a full ISO datetime, not a date-only string
+      assert.ok(bug.reportedAt.includes('T'), `reportedAt should contain T, got: ${bug.reportedAt}`);
+      assert.ok(!/^\d{4}-\d{2}-\d{2}$/.test(bug.reportedAt), `reportedAt should not be date-only, got: ${bug.reportedAt}`);
+      const ts = new Date(bug.reportedAt).getTime();
+      assert.ok(!isNaN(ts), `reportedAt should be a valid date, got: ${bug.reportedAt}`);
+      // The date part should still be 2026-04-20
+      assert.ok(bug.reportedAt.startsWith('2026-04-20T'), `date portion should be preserved, got: ${bug.reportedAt}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('write bug preserves full ISO datetime in reportedAt', () => {
+    const tmpDir = makeBugStore();
+    try {
+      const fullTs = '2026-04-20T14:32:07.123Z';
+      const bug = { ...BUG_DATE_ONLY, bugId: 'BUG-TS-002', reportedAt: fullTs };
+      const r = spawnSync(process.execPath, [STORE_CLI, 'write', 'bug', JSON.stringify(bug)], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const written = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'bugs', 'BUG-TS-002.json'), 'utf8'
+      ));
+      assert.equal(written.reportedAt, fullTs, 'full ISO datetime should be preserved unchanged');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('write bug auto-populates date-only resolvedAt to full ISO datetime', () => {
+    const tmpDir = makeBugStore();
+    try {
+      const bug = { ...BUG_DATE_ONLY, bugId: 'BUG-TS-003', resolvedAt: '2026-04-21', status: 'fixed' };
+      const r = spawnSync(process.execPath, [STORE_CLI, 'write', 'bug', JSON.stringify(bug)], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const written = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'bugs', 'BUG-TS-003.json'), 'utf8'
+      ));
+      assert.ok(written.resolvedAt.includes('T'), `resolvedAt should contain T, got: ${written.resolvedAt}`);
+      assert.ok(written.resolvedAt.startsWith('2026-04-21T'), `date portion should be preserved, got: ${written.resolvedAt}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('write bug with both reportedAt and resolvedAt date-only normalizes both', () => {
+    const tmpDir = makeBugStore();
+    try {
+      const bug = { ...BUG_DATE_ONLY, bugId: 'BUG-TS-004', resolvedAt: '2026-04-21', status: 'fixed' };
+      const r = spawnSync(process.execPath, [STORE_CLI, 'write', 'bug', JSON.stringify(bug)], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const written = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'bugs', 'BUG-TS-004.json'), 'utf8'
+      ));
+      assert.ok(written.reportedAt.includes('T'), `reportedAt should contain T, got: ${written.reportedAt}`);
+      assert.ok(written.resolvedAt.includes('T'), `resolvedAt should contain T, got: ${written.resolvedAt}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('store-cli.cjs — record-usage subcommand', () => {
+  function makeUsageStore() {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-ru-'));
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'S1'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'config.json'),
+      JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
+    );
+    return tmpDir;
+  }
+
+  test('record-usage writes a valid sidecar file', () => {
+    const tmpDir = makeUsageStore();
+    try {
+      const r = spawnSync(process.execPath, [
+        STORE_CLI, 'record-usage', 'S1', 'E-001',
+        '--input-tokens', '1000',
+        '--output-tokens', '500',
+        '--cache-read-tokens', '200',
+        '--cache-write-tokens', '100',
+        '--estimated-cost-usd', '0.05',
+        '--token-source', 'reported',
+      ], { cwd: tmpDir, encoding: 'utf8' });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const sidecarPath = path.join(tmpDir, '.forge', 'store', 'events', 'S1', '_E-001_usage.json');
+      assert.ok(fs.existsSync(sidecarPath), 'sidecar file should exist');
+
+      const sidecar = JSON.parse(fs.readFileSync(sidecarPath, 'utf8'));
+      assert.equal(sidecar.eventId, 'E-001');
+      assert.equal(sidecar.inputTokens, 1000);
+      assert.equal(sidecar.outputTokens, 500);
+      assert.equal(sidecar.cacheReadTokens, 200);
+      assert.equal(sidecar.cacheWriteTokens, 100);
+      assert.equal(sidecar.estimatedCostUSD, 0.05);
+      assert.equal(sidecar.tokenSource, 'reported');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('record-usage with minimal fields writes sidecar with only eventId and provided fields', () => {
+    const tmpDir = makeUsageStore();
+    try {
+      const r = spawnSync(process.execPath, [
+        STORE_CLI, 'record-usage', 'S1', 'E-002',
+        '--input-tokens', '500',
+        '--output-tokens', '250',
+      ], { cwd: tmpDir, encoding: 'utf8' });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const sidecar = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'events', 'S1', '_E-002_usage.json'), 'utf8'
+      ));
+      assert.equal(sidecar.eventId, 'E-002');
+      assert.equal(sidecar.inputTokens, 500);
+      assert.equal(sidecar.outputTokens, 250);
+      assert.equal(sidecar.cacheReadTokens, undefined, 'unprovided cacheReadTokens should be absent');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('record-usage rejects invalid token-source', () => {
+    const tmpDir = makeUsageStore();
+    try {
+      const r = spawnSync(process.execPath, [
+        STORE_CLI, 'record-usage', 'S1', 'E-003',
+        '--input-tokens', '100',
+        '--token-source', 'invalid',
+      ], { cwd: tmpDir, encoding: 'utf8' });
+      assert.notEqual(r.status, 0, 'should exit non-zero for invalid token-source');
+      assert.match(r.stderr, /tokenSource/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('record-usage rejects non-integer input-tokens', () => {
+    const tmpDir = makeUsageStore();
+    try {
+      const r = spawnSync(process.execPath, [
+        STORE_CLI, 'record-usage', 'S1', 'E-004',
+        '--input-tokens', 'not-a-number',
+      ], { cwd: tmpDir, encoding: 'utf8' });
+      assert.notEqual(r.status, 0, 'should exit non-zero for non-integer input-tokens');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('record-usage rejects negative estimated-cost-usd', () => {
+    const tmpDir = makeUsageStore();
+    try {
+      const r = spawnSync(process.execPath, [
+        STORE_CLI, 'record-usage', 'S1', 'E-005',
+        '--estimated-cost-usd', '-0.01',
+      ], { cwd: tmpDir, encoding: 'utf8' });
+      assert.notEqual(r.status, 0, 'should exit non-zero for negative cost');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('record-usage requires sprintId and eventId', () => {
+    const tmpDir = makeUsageStore();
+    try {
+      const r = spawnSync(process.execPath, [
+        STORE_CLI, 'record-usage',
+      ], { cwd: tmpDir, encoding: 'utf8' });
+      assert.notEqual(r.status, 0, 'should exit non-zero for missing args');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('record-usage supports --model and --duration-minutes flags', () => {
+    const tmpDir = makeUsageStore();
+    try {
+      const r = spawnSync(process.execPath, [
+        STORE_CLI, 'record-usage', 'S1', 'E-006',
+        '--input-tokens', '100',
+        '--model', 'claude-sonnet-4-6',
+        '--duration-minutes', '5.2',
+      ], { cwd: tmpDir, encoding: 'utf8' });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const sidecar = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'events', 'S1', '_E-006_usage.json'), 'utf8'
+      ));
+      assert.equal(sidecar.model, 'claude-sonnet-4-6');
+      assert.equal(sidecar.durationMinutes, 5.2);
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }

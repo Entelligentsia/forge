@@ -452,3 +452,48 @@ describe('collate.cjs — isBugId', () => {
     assert.equal(isBugId('FEAT-005'), false, 'FEAT-005 should not be a bug ID');
   });
 });
+
+describe('collate.cjs — buildBugIndex with cost aggregation', () => {
+  const bug = {
+    bugId: 'TST-B01',
+    title: 'Expensive bug',
+    description: 'This bug cost a lot of tokens.',
+    severity: 'major',
+    status: 'fixed',
+    reportedAt: '2026-01-15T10:00:00Z',
+    resolvedAt: '2026-01-16T14:00:00Z',
+  };
+
+  const costTotals = {
+    inputTokens: 10000,
+    outputTokens: 5000,
+    cacheReadTokens: 2000,
+    cacheWriteTokens: 1000,
+    estimatedCostUSD: 0.25,
+    sourceLabel: '(reported)',
+  };
+
+  test('buildBugIndex includes cost section when costTotals provided', () => {
+    const result = buildBugIndex(bug, [], costTotals);
+    assert.ok(result.includes('Cost'), 'should include Cost section heading');
+    assert.ok(result.includes('10,000'), 'should include formatted input tokens');
+    assert.ok(result.includes('5,000'), 'should include formatted output tokens');
+    assert.ok(result.includes('$0.2500'), 'should include formatted cost');
+    assert.ok(result.includes('(reported)'), 'should include source label');
+  });
+
+  test('buildBugIndex without costTotals omits cost section', () => {
+    const result = buildBugIndex(bug, []);
+    assert.ok(!result.includes('Cost'), 'should not include Cost section when no costTotals');
+  });
+
+  test('buildBugIndex cost section includes all token fields', () => {
+    const result = buildBugIndex(bug, [], costTotals);
+    assert.ok(result.includes('Input Tokens'), 'should include Input Tokens column');
+    assert.ok(result.includes('Output Tokens'), 'should include Output Tokens column');
+    assert.ok(result.includes('Cache Read'), 'should include Cache Read column');
+    assert.ok(result.includes('Cache Write'), 'should include Cache Write column');
+    assert.ok(result.includes('Est. Cost USD'), 'should include Est. Cost USD column');
+    assert.ok(result.includes('Source'), 'should include Source column');
+  });
+});

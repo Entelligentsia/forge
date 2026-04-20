@@ -196,7 +196,37 @@ function isLegalTransition(entityType, field, currentValue, newValue) {
   return allowed.includes(newValue);
 }
 
-module.exports = { isLegalTransition, validateRecord, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, ENTITY_TYPES, MINIMAL_REQUIRED, NULLABLE_FIELDS, VALID_SUMMARY_PHASES, PHASE_SUMMARY_SCHEMA };
+// ---------------------------------------------------------------------------
+// Bug timestamp normalization helpers
+// ---------------------------------------------------------------------------
+
+// Returns true if the string is a date-only value (YYYY-MM-DD without time).
+// These are rejected by the date-time format validator but agents commonly
+// supply them for reportedAt/resolvedAt.
+function _isDateOnly(ts) {
+  return typeof ts === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(ts);
+}
+
+// Convert a date-only string (YYYY-MM-DD) into a full ISO datetime by
+// appending the current time-of-day in UTC. The date portion is preserved
+// from the input; only the time component is auto-populated.
+function _dateOnlyToISO(dateStr) {
+  const now = new Date();
+  const timePart = now.toISOString().slice(10);  // e.g. "T14:32:07.123Z"
+  return dateStr + timePart;
+}
+
+// Normalize bug datetime fields before writing. When agents supply date-only
+// values (YYYY-MM-DD) for reportedAt or resolvedAt, auto-populates the time
+// component from the current time-of-day so the value passes date-time format
+// validation. Full ISO datetimes are left untouched.
+function _normalizeBugTimestamps(data) {
+  if (_isDateOnly(data.reportedAt))  data.reportedAt  = _dateOnlyToISO(data.reportedAt);
+  if (_isDateOnly(data.resolvedAt))  data.resolvedAt  = _dateOnlyToISO(data.resolvedAt);
+  return data;
+}
+
+module.exports = { isLegalTransition, validateRecord, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, ENTITY_TYPES, MINIMAL_REQUIRED, NULLABLE_FIELDS, VALID_SUMMARY_PHASES, PHASE_SUMMARY_SCHEMA, _isDateOnly, _dateOnlyToISO, _normalizeBugTimestamps };
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -335,6 +365,7 @@ Commands:
                                               Update status/enum field with transition check
   emit <sprintId> '<json>' [--sidecar]        Write an event (or sidecar)
   merge-sidecar <sprintId> <eventId>          Merge sidecar into canonical event
+  record-usage <sprintId> <eventId> [flags]  Write a token-usage sidecar
   purge-events <sprintId>                     Delete all events for a sprint
   progress <sprintOrBugId> <agentName> <bannerKey> <status> [detail]
                                               Append a progress entry to the log
@@ -383,6 +414,13 @@ function cmdWrite() {
   } catch (e) {
     console.error(`Invalid JSON: ${e.message}`);
     process.exit(1);
+  }
+
+  // Auto-populate date-only YYYY-MM-DD values in bug datetime fields.
+  // Agents commonly supply date-only values for reportedAt/resolvedAt;
+  // this normalizes them to full ISO datetimes before schema validation.
+  if (entity === 'bug') {
+    _normalizeBugTimestamps(data);
   }
 
   const errors = validateRecord(data, schemas[entity]);
@@ -703,6 +741,70 @@ function cmdMergeSidecar() {
   console.log(JSON.stringify({ ok: true, merged: true, eventId, sprintId, dryRun: DRY_RUN }));
 }
 
+function cmdRecordUsage() {
+  const sprintId = args[1];
+  const eventId = args[2];
+
+  if (!sprintId || !eventId) {
+    console.error('Usage: store-cli.cjs record-usage <sprintId> <eventId> [flags]');
+    console.error('  Flags:');
+    console.error('    --input-tokens <n>          Input token count');
+    console.error('    --output-tokens <n>         Output token count');
+    console.error('    --cache-read-tokens <n>     Cache read token count');
+    console.error('    --cache-write-tokens <n>    Cache write token count');
+    console.error('    --estimated-cost-usd <n>     Estimated cost in USD');
+    console.error('    --token-source <src>         reported | estimated');
+    console.error('    --model <model>             Model identifier');
+    console.error('    --duration-minutes <n>      Duration in minutes');
+    process.exit(1);
+  }
+
+  // Parse flag arguments from remaining args
+  const flagArgs = args.slice(3);
+  const sidecar = { eventId };
+
+  for (let i = 0; i < flagArgs.length; i++) {
+    const arg = flagArgs[i];
+    if (arg === '--input-tokens' && flagArgs[i + 1]) {
+      sidecar.inputTokens = parseInt(flagArgs[++i], 10);
+    } else if (arg === '--output-tokens' && flagArgs[i + 1]) {
+      sidecar.outputTokens = parseInt(flagArgs[++i], 10);
+    } else if (arg === '--cache-read-tokens' && flagArgs[i + 1]) {
+      sidecar.cacheReadTokens = parseInt(flagArgs[++i], 10);
+    } else if (arg === '--cache-write-tokens' && flagArgs[i + 1]) {
+      sidecar.cacheWriteTokens = parseInt(flagArgs[++i], 10);
+    } else if (arg === '--estimated-cost-usd' && flagArgs[i + 1]) {
+      sidecar.estimatedCostUSD = parseFloat(flagArgs[++i]);
+    } else if (arg === '--token-source' && flagArgs[i + 1]) {
+      sidecar.tokenSource = flagArgs[++i];
+    } else if (arg === '--model' && flagArgs[i + 1]) {
+      sidecar.model = flagArgs[++i];
+    } else if (arg === '--duration-minutes' && flagArgs[i + 1]) {
+      sidecar.durationMinutes = parseFloat(flagArgs[++i]);
+    }
+  }
+
+  // Validate against sidecar schema
+  const sidecarErrors = validateRecord(sidecar, schemas['event-sidecar']);
+  if (sidecarErrors.length > 0) {
+    for (const e of sidecarErrors) console.error(e);
+    process.exit(1);
+  }
+
+  const sidecarDir = resolveSidecarDir(sprintId);
+  const filePath = sidecarPath(sprintId, eventId);
+
+  if (DRY_RUN) {
+    console.log(`[dry-run] would write sidecar _${eventId}_usage.json`);
+  } else {
+    if (!fs.existsSync(sidecarDir)) {
+      fs.mkdirSync(sidecarDir, { recursive: true });
+    }
+    fs.writeFileSync(filePath, JSON.stringify(sidecar, null, 2) + '\n', 'utf8');
+  }
+  console.log(JSON.stringify({ ok: true, sidecar: true, eventId, sprintId, dryRun: DRY_RUN }));
+}
+
 function cmdPurgeEvents() {
   const sprintId = args[1];
 
@@ -934,6 +1036,7 @@ switch (command) {
   case 'update-status':        cmdUpdateStatus(); break;
   case 'emit':                 cmdEmit(); break;
   case 'merge-sidecar':        cmdMergeSidecar(); break;
+  case 'record-usage':        cmdRecordUsage(); break;
   case 'purge-events':         cmdPurgeEvents(); break;
   case 'write-collation-state': cmdWriteCollationState(); break;
   case 'validate':             cmdValidate(); break;

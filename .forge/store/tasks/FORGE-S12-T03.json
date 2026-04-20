@@ -4,7 +4,7 @@
   "sprintId": "FORGE-S12",
   "title": "Collate bug-ID first-class argument — no --purge-events required",
   "description": "Make collate.cjs accept bug IDs as a first-class positional argument. `collate.cjs HELLO-B02` should work identically to `collate.cjs HELLO-B02 --purge-events`. Bug IDs are not a side effect of a flag.",
-  "status": "implemented",
+  "status": "committed",
   "path": "forge/tools/collate.cjs",
   "estimate": "M",
   "dependencies": [],

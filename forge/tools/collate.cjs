@@ -205,7 +205,7 @@ const BUG_DOCS = [
   { file: 'VALIDATION_REPORT.md', label: 'Validation Report', purpose: 'Fix validation' },
 ];
 
-function buildBugIndex(bug, availableDocs) {
+function buildBugIndex(bug, availableDocs, costTotals) {
   const avail = new Set(availableDocs);
   const lines = [GENERATED, '', `# Bug: ${bug.title || bug.bugId}`, '',
     `> Bug ID: ${bug.bugId}`,
@@ -216,6 +216,24 @@ function buildBugIndex(bug, availableDocs) {
     ''].filter(l => l !== null);
 
   if (bug.description) lines.push('## Description', '', bug.description, '');
+
+  // Cost aggregation section — included when costTotals is provided
+  // (typically when --purge-events aggregates event costs before deletion).
+  if (costTotals && costTotals.inputTokens !== undefined) {
+    lines.push('## Cost', '');
+    const rows = [
+      ['Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD', 'Source'],
+      [
+        fmtTokens(costTotals.inputTokens),
+        fmtTokens(costTotals.outputTokens),
+        fmtTokens(costTotals.cacheReadTokens),
+        fmtTokens(costTotals.cacheWriteTokens),
+        fmtCost(costTotals.estimatedCostUSD),
+        costTotals.sourceLabel || '—',
+      ],
+    ];
+    lines.push(padTable(rows), '');
+  }
 
   const presentDocs = BUG_DOCS.filter(d => avail.has(d.file));
   if (presentDocs.length > 0) {
@@ -569,7 +587,36 @@ for (const bug of allBugs) {
   const bugDir = path.join(engRoot, 'bugs', bugDirName);
   if (!fs.existsSync(bugDir)) continue;
   const bugAvailDocs = availableDocsIn(bugDir, BUG_DOCS);
-  writeFile(path.join(bugDir, 'INDEX.md'), buildBugIndex(bug, bugAvailDocs));
+
+  // When purging events for a bug, aggregate cost data from event files
+  // before they are deleted. The aggregated cost summary is embedded in
+  // the bug's INDEX.md so the information survives the purge.
+  let costTotals;
+  if (PURGE_EVENTS && SPRINT_ARG && SPRINT_ARG === bug.bugId) {
+    const events = loadSprintEvents(bug.bugId);
+    const tokenEvents = events.filter(e => e.inputTokens !== undefined);
+    if (tokenEvents.length > 0) {
+      const totals = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0, sources: new Set() };
+      for (const e of tokenEvents) {
+        totals.inputTokens     += e.inputTokens     || 0;
+        totals.outputTokens    += e.outputTokens    || 0;
+        totals.cacheReadTokens += e.cacheReadTokens  || 0;
+        totals.cacheWriteTokens+= e.cacheWriteTokens || 0;
+        totals.estimatedCostUSD+= e.estimatedCostUSD || 0;
+        totals.sources.add(e.tokenSource);
+      }
+      costTotals = {
+        inputTokens: totals.inputTokens,
+        outputTokens: totals.outputTokens,
+        cacheReadTokens: totals.cacheReadTokens,
+        cacheWriteTokens: totals.cacheWriteTokens,
+        estimatedCostUSD: totals.estimatedCostUSD,
+        sourceLabel: sourceLabel(totals.sources),
+      };
+    }
+  }
+
+  writeFile(path.join(bugDir, 'INDEX.md'), buildBugIndex(bug, bugAvailDocs, costTotals));
   bugIndexesWritten++;
 }
 
