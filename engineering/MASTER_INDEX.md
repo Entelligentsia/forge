@@ -12,7 +12,7 @@
 
 | Sprint    | Title                                                                              | Status               | Tasks |
 | --------- | ---------------------------------------------------------------------------------- | -------------------- | ----- |
-| FORGE-S12 | Pipeline Reliability and Bug-Fix Workflow Hardening                                | 🔵 active            | 2/6   |
+| FORGE-S12 | Pipeline Reliability and Bug-Fix Workflow Hardening                                | 🔵 active            | 6/6   |
 | FORGE-S11 | Sprint S11 — Tech Debt: Pipeline Bug Fixes, Command Gaps, and UX Completeness      | ✅ retrospective-done | 9/9   |
 | FORGE-S10 | Sprint S10 — Tomoshibi: KB Visibility Agent + Configurable KB Path                 | ✅ retrospective-done | 1/1   |
 | FORGE-S09 | Sprint S09                                                                         | ✅ completed          | 9/9   |
@@ -33,10 +33,10 @@
 | ------------------------------------------------- | ----------------------------------------------------------------------------- | ----------- | -------- |
 | [FORGE-S12-T01](../forge/commands/INDEX.md)       | Calibrate baseline auto-initialization — remove dead end                      | ✅ committed | S        |
 | [FORGE-S12-T02](../forge/meta/workflows/INDEX.md) | Fix-bug Finalize phase gate — collate must succeed before bug closes          | ✅ committed | S        |
-| [FORGE-S12-T03](../forge/tools/INDEX.md)          | Collate bug-ID first-class argument — no --purge-events required              | 📋 planned  | M        |
-| [FORGE-S12-T04](../forge/tools/INDEX.md)          | Store-cli timestamp auto-population + record-usage + collate cost aggregation | 📋 planned  | L        |
-| [FORGE-S12-T05](../forge/meta/workflows/INDEX.md) | Sprint planning store-write verification loop                                 | 📋 planned  | M        |
-| [FORGE-S12-T06](../forge/tools/INDEX.md)          | Deterministic model discovery for event records                               | 📋 planned  | M        |
+| [FORGE-S12-T03](../forge/tools/INDEX.md)          | Collate bug-ID first-class argument — no --purge-events required              | ✅ committed | M        |
+| [FORGE-S12-T04](../forge/tools/INDEX.md)          | Store-cli timestamp auto-population + record-usage + collate cost aggregation | ✅ committed | L        |
+| [FORGE-S12-T05](../forge/meta/workflows/INDEX.md) | Sprint planning store-write verification loop                                 | ✅ committed | M        |
+| [FORGE-S12-T06](../forge/tools/INDEX.md)          | Deterministic model discovery for event records                               | ✅ committed | M        |
 
 ### FORGE-S11
 

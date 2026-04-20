@@ -4,7 +4,7 @@
 
 > Task ID: FORGE-S12-T04
 > Sprint: [FORGE-S12](../INDEX.md)
-> Status: 📋 planned
+> Status: ✅ committed
 > Estimate: L
 
 ## Description

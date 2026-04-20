@@ -4,7 +4,7 @@
 
 > Task ID: FORGE-S12-T03
 > Sprint: [FORGE-S12](../INDEX.md)
-> Status: 📋 planned
+> Status: ✅ committed
 > Estimate: M
 
 ## Description
@@ -16,4 +16,5 @@ Make collate.cjs accept bug IDs as a first-class positional argument. `collate.c
 | Document                      | Purpose                    |
 | ----------------------------- | -------------------------- |
 | [Task Prompt](TASK_PROMPT.md) | Task definition and prompt |
+| [Plan](PLAN.md)               | Implementation plan        |
 

@@ -27,8 +27,8 @@ Eliminate dead ends, enforce phase gates, ensure real timestamps and programmati
 | ------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------- | -------- |
 | [FORGE-S12-T01](FORGE-S12-T01-calibrate-baseline-autoinit/INDEX.md) | Calibrate baseline auto-initialization — remove dead end                      | ✅ committed | S        |
 | [FORGE-S12-T02](FORGE-S12-T02-fix-bug-finalize-gate/INDEX.md)       | Fix-bug Finalize phase gate — collate must succeed before bug closes          | ✅ committed | S        |
-| [FORGE-S12-T03](FORGE-S12-T03-collate-bug-id-argument/INDEX.md)     | Collate bug-ID first-class argument — no --purge-events required              | 📋 planned  | M        |
-| [FORGE-S12-T04](FORGE-S12-T04-timestamps-cost-capture/INDEX.md)     | Store-cli timestamp auto-population + record-usage + collate cost aggregation | 📋 planned  | L        |
-| [FORGE-S12-T05](FORGE-S12-T05-store-write-verification/INDEX.md)    | Sprint planning store-write verification loop                                 | 📋 planned  | M        |
-| [FORGE-S12-T06](FORGE-S12-T06-model-discovery/INDEX.md)             | Deterministic model discovery for event records                               | 📋 planned  | M        |
+| [FORGE-S12-T03](FORGE-S12-T03-collate-bug-id-argument/INDEX.md)     | Collate bug-ID first-class argument — no --purge-events required              | ✅ committed | M        |
+| [FORGE-S12-T04](FORGE-S12-T04-timestamps-cost-capture/INDEX.md)     | Store-cli timestamp auto-population + record-usage + collate cost aggregation | ✅ committed | L        |
+| [FORGE-S12-T05](FORGE-S12-T05-store-write-verification/INDEX.md)    | Sprint planning store-write verification loop                                 | ✅ committed | M        |
+| [FORGE-S12-T06](FORGE-S12-T06-model-discovery/INDEX.md)             | Deterministic model discovery for event records                               | ✅ committed | M        |
 

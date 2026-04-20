@@ -3,7 +3,7 @@
 # Sprint: Sprint S06
 
 > Sprint ID: FORGE-S06
-> Status: 🔵 active
+> Status: ✅ completed
 
 ## Sprint Documents
 

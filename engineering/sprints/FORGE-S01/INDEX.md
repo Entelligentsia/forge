@@ -3,7 +3,7 @@
 # Sprint: Sprint FORGE-S01 — Token Usage Tracking
 
 > Sprint ID: FORGE-S01
-> Status: 🔵 active
+> Status: ✅ completed
 
 ## Sprint Documents
 

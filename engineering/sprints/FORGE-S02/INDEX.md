@@ -3,7 +3,7 @@
 # Sprint: Sprint Plan — FORGE-S02: Foundational Concepts Documentation + Feature Tier (v1.0)
 
 > Sprint ID: FORGE-S02
-> Status: 🔵 active
+> Status: ✅ completed
 
 ## Sprint Documents
 

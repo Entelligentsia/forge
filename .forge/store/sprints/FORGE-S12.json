@@ -4,7 +4,7 @@
   "title": "Pipeline Reliability and Bug-Fix Workflow Hardening",
   "description": "Eliminate dead ends, enforce phase gates, ensure real timestamps and programmatic cost capture, and verify store writes across Forge workflows.",
   "goal": "Every user-facing command path reaches a valid terminal state; every store write is verified; every record carries real timestamps and cost data.",
-  "status": "active",
+  "status": "completed",
   "taskIds": [
     "FORGE-S12-T01",
     "FORGE-S12-T02",
