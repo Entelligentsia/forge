@@ -1,1 +1,4 @@
 .forge/personas-context.md
+
+# Forge — transient agent event logs (one file per phase, do not commit)
+.forge/store/events/

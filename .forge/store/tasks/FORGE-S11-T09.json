@@ -1,0 +1,14 @@
+{
+  "taskId": "FORGE-S11-T09",
+  "feature_id": null,
+  "sprintId": "FORGE-S11",
+  "title": "Structured Result returns for CJS module APIs (#49) [nice-to-have]",
+  "description": "Refactor exported functions in forge/tools/*.cjs from throw/null-return patterns to { ok: true, value } / { ok: false, code, message } structured Results. Shared error code set in a constants file. All 241+ tests must pass; new tests for each modified export. CLI exit-code contract unchanged.",
+  "status": "committed",
+  "path": "forge/tools/store-cli.cjs",
+  "estimate": "XL",
+  "dependencies": [
+    "FORGE-S11-T08"
+  ],
+  "pipeline": "default"
+}

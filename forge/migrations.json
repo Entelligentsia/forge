@@ -1,4 +1,65 @@
 {
+  "0.22.0": {
+    "version": "0.22.1",
+    "date": "2026-04-20",
+    "notes": "Fix preflight-gate.cjs task directory resolution: scan sprint directory for artifact directory name instead of extracting source filename from task.path. Also fixes resolveVerdictSources to use the correct artifact directory path for verdict files.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.21.0": {
+    "version": "0.22.0",
+    "date": "2026-04-20",
+    "notes": "Calibrate baseline auto-initialization: /forge:calibrate now computes and writes the initial calibration baseline when absent instead of dead-ending with 'run /forge:init'. health.md recommends /forge:calibrate for missing baseline.",
+    "regenerate": ["commands"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.20.0": {
+    "version": "0.21.0",
+    "date": "2026-04-20",
+    "notes": "Structured Result returns for resolveTaskDir (collate.cjs) and estimateTokens (estimate-usage.cjs): both now return { ok, value } / { ok, code, message } instead of null. Shared error codes in forge/tools/lib/result.js. Callers checking for null must update to check result.ok.",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.19.2": {
+    "version": "0.20.0",
+    "date": "2026-04-20",
+    "notes": "S11 tech-debt fixes: event timestamp zeroing fixed (store-cli.cjs), preflight-gate now scans all workflow files, ROLE_TIER fallback applied in orchestrate_task, collate generates task INDEX.md files with correct links, calibrationBaseline backfilled in fast-mode init/update, quiz-agent slash command added, generate-commands updated with quiz-agent and flat-file cleanup.",
+    "regenerate": ["tools", "workflows", "commands"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.19.1": {
+    "version": "0.19.2",
+    "notes": "Add Japanese kanji to each banner, shown alongside the name in render and badge",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.19.0": {
+    "version": "0.19.1",
+    "notes": "Collapse banner art from 5-line ASCII blocks to single creative lines",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.18.1": {
+    "version": "0.19.0",
+    "notes": "UX polish: tomoshibi prefix lowercase, progress IPC persona emoji, ensure-ready single-line banner",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.18.0": {
+    "version": "0.18.1",
+    "date": "2026-04-19",
+    "notes": "Bug fix: preflight-gate.cjs now scans all .forge/workflows/*.md files for gates phase blocks instead of looking only for two hardcoded meta-*.md filenames that only exist in the Forge development environment.",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": []
+  },
   "0.17.1": {
     "version": "0.18.0",
     "date": "2026-04-19",

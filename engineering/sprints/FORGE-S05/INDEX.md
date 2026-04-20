@@ -3,7 +3,7 @@
 # Sprint: Sprint S05
 
 > Sprint ID: FORGE-S05
-> Status: 🔵 active
+> Status: ✅ completed
 
 ## Sprint Documents
 
@@ -14,14 +14,14 @@
 
 ## Tasks
 
-| Task                                    | Title                                                        | Status     | Estimate |
-| --------------------------------------- | ------------------------------------------------------------ | ---------- | -------- |
-| [FORGE-S05-T01](FORGE-S05-T01/INDEX.md) | Task T1                                                      | 📋 planned | —        |
-| [FORGE-S05-T02](FORGE-S05-T02/INDEX.md) | Task T2                                                      | 📋 planned | —        |
-| [FORGE-S05-T03](FORGE-S05-T03/INDEX.md) | PLAN — FORGE-S05-T03: Persona & Role alignment               | 📋 planned | —        |
-| [FORGE-S05-T04](FORGE-S05-T04/INDEX.md) | Task T4                                                      | 📋 planned | —        |
-| [FORGE-S05-T05](FORGE-S05-T05/INDEX.md) | PLAN — FORGE-S05-T05: Symmetric injection & model resolution | 📋 planned | —        |
-| [FORGE-S05-T06](FORGE-S05-T06/INDEX.md) | PLAN — FORGE-S05-T06: Portability migration                  | 📋 planned | —        |
-| [FORGE-S05-T07](FORGE-S05-T07/INDEX.md) | Task T7                                                      | 📋 planned | —        |
-| [FORGE-S05-T08](FORGE-S05-T08/INDEX.md) | Create task prompt                                           | ✅ approved | S        |
+| Task                                     | Title                                                        | Status     | Estimate |
+| ---------------------------------------- | ------------------------------------------------------------ | ---------- | -------- |
+| [FORGE-S05-T01](T01/INDEX.md)            | Task T1                                                      | 📋 planned | —        |
+| [FORGE-S05-T02](T02/INDEX.md)            | Task T2                                                      | 📋 planned | —        |
+| [FORGE-S05-T03](T03/INDEX.md)            | PLAN — FORGE-S05-T03: Persona & Role alignment               | 📋 planned | —        |
+| [FORGE-S05-T04](T04/INDEX.md)            | Task T4                                                      | 📋 planned | —        |
+| [FORGE-S05-T05](T05/INDEX.md)            | PLAN — FORGE-S05-T05: Symmetric injection & model resolution | 📋 planned | —        |
+| [FORGE-S05-T06](T06/INDEX.md)            | PLAN — FORGE-S05-T06: Portability migration                  | 📋 planned | —        |
+| [FORGE-S05-T07](T07/INDEX.md)            | Task T7                                                      | 📋 planned | —        |
+| [FORGE-S05-T08](TASK_PROMPT.md/INDEX.md) | Create task prompt                                           | ✅ approved | S        |
 

@@ -1,0 +1,42 @@
+{
+  "taskId": "FORGE-S12-T04",
+  "feature_id": "FEAT-005",
+  "sprintId": "FORGE-S12",
+  "title": "Store-cli timestamp auto-population + record-usage + collate cost aggregation",
+  "description": "Three related tool-layer fixes: (1) store-cli write bug auto-populates real ISO datetimes when agent supplies date-only YYYY-MM-DD values; (2) new store-cli record-usage subcommand writes token-usage sidecars programmatically; (3) collate --purge-events aggregates cost data from event files into bug markdown artifact before purging.",
+  "status": "committed",
+  "path": "forge/tools/store-cli.cjs",
+  "estimate": "L",
+  "dependencies": ["FORGE-S12-T03"],
+  "pipeline": "default",
+  "summaries": {
+    "plan": {
+      "objective": "Implement three tool-layer features: bug timestamp auto-population, record-usage subcommand, and collate cost aggregation for bugs",
+      "key_changes": [
+        "Added _isDateOnly, _dateOnlyToISO, _normalizeBugTimestamps helpers to store-cli.cjs for date-only timestamp detection and normalization",
+        "Added record-usage subcommand to store-cli.cjs with --input-tokens, --output-tokens, --cache-read-tokens, --cache-write-tokens, --estimated-cost-usd, --token-source, --model, --duration-minutes flags",
+        "Updated buildBugIndex in collate.cjs to accept optional costTotals parameter and render a Cost section table",
+        "Updated collate CLI to aggregate event costs for bug entities when --purge-events is used, embedding totals in bug INDEX.md before purging",
+        "Updated cmdWrite in store-cli.cjs to auto-normalize date-only bug timestamps before validation"
+      ],
+      "verdict": "n/a",
+      "written_at": "2026-04-20T18:30:00Z",
+      "artifact_ref": "PLAN.md"
+    },
+    "implementation": {
+      "objective": "Implement three tool-layer features for FORGE-S12-T04",
+      "key_changes": [
+        "store-cli.cjs: Added _isDateOnly, _dateOnlyToISO, _normalizeBugTimestamps module-level helpers for date-only YYYY-MM-DD detection and conversion to full ISO datetimes",
+        "store-cli.cjs: cmdWrite now calls _normalizeBugTimestamps(data) before validation when entity is 'bug', auto-populating time component for reportedAt/resolvedAt",
+        "store-cli.cjs: Added cmdRecordUsage subcommand with flag-based CLI (--input-tokens, --output-tokens, --cache-read-tokens, --cache-write-tokens, --estimated-cost-usd, --token-source, --model, --duration-minutes) that validates against event-sidecar schema and writes sidecar file",
+        "collate.cjs: buildBugIndex now accepts optional costTotals parameter; when provided, renders a ## Cost section with aggregated token usage table",
+        "collate.cjs: CLI section now aggregates event costs for bug entities when PURGE_EVENTS is active, passing costTotals to buildBugIndex before purging",
+        "store-cli.test.cjs: Added 25 new tests covering _isDateOnly, _dateOnlyToISO, _normalizeBugTimestamps unit tests, bug timestamp auto-population CLI tests, and record-usage CLI tests",
+        "collate.test.cjs: Added 3 new tests for buildBugIndex with cost aggregation"
+      ],
+      "verdict": "n/a",
+      "written_at": "2026-04-20T19:00:00Z",
+      "artifact_ref": "IMPLEMENTATION.md"
+    }
+  }
+}

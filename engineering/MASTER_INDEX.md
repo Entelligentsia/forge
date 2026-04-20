@@ -2,28 +2,55 @@
 
 # Forge — Master Index
 
-> Generated: 2026-04-18
+> Generated: 2026-04-20
 
 ## Feature Registry
 
-[Browse all 3 features ↗](features/INDEX.md)
+[Browse all 4 features ↗](features/INDEX.md)
 
 ## Sprint Registry
 
 | Sprint    | Title                                                                              | Status               | Tasks |
 | --------- | ---------------------------------------------------------------------------------- | -------------------- | ----- |
+| FORGE-S12 | Pipeline Reliability and Bug-Fix Workflow Hardening                                | 🔵 active            | 6/6   |
+| FORGE-S11 | Sprint S11 — Tech Debt: Pipeline Bug Fixes, Command Gaps, and UX Completeness      | ✅ retrospective-done | 9/9   |
 | FORGE-S10 | Sprint S10 — Tomoshibi: KB Visibility Agent + Configurable KB Path                 | ✅ retrospective-done | 1/1   |
 | FORGE-S09 | Sprint S09                                                                         | ✅ completed          | 9/9   |
 | FORGE-S08 | Sprint S08                                                                         | ✅ completed          | 6/6   |
-| FORGE-S07 | Sprint S07                                                                         | 🔵 active            | 8/9   |
-| FORGE-S06 | Sprint S06                                                                         | 🔵 active            | 7/10  |
-| FORGE-S05 | Sprint S05                                                                         | 🔵 active            | 0/8   |
+| FORGE-S07 | Sprint S07                                                                         | ✅ completed          | 8/9   |
+| FORGE-S06 | Sprint S06                                                                         | ✅ completed          | 7/10  |
+| FORGE-S05 | Sprint S05                                                                         | ✅ completed          | 0/8   |
 | FORGE-S04 | Sprint S04                                                                         | 📝 planning          | 6/6   |
-| FORGE-S03 | Sprint Plan — FORGE-S03: Lean Migration Architecture                               | 🔵 active            | 0/3   |
-| FORGE-S02 | Sprint Plan — FORGE-S02: Foundational Concepts Documentation + Feature Tier (v1.0) | 🔵 active            | 3/10  |
-| FORGE-S01 | Sprint FORGE-S01 — Token Usage Tracking                                            | 🔵 active            | 7/8   |
+| FORGE-S03 | Sprint Plan — FORGE-S03: Lean Migration Architecture                               | ✅ completed          | 0/3   |
+| FORGE-S02 | Sprint Plan — FORGE-S02: Foundational Concepts Documentation + Feature Tier (v1.0) | ✅ completed          | 3/10  |
+| FORGE-S01 | Sprint FORGE-S01 — Token Usage Tracking                                            | ✅ completed          | 7/8   |
 
 ## Task Registry
+
+### FORGE-S12
+
+| Task                                              | Title                                                                         | Status      | Estimate |
+| ------------------------------------------------- | ----------------------------------------------------------------------------- | ----------- | -------- |
+| [FORGE-S12-T01](../forge/commands/INDEX.md)       | Calibrate baseline auto-initialization — remove dead end                      | ✅ committed | S        |
+| [FORGE-S12-T02](../forge/meta/workflows/INDEX.md) | Fix-bug Finalize phase gate — collate must succeed before bug closes          | ✅ committed | S        |
+| [FORGE-S12-T03](../forge/tools/INDEX.md)          | Collate bug-ID first-class argument — no --purge-events required              | ✅ committed | M        |
+| [FORGE-S12-T04](../forge/tools/INDEX.md)          | Store-cli timestamp auto-population + record-usage + collate cost aggregation | ✅ committed | L        |
+| [FORGE-S12-T05](../forge/meta/workflows/INDEX.md) | Sprint planning store-write verification loop                                 | ✅ committed | M        |
+| [FORGE-S12-T06](../forge/tools/INDEX.md)          | Deterministic model discovery for event records                               | ✅ committed | M        |
+
+### FORGE-S11
+
+| Task                                               | Title                                                                                  | Status      | Estimate |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------- | -------- |
+| [FORGE-S11-T01](../forge/tools/INDEX.md)           | Fix event timestamps — store-cli.cjs zeros time component (#56)                        | ✅ committed | S        |
+| [FORGE-S11-T02](../forge/tools/INDEX.md)           | Fix preflight-gate: wrong gate selection + ReferenceError crash (#58/#59)              | ✅ committed | M        |
+| [FORGE-S11-T03](../forge/meta/workflows/INDEX.md)  | Fix orchestrate_task ROLE_TIER model fallback not applied (#57)                        | ✅ committed | M        |
+| [FORGE-S11-T04](../forge/tools/INDEX.md)           | Fix collate: broken task links + missing task INDEX.md generation (#53)                | ✅ committed | M        |
+| [FORGE-S11-T05](../forge/init/INDEX.md)            | Fix calibrationBaseline missing from fast-mode init and update (#55)                   | ✅ committed | M        |
+| [FORGE-S11-T06](../forge/commands/INDEX.md)        | Create quiz-agent slash command file (#50)                                             | ✅ committed | S        |
+| [FORGE-S11-T07](../forge/init/generation/INDEX.md) | Update generate-commands: add quiz-agent + post-generation flat-file cleanup (#48/#50) | ✅ committed | S        |
+| [FORGE-S11-T08](../forge/.claude-plugin/INDEX.md)  | Release engineering — version bump to v0.20.0, migration entry, security scan          | ✅ committed | M        |
+| [FORGE-S11-T09](../forge/tools/INDEX.md)           | Structured Result returns for CJS module APIs (#49) [nice-to-have]                     | ✅ committed | XL       |
 
 ### FORGE-S10
 
@@ -147,23 +174,24 @@
 
 ## Bug Registry
 
-| Bug                                                                       | Title                                                                                                       | Severity | Status      |
-| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------- | ----------- |
-| [FORGE-BUG-001](bugs/BUG-001-sprint-runner-context-accumulation/INDEX.md) | PROGRESS — BUG-001: Sprint runner accumulates context across tasks                                          | minor    | 🔴 reported |
-| [FORGE-BUG-002](bugs/BUG-002-validate-store-integrity/INDEX.md)           | PROGRESS — BUG-002: validate-store referential integrity checks incomplete                                  | minor    | 🔴 reported |
-| [FORGE-BUG-003](bugs/BUG-003-missing-backfill/INDEX.md)                   | PROGRESS — BUG-003: forge:update missing data migration for new required schema fields                      | minor    | 🔴 reported |
-| [FORGE-BUG-004](bugs/BUG-004-event-schema-validation/INDEX.md)            | PROGRESS — BUG-004: validate-store rejects valid null timing fields and has no event backfill               | minor    | 🔴 reported |
-| [FORGE-BUG-005](bugs/BUG-005-fix-bug-orchestrator-deviations/INDEX.md)    | PROGRESS — BUG-005: fix-bug is not an orchestrator                                                          | minor    | 🔴 reported |
-| [FORGE-BUG-006](bugs/BUG-006-collate-cost-report-path/INDEX.md)           | PROGRESS — BUG-006: collate COST_REPORT.md written to SNN/ stub dirs                                        | minor    | 🔴 reported |
-| [FORGE-BUG-007](bugs/BUG-007-collate-cost-report-attribution/INDEX.md)    | PLAN — BUG-007: collate COST_REPORT.md path fallback + (unknown) attribution                                | minor    | 🔴 reported |
-| [FORGE-BUG-008](bugs/BUG-008-subagent-announcements/INDEX.md)             | PROGRESS — FORGE-BUG-008: Fix subagent announcements                                                        | minor    | 🔴 reported |
-| [FORGE-BUG-009](bugs/FORGE-BUG-009-structure-manifest/INDEX.md)           | PROGRESS — FORGE-BUG-009                                                                                    | minor    | 🔴 reported |
-| [BUG-001](bugs/BUG-001-sprint-runner-context-accumulation/INDEX.md)       | Sprint runner accumulates context across tasks — violates light-context principle                           | major    | ✅ fixed     |
-| [BUG-002](bugs/BUG-002-validate-store-integrity/INDEX.md)                 | validate-store: referential integrity checks incomplete — bugs, virtual sprints, and nullable foreign keys  | major    | ✅ fixed     |
-| [BUG-003](bugs/BUG-003-missing-backfill/INDEX.md)                         | forge:update: migration 0.3.7→0.3.13 missing data migration for new required schema fields                  | major    | ✅ fixed     |
-| [BUG-004](bugs/BUG-004-event-schema-validation/INDEX.md)                  | validate-store rejects valid null timing fields on start events and has no event backfill                   | major    | ✅ fixed     |
-| [BUG-005](bugs/BUG-005-fix-bug-orchestrator-deviations/INDEX.md)          | fix-bug is not an orchestrator — 4 control-flow and schema deviations                                       | major    | ✅ fixed     |
-| [BUG-006](bugs/BUG-006-collate-cost-report-path/INDEX.md)                 | collate: COST_REPORT.md written to SNN/ stub dirs instead of existing sprint_NN_*/ dirs                     | major    | ✅ fixed     |
-| [BUG-007](bugs/BUG-007-collate-cost-report-attribution/INDEX.md)          | collate: COST_REPORT.md path fallback fails when sprint.path absent + (unknown) attribution in usage events | major    | ✅ fixed     |
-| [FORGE-BUG-010](bugs/FORGE-BUG-010-gitignore-events/INDEX.md)             | forge:init / forge:update should guide users to gitignore .forge/store/events/                              | minor    | ✅ fixed     |
+| Bug                                                                              | Title                                                                                                       | Severity | Status      |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------- | ----------- |
+| [FORGE-BUG-001](bugs/BUG-001-sprint-runner-context-accumulation/INDEX.md)        | PROGRESS — BUG-001: Sprint runner accumulates context across tasks                                          | minor    | 🔴 reported |
+| [FORGE-BUG-002](bugs/BUG-002-validate-store-integrity/INDEX.md)                  | PROGRESS — BUG-002: validate-store referential integrity checks incomplete                                  | minor    | 🔴 reported |
+| [FORGE-BUG-003](bugs/BUG-003-missing-backfill/INDEX.md)                          | PROGRESS — BUG-003: forge:update missing data migration for new required schema fields                      | minor    | 🔴 reported |
+| [FORGE-BUG-004](bugs/BUG-004-event-schema-validation/INDEX.md)                   | PROGRESS — BUG-004: validate-store rejects valid null timing fields and has no event backfill               | minor    | 🔴 reported |
+| [FORGE-BUG-005](bugs/BUG-005-fix-bug-orchestrator-deviations/INDEX.md)           | PROGRESS — BUG-005: fix-bug is not an orchestrator                                                          | minor    | 🔴 reported |
+| [FORGE-BUG-006](bugs/BUG-006-collate-cost-report-path/INDEX.md)                  | PROGRESS — BUG-006: collate COST_REPORT.md written to SNN/ stub dirs                                        | minor    | 🔴 reported |
+| [FORGE-BUG-007](bugs/BUG-007-collate-cost-report-attribution/INDEX.md)           | PLAN — BUG-007: collate COST_REPORT.md path fallback + (unknown) attribution                                | minor    | 🔴 reported |
+| [FORGE-BUG-008](bugs/BUG-008-subagent-announcements/INDEX.md)                    | PROGRESS — FORGE-BUG-008: Fix subagent announcements                                                        | minor    | 🔴 reported |
+| [FORGE-BUG-009](bugs/FORGE-BUG-009-structure-manifest/INDEX.md)                  | PROGRESS — FORGE-BUG-009                                                                                    | minor    | 🔴 reported |
+| [BUG-001](bugs/BUG-001-sprint-runner-context-accumulation/INDEX.md)              | Sprint runner accumulates context across tasks — violates light-context principle                           | major    | ✅ fixed     |
+| [BUG-002](bugs/BUG-002-validate-store-integrity/INDEX.md)                        | validate-store: referential integrity checks incomplete — bugs, virtual sprints, and nullable foreign keys  | major    | ✅ fixed     |
+| [BUG-003](bugs/BUG-003-missing-backfill/INDEX.md)                                | forge:update: migration 0.3.7→0.3.13 missing data migration for new required schema fields                  | major    | ✅ fixed     |
+| [BUG-004](bugs/BUG-004-event-schema-validation/INDEX.md)                         | validate-store rejects valid null timing fields on start events and has no event backfill                   | major    | ✅ fixed     |
+| [BUG-005](bugs/BUG-005-fix-bug-orchestrator-deviations/INDEX.md)                 | fix-bug is not an orchestrator — 4 control-flow and schema deviations                                       | major    | ✅ fixed     |
+| [BUG-006](bugs/BUG-006-collate-cost-report-path/INDEX.md)                        | collate: COST_REPORT.md written to SNN/ stub dirs instead of existing sprint_NN_*/ dirs                     | major    | ✅ fixed     |
+| [BUG-007](bugs/BUG-007-collate-cost-report-attribution/INDEX.md)                 | collate: COST_REPORT.md path fallback fails when sprint.path absent + (unknown) attribution in usage events | major    | ✅ fixed     |
+| [FORGE-BUG-010](bugs/FORGE-BUG-010-gitignore-events/INDEX.md)                    | forge:init / forge:update should guide users to gitignore .forge/store/events/                              | minor    | ✅ fixed     |
+| [FORGE-BUG-011](bugs/FORGE-BUG-011-ux-polish-tomoshibi-progress-banner/INDEX.md) | UX polish: tomoshibi uppercase prefix, progress IPC personality, ensure-ready banner                        | major    | ✅ fixed     |
 

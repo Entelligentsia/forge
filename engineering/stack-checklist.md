@@ -48,6 +48,14 @@ consult this before approving any change to `forge/`.
 - [ ] Event files written by pipeline phases must include full attribution (`taskId`, `role`, `action`, `phase`, `model`) — bare token-only files produce `(unknown)` rows in COST_REPORT (BUG-007)
 - [ ] Any regeneration loop that rewrites a full namespace (personas, skills, workflows, commands, templates) must call `generation-manifest.cjs clear-namespace <prefix>` before writing — omitting this causes stale entries that permanently show as "× missing" in `forge:health` (FORGE-BUG-009)
 - [ ] After adding, renaming, or removing any file in `forge/meta/personas/`, `forge/meta/workflows/`, `forge/meta/templates/`, or `forge/schemas/*.schema.json`, run `node forge/tools/build-manifest.cjs --forge-root forge/` and commit the updated `forge/schemas/structure-manifest.json` (FORGE-BUG-009)
+- [ ] `resolveTaskDir` and `estimateTokens` return `{ ok, value }` / `{ ok: false, code, message }` Result objects — check `.ok` before accessing `.value`; never treat the return value as a raw string/null (FORGE-S11-T09)
+- [ ] When invoking `preflight-gate.cjs` from a workflow or tool, pass `--workflow <filename>` so the correct gate is selected; without it, alphabetical-first match applies and may load the wrong workflow's gate (FORGE-S11-T02)
+
+## Agent / Plugin UX
+
+- [ ] Any agent that reads `project.prefix` from config and outputs slash-command suggestions must lowercase the prefix before formatting (`prefix.toLowerCase()`) — the generated command folder is always lowercase regardless of how the prefix is stored (FORGE-BUG-011 gh#51)
+- [ ] Plugin-shipped agents live at `$FORGE_ROOT/agents/` and update automatically on `/forge:update` — they do NOT have a generated mirror at `.forge/agents/`, so migration `regenerate` for agent-only changes is `[]` (FORGE-BUG-011)
+- [ ] Tool functions that write human-readable output (progress, banners) should emit a single line — multi-line blocks are truncated to the first line in Claude Code's inline tool-result display (FORGE-BUG-011 gh#54)
 
 ## Meta-Workflows
 

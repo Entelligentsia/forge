@@ -2,7 +2,7 @@
 
 # Cost Report — FORGE-S01
 
-> Generated: 2026-04-18
+> Generated: 2026-04-20
 > Sprint: Sprint FORGE-S01 — Token Usage Tracking
 
 ## Per-Task Totals

@@ -1,7 +1,10 @@
 'use strict';
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex } = require('../collate.cjs');
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
+const { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex, resolveTaskDir, isBugId } = require('../collate.cjs');
 
 describe('collate.cjs — statusBadge', () => {
   test('completed returns badge with status name', () => {
@@ -205,6 +208,22 @@ describe('collate.cjs — buildSprintIndex', () => {
     assert.ok(result.includes('TST-S01'), 'should still include sprint ID with no tasks');
     assert.ok(result.includes('GENERATED'), 'should still include GENERATED marker');
   });
+
+  test('uses _taskDir for task link path when provided', () => {
+    const tasksWithDir = [
+      { taskId: 'TST-S01-T01', title: 'Bootstrap scaffold', status: 'committed', estimate: 'S', _taskDir: 'TST-S01-T01-bootstrap-scaffold' },
+      { taskId: 'TST-S01-T02', title: 'Add CI pipeline', status: 'in-progress', estimate: 'M', _taskDir: 'TST-S01-T02-add-ci-pipeline' },
+    ];
+    const result = buildSprintIndex(sprint, tasksWithDir, []);
+    assert.ok(result.includes('TST-S01-T01-bootstrap-scaffold/INDEX.md'), 'should use _taskDir slug for first task link');
+    assert.ok(result.includes('TST-S01-T02-add-ci-pipeline/INDEX.md'), 'should use _taskDir slug for second task link');
+    assert.ok(!result.includes('TST-S01-T01/INDEX.md'), 'should not use bare taskId as link when _taskDir is set');
+  });
+
+  test('falls back to taskId for task link when _taskDir is absent', () => {
+    const result = buildSprintIndex(sprint, tasks, []);
+    assert.ok(result.includes('TST-S01-T01/INDEX.md'), 'should fall back to taskId when no _taskDir');
+  });
 });
 
 describe('collate.cjs — buildTaskIndex', () => {
@@ -335,5 +354,146 @@ describe('collate.cjs — buildBugIndex', () => {
   test('renders with no available docs', () => {
     const result = buildBugIndex(bug, []);
     assert.ok(result.includes('TST-B01'), 'should still include bug ID with no docs');
+  });
+});
+
+describe('collate.cjs — resolveTaskDir', () => {
+  let tmpDir;
+
+  // Set up a temporary sprint directory with a real task subdirectory
+  test.before(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-collate-test-'));
+    fs.mkdirSync(path.join(tmpDir, 'TST-S01-T01-my-task'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, 'TST-S01-T02'), { recursive: true });
+  });
+
+  test.after(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('returns { ok: true, value } with slug dir when task.path is under engPath', () => {
+    const task = { taskId: 'TST-S01-T01', path: 'engineering/sprints/FORGE-S11/TST-S01-T01-my-task' };
+    const result = resolveTaskDir(task, tmpDir, 'engineering');
+    assert.equal(result.ok, true, `expected ok:true, got ok:${result.ok}`);
+    assert.equal(result.value, 'TST-S01-T01-my-task', `expected slug dir name, got "${result.value}"`);
+  });
+
+  test('returns { ok: true, value } via filesystem lookup when task.path is a plugin source (not under engPath)', () => {
+    // task.path points to a plugin source file — should fall back to filesystem resolution
+    const task = { taskId: 'TST-S01-T01', path: 'forge/tools/collate.cjs' };
+    const result = resolveTaskDir(task, tmpDir, 'engineering');
+    assert.equal(result.ok, true, `expected ok:true, got ok:${result.ok}`);
+    assert.equal(result.value, 'TST-S01-T01-my-task', `expected slug dir found by filesystem scan, got "${result.value}"`);
+  });
+
+  test('returns { ok: true, value } via filesystem lookup when task.path is absent', () => {
+    const task = { taskId: 'TST-S01-T02' };
+    const result = resolveTaskDir(task, tmpDir, 'engineering');
+    assert.equal(result.ok, true, `expected ok:true, got ok:${result.ok}`);
+    assert.equal(result.value, 'TST-S01-T02', `expected exact-match dir, got "${result.value}"`);
+  });
+
+  test('returns { ok: false, code: MISSING_DIR } when no matching task directory exists on disk', () => {
+    const task = { taskId: 'TST-S01-T99', path: 'forge/tools/something.cjs' };
+    const result = resolveTaskDir(task, tmpDir, 'engineering');
+    assert.equal(result.ok, false, `expected ok:false, got ok:${result.ok}`);
+    assert.equal(result.code, 'MISSING_DIR', `expected code MISSING_DIR, got "${result.code}"`);
+    assert.equal(typeof result.message, 'string', 'expected message to be a string');
+    assert.ok(result.message.length > 0, 'expected non-empty message');
+  });
+});
+
+describe('collate.cjs — isBugId', () => {
+  test('recognizes simple bug IDs with -B prefix (BUG-001)', () => {
+    assert.equal(isBugId('BUG-001'), true, 'BUG-001 should be a bug ID');
+  });
+
+  test('recognizes multi-segment bug IDs (FORGE-BUG-007)', () => {
+    assert.equal(isBugId('FORGE-BUG-007'), true, 'FORGE-BUG-007 should be a bug ID');
+  });
+
+  test('recognizes project-prefixed bug IDs (HELLO-B02)', () => {
+    assert.equal(isBugId('HELLO-B02'), true, 'HELLO-B02 should be a bug ID');
+  });
+
+  test('recognizes single-digit bug numbers (PROJ-B1)', () => {
+    assert.equal(isBugId('PROJ-B1'), true, 'PROJ-B1 should be a bug ID');
+  });
+
+  test('recognizes large bug numbers (ORG-BUG-999)', () => {
+    assert.equal(isBugId('ORG-BUG-999'), true, 'ORG-BUG-999 should be a bug ID');
+  });
+
+  test('rejects sprint IDs (FORGE-S12)', () => {
+    assert.equal(isBugId('FORGE-S12'), false, 'FORGE-S12 should not be a bug ID');
+  });
+
+  test('rejects task IDs (FORGE-S12-T03)', () => {
+    assert.equal(isBugId('FORGE-S12-T03'), false, 'FORGE-S12-T03 should not be a bug ID');
+  });
+
+  test('rejects plain strings without -B pattern (HELLO)', () => {
+    assert.equal(isBugId('HELLO'), false, 'HELLO should not be a bug ID');
+  });
+
+  test('rejects empty string', () => {
+    assert.equal(isBugId(''), false, 'empty string should not be a bug ID');
+  });
+
+  test('rejects strings where -B is not followed by digits (BUG-ABC)', () => {
+    assert.equal(isBugId('BUG-ABC'), false, 'BUG-ABC should not be a bug ID');
+  });
+
+  test('rejects lowercase bug patterns (bug-001)', () => {
+    assert.equal(isBugId('bug-001'), false, 'bug-001 (lowercase) should not be a bug ID');
+  });
+
+  test('rejects feature IDs (FEAT-005)', () => {
+    assert.equal(isBugId('FEAT-005'), false, 'FEAT-005 should not be a bug ID');
+  });
+});
+
+describe('collate.cjs — buildBugIndex with cost aggregation', () => {
+  const bug = {
+    bugId: 'TST-B01',
+    title: 'Expensive bug',
+    description: 'This bug cost a lot of tokens.',
+    severity: 'major',
+    status: 'fixed',
+    reportedAt: '2026-01-15T10:00:00Z',
+    resolvedAt: '2026-01-16T14:00:00Z',
+  };
+
+  const costTotals = {
+    inputTokens: 10000,
+    outputTokens: 5000,
+    cacheReadTokens: 2000,
+    cacheWriteTokens: 1000,
+    estimatedCostUSD: 0.25,
+    sourceLabel: '(reported)',
+  };
+
+  test('buildBugIndex includes cost section when costTotals provided', () => {
+    const result = buildBugIndex(bug, [], costTotals);
+    assert.ok(result.includes('Cost'), 'should include Cost section heading');
+    assert.ok(result.includes('10,000'), 'should include formatted input tokens');
+    assert.ok(result.includes('5,000'), 'should include formatted output tokens');
+    assert.ok(result.includes('$0.2500'), 'should include formatted cost');
+    assert.ok(result.includes('(reported)'), 'should include source label');
+  });
+
+  test('buildBugIndex without costTotals omits cost section', () => {
+    const result = buildBugIndex(bug, []);
+    assert.ok(!result.includes('Cost'), 'should not include Cost section when no costTotals');
+  });
+
+  test('buildBugIndex cost section includes all token fields', () => {
+    const result = buildBugIndex(bug, [], costTotals);
+    assert.ok(result.includes('Input Tokens'), 'should include Input Tokens column');
+    assert.ok(result.includes('Output Tokens'), 'should include Output Tokens column');
+    assert.ok(result.includes('Cache Read'), 'should include Cache Read column');
+    assert.ok(result.includes('Cache Write'), 'should include Cache Write column');
+    assert.ok(result.includes('Est. Cost USD'), 'should include Est. Cost USD column');
+    assert.ok(result.includes('Source'), 'should include Source column');
   });
 });

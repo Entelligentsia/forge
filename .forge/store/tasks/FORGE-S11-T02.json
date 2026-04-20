@@ -1,0 +1,12 @@
+{
+  "taskId": "FORGE-S11-T02",
+  "feature_id": null,
+  "sprintId": "FORGE-S11",
+  "title": "Fix preflight-gate: wrong gate selection + ReferenceError crash (#58/#59)",
+  "description": "Two bugs: alphabetical-first match applies wrong gate instead of caller's workflow; ReferenceError crash in implement phase gate evaluation. Fix gate resolution to use explicit workflow name and fix the initialization order crash.",
+  "status": "committed",
+  "path": "forge/tools/preflight-gate.cjs",
+  "estimate": "M",
+  "dependencies": [],
+  "pipeline": "default"
+}

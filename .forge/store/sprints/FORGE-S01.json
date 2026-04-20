@@ -1,7 +1,7 @@
 {
   "sprintId": "FORGE-S01",
   "title": "Sprint FORGE-S01 — Token Usage Tracking",
-  "status": "active",
+  "status": "completed",
   "taskIds": [
     "FORGE-S01-T01",
     "FORGE-S01-T02",

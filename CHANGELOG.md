@@ -11,6 +11,70 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.22.1] — 2026-04-20
+
+Fix preflight-gate.cjs task directory resolution. `lastSegment(taskRecord.path)` extracted the source filename (e.g., `store-cli.cjs`) instead of the artifact directory name (e.g., `FORGE-S12-T06-model-discovery`), breaking `{task}` path substitution and verdict source resolution in `resolveVerdictSources`. New `resolveTaskArtifactDir()` scans the sprint directory for the matching `{taskId}-*` subdirectory, falling back to `lastSegment` for legacy records. 1 new test, 578 total.
+
+---
+
+## [0.22.0] — 2026-04-20
+
+Calibrate baseline auto-initialization. `/forge:calibrate` now computes and writes the initial `calibrationBaseline` (MASTER_INDEX.md hash + completed sprint IDs) when the field is absent from `.forge/config.json`, instead of dead-ending with "run `/forge:init`". The algorithm mirrors init Phase 5/6-b. `/forge:health` now recommends `/forge:calibrate` instead of `/forge:init` when a missing baseline is detected. No schema changes.
+
+**Regenerate:** run `/forge:update` — `commands` must be regenerated.
+
+---
+
+## [0.21.0] — 2026-04-20
+
+Structured Result returns for CJS module APIs. Two exported functions are refactored from null-return failure patterns to `{ ok: true, value }` / `{ ok: false, code, message }` Results: `resolveTaskDir` in `collate.cjs` and `estimateTokens` in `estimate-usage.cjs`. A new shared library `forge/tools/lib/result.js` provides `ok()`, `fail()`, and `RESULT_CODES` constants so callers can branch on `result.code` rather than null-checking. All internal call sites are updated. 14 new tests added (526 total, 0 fail). CLI exit-code contract unchanged.
+
+**Regenerate:** run `/forge:update` — `tools` must be regenerated.
+
+---
+
+## [0.20.0] — 2026-04-20
+
+Sprint S11 tech-debt sweep across pipeline bugs, command gaps, and UX completeness. Seven fixes ship in this release: event timestamps no longer zero the time component (store-cli.cjs was serialising a truncated ISO string); preflight-gate now scans all `.forge/workflows/*.md` files instead of two hardcoded development-environment filenames; the ROLE_TIER model fallback in `meta-orchestrate.md` is applied correctly when a tiered cluster is detected; `collate.cjs` generates per-task `INDEX.md` files with correct relative links from `MASTER_INDEX.md`; `calibrationBaseline` is written during fast-mode init and backfilled during update; the `quiz-agent` slash command file is added; and `generate-commands.cjs` registers the quiz-agent entry and performs post-generation flat-file cleanup.
+
+**Regenerate:** run `/forge:update` — `tools`, `workflows`, and `commands` must be regenerated.
+
+---
+
+## [0.19.2] — 2026-04-19
+
+Each banner now carries a Japanese kanji companion (e.g. BLOOM 開花, FORGE 鍛冶, VOID 虚空) displayed in dim tint alongside the name in both `render()` and `badge()` output.
+
+**Regenerate:** none required.
+
+---
+
+## [0.19.1] — 2026-04-19
+
+Banner art collapsed from 5-line ASCII blocks to single creative lines — each banner's visual identity is preserved in one tinted unicode string, eliminating the line-count overhead that caused truncation in constrained CLI contexts.
+
+**Regenerate:** none required.
+
+---
+
+## [0.19.0] — 2026-04-19
+
+UX polish across three surfaces: Tomoshibi now lowercases the project prefix before forming slash-command suggestions, preventing copy-paste failures when `project.prefix` is stored uppercase. The `store-cli progress` command now emits a human-readable persona heartbeat line to stdout (emoji + agent name + status + detail) in addition to its existing pipe-delimited log entry. The `ensure-ready --announce` banner is now a single summary line (`🔥 Forge capability: N/total (P%) → M/total (Q%), +X artifacts`) instead of a multi-line framed block — visible inline in Claude Code without Ctrl-O expansion.
+
+**Regenerate:** none required — all three changes ship with the plugin update.
+
+---
+
+## [0.18.1] — 2026-04-19
+
+**Bug fix: `preflight-gate` workflow discovery works correctly in user projects.**
+
+`preflight-gate.cjs` was searching for workflow files using two hardcoded filenames (`meta-orchestrate.md`, `meta-fix-bug.md`) that only exist in the Forge development dogfooding environment. In user projects these files are absent, causing `preflight-gate` to always exit with "could not locate workflow file" (exit 2) regardless of which phases were defined. It also used a `## Phase: <name>` heading pattern that never matched — workflows define gates via ` ```gates phase=<name>` fence labels. The fix scans all `.md` files under `.forge/workflows/` and matches on the correct fence-label pattern.
+
+**Regenerate:** run `/forge:update` to get the updated `preflight-gate.cjs`.
+
+---
+
 ## [0.18.0] — 2026-04-19
 
 **Write-boundary schema enforcement: agents can write Forge-owned JSON directly with `Write` / `Edit` / `MultiEdit`, but every such write is schema-validated at the filesystem boundary by a new `PreToolUse` hook.**

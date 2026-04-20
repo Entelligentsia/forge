@@ -2,10 +2,12 @@
 
 # Feature Registry
 
-> Generated: 2026-04-16
+> Generated: 2026-04-20
 
-| Feature ID              | Title                   | Status    | Sprints   | Tasks |
-| ----------------------- | ----------------------- | --------- | --------- | ----- |
-| [FEAT-001](FEAT-001.md) | Store Abstraction Layer              | 🔵 active | FORGE-S04 | —     |
-| [FEAT-002](FEAT-002.md) | Workflow Fan-Out with Minimal Context Brief | 🔵 active | —         | —     |
+| Feature ID              | Title                                                     | Status         | Sprints   | Tasks                                                                                    |
+| ----------------------- | --------------------------------------------------------- | -------------- | --------- | ---------------------------------------------------------------------------------------- |
+| [FEAT-001](FEAT-001.md) | Store Abstraction Layer                                   | 🔵 active      | FORGE-S04 | —                                                                                        |
+| [FEAT-003](FEAT-003.md) | Fast-Mode Init with Subagent-Distributed Lazy Scaffolding | 🔧 implemented | —         | —                                                                                        |
+| [FEAT-004](FEAT-004.md) | Interactive Mode Prompt for /forge:init                   | 🔧 implemented | —         | —                                                                                        |
+| [FEAT-005](FEAT-005.md) | Pipeline Reliability and Bug-Fix Workflow Hardening       | 🔵 active      | FORGE-S12 | FORGE-S12-T01, FORGE-S12-T02, FORGE-S12-T03, FORGE-S12-T04, FORGE-S12-T05, FORGE-S12-T06 |
 

@@ -583,6 +583,27 @@ Write `.forge/init-progress.json`:
 { "lastPhase": 7, "timestamp": "<current ISO timestamp>" }
 ```
 
+### Step 7-fast-b — Write Calibration Baseline (fast mode only)
+
+After writing all stubs and updating `init-progress.json`, compute and write
+`calibrationBaseline` into `.forge/config.json`. This step runs in fast mode because
+Phases 5+6 (which contain the full-mode baseline write) are skipped.
+
+1. Read `$FORGE_ROOT/.claude-plugin/plugin.json` → `version`.
+2. Hash `{KB_PATH}/MASTER_INDEX.md` (strip blank lines + `<!--` lines, SHA-256):
+   ```sh
+   node -e "const crypto=require('crypto'),fs=require('fs'); const lines=fs.readFileSync('{KB_PATH}/MASTER_INDEX.md','utf8').split('\n').filter(l=>l.trim()&&!l.trim().startsWith('<!--')); console.log(crypto.createHash('sha256').update(lines.join('\n')).digest('hex'))"
+   ```
+3. List done sprint IDs from `.forge/store/sprints/` (empty on fresh init):
+   ```sh
+   node -e "const fs=require('fs'),p='.forge/store/sprints'; try{const files=fs.readdirSync(p).filter(f=>f.endsWith('.json')); const done=files.map(f=>JSON.parse(fs.readFileSync(p+'/'+f,'utf8'))).filter(s=>['done','retrospective-done'].includes(s.status)).map(s=>s.sprintId); console.log(JSON.stringify(done));}catch(e){console.log('[]')}"
+   ```
+4. Today's ISO date: `date -u +"%Y-%m-%d"`
+5. Merge into config:
+   ```sh
+   node -e "const fs=require('fs'); const cfg=JSON.parse(fs.readFileSync('.forge/config.json','utf8')); cfg.calibrationBaseline={lastCalibrated:'<date>',version:'<ver>',masterIndexHash:'<hash>',sprintsCovered:<array>}; fs.writeFileSync('.forge/config.json',JSON.stringify(cfg,null,2)+'\n')"
+   ```
+
 Continue to Phase 9 (skip Phase 8 in fast mode).
 
 ---

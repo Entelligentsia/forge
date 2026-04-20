@@ -83,7 +83,19 @@ Used only on tiered clusters to select the appropriate model tier:
 | Single | Omitted (inherit parent) | `[glm-5.1:cloud]` |
 | Tiered | Tier name from mapping | `[opus → claude-opus-4-6]` |
 | Per-phase override | Override value from config | `[sonnet → claude-sonnet-4-6]` |
-| Unknown | Omitted (inherit parent) | `[inherited]` |
+| Unknown | Canonical model from ROLE_TIER defaults | `[sonnet → claude-sonnet-4-6]` |
+
+On **unknown** clusters (no `ANTHROPIC_DEFAULT_*_MODEL` vars set), the orchestrator
+falls back to ROLE_TIER with these canonical defaults:
+
+| Tier | Canonical default |
+|------|-------------------|
+| `opus` | `claude-opus-4-5` |
+| `sonnet` | `claude-sonnet-4-6` |
+| `haiku` | `claude-haiku-4-5` |
+
+The resolved canonical model is passed as `dispatch_model` so subagents run on a
+known model rather than inheriting the orchestrator's own model.
 
 ### Phase Announcements
 
@@ -372,8 +384,18 @@ for each task in dependency_sorted(tasks):
       display_model = f"{tier} → {resolved}" if resolved != tier else tier
       dispatch_model = tier                           # pass tier name, Claude Code resolves
     else:
-      display_model = env("CLAUDE_CODE_SUBAGENT_MODEL", "inherited")
-      dispatch_model = None                           # inherit parent model
+      # Unknown cluster: no ANTHROPIC_DEFAULT_*_MODEL vars set.
+      # Fall back to ROLE_TIER with canonical model defaults so subagents
+      # run on a predictable model instead of inheriting the orchestrator's own.
+      ROLE_TIER_DEFAULTS = {
+        "opus":   "claude-opus-4-5",
+        "sonnet": "claude-sonnet-4-6",
+        "haiku":  "claude-haiku-4-5",
+      }
+      tier = ROLE_TIER.get(phase.role, "sonnet")
+      canonical = ROLE_TIER_DEFAULTS[tier]
+      display_model = f"{tier} → {canonical}"
+      dispatch_model = canonical                      # pass full model id to Agent tool
 
     # --- Compute eventId before spawning so the subagent can name its sidecar ---
     start_ts = current_iso_timestamp()       # e.g. "20260415T141523000Z"

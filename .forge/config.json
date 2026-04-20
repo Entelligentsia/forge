@@ -29,7 +29,7 @@
     "commands": ".claude/commands",
     "templates": ".forge/templates",
     "customCommands": "engineering/commands",
-    "forgeRoot": "/home/boni/.claude/plugins/cache/skillforge/forge/0.10.0"
+    "forgeRoot": "/home/boni/.claude/plugins/cache/forge/forge/0.21.0"
   },
   "pipeline": {
     "maxReviewIterations": 3
@@ -42,5 +42,11 @@
     "plugin-dev",
     "security-watchdog",
     "vimeo-transcript"
-  ]
+  ],
+  "calibrationBaseline": {
+    "lastCalibrated": "2026-04-20",
+    "version": "0.21.0",
+    "masterIndexHash": "78becdbd52bdebb9393450d97978fb359588b4077de6658f465b41ce49c730da",
+    "sprintsCovered": ["FORGE-S10", "FORGE-S11"]
+  }
 }

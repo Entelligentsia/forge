@@ -3,17 +3,23 @@
 
 // Forge tool: collate
 // Regenerate markdown views from the JSON store. Deterministic — no AI needed.
-// Usage: collate [SPRINT_ID] [--dry-run] [--purge-events]
+// Usage: collate [SPRINT_ID | BUG_ID] [--dry-run] [--purge-events]
+//
+// Positional argument can be a sprint ID (e.g. FORGE-S12) or a bug ID
+// (e.g. FORGE-BUG-007, HELLO-B02). Bug IDs are first-class arguments:
+// passing a bug ID automatically enables event purging for that entity,
+// so `collate HELLO-B02` works identically to `collate HELLO-B02 --purge-events`.
 //
 // --purge-events  After generating COST_REPORT.md for the given SPRINT_ID,
 //                 delete .forge/store/events/{SPRINT_ID}/ entirely.
 //                 If SPRINT_ID is not a known sprint (e.g. a bug ID), no
 //                 COST_REPORT is generated but the event directory is still
-//                 purged. Requires a SPRINT_ID argument. Safe to combine with
+//                 purged. Requires a positional argument. Safe to combine with
 //                 --dry-run (reports what would be deleted without deleting).
 
 const fs = require('fs');
 const path = require('path');
+const { ok: resultOk, fail: resultFail, RESULT_CODES } = require('./lib/result.js');
 
 let _store;
 function _getStore() { return _store || (_store = require('./store.cjs')); }
@@ -89,6 +95,48 @@ const TASK_DOCS = [
   { file: 'VALIDATION_REPORT.md',   label: 'Validation Report',   purpose: 'Validation results' },
 ];
 
+// Resolve the task directory name within a sprint directory.
+// Returns the directory name string, or null if no directory can be found.
+//
+// Resolution order:
+// 1. If task.path is under engPath (an engineering KB path) — basename of that path.
+// 2. Filesystem scan of sprintDirPath for a directory whose name starts with taskId
+//    or whose leading integer matches that of taskId (slug-named dirs).
+// 3. null if nothing matches.
+function resolveTaskDir(task, sprintDirPath, engPath) {
+  const normalizedTaskPath = task.path ? task.path.replace(/\\/g, '/').replace(/\/$/, '') : null;
+  const normalizedEngPath  = engPath   ? engPath.replace(/\\/g, '/').replace(/\/$/, '')  : '';
+
+  // Case 1: path is under the engineering root — it IS the task directory
+  if (normalizedTaskPath && normalizedEngPath && normalizedTaskPath.startsWith(normalizedEngPath + '/')) {
+    return resultOk(path.basename(normalizedTaskPath));
+  }
+
+  // Case 2 (and fallback for case 1 missing): filesystem scan
+  if (fs.existsSync(sprintDirPath)) {
+    const entries = fs.readdirSync(sprintDirPath).sort();
+    // Prefer exact match first
+    if (entries.includes(task.taskId)) return resultOk(task.taskId);
+    // Then prefix match (slug-named dirs like TST-S01-T01-my-feature)
+    const prefix = task.taskId + '-';
+    const slugMatch = entries.find(e => e.startsWith(prefix) && fs.statSync(path.join(sprintDirPath, e)).isDirectory());
+    if (slugMatch) return resultOk(slugMatch);
+    // Numeric fallback: match first integer in taskId
+    const numMatch = task.taskId.match(/\d+/g);
+    const targetNum = numMatch ? parseInt(numMatch[numMatch.length - 1], 10) : null;
+    if (targetNum !== null) {
+      for (const e of entries) {
+        const em = e.match(/\d+/g);
+        if (em && parseInt(em[em.length - 1], 10) === targetNum && fs.statSync(path.join(sprintDirPath, e)).isDirectory()) {
+          return resultOk(e);
+        }
+      }
+    }
+  }
+
+  return resultFail(RESULT_CODES.MISSING_DIR, `No task directory found for ${task.taskId} in ${sprintDirPath}`);
+}
+
 function buildSprintIndex(sprint, tasks, availableDocs) {
   const avail = new Set(availableDocs);
   const lines = [GENERATED, '', `# Sprint: ${sprint.title || sprint.sprintId}`, '',
@@ -112,7 +160,8 @@ function buildSprintIndex(sprint, tasks, availableDocs) {
   if (tasks.length > 0) {
     const rows = [['Task', 'Title', 'Status', 'Estimate']];
     for (const t of tasks) {
-      rows.push([`[${t.taskId}](${t.taskId}/INDEX.md)`, t.title || '—', statusBadge(t.status), t.estimate || '—']);
+      const linkDir = t._taskDir || t.taskId;
+      rows.push([`[${t.taskId}](${linkDir}/INDEX.md)`, t.title || '—', statusBadge(t.status), t.estimate || '—']);
     }
     lines.push(padTable(rows), '');
   } else {
@@ -156,7 +205,7 @@ const BUG_DOCS = [
   { file: 'VALIDATION_REPORT.md', label: 'Validation Report', purpose: 'Fix validation' },
 ];
 
-function buildBugIndex(bug, availableDocs) {
+function buildBugIndex(bug, availableDocs, costTotals) {
   const avail = new Set(availableDocs);
   const lines = [GENERATED, '', `# Bug: ${bug.title || bug.bugId}`, '',
     `> Bug ID: ${bug.bugId}`,
@@ -167,6 +216,24 @@ function buildBugIndex(bug, availableDocs) {
     ''].filter(l => l !== null);
 
   if (bug.description) lines.push('## Description', '', bug.description, '');
+
+  // Cost aggregation section — included when costTotals is provided
+  // (typically when --purge-events aggregates event costs before deletion).
+  if (costTotals && costTotals.inputTokens !== undefined) {
+    lines.push('## Cost', '');
+    const rows = [
+      ['Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD', 'Source'],
+      [
+        fmtTokens(costTotals.inputTokens),
+        fmtTokens(costTotals.outputTokens),
+        fmtTokens(costTotals.cacheReadTokens),
+        fmtTokens(costTotals.cacheWriteTokens),
+        fmtCost(costTotals.estimatedCostUSD),
+        costTotals.sourceLabel || '—',
+      ],
+    ];
+    lines.push(padTable(rows), '');
+  }
 
   const presentDocs = BUG_DOCS.filter(d => avail.has(d.file));
   if (presentDocs.length > 0) {
@@ -179,14 +246,30 @@ function buildBugIndex(bug, availableDocs) {
   return lines.join('\n') + '\n';
 }
 
-module.exports = { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex };
+/**
+ * Detect whether a string matches the bug-ID pattern.
+ * Bug IDs match one of these patterns:
+ * 1. Contains 'BUG-' followed by digits (e.g., BUG-001, FORGE-BUG-007)
+ * 2. Contains '-B' followed by digits at a segment boundary (e.g., HELLO-B02)
+ * Sprint IDs (FORGE-S12) and task IDs (FORGE-S12-T03) are excluded.
+ */
+function isBugId(id) {
+  if (!id || typeof id !== 'string') return false;
+  return /BUG-\d+/.test(id) || /-B\d+\b/.test(id);
+}
+
+module.exports = { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex, resolveTaskDir, isBugId };
 
 // --- CLI ---
 if (require.main === module) {
 
 const DRY_RUN = process.argv.includes('--dry-run');
-const PURGE_EVENTS = process.argv.includes('--purge-events');
 const SPRINT_ARG = process.argv.slice(2).find(a => !a.startsWith('--'));
+
+// Bug IDs are first-class arguments — auto-enable purge when a bug ID is passed.
+// This makes `collate.cjs HELLO-B02` work identically to `collate.cjs HELLO-B02 --purge-events`.
+const IS_BUG_ARG = isBugId(SPRINT_ARG);
+const PURGE_EVENTS = process.argv.includes('--purge-events') || IS_BUG_ARG;
 
 if (PURGE_EVENTS && !SPRINT_ARG) {
   console.error('Error: --purge-events requires a sprint or bug ID argument');
@@ -261,11 +344,11 @@ const targetSprints = SPRINT_ARG
   : allSprints;
 
 if (SPRINT_ARG && targetSprints.length === 0) {
-  if (PURGE_EVENTS) {
-    // ID may be a bug ID or other non-sprint entity — skip sprint processing,
-    // fall through to the purge step at the end.
+  if (IS_BUG_ARG || PURGE_EVENTS) {
+    // Bug ID or non-sprint entity with --purge-events — skip sprint processing,
+    // fall through to bug INDEX generation and purge step.
   } else {
-    console.error(`Error: sprint '${SPRINT_ARG}' not found in store`);
+    console.error(`Error: '${SPRINT_ARG}' not found as a sprint or bug in store`);
     process.exit(1);
   }
 }
@@ -474,27 +557,22 @@ for (const sprint of targetSprints) {
   }
   const sprintDir = path.join(engRoot, 'sprints', sprintDirName);
 
-  // Sprint INDEX.md
-  const sprintTasks = (tasksBySprint[sprint.sprintId] || []).sort((a, b) => a.taskId.localeCompare(b.taskId));
+  // Resolve task directories for all tasks in this sprint
+  const rawSprintTasks = (tasksBySprint[sprint.sprintId] || []).sort((a, b) => a.taskId.localeCompare(b.taskId));
+  const sprintTasks = rawSprintTasks.map(t => {
+    const dirResult = resolveTaskDir(t, sprintDir, engPath);
+    return dirResult.ok ? Object.assign({}, t, { _taskDir: dirResult.value }) : t;
+  });
+
+  // Sprint INDEX.md — pass tasks with _taskDir so links resolve correctly
   const sprintAvailDocs = availableDocsIn(sprintDir, SPRINT_DOCS);
   writeFile(path.join(sprintDir, 'INDEX.md'), buildSprintIndex(sprint, sprintTasks, sprintAvailDocs));
   sprintIndexesWritten++;
 
-  // Task INDEX.md files
+  // Task INDEX.md files — generate for every task that has a KB directory
   for (const task of sprintTasks) {
-    let taskDirName;
-    if (task.path) {
-      const normalizedPath = task.path.replace(/\\/g, '/').replace(/\/$/, '');
-      const normalizedEngPath = engPath.replace(/\\/g, '/').replace(/\/$/, '');
-      if (normalizedPath.startsWith(normalizedEngPath + '/')) {
-        taskDirName = path.basename(normalizedPath);
-      } else {
-        continue; // path points to source file, not a KB task folder — skip
-      }
-    } else {
-      taskDirName = resolveDir(sprintDir, task.taskId, task.taskId.split('-').pop());
-    }
-    const taskDir = path.join(sprintDir, taskDirName);
+    if (!task._taskDir) continue;
+    const taskDir = path.join(sprintDir, task._taskDir);
     if (!fs.existsSync(taskDir)) continue;
     const taskAvailDocs = availableDocsIn(taskDir, TASK_DOCS);
     writeFile(path.join(taskDir, 'INDEX.md'), buildTaskIndex(task, taskAvailDocs));
@@ -509,7 +587,36 @@ for (const bug of allBugs) {
   const bugDir = path.join(engRoot, 'bugs', bugDirName);
   if (!fs.existsSync(bugDir)) continue;
   const bugAvailDocs = availableDocsIn(bugDir, BUG_DOCS);
-  writeFile(path.join(bugDir, 'INDEX.md'), buildBugIndex(bug, bugAvailDocs));
+
+  // When purging events for a bug, aggregate cost data from event files
+  // before they are deleted. The aggregated cost summary is embedded in
+  // the bug's INDEX.md so the information survives the purge.
+  let costTotals;
+  if (PURGE_EVENTS && SPRINT_ARG && SPRINT_ARG === bug.bugId) {
+    const events = loadSprintEvents(bug.bugId);
+    const tokenEvents = events.filter(e => e.inputTokens !== undefined);
+    if (tokenEvents.length > 0) {
+      const totals = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0, sources: new Set() };
+      for (const e of tokenEvents) {
+        totals.inputTokens     += e.inputTokens     || 0;
+        totals.outputTokens    += e.outputTokens    || 0;
+        totals.cacheReadTokens += e.cacheReadTokens  || 0;
+        totals.cacheWriteTokens+= e.cacheWriteTokens || 0;
+        totals.estimatedCostUSD+= e.estimatedCostUSD || 0;
+        totals.sources.add(e.tokenSource);
+      }
+      costTotals = {
+        inputTokens: totals.inputTokens,
+        outputTokens: totals.outputTokens,
+        cacheReadTokens: totals.cacheReadTokens,
+        cacheWriteTokens: totals.cacheWriteTokens,
+        estimatedCostUSD: totals.estimatedCostUSD,
+        sourceLabel: sourceLabel(totals.sources),
+      };
+    }
+  }
+
+  writeFile(path.join(bugDir, 'INDEX.md'), buildBugIndex(bug, bugAvailDocs, costTotals));
   bugIndexesWritten++;
 }
 

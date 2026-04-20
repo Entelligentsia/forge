@@ -1,0 +1,12 @@
+{
+  "taskId": "FORGE-S11-T06",
+  "feature_id": null,
+  "sprintId": "FORGE-S11",
+  "title": "Create quiz-agent slash command file (#50)",
+  "description": "forge/commands/quiz-agent.md does not exist, leaving the quiz_agent workflow unreachable via slash command. Create the command file following the standard template with correct description, effort, and workflow reference.",
+  "status": "committed",
+  "path": "forge/commands/quiz-agent.md",
+  "estimate": "S",
+  "dependencies": [],
+  "pipeline": "default"
+}

@@ -1,0 +1,88 @@
+{
+  "taskId": "FORGE-S12-T06",
+  "feature_id": "FEAT-005",
+  "sprintId": "FORGE-S12",
+  "title": "Deterministic model discovery for event records",
+  "description": "Event records should capture the actual model being used, not a hardcoded or stale fallback. Detect model identity from environment variables and platform signals; fall back to a reasonable default but never silently record an incorrect model name.",
+  "status": "committed",
+  "path": "forge/tools/store-cli.cjs",
+  "estimate": "M",
+  "dependencies": [],
+  "pipeline": "default",
+  "summaries": {
+    "plan": {
+      "objective": "Add deterministic model discovery to store-cli.cjs so event records capture the actual runtime model from env vars instead of a hardcoded or stale fallback",
+      "key_changes": [
+        "Add discoverModel() function probing CLAUDE_CODE_SUBAGENT_MODEL, ANTHROPIC_MODEL, CLAUDE_MODEL in priority order",
+        "Auto-populate model in cmdEmit() when missing or empty",
+        "Auto-populate model in cmdRecordUsage() when --model flag not provided",
+        "Return 'unknown' instead of wrong Anthropic model name when no env var is set",
+        "Export discoverModel for testability and reuse"
+      ],
+      "verdict": "n/a",
+      "written_at": "2026-04-20T14:00:00Z",
+      "artifact_ref": "PLAN.md"
+    },
+    "review_plan": {
+      "objective": "Review plan for deterministic model discovery in store-cli.cjs -- verify env var priority, auto-population strategy, and test coverage",
+      "findings": [
+        "Plan correctly identifies the root cause: stale/incorrect Anthropic model names on non-Anthropic runtimes",
+        "discoverModel() env var priority matches orchestrator model resolution hierarchy",
+        "Auto-population in cmdEmit() and cmdRecordUsage() follows existing patterns (_normalizeEventTimestamps, _normalizeBugTimestamps)",
+        "Tests already written in test file (TDD approach) -- 13 tests covering env vars, priority, trimming, auto-population, preservation",
+        "Version bump and migration entry correctly identified as required",
+        "Security scan requirement correctly acknowledged",
+        "Minor gap: plan does not call out undefined vs empty-string vs missing-key distinction for model field (tests cover it though)"
+      ],
+      "verdict": "approved",
+      "written_at": "2026-04-20T19:00:00Z",
+      "artifact_ref": "PLAN_REVIEW.md"
+    },
+    "implementation": {
+      "objective": "Add deterministic model discovery to store-cli.cjs so event records capture the actual runtime model from env vars instead of a hardcoded or stale fallback",
+      "key_changes": [
+        "Added discoverModel() function probing CLAUDE_CODE_SUBAGENT_MODEL, ANTHROPIC_MODEL, CLAUDE_MODEL in priority order",
+        "Auto-populate model in cmdEmit() when missing or empty, preserving explicit caller values",
+        "Auto-populate model in cmdRecordUsage() when --model flag not provided, preserving explicit flag",
+        "Return 'unknown' instead of wrong Anthropic model name when no env var is set",
+        "Export discoverModel for testability and reuse",
+        "Added 13 tests covering env var priority, trimming, fallback, auto-population, and preservation"
+      ],
+      "verdict": "n/a",
+      "written_at": "2026-04-20T19:15:00Z",
+      "artifact_ref": "PROGRESS.md"
+    },
+    "code_review": {
+      "objective": "Code review of discoverModel() implementation and model auto-population in store-cli.cjs",
+      "findings": [
+        "Implementation matches approved plan exactly: discoverModel() with 3-env-var priority, 'unknown' fallback",
+        "Auto-population in cmdEmit() runs after timestamp normalization, before schema validation -- correct order",
+        "Auto-population in cmdRecordUsage() runs before sidecar schema validation -- correct order",
+        "Explicit model values preserved in both paths -- no silent override of caller intent",
+        "No npm dependencies, no schema changes, no hardcoded paths, no security concerns",
+        "13 new tests pass: 6 discoverModel unit tests, 4 emit auto-population, 2 record-usage auto-population, 1 preservation",
+        "All 577 tests pass, validate-store --dry-run passes, node --check passes",
+        "Version bump, migration entry, and security scan deferred to sprint release engineering (acceptable)"
+      ],
+      "verdict": "approved",
+      "written_at": "2026-04-20T19:30:00Z",
+      "artifact_ref": "CODE_REVIEW.md"
+    },
+    "validation": {
+      "objective": "Validate that discoverModel() implementation satisfies all acceptance criteria for deterministic model discovery",
+      "findings": [
+        "AC1 PASS: Event records capture actual runtime model from CLAUDE_CODE_SUBAGENT_MODEL env var",
+        "AC2 PASS: Returns 'unknown' when no env var set instead of incorrect Anthropic model name",
+        "AC3 PASS: Works across Claude Code, ollama, and other providers via env var priority",
+        "AC4 PASS: node --check passes on store-cli.cjs",
+        "AC5 PASS: 577/577 tests pass including 13 new discoverModel/auto-population tests",
+        "No npm dependencies introduced; no schema changes; backwards compatible",
+        "Version bump, migration entry, and security scan deferred to sprint release engineering",
+        "Edge cases verified: empty string, missing key, whitespace trimming, explicit model preservation"
+      ],
+      "verdict": "approved",
+      "written_at": "2026-04-20T19:45:00Z",
+      "artifact_ref": "VALIDATION_REPORT.md"
+    }
+  }
+}

@@ -1,1 +1,6 @@
-{"migratedFrom":"0.10.0","localVersion":"0.12.5","distribution":"forge@skillforge","forgeRoot":"/home/boni/.claude/plugins/cache/skillforge/forge/0.12.5"}
+{
+  "migratedFrom": "0.21.0",
+  "localVersion": "0.21.0",
+  "distribution": "forge@forge",
+  "forgeRoot": "/home/boni/.claude/plugins/cache/forge/forge/0.21.0"
+}

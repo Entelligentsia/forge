@@ -1,0 +1,38 @@
+{
+  "taskId": "FORGE-S12-T01",
+  "feature_id": "FEAT-005",
+  "sprintId": "FORGE-S12",
+  "title": "Calibrate baseline auto-initialization — remove dead end",
+  "description": "When calibrationBaseline is absent from .forge/config.json, /forge:calibrate computes and writes the initial baseline (MASTER_INDEX.md hash + completed sprint IDs) instead of dead-ending with 'run /forge:init'. Mirrors init Phase 5 behavior.",
+  "status": "committed",
+  "path": "forge/commands/calibrate.md",
+  "estimate": "S",
+  "dependencies": [],
+  "pipeline": "default",
+  "summaries": {
+    "plan": {
+      "objective": "Replace the dead-end in /forge:calibrate Step 2 with auto-initialization that computes and writes the calibration baseline when absent, mirroring init Phase 5 behavior.",
+      "key_changes": [
+        "Replace Step 2 early-exit with auto-initialization logic in calibrate.md",
+        "Reuse existing baseline computation algorithm (MASTER_INDEX.md hash + completed sprint IDs)",
+        "Write baseline to .forge/config.json and report success instead of dead-ending",
+        "No schema changes — calibrationBaseline schema already exists"
+      ],
+      "verdict": "n/a",
+      "written_at": "2026-04-20T12:00:00Z",
+      "artifact_ref": "PLAN.md"
+    },
+    "implementation": {
+      "objective": "Replace the dead-end in /forge:calibrate Step 2 with auto-initialization that computes and writes the calibration baseline when absent.",
+      "key_changes": [
+        "Replaced Step 2 dead-end ('run /forge:init') with auto-initialization logic in forge/commands/calibrate.md",
+        "Auto-init mirrors init Phase 5/6-b: hash MASTER_INDEX.md, list completed sprints, write baseline to config",
+        "Updated health.md to recommend /forge:calibrate instead of /forge:init for missing baseline",
+        "Step 2 renamed from 'Validate prerequisites' to 'Establish or verify calibration baseline'"
+      ],
+      "verdict": "n/a",
+      "written_at": "2026-04-20T12:30:00Z",
+      "artifact_ref": "forge/commands/calibrate.md"
+    }
+  }
+}

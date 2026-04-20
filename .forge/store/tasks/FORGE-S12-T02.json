@@ -1,0 +1,26 @@
+{
+  "taskId": "FORGE-S12-T02",
+  "feature_id": "FEAT-005",
+  "sprintId": "FORGE-S12",
+  "title": "Fix-bug Finalize phase gate — collate must succeed before bug closes",
+  "description": "Add a Finalize phase gate to fix_bug.md that checks for INDEX.md existence in the bug directory before allowing the workflow to mark the bug as resolved. Collate must succeed; the bug cannot close without it.",
+  "status": "committed",
+  "path": "forge/meta/workflows/meta-fix-bug.md",
+  "estimate": "S",
+  "dependencies": [],
+  "pipeline": "default",
+  "summaries": {
+    "plan": {
+      "objective": "Add a Finalize phase gate to meta-fix-bug.md that blocks bug closure until collate produces INDEX.md, preventing bugs from reaching resolved status without knowledge-base artifacts.",
+      "key_changes": [
+        "Add finalize phase gate block to meta-fix-bug.md (artifact check for bug INDEX.md)",
+        "Update Algorithm step 6 to run preflight-gate.cjs --phase finalize before marking bug as fixed",
+        "Handle exit 1 (gate failed) and exit 2 (misconfiguration) with escalation",
+        "Add 2 unit tests for finalize gate (blocks when missing, passes when present)"
+      ],
+      "verdict": "n/a",
+      "written_at": "2026-04-20T14:00:00Z",
+      "artifact_ref": "PLAN.md"
+    }
+  }
+}

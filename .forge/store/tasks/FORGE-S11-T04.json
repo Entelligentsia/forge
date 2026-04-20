@@ -1,0 +1,12 @@
+{
+  "taskId": "FORGE-S11-T04",
+  "feature_id": null,
+  "sprintId": "FORGE-S11",
+  "title": "Fix collate: broken task links + missing task INDEX.md generation (#53)",
+  "description": "Sprint INDEX.md renders task links as {taskId}/INDEX.md (flat) but actual path is tasks/{task_dir}/INDEX.md. Also no INDEX.md is generated inside task directories. Fix collate.cjs path construction and add INDEX.md generation for task directories.",
+  "status": "committed",
+  "path": "forge/tools/collate.cjs",
+  "estimate": "M",
+  "dependencies": [],
+  "pipeline": "default"
+}

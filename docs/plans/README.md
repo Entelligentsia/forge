@@ -12,11 +12,13 @@ tests, risks, and acceptance criteria.
 3. [Plan 2 — Artifact Summaries in Task Manifest](02-artifact-summaries.md) — schema bump; benefits from Plan 1's leaner prompts.
 4. [Plan 4 — Architecture Context Pack](04-context-pack.md) — complementary to Plan 2; land after 1–3 for a clean measurement baseline.
 5. [Plan 5 — Write-Boundary Schema Enforcement](05-write-boundary-schema-enforcement.md) — closes the probabilistic-bypass gap with a PreToolUse hook; land after Plan 3 so the orchestrator safety net is in place.
+6. [Plan 6 — `forge-dev` Contributor Tooling Pack](06-forge-dev-pack.md) — codifies the five architectural motifs Plans 1–5 established as contributor-side guardrails and automations. Sequenced independently of user releases: contributor-only, does not touch `forge/` behaviour.
 
 Each plan: one patch-version bump, one `migrations.json` entry, one
 `CHANGELOG.md` entry, one security scan, `integrity.json` regeneration.
 Expected cadence: ~4 sequential patch releases over ~2 weeks, no breaking
-migrations.
+migrations. **Plan 6 is the exception** — contributor-only, no user-facing
+version bump, no migration entry, no security scan.
 
 ## Release checklist (applies to every plan)
 

@@ -110,10 +110,39 @@ function describePredicate(pred) {
   return `${pred.field} ${pred.op} ${pred.value}`;
 }
 
+// Canonical review artifact filenames per phase. Centralised here so the
+// orchestrator, manual commands, and tests all agree on where a given phase's
+// verdict lives.
+const VERDICT_ARTIFACTS = {
+  'review-plan': 'PLAN_REVIEW.md',
+  'review-code': 'CODE_REVIEW.md',
+  'validate':    'VALIDATION_REPORT.md',
+  'approve':     'ARCHITECT_APPROVAL.md',
+};
+
 module.exports = { preflight };
 
-// CLI shim: `node preflight-gate.cjs --phase <name> --task <taskId> [--bug <bugId>]`
+// CLI shim: `node preflight-gate.cjs --phase <name> --task <taskId> [--bug <bugId>] [--workflow <name>]`
 // exit codes: 0 ok, 1 gate(s) failed, 2 invalid args / missing definitions
+// Scan the sprint directory for a subdirectory matching the task ID prefix.
+// Returns the directory name (e.g. "FORGE-S12-T06-model-discovery") or null.
+function resolveTaskArtifactDir(taskRecord, engineeringRoot) {
+  if (!taskRecord || !taskRecord.sprintId || !taskRecord.taskId) return null;
+  const sprintDir = path.resolve(process.cwd(), engineeringRoot, 'sprints', taskRecord.sprintId);
+  try {
+    const entries = fs.readdirSync(sprintDir);
+    for (const entry of entries) {
+      try {
+        if (fs.statSync(path.join(sprintDir, entry)).isDirectory() &&
+            entry.startsWith(taskRecord.taskId + '-')) {
+          return entry;
+        }
+      } catch (_) { /* skip unreadable entries */ }
+    }
+  } catch (_) { /* sprint directory not found */ }
+  return null;
+}
+
 if (require.main === module) {
   const args = parseArgs(process.argv.slice(2));
   if (!args.phase || (!args.task && !args.bug)) {
@@ -124,7 +153,7 @@ if (require.main === module) {
   const { parseGates } = require('./parse-gates.cjs');
   const store = require('./store.cjs');
 
-  const workflowMd = loadWorkflowMarkdown(args.phase);
+  const workflowMd = loadWorkflowMarkdown(args.phase, args.workflow);
   if (!workflowMd) {
     process.stderr.write(`preflight-gate: could not locate workflow file defining phase "${args.phase}"\n`);
     process.exit(2);
@@ -155,14 +184,25 @@ if (require.main === module) {
   } catch (_) { /* fall back to default */ }
 
   // {task} / {bug} in path templates refer to the artifact directory suffix
-  // (e.g., "T01", "BUG-007-broken-foo"), taken from the store record's path.
-  // If unavailable, fall back to the raw id.
+  // (e.g., "FORGE-S12-T06-model-discovery", "BUG-007-broken-foo").
+  // task.path is the primary source file in forge/, NOT the artifact directory.
+  // Scan the sprint directory to find the correct artifact directory name.
   function lastSegment(p) {
     const parts = String(p || '').split('/').filter(Boolean);
     return parts[parts.length - 1] || '';
   }
-  const taskDir = taskRecord && taskRecord.path ? lastSegment(taskRecord.path) : args.task;
+  const taskArtifactDir = resolveTaskArtifactDir(taskRecord, engineeringRoot);
+  const taskDir = taskArtifactDir
+    || (taskRecord && taskRecord.path ? lastSegment(taskRecord.path) : args.task);
   const bugDir = bugRecord && bugRecord.path ? lastSegment(bugRecord.path) : args.bug;
+
+  // Compute the full artifact directory path for verdict source resolution.
+  let taskArtifactPath = null;
+  if (taskArtifactDir && taskRecord && taskRecord.sprintId) {
+    taskArtifactPath = path.join(engineeringRoot, 'sprints', taskRecord.sprintId, taskArtifactDir);
+  } else if (taskRecord && taskRecord.path) {
+    taskArtifactPath = taskRecord.path;
+  }
 
   const substitutions = {
     engineering: engineeringRoot,
@@ -171,7 +211,7 @@ if (require.main === module) {
     bug: bugDir,
   };
 
-  const verdictSources = resolveVerdictSources(gates[args.phase].after || [], taskRecord, bugRecord);
+  const verdictSources = resolveVerdictSources(gates[args.phase].after || [], taskArtifactPath, bugRecord);
 
   const result = preflight({ phase: args.phase, gates, state, substitutions, verdictSources });
   if (result.ok) process.exit(0);
@@ -187,6 +227,7 @@ function parseArgs(argv) {
     if (a === '--phase') out.phase = argv[++i];
     else if (a === '--task') out.task = argv[++i];
     else if (a === '--bug') out.bug = argv[++i];
+    else if (a === '--workflow') out.workflow = argv[++i];
   }
   return out;
 }
@@ -195,19 +236,29 @@ function safe(fn) {
   try { return fn(); } catch (_) { return null; }
 }
 
-function loadWorkflowMarkdown(_phaseName) {
-  // Search the dogfooded/installed workflows for one containing a `## Phase: <name>` heading.
-  const candidates = [
-    path.resolve(process.cwd(), '.forge/workflows/meta-orchestrate.md'),
-    path.resolve(process.cwd(), '.forge/workflows/meta-fix-bug.md'),
-  ];
-  for (const c of candidates) {
-    if (fs.existsSync(c)) {
-      const md = fs.readFileSync(c, 'utf8');
-      if (new RegExp(`^##\\s+Phase:\\s+${escapeRegex(_phaseName)}\\s*$`, 'm').test(md)) {
-        return md;
-      }
+function loadWorkflowMarkdown(phaseName, workflowName) {
+  const workflowsDir = path.resolve(process.cwd(), '.forge/workflows');
+  let entries;
+  try {
+    entries = fs.readdirSync(workflowsDir).filter((f) => f.endsWith('.md'));
+  } catch (_) {
+    return null;
+  }
+  const fencePattern = new RegExp('^```gates\\s+phase=' + escapeRegex(phaseName) + '\\s*$', 'm');
+
+  // If a specific workflow file was requested, try it first before scanning all files.
+  // This prevents alphabetically-earlier files from shadowing the caller's workflow.
+  if (workflowName) {
+    const normalised = workflowName.endsWith('.md') ? workflowName : workflowName + '.md';
+    if (entries.includes(normalised)) {
+      const md = fs.readFileSync(path.join(workflowsDir, normalised), 'utf8');
+      if (fencePattern.test(md)) return md;
     }
+  }
+
+  for (const entry of entries) {
+    const md = fs.readFileSync(path.join(workflowsDir, entry), 'utf8');
+    if (fencePattern.test(md)) return md;
   }
   return null;
 }
@@ -216,19 +267,9 @@ function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// Canonical review artifact filenames per phase. Centralised here so the
-// orchestrator, manual commands, and tests all agree on where a given phase's
-// verdict lives.
-const VERDICT_ARTIFACTS = {
-  'review-plan': 'PLAN_REVIEW.md',
-  'review-code': 'CODE_REVIEW.md',
-  'validate':    'VALIDATION_REPORT.md',
-  'approve':     'ARCHITECT_APPROVAL.md',
-};
-
-function resolveVerdictSources(afterList, taskRecord, bugRecord) {
+function resolveVerdictSources(afterList, taskArtifactPath, bugRecord) {
   const sources = {};
-  const base = taskRecord ? taskRecord.path : bugRecord ? bugRecord.path : null;
+  const base = taskArtifactPath || (bugRecord ? bugRecord.path : null);
   if (!base) return sources;
   for (const entry of afterList) {
     const filename = VERDICT_ARTIFACTS[entry.phase];

@@ -55,14 +55,54 @@ Read `$PROJECT_ROOT/.forge/config.json`. If absent, emit:
 
 Exit early.
 
-## Step 2 — Validate prerequisites
+## Step 2 — Establish or verify calibration baseline
 
-Read `calibrationBaseline` from `$PROJECT_ROOT/.forge/config.json`. If absent,
-emit:
+Read `calibrationBaseline` from `$PROJECT_ROOT/.forge/config.json`.
 
-> △ No calibration baseline found — run `/forge:init` to establish one.
+### If absent — auto-initialize
 
-Exit early.
+When `calibrationBaseline` is missing, compute and write the initial baseline
+using the same algorithm as `/forge:init` Phase 5/6-b:
+
+1. Read `$FORGE_ROOT/.claude-plugin/plugin.json` → `version`.
+2. Resolve KB path:
+   ```sh
+   cd "$PROJECT_ROOT" && node -e "const cfg=JSON.parse(require('fs').readFileSync('.forge/config.json','utf8')); console.log((cfg.paths&&cfg.paths.engineering)||'engineering')"
+   ```
+3. Compute `MASTER_INDEX.md` hash (strip blank lines + `<!--` lines, SHA-256):
+   ```sh
+   cd "$PROJECT_ROOT" && node -e "const crypto=require('crypto'),fs=require('fs'); const cfg=JSON.parse(fs.readFileSync('.forge/config.json','utf8')); const engPath=(cfg.paths&&cfg.paths.engineering)||'engineering'; const lines=fs.readFileSync(engPath+'/MASTER_INDEX.md','utf8').split('\n').filter(l=>l.trim()&&!l.trim().startsWith('<!--')); console.log(crypto.createHash('sha256').update(lines.join('\n')).digest('hex'))"
+   ```
+4. List completed sprint IDs from `.forge/store/sprints/`:
+   ```sh
+   cd "$PROJECT_ROOT" && node -e "const fs=require('fs'),p='.forge/store/sprints'; try{const files=fs.readdirSync(p).filter(f=>f.endsWith('.json')); const done=files.map(f=>JSON.parse(fs.readFileSync(p+'/'+f,'utf8'))).filter(s=>['done','retrospective-done'].includes(s.status)).map(s=>s.sprintId); console.log(JSON.stringify(done));}catch(e){console.log('[]')}"
+   ```
+5. Get current date: `date -u +"%Y-%m-%d"`
+6. Write `calibrationBaseline` to config:
+   ```sh
+   cd "$PROJECT_ROOT" && node -e "
+   const fs = require('fs');
+   const cfgPath = '.forge/config.json';
+   const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+   cfg.calibrationBaseline = {
+     lastCalibrated: '<date>',
+     version: '<plugin version>',
+     masterIndexHash: '<hash>',
+     sprintsCovered: <sprint IDs array>
+   };
+   fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
+   "
+   ```
+
+Emit:
+
+> 〇 Baseline established — calibration baseline written to config (version: `{version}`, sprints covered: {N})
+
+Exit. The next `/forge:calibrate` run will use this baseline for drift detection.
+
+### If present — proceed to drift detection
+
+Continue to Step 3.
 
 ## Step 3 — Detect drift
 

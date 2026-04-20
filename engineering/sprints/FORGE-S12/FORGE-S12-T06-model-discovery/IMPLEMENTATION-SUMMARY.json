@@ -1,0 +1,14 @@
+{
+  "objective": "Add deterministic model discovery to store-cli.cjs so event records capture the actual runtime model from env vars instead of a hardcoded or stale fallback",
+  "key_changes": [
+    "Added discoverModel() function probing CLAUDE_CODE_SUBAGENT_MODEL, ANTHROPIC_MODEL, CLAUDE_MODEL in priority order",
+    "Auto-populate model in cmdEmit() when missing or empty, preserving explicit caller values",
+    "Auto-populate model in cmdRecordUsage() when --model flag not provided, preserving explicit flag",
+    "Return 'unknown' instead of wrong Anthropic model name when no env var is set",
+    "Export discoverModel for testability and reuse",
+    "Added 13 tests covering env var priority, trimming, fallback, auto-population, and preservation"
+  ],
+  "verdict": "n/a",
+  "written_at": "2026-04-20T19:15:00Z",
+  "artifact_ref": "PROGRESS.md"
+}

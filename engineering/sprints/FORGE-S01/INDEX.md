@@ -3,7 +3,7 @@
 # Sprint: Sprint FORGE-S01 — Token Usage Tracking
 
 > Sprint ID: FORGE-S01
-> Status: 🔵 active
+> Status: ✅ completed
 
 ## Sprint Documents
 
@@ -14,14 +14,14 @@
 
 ## Tasks
 
-| Task                                    | Title                                                                                        | Status         | Estimate |
-| --------------------------------------- | -------------------------------------------------------------------------------------------- | -------------- | -------- |
-| [FORGE-S01-T01](FORGE-S01-T01/INDEX.md) | PLAN — FORGE-S01-T01: Event schema — add optional token fields                               | ✅ committed    | —        |
-| [FORGE-S01-T02](FORGE-S01-T02/INDEX.md) | PLAN — FORGE-S01-T02: validate-store — handle new event token fields                         | ✅ committed    | —        |
-| [FORGE-S01-T03](FORGE-S01-T03/INDEX.md) | PLAN — FORGE-S01-T03: Orchestrator meta-workflow — subagent self-reporting and sidecar merge | ✅ committed    | —        |
-| [FORGE-S01-T04](FORGE-S01-T04/INDEX.md) | PLAN — FORGE-S01-T04: estimate-usage.cjs — token estimation fallback tool                    | ✅ committed    | —        |
-| [FORGE-S01-T05](FORGE-S01-T05/INDEX.md) | PLAN — FORGE-S01-T05: collate.cjs — COST_REPORT.md generation                                | 🔧 implemented | —        |
-| [FORGE-S01-T06](FORGE-S01-T06/INDEX.md) | PLAN — FORGE-S01-T06: Retrospective meta-workflow — cost analysis and baselines              | ✅ committed    | —        |
-| [FORGE-S01-T07](FORGE-S01-T07/INDEX.md) | PLAN — FORGE-S01-T07: Bug report opt-in — token data in bug reports with user prompt         | ✅ committed    | —        |
-| [FORGE-S01-T08](FORGE-S01-T08/INDEX.md) | PLAN — FORGE-S01-T08: Version bump, migration entry, and security scan                       | ✅ committed    | —        |
+| Task                          | Title                                                                                        | Status         | Estimate |
+| ----------------------------- | -------------------------------------------------------------------------------------------- | -------------- | -------- |
+| [FORGE-S01-T01](T01/INDEX.md) | PLAN — FORGE-S01-T01: Event schema — add optional token fields                               | ✅ committed    | —        |
+| [FORGE-S01-T02](T02/INDEX.md) | PLAN — FORGE-S01-T02: validate-store — handle new event token fields                         | ✅ committed    | —        |
+| [FORGE-S01-T03](T03/INDEX.md) | PLAN — FORGE-S01-T03: Orchestrator meta-workflow — subagent self-reporting and sidecar merge | ✅ committed    | —        |
+| [FORGE-S01-T04](T04/INDEX.md) | PLAN — FORGE-S01-T04: estimate-usage.cjs — token estimation fallback tool                    | ✅ committed    | —        |
+| [FORGE-S01-T05](T05/INDEX.md) | PLAN — FORGE-S01-T05: collate.cjs — COST_REPORT.md generation                                | 🔧 implemented | —        |
+| [FORGE-S01-T06](T06/INDEX.md) | PLAN — FORGE-S01-T06: Retrospective meta-workflow — cost analysis and baselines              | ✅ committed    | —        |
+| [FORGE-S01-T07](T07/INDEX.md) | PLAN — FORGE-S01-T07: Bug report opt-in — token data in bug reports with user prompt         | ✅ committed    | —        |
+| [FORGE-S01-T08](T08/INDEX.md) | PLAN — FORGE-S01-T08: Version bump, migration entry, and security scan                       | ✅ committed    | —        |
 

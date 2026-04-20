@@ -1,7 +1,7 @@
 {
   "sprintId": "FORGE-S05",
   "title": "Sprint S05",
-  "status": "active",
+  "status": "completed",
   "taskIds": [
     "FORGE-S05-T01",
     "FORGE-S05-T02",

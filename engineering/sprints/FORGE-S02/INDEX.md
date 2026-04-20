@@ -3,7 +3,7 @@
 # Sprint: Sprint Plan — FORGE-S02: Foundational Concepts Documentation + Feature Tier (v1.0)
 
 > Sprint ID: FORGE-S02
-> Status: 🔵 active
+> Status: ✅ completed
 
 ## Sprint Documents
 
@@ -14,16 +14,16 @@
 
 ## Tasks
 
-| Task                                    | Title                                                                                                          | Status         | Estimate |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------- | -------- |
-| [FORGE-S02-T01](FORGE-S02-T01/INDEX.md) | PLAN — FORGE-S02-T01: docs/concepts/ — write all nine conceptual documentation pages                           | ✅ committed    | —        |
-| [FORGE-S02-T02](FORGE-S02-T02/INDEX.md) | FORGE-S02-T02: Plan                                                                                            | 📋 planned     | —        |
-| [FORGE-S02-T03](FORGE-S02-T03/INDEX.md) | FORGE-S02-T03: Plan                                                                                            | ✅ committed    | —        |
-| [FORGE-S02-T04](FORGE-S02-T04/INDEX.md) | PLAN — FORGE-S02-T04: seed-store.cjs — scaffold features/ directory on init                                    | ✅ committed    | —        |
-| [FORGE-S02-T05](FORGE-S02-T05/INDEX.md) | PLAN — FORGE-S02-T05: validate-store.cjs — referential integrity for feature_id on tasks and sprints           | 🔧 implemented | —        |
-| [FORGE-S02-T06](FORGE-S02-T06/INDEX.md) | PLAN — FORGE-S02-T06: collate.cjs — generate engineering/features/INDEX.md and cross-link from MASTER_INDEX.md | 📋 planned     | —        |
-| [FORGE-S02-T07](FORGE-S02-T07/INDEX.md) | PLAN — FORGE-S02-T07: meta-sprint-intake + meta-sprint-plan — feature linkage and feature_id propagation       | 📋 planned     | —        |
-| [FORGE-S02-T08](FORGE-S02-T08/INDEX.md) | PLAN — FORGE-S02-T08: forge:health — per-feature FEAT-ID test coverage reporting                               | 📋 planned     | —        |
-| [FORGE-S02-T09](FORGE-S02-T09/INDEX.md) | PLAN: FORGE-S02-T09                                                                                            | 📋 planned     | —        |
-| [FORGE-S02-T10](FORGE-S02-T10/INDEX.md) | PLAN — FORGE-S02-T10: Release engineering — version bump to v0.6.0, migration entry, security scan             | 📋 planned     | —        |
+| Task                          | Title                                                                                                          | Status         | Estimate |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------- | -------- |
+| [FORGE-S02-T01](T01/INDEX.md) | PLAN — FORGE-S02-T01: docs/concepts/ — write all nine conceptual documentation pages                           | ✅ committed    | —        |
+| [FORGE-S02-T02](T02/INDEX.md) | FORGE-S02-T02: Plan                                                                                            | 📋 planned     | —        |
+| [FORGE-S02-T03](T03/INDEX.md) | FORGE-S02-T03: Plan                                                                                            | ✅ committed    | —        |
+| [FORGE-S02-T04](T04/INDEX.md) | PLAN — FORGE-S02-T04: seed-store.cjs — scaffold features/ directory on init                                    | ✅ committed    | —        |
+| [FORGE-S02-T05](T05/INDEX.md) | PLAN — FORGE-S02-T05: validate-store.cjs — referential integrity for feature_id on tasks and sprints           | 🔧 implemented | —        |
+| [FORGE-S02-T06](T06/INDEX.md) | PLAN — FORGE-S02-T06: collate.cjs — generate engineering/features/INDEX.md and cross-link from MASTER_INDEX.md | 📋 planned     | —        |
+| [FORGE-S02-T07](T07/INDEX.md) | PLAN — FORGE-S02-T07: meta-sprint-intake + meta-sprint-plan — feature linkage and feature_id propagation       | 📋 planned     | —        |
+| [FORGE-S02-T08](T08/INDEX.md) | PLAN — FORGE-S02-T08: forge:health — per-feature FEAT-ID test coverage reporting                               | 📋 planned     | —        |
+| [FORGE-S02-T09](T09/INDEX.md) | PLAN: FORGE-S02-T09                                                                                            | 📋 planned     | —        |
+| [FORGE-S02-T10](T10/INDEX.md) | PLAN — FORGE-S02-T10: Release engineering — version bump to v0.6.0, migration entry, security scan             | 📋 planned     | —        |
 

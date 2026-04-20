@@ -1,8 +1,9 @@
 {
   "medianTokensPerEstimate": {
-    "S": 4500
+    "S": 4500,
+    "M": 30100
   },
   "medianReviewOverhead": 0,
-  "sampleSize": 1,
-  "lastUpdated": "2026-04-15T12:00:00.000Z"
+  "sampleSize": 2,
+  "lastUpdated": "2026-04-20T02:30:34.137Z"
 }

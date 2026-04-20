@@ -2,7 +2,7 @@
 
 # Cost Report — FORGE-S10
 
-> Generated: 2026-04-18
+> Generated: 2026-04-20
 > Sprint: Sprint S10 — Tomoshibi: KB Visibility Agent + Configurable KB Path
 
 _No token data available for this sprint._

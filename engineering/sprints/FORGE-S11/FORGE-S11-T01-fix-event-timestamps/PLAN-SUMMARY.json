@@ -1,0 +1,12 @@
+{
+  "objective": "Fix store-cli.cjs cmdEmit to normalize zeroed (T00:00:00Z) event timestamps to real wall-clock time and recompute durationMinutes.",
+  "key_changes": [
+    "Add _isZeroedTimestamp() helper in CLI block to detect midnight-zeroed or absent timestamps",
+    "Add _normalizeEventTimestamps() helper that mutates event data in place before validation",
+    "Call _normalizeEventTimestamps(data) in cmdEmit canonical-event branch before schema validation",
+    "Add 4 regression tests in describe('store-cli.cjs — emit timestamp normalization (#56)')"
+  ],
+  "verdict": "n/a",
+  "written_at": "2026-04-20T01:24:14.000Z",
+  "artifact_ref": "PLAN.md"
+}

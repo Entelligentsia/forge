@@ -40,63 +40,72 @@ describe('estimate-usage.cjs', () => {
   });
 
   describe('estimateTokens', () => {
-    test('returns token estimates for known model', () => {
+    test('returns { ok: true, value } with token estimates for known model', () => {
       const event = { eventId: 'E-001', durationMinutes: 5, model: 'claude-sonnet-4', phase: 'implement' };
       const result = estimateTokens(event);
-      assert.ok(result);
-      assert.equal(result.tokenSource, 'estimated');
-      assert.ok(result.inputTokens > 0, 'should have inputTokens');
-      assert.ok(result.outputTokens > 0, 'should have outputTokens');
-      assert.ok(result.estimatedCostUSD > 0, 'should have estimatedCostUSD');
+      assert.equal(result.ok, true, `expected ok:true, got ok:${result.ok}`);
+      assert.equal(result.value.tokenSource, 'estimated');
+      assert.ok(result.value.inputTokens > 0, 'should have inputTokens');
+      assert.ok(result.value.outputTokens > 0, 'should have outputTokens');
+      assert.ok(result.value.estimatedCostUSD > 0, 'should have estimatedCostUSD');
     });
 
-    test('returns null when durationMinutes is 0', () => {
+    test('returns { ok: false, code: E_ZERO_DURATION } when durationMinutes is 0', () => {
       const event = { eventId: 'E-002', durationMinutes: 0, model: 'claude-sonnet-4' };
-      assert.equal(estimateTokens(event), null);
+      const result = estimateTokens(event);
+      assert.equal(result.ok, false, `expected ok:false, got ok:${result.ok}`);
+      assert.equal(result.code, 'E_ZERO_DURATION', `expected E_ZERO_DURATION, got "${result.code}"`);
+      assert.equal(typeof result.message, 'string');
     });
 
-    test('returns null when durationMinutes is null', () => {
+    test('returns { ok: false, code: E_MISSING_DURATION } when durationMinutes is null', () => {
       const event = { eventId: 'E-003', durationMinutes: null, model: 'claude-sonnet-4' };
-      assert.equal(estimateTokens(event), null);
+      const result = estimateTokens(event);
+      assert.equal(result.ok, false, `expected ok:false, got ok:${result.ok}`);
+      assert.equal(result.code, 'E_MISSING_DURATION', `expected E_MISSING_DURATION, got "${result.code}"`);
+      assert.equal(typeof result.message, 'string');
     });
 
-    test('returns null when durationMinutes is undefined', () => {
+    test('returns { ok: false, code: E_MISSING_DURATION } when durationMinutes is undefined', () => {
       const event = { eventId: 'E-004', model: 'claude-sonnet-4' };
-      assert.equal(estimateTokens(event), null);
+      const result = estimateTokens(event);
+      assert.equal(result.ok, false, `expected ok:false, got ok:${result.ok}`);
+      assert.equal(result.code, 'E_MISSING_DURATION', `expected E_MISSING_DURATION, got "${result.code}"`);
+      assert.equal(typeof result.message, 'string');
     });
 
-    test('uses default phase split when phase is unknown', () => {
+    test('returns { ok: true, value } using default phase split when phase is unknown', () => {
       const event = { eventId: 'E-005', durationMinutes: 10, model: 'claude-sonnet-4', phase: 'unknown-phase' };
       const result = estimateTokens(event);
-      assert.ok(result);
+      assert.equal(result.ok, true, `expected ok:true, got ok:${result.ok}`);
       // Default split is 0.60/0.40
-      assert.ok(result.inputTokens > result.outputTokens, 'default split should favor input');
+      assert.ok(result.value.inputTokens > result.value.outputTokens, 'default split should favor input');
     });
 
-    test('uses default model values for unknown model', () => {
+    test('returns { ok: true, value } using default model values for unknown model', () => {
       const event = { eventId: 'E-006', durationMinutes: 10, model: 'gpt-4-turbo' };
       const result = estimateTokens(event);
-      assert.ok(result);
+      assert.equal(result.ok, true, `expected ok:true, got ok:${result.ok}`);
       // Default tokens per minute * 10 minutes
-      assert.ok(result.inputTokens > 0);
+      assert.ok(result.value.inputTokens > 0);
     });
 
-    test('uses implement phase split correctly', () => {
+    test('returns { ok: true, value } using implement phase split correctly', () => {
       const event = { eventId: 'E-007', durationMinutes: 10, model: 'claude-sonnet-4', phase: 'implement' };
       const result = estimateTokens(event);
-      assert.ok(result);
+      assert.equal(result.ok, true, `expected ok:true, got ok:${result.ok}`);
       // implement split: 0.70 input, 0.30 output
-      assert.ok(result.inputTokens > result.outputTokens, 'implement should favor input');
+      assert.ok(result.value.inputTokens > result.value.outputTokens, 'implement should favor input');
     });
 
     test('computes cost correctly', () => {
       const event = { eventId: 'E-008', durationMinutes: 1, model: 'claude-sonnet-4', phase: 'plan' };
       const result = estimateTokens(event);
-      assert.ok(result);
+      assert.equal(result.ok, true, `expected ok:true, got ok:${result.ok}`);
       // plan split: 50/50, sonnet-4: 4500 tok/min, $3/1M
       const expectedTotal = 4500;
       const expectedCost = ((expectedTotal) / 1_000_000 * 3.00).toFixed(6);
-      assert.ok(Math.abs(result.estimatedCostUSD - parseFloat(expectedCost)) < 0.001);
+      assert.ok(Math.abs(result.value.estimatedCostUSD - parseFloat(expectedCost)) < 0.001);
     });
   });
 
