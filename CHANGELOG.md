@@ -11,6 +11,14 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.20.0] — 2026-04-20
+
+Sprint S11 tech-debt sweep across pipeline bugs, command gaps, and UX completeness. Seven fixes ship in this release: event timestamps no longer zero the time component (store-cli.cjs was serialising a truncated ISO string); preflight-gate now scans all `.forge/workflows/*.md` files instead of two hardcoded development-environment filenames; the ROLE_TIER model fallback in `meta-orchestrate.md` is applied correctly when a tiered cluster is detected; `collate.cjs` generates per-task `INDEX.md` files with correct relative links from `MASTER_INDEX.md`; `calibrationBaseline` is written during fast-mode init and backfilled during update; the `quiz-agent` slash command file is added; and `generate-commands.cjs` registers the quiz-agent entry and performs post-generation flat-file cleanup.
+
+**Regenerate:** run `/forge:update` — `tools`, `workflows`, and `commands` must be regenerated.
+
+---
+
 ## [0.19.2] — 2026-04-19
 
 Each banner now carries a Japanese kanji companion (e.g. BLOOM 開花, FORGE 鍛冶, VOID 虚空) displayed in dim tint alongside the name in both `render()` and `badge()` output.

@@ -1,0 +1,20 @@
+{
+  "taskId": "FORGE-S11-T08",
+  "feature_id": null,
+  "sprintId": "FORGE-S11",
+  "title": "Release engineering — version bump to v0.20.0, migration entry, security scan",
+  "description": "Bump forge/.claude-plugin/plugin.json to 0.20.0, add migrations.json entry (regenerate: [tools, workflows]), update CHANGELOG.md, regenerate integrity.json and update health.md verifier hash, run /security-watchdog:scan-plugin on forge/ source, save report to docs/security/, update security index and README table.",
+  "status": "committed",
+  "path": "forge/.claude-plugin/plugin.json",
+  "estimate": "M",
+  "dependencies": [
+    "FORGE-S11-T01",
+    "FORGE-S11-T02",
+    "FORGE-S11-T03",
+    "FORGE-S11-T04",
+    "FORGE-S11-T05",
+    "FORGE-S11-T06",
+    "FORGE-S11-T07"
+  ],
+  "pipeline": "default"
+}

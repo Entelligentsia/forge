@@ -1,4 +1,12 @@
 {
+  "0.19.2": {
+    "version": "0.20.0",
+    "date": "2026-04-20",
+    "notes": "S11 tech-debt fixes: event timestamp zeroing fixed (store-cli.cjs), preflight-gate now scans all workflow files, ROLE_TIER fallback applied in orchestrate_task, collate generates task INDEX.md files with correct links, calibrationBaseline backfilled in fast-mode init/update, quiz-agent slash command added, generate-commands updated with quiz-agent and flat-file cleanup.",
+    "regenerate": ["tools", "workflows", "commands"],
+    "breaking": false,
+    "manual": []
+  },
   "0.19.1": {
     "version": "0.19.2",
     "notes": "Add Japanese kanji to each banner, shown alongside the name in render and badge",
