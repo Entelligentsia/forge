@@ -244,6 +244,11 @@ system.
 
 To promote a version to skillforge users:
 
+0. **Ensure skillforge is cloned locally** (if not already):
+   ```bash
+   [ -d ../skillforge ] || git clone https://github.com/Entelligentsia/skillforge.git ../skillforge
+   ```
+
 1. **Merge main into release:**
    ```bash
    git checkout release
@@ -259,12 +264,13 @@ To promote a version to skillforge users:
    (Replace `X.Y.Z` with the actual version from `forge/.claude-plugin/plugin.json`)
 
 3. **Update skillforge to reference the tag:**
-   - In `../skillforge/.claude-plugin/marketplace.json`, change the forge entry's
-     `ref` from `"release"` to `"vX.Y.Z"`:
-     ```json
-     "ref": "vX.Y.Z"
-     ```
-   - Commit and push: `git commit -am "chore: pin forge to vX.Y.Z tag" && git push`
+   ```bash
+   cd ../skillforge
+   # Edit .claude-plugin/marketplace.json: change forge entry's "ref": "release" to "ref": "vX.Y.Z"
+   git commit -am "chore: pin forge to vX.Y.Z tag"
+   git push origin main
+   cd ../forge
+   ```
 
 Users installing via skillforge will get the pinned version on their next
 install or `/forge:update`. The tag reference forces a fresh clone, breaking
