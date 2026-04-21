@@ -14,7 +14,7 @@ Read the Forge config to determine available capabilities:
 ```sh
 node "$FORGE_ROOT/tools/manage-config.cjs" get project 2>/dev/null
 node "$FORGE_ROOT/tools/manage-config.cjs" get version 2>/dev/null
-PREFIX_LOWER=$(node -e "const p=require('.forge/config.json').project.prefix; console.log(p.toLowerCase())")
+PREFIX_LOWER=$(node "$FORGE_ROOT/tools/manage-config.cjs" get project.prefix 2>/dev/null | tr '[:upper:]' '[:lower:]')
 ```
 
 Store `FORGE_ROOT` from the calling command's environment.

@@ -1,4 +1,12 @@
 {
+  "0.22.1": {
+    "version": "0.23.0",
+    "date": "2026-04-21",
+    "notes": "Fix path resolution bug: replace require('.forge/config.json') in node -e one-liners with manage-config.cjs calls. The bare require() resolved from process.cwd() which failed when the shell wasn't in the project root.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.22.0": {
     "version": "0.22.1",
     "date": "2026-04-20",

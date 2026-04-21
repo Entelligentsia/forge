@@ -11,6 +11,12 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.23.0] — 2026-04-21
+
+Fix path resolution bug in three command/agent files that used `require('.forge/config.json')` inside `node -e` one-liners. In `node -e` mode, `require()` with a relative path resolves from `process.cwd()`, which fails when the shell's working directory isn't the project root — causing `Cannot find module '.forge/config.json'` errors in any project using Forge. All three occurrences replaced with `manage-config.cjs get project.prefix` calls, matching the pattern already used by other commands. No regeneration required.
+
+---
+
 ## [0.22.1] — 2026-04-20
 
 Fix preflight-gate.cjs task directory resolution. `lastSegment(taskRecord.path)` extracted the source filename (e.g., `store-cli.cjs`) instead of the artifact directory name (e.g., `FORGE-S12-T06-model-discovery`), breaking `{task}` path substitution and verdict source resolution in `resolveVerdictSources`. New `resolveTaskArtifactDir()` scans the sprint directory for the matching `{taskId}-*` subdirectory, falling back to `lastSegment` for legacy records. 1 new test, 578 total.

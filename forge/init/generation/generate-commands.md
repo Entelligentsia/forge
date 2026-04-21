@@ -16,7 +16,7 @@ prefix (e.g. `/acme:plan`, `/ember:fix-bug`) to prevent collisions with other pl
 Read the project prefix from config before writing any file:
 
 ```sh
-PREFIX: !`node -e "console.log(require('.forge/config.json').project.prefix.toLowerCase())"`
+PREFIX: !`node "$FORGE_ROOT/tools/manage-config.cjs" get project.prefix 2>/dev/null | tr '[:upper:]' '[:lower:]'`
 ```
 
 `.claude/commands/{PREFIX}/` with namespaced commands:

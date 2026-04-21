@@ -1,6 +1,6 @@
 {
-  "version": "0.22.1",
-  "generated": "2026-04-20",
+  "version": "0.23.0",
+  "generated": "2026-04-21",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
     "commands/add-pipeline.md": "d917d987954c370ee119bf7c8419af7ef115c4fac0aad45f77f7979b49f1b459",
@@ -14,12 +14,12 @@
     "commands/migrate.md": "cfb2151f7c6e06694adfc47be2c5ae348eaa24e9c657d7494399169aacc95114",
     "commands/quiz-agent.md": "ed261a5c8ac7cd3a1d7c8b372c9bf099bba9a4f9dc0a41cb5c80f22b57a133a1",
     "commands/regenerate.md": "950aeee31a200f46cbe73830f0f0a972a99f1995380b81bb7a9eb457075880fc",
-    "commands/remove.md": "45c775a7268261d5c1a99cc251ecf9d841d75b670b217217389cdaca3f36f71c",
+    "commands/remove.md": "1a470eacbefbf62e7d3a6ab6d4343fd39cbcb3e0e6225ff0ef921d1d21efcc23",
     "commands/report-bug.md": "af8a54bf8887b35e5c880898dd45783f6c2e80d3dc031d6479a6be613ac43053",
     "commands/store-repair.md": "9317be65deb400953b8642b4d353d5583d3b032546c0b8f73d6c3a9b3445ebdd",
     "commands/update-tools.md": "768c0d7ec07a17055c3d4b1b31370812f4292e03b1496723ba36f8caf596a609",
     "commands/update.md": "fec303564dbe18976cecc005fb67f9977c6df4bd86fa84d9addd5027aebd1ab0",
-    "agents/tomoshibi.md": "fc427c9823a5655a18cc6f1b7191063d985706481e43c5ca58f570ba772dbbd1",
+    "agents/tomoshibi.md": "0112604af0856235d7f028683dbfa3f4af63355cb2dd79d26592e983a6ecec8b",
     "hooks/check-update.js": "c7b2a4ae5172452ed842e92cb879dd463b9c4e7f19297ee2e356088df04b8e71",
     "hooks/triage-error.js": "b1e9c1c9a9f3e4868fff295f2caf87a2a72a817ee767af35f6334c88e45e16d4",
     "hooks/validate-write.js": "bf17f740ae43d85a7f4b18bc08e2628534c3698ec5202cb51ebd3f0792375f24",
