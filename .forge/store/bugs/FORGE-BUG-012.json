@@ -1,0 +1,14 @@
+{
+  "bugId": "FORGE-BUG-012",
+  "title": "/forge:update cannot detect multiple plugin installations",
+  "description": "Update check logic cannot see all installed Forge distributions — only reads CLAUDE_PLUGIN_ROOT env var (single value). Cannot detect when both forge@forge and forge@skillforge are installed, cannot distinguish user-scope vs project-scope installs, and has no awareness of disabled plugins.",
+  "severity": "major",
+  "status": "fixed",
+  "path": "engineering/bugs/FORGE-BUG-012-multi-plugin-detection",
+  "githubIssue": "https://github.com/Entelligentsia/forge/issues/65",
+  "reportedAt": "2026-04-21T00:00:00Z",
+  "rootCauseCategory": "configuration",
+  "resolvedAt": "2026-04-21T00:00:00Z",
+  "checklistItemAdded": false,
+  "businessRuleUpdated": false
+}

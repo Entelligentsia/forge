@@ -5,6 +5,12 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.24.0] — 2026-04-21
+
+Multi-plugin detection in session-start hook. `check-update.js` now scans all plugin locations (`~/.claude/plugins/`, `./.claude/plugins/`) to detect multiple Forge installations. Reports scope (user/project), distribution (`forge@forge`/`forge@skillforge`), and enabled status. Enables `/forge:update` to advise users with multiple installations. 15 new tests added (593 total, 0 fail).
+
+---
+
 ## [Unreleased]
 
 (no entries)

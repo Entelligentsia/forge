@@ -1,4 +1,12 @@
 {
+  "0.23.0": {
+    "version": "0.24.0",
+    "date": "2026-04-21",
+    "notes": "Multi-plugin detection: check-update.js now scans all plugin locations (~/.claude/plugins/, ./.claude/plugins/) to detect multiple Forge installations. Reports scope (user/project), distribution (forge@forge/forge@skillforge), and enabled status. Enables /forge:update to advise users with multiple installations.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.22.1": {
     "version": "0.23.0",
     "date": "2026-04-21",

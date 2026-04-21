@@ -29,13 +29,99 @@ const forgeDir = '.forge';
 const hasForge = fs.existsSync(forgeDir) && fs.existsSync(path.join(forgeDir, 'config.json'));
 const projectCacheFile = path.join(forgeDir, 'update-check-cache.json');
 
-// Distribution detection — derived from CLAUDE_PLUGIN_ROOT path at runtime.
+// Distribution detection — derived from plugin path at runtime.
 // The cache path encodes the marketplace name, making this more reliable than
 // reading fields from plugin.json (which may be stale after a switch).
 function detectDistribution(root) {
-  return root.includes('/cache/skillforge/forge/') ? 'forge@skillforge' : 'forge@forge';
+  return root.includes('/cache/skillforge/forge/') || root.includes('/marketplaces/skillforge/forge/')
+    ? 'forge@skillforge' : 'forge@forge';
 }
 const currentDistribution = detectDistribution(pluginRoot);
+
+// --- Multi-plugin scanning ---
+// Scans all known plugin locations to detect multiple Forge installations.
+// Returns array of installation records with version, distribution, scope, enabled status.
+// Optional parameters for dependency injection (testing).
+function scanPluginInstallations(options) {
+  const installations = [];
+  const homeDir = (options && options.homeDir) || os.homedir();
+  const cwd = (options && options.cwd) || process.cwd();
+
+  // Candidate paths — user scope (global) and project scope (local)
+  // Also scan skillforge subdirectory variant (skillforge/forge/forge)
+  const basePaths = [
+    path.join(homeDir, '.claude', 'plugins'),
+    path.join(cwd, '.claude', 'plugins'),
+  ];
+  const variants = ['cache', 'marketplaces'];
+  const pluginNames = ['forge/forge', 'skillforge/forge/forge'];
+
+  const candidates = [];
+  for (const basePath of basePaths) {
+    for (const variant of variants) {
+      for (const pluginName of pluginNames) {
+        candidates.push(path.join(basePath, variant, pluginName));
+      }
+    }
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const pluginJsonPath = path.join(candidate, '.claude-plugin', 'plugin.json');
+      if (!fs.existsSync(pluginJsonPath)) continue;
+
+      const manifest = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
+      // Determine scope: user-scope paths start with homeDir/.claude, project-scope start with cwd/.claude
+      // Use cwd-relative check first to avoid false positives when cwd is subdir of homeDir
+      const isProjectScope = candidate.startsWith(path.join(cwd, '.claude'));
+      const isUserScope = candidate.startsWith(path.join(homeDir, '.claude'));
+      const scope = isProjectScope ? 'project' : (isUserScope ? 'user' : 'unknown');
+      const enabled = isPluginEnabled(candidate, scope, homeDir, cwd);
+
+      // Avoid duplicates — skip if same path already recorded
+      if (installations.some(i => i.path === candidate)) continue;
+
+      installations.push({
+        path: candidate,
+        version: manifest.version || 'unknown',
+        distribution: detectDistribution(candidate),
+        scope: scope,
+        enabled: enabled,
+      });
+    } catch (e) {
+      // Non-fatal — skip broken installations silently
+    }
+  }
+
+  return installations;
+}
+
+// Check if forge plugin is enabled in settings files.
+// Returns true if no explicit disable found, false if disabled.
+function isPluginEnabled(pluginPath, scope, homeDir, cwd) {
+  try {
+    // Check user settings: ~/.claude/settings.json
+    const userSettingsPath = path.join(homeDir, '.claude', 'settings.json');
+    if (fs.existsSync(userSettingsPath)) {
+      const userSettings = JSON.parse(fs.readFileSync(userSettingsPath, 'utf8'));
+      if (userSettings.disablePlugin === true) return false;
+      // Check for per-plugin disable (if supported in future)
+      if (userSettings.plugins && userSettings.plugins.forge === false) return false;
+    }
+
+    // Check project settings: ./.claude/settings.local.json
+    const projectSettingsPath = path.join(cwd, '.claude', 'settings.local.json');
+    if (fs.existsSync(projectSettingsPath)) {
+      const projectSettings = JSON.parse(fs.readFileSync(projectSettingsPath, 'utf8'));
+      if (projectSettings.disablePlugin === true) return false;
+      if (projectSettings.plugins && projectSettings.plugins.forge === false) return false;
+    }
+
+    return true; // Default: enabled
+  } catch (e) {
+    return true; // Non-fatal — assume enabled if cannot read settings
+  }
+}
 
 // Determine the correct update-check URL for this distribution.
 // Each distribution's plugin.json carries its own updateUrl pointing at the
@@ -97,9 +183,13 @@ function emit(forgeCtx, updateMsg) {
   process.stdout.write(`{"additionalContext":"${escaped}"}\n`);
 }
 
-// --- Main logic ---
-const local = localVersion();
-const now = Math.floor(Date.now() / 1000);
+// --- Main logic (only runs when executed as script, not when required as module) ---
+if (require.main === module) {
+  const local = localVersion();
+  const now = Math.floor(Date.now() / 1000);
+
+  // Scan for all plugin installations — builds inventory for multi-plugin awareness.
+  const allInstallations = scanPluginInstallations();
 
 // Plugin-level cache: throttle (lastCheck, remoteVersion) — shared, not migration state.
 let pluginCache = null;
@@ -160,6 +250,17 @@ if (hasForge && pluginRoot !== '.') {
 
 const elapsed = pluginCache ? now - (pluginCache.lastCheck || 0) : Infinity;
 
+// Build multi-plugin awareness message if multiple installations found.
+let multiPluginMsg = '';
+if (allInstallations.length >= 2) {
+  const activeInst = allInstallations.find(i => i.path === pluginRoot) || allInstallations[0];
+  const otherInsts = allInstallations.filter(i => i.path !== activeInst.path);
+  if (otherInsts.length > 0) {
+    const otherDesc = otherInsts.map(i => `${i.version} (${i.distribution}, ${i.scope})`).join(', ');
+    multiPluginMsg = `Also installed: ${otherDesc}. `;
+  }
+}
+
 if (elapsed < checkInterval) {
   // Plugin cache still fresh — use stored remote version.
   // Detect post-install: if the project's recorded localVersion differs from
@@ -182,7 +283,8 @@ if (elapsed < checkInterval) {
       postInstallMsg = `Forge was updated to ${local} (was ${projectCache.localVersion}). Run /forge:update to review changes and update.`;
     }
   }
-  const updateMsg = distributionSwitchMsg || postInstallMsg || buildUpdateMsg((pluginCache && pluginCache.remoteVersion) || '', local);
+  const baseMsg = distributionSwitchMsg || postInstallMsg || buildUpdateMsg((pluginCache && pluginCache.remoteVersion) || '', local);
+  const updateMsg = baseMsg ? multiPluginMsg + baseMsg : baseMsg;
   emit(forgeContext, updateMsg);
 } else {
   // Plugin cache expired or missing — fetch fresh remote version.
@@ -208,7 +310,12 @@ if (elapsed < checkInterval) {
         } catch { /* non-fatal */ }
       }
     }
-    const updateMsg = distributionSwitchMsg || buildUpdateMsg(remoteVersion, local);
+    const baseMsg = distributionSwitchMsg || buildUpdateMsg(remoteVersion, local);
+    const updateMsg = baseMsg ? multiPluginMsg + baseMsg : baseMsg;
     emit(forgeContext, updateMsg);
   });
 }
+}
+
+// Export functions for testing
+module.exports = { scanPluginInstallations, isPluginEnabled, detectDistribution };
