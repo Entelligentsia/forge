@@ -5,6 +5,12 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.24.1] — 2026-04-21
+
+Fix init mode selection dialogue. Resume Detection now requires the `mode` field to be present in `.forge/init-progress.json` before treating a checkpoint as valid. Stale checkpoints without a `mode` field (from interrupted runs that didn't complete Mode Selection) now fall through to the full Fast/Full prompt instead of silently defaulting to 'full' via config.json fallback. This ensures users always see the mode selection dialogue on fresh or partial init runs.
+
+---
+
 ## [0.24.0] — 2026-04-21
 
 Multi-plugin detection in session-start hook. `check-update.js` now scans all plugin locations (`~/.claude/plugins/`, `./.claude/plugins/`) to detect multiple Forge installations. Reports scope (user/project), distribution (`forge@forge`/`forge@skillforge`), and enabled status. Enables `/forge:update` to advise users with multiple installations. 15 new tests added (593 total, 0 fail).

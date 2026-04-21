@@ -7,6 +7,14 @@
     "breaking": false,
     "manual": []
   },
+  "0.24.0": {
+    "version": "0.24.1",
+    "date": "2026-04-21",
+    "notes": "Fix init mode selection: Resume Detection now requires the mode field to be present in init-progress.json. Stale checkpoints without a mode field (from interrupted runs that didn't complete Mode Selection) fall through to the full Fast/Full prompt instead of silently defaulting to 'full' via config.json fallback.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.22.1": {
     "version": "0.23.0",
     "date": "2026-04-21",

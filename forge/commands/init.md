@@ -28,7 +28,13 @@ Before showing the pre-flight plan, check for an existing checkpoint:
 cat .forge/init-progress.json 2>/dev/null
 ```
 
-If the file exists and contains a valid `lastPhase` value, emit:
+If the file exists and contains a valid `lastPhase` value (integer 0-11),
+check whether it ALSO contains a valid `mode` field (`"fast"` or `"full"`).
+
+- If `mode` is **absent or invalid**: this is a stale checkpoint from a
+  previous run that did not complete Mode Selection. Delete the file
+  (`rm -f .forge/init-progress.json`) and proceed to **Mode Selection**.
+- If `mode` is valid: emit the resume banner below.
 
 ```
 〇 Previous init detected — last completed phase: {lastPhase}
@@ -53,9 +59,11 @@ Use the following phase-to-resume mapping:
 | 11        | Phase 12                |
 
 If the user chooses to resume: read the stored mode from
-`.forge/init-progress.json` (fallback chain: `init-progress.json` `mode` →
-`.forge/config.json` `mode` → `"full"`), then run the **Stored-mode sub-prompt**
-below before jumping to the mapped resume phase.
+`.forge/init-progress.json` ONLY (do NOT fall back to config.json). If the
+`mode` field is absent in `init-progress.json`, proceed to **Mode Selection**
+below (the full Fast/Full prompt) instead of the Stored-mode sub-prompt.
+Only if the `mode` field exists in `init-progress.json`, run the
+**Stored-mode sub-prompt** below before jumping to the mapped resume phase.
 
 If the user chooses to start over: delete `.forge/init-progress.json` (using
 `rm -f .forge/init-progress.json`) and proceed to **Mode Selection** below.
@@ -66,7 +74,11 @@ unrecognized `lastPhase` value: delete the corrupt file and proceed to
 
 #### Stored-mode sub-prompt (resume only)
 
-After confirming resume, emit (substituting the stored mode):
+This sub-prompt runs ONLY if the `mode` field was already persisted in
+`.forge/init-progress.json` (i.e. the user completed Mode Selection in a
+previous run). If `mode` is absent, jump to **Mode Selection** instead.
+
+When running this sub-prompt, emit (substituting the stored mode):
 
 ```
 〇 Previous init used: <stored-mode> mode

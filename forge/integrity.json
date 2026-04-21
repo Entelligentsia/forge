@@ -1,5 +1,5 @@
 {
-  "version": "0.23.0",
+  "version": "0.24.1",
   "generated": "2026-04-21",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
@@ -9,7 +9,7 @@
     "commands/calibrate.md": "8933a7ef7f675a929f15c0aae475f44944fbaf977a41bdc5a69f763cdf53620d",
     "commands/config.md": "67251316b806d706bb77f063128e29995c6b4abaf554f4d5558bd97a1a6cfcfe",
     "commands/health.md": "cf8a59cfb403ba268922bc60abcdd9255a3b5690ae0175bb2819b3f6789debc0",
-    "commands/init.md": "5ed304e6cc505e151a59b8244b69b680df4989493237f6b1eed4028e7dad5820",
+    "commands/init.md": "efbfe9d4dd915ff99b2c4c2ceefe2537fbdc76e86d7b73a7fe2bf872a332f6c9",
     "commands/materialize.md": "195292c9e98f50773c1b0c84f9bbc42438c4c8c989a84bd98092f6692799d6d6",
     "commands/migrate.md": "cfb2151f7c6e06694adfc47be2c5ae348eaa24e9c657d7494399169aacc95114",
     "commands/quiz-agent.md": "ed261a5c8ac7cd3a1d7c8b372c9bf099bba9a4f9dc0a41cb5c80f22b57a133a1",
@@ -20,7 +20,7 @@
     "commands/update-tools.md": "768c0d7ec07a17055c3d4b1b31370812f4292e03b1496723ba36f8caf596a609",
     "commands/update.md": "fec303564dbe18976cecc005fb67f9977c6df4bd86fa84d9addd5027aebd1ab0",
     "agents/tomoshibi.md": "0112604af0856235d7f028683dbfa3f4af63355cb2dd79d26592e983a6ecec8b",
-    "hooks/check-update.js": "c7b2a4ae5172452ed842e92cb879dd463b9c4e7f19297ee2e356088df04b8e71",
+    "hooks/check-update.js": "c7b6461858f74732df4e2e5a7ea485f38ed92fb3303a727ef252a95a5f19478f",
     "hooks/triage-error.js": "b1e9c1c9a9f3e4868fff295f2caf87a2a72a817ee767af35f6334c88e45e16d4",
     "hooks/validate-write.js": "bf17f740ae43d85a7f4b18bc08e2628534c3698ec5202cb51ebd3f0792375f24",
     "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
