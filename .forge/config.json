@@ -29,7 +29,7 @@
     "commands": ".claude/commands",
     "templates": ".forge/templates",
     "customCommands": "engineering/commands",
-    "forgeRoot": "/home/boni/.claude/plugins/cache/forge/forge/0.22.1"
+    "forgeRoot": "/home/boni/.claude/plugins/marketplaces/forge/forge"
   },
   "pipeline": {
     "maxReviewIterations": 3
