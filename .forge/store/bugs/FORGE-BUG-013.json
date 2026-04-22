@@ -1,0 +1,10 @@
+{
+  "bugId": "FORGE-BUG-013",
+  "title": "Token telemetry unreliable — silent skip fallback + non-enforced reporting",
+  "description": "Workflows have silent skip fallback for /cost unavailability (sprint-intake, sprint-plan). Other workflows mandate token reporting but do not enforce. Result: 40-60% reliability, testbench runs produce no token data.",
+  "severity": "major",
+  "status": "fixed",
+  "path": "engineering/bugs/FORGE-BUG-013-token-telemetry-reliability",
+  "reportedAt": "2026-04-22T00:00:00Z",
+  "resolvedAt": "2026-04-22T00:00:00Z"
+}
