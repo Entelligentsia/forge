@@ -1,4 +1,12 @@
 {
+  "0.24.2": {
+    "version": "0.25.0",
+    "date": "2026-04-22",
+    "notes": "Fix permission-check rejection of $FORGE_ROOT in slash command frontmatter. Replace all !-prefixed manage-config.cjs calls with direct .forge/config.json reads using literal paths. Eliminates 'Contains simple_expansion' errors when running Forge commands without --dangerously-skip-permissions.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.24.1": {
     "version": "0.24.2",
     "date": "2026-04-22",

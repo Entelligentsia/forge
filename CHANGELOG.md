@@ -5,6 +5,12 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.25.0] — 2026-04-22
+
+Fix permission-check rejection of `$FORGE_ROOT` in slash command frontmatter. Claude Code's permission checker blocks `!`-prefixed frontmatter containing shell variable expansions ("Contains simple_expansion"), preventing Forge commands like `/forge:add-task`, `/forge:add-pipeline`, `/forge:remove`, and `/forge:refresh-kb-links` from running without `--dangerously-skip-permissions`. All `!`-prefixed `manage-config.cjs` calls now read directly from `.forge/config.json` using literal relative paths — zero variable expansions, passes the permission checker. Init instruction files also cleaned up: replaced misleading `!` backtick notation with standard bash command substitution. Closes #67.
+
+---
+
 ## [0.24.2] — 2026-04-22
 
 Token telemetry reliability fix. Workflows now emit placeholder sidecars with null token fields when `/cost` unavailable (previously: skip silently). Step 0 checks `/cost` availability; if fails, Token Reporting step emits sidecar with `"source": "missing"`, `"inputTokens": null`. Users backfill later via `estimate-usage.cjs --sprint SPRINT-ID`. Eliminates silent data loss. 7 meta workflows updated.

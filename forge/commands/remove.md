@@ -22,8 +22,8 @@ Read the configured KB path and project prefix from config:
 
 ```sh
 FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
-KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo "engineering"`
-PREFIX: !`node "$FORGE_ROOT/tools/manage-config.cjs" get project.prefix 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo ""`
+KB_PATH: !`node -e "try{console.log(require('./.forge/config.json').paths.engineering)}catch{console.log('engineering')}"`
+PREFIX: !`node -e "try{console.log(require('./.forge/config.json').project.prefix.toLowerCase())}catch{console.log('')}"`
 ```
 
 If `PREFIX` is empty or `.forge/config.json` is unreadable, fall back to scanning both

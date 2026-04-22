@@ -14,7 +14,7 @@ This skill is invoked by `/forge:refresh-kb-links` or conversationally via `/for
 Read the Forge config to determine the KB root path:
 
 ```sh
-KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo "engineering"`
+KB_PATH: !`node -e "try{console.log(require('./.forge/config.json').paths.engineering)}catch{console.log('engineering')}"`
 ```
 
 ## Known Agent Instruction Files

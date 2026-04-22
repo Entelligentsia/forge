@@ -10,7 +10,7 @@ Self-correct up to once per failing component.
 Read the configured KB path:
 
 ```sh
-KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo "engineering"`
+KB_PATH=$(node -e "try{console.log(require('./.forge/config.json').paths.engineering)}catch{console.log('engineering')}")
 ```
 
 Read `.forge/config.json` and check the `mode` field. If `mode` equals `"fast"`,

@@ -90,7 +90,7 @@ After this question (and any config write), resolve `KB_PATH` for use in all
 subsequent phases:
 
 ```sh
-KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo "engineering"`
+KB_PATH=$(node -e "try{console.log(require('./.forge/config.json').paths.engineering)}catch{console.log('engineering')}")
 ```
 
 ---

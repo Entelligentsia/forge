@@ -9,13 +9,13 @@ Read the caller's `workflow_id` from the invocation arguments (passed as
 `workflow_id=<id>`). Set `WORKFLOW_ID` to this value.
 
 Resolve `FORGE_ROOT`:
-```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+```sh
+FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
 ```
 
 Read the project config and resolve `KB_PATH`:
 ```sh
-KB_PATH: !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo "engineering"`
+KB_PATH=$(node -e "try{console.log(require('./.forge/config.json').paths.engineering)}catch{console.log('engineering')}")
 ```
 
 ---

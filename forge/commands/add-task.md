@@ -15,9 +15,9 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 
 Read project config values:
 ```
-PROJECT_PREFIX:       !`node "$FORGE_ROOT/tools/manage-config.cjs" get project.prefix 2>/dev/null || echo "PROJECT"`
-ENGINEERING_PATH:     !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo "engineering"`
-STORE_ROOT:           !`node "$FORGE_ROOT/tools/manage-config.cjs" get paths.store 2>/dev/null || echo ".forge/store"`
+PROJECT_PREFIX:       !`node -e "try{console.log(require('./.forge/config.json').project.prefix)}catch{console.log('PROJECT')}"`
+ENGINEERING_PATH:     !`node -e "try{console.log(require('./.forge/config.json').paths.engineering)}catch{console.log('engineering')}"`
+STORE_ROOT:           !`node -e "try{console.log(require('./.forge/config.json').paths.store)}catch{console.log('.forge/store')}"`
 ```
 
 ## Arguments

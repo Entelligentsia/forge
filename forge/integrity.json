@@ -1,10 +1,10 @@
 {
-  "version": "0.24.1",
-  "generated": "2026-04-21",
+  "version": "0.25.0",
+  "generated": "2026-04-22",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
-    "commands/add-pipeline.md": "d917d987954c370ee119bf7c8419af7ef115c4fac0aad45f77f7979b49f1b459",
-    "commands/add-task.md": "867a4b8f1138ad38378aae301a3cc9b41f4a7ccb6f7b30e9f9bca4c5d58c6a04",
+    "commands/add-pipeline.md": "402c1deb6f19ad99561b48548ad89e3e1f625b827dce633eb84317556c0a1a4a",
+    "commands/add-task.md": "b2640c4b3c8c4fb9d4a82633d8c4d8fcd13bd63d4d6deb2c5c6a2008508de770",
     "commands/ask.md": "df15f0aa68c93d65bfef05adb514c377bfc65617cafcd79534eb9b4149302657",
     "commands/calibrate.md": "8933a7ef7f675a929f15c0aae475f44944fbaf977a41bdc5a69f763cdf53620d",
     "commands/config.md": "67251316b806d706bb77f063128e29995c6b4abaf554f4d5558bd97a1a6cfcfe",
@@ -14,7 +14,7 @@
     "commands/migrate.md": "cfb2151f7c6e06694adfc47be2c5ae348eaa24e9c657d7494399169aacc95114",
     "commands/quiz-agent.md": "ed261a5c8ac7cd3a1d7c8b372c9bf099bba9a4f9dc0a41cb5c80f22b57a133a1",
     "commands/regenerate.md": "950aeee31a200f46cbe73830f0f0a972a99f1995380b81bb7a9eb457075880fc",
-    "commands/remove.md": "1a470eacbefbf62e7d3a6ab6d4343fd39cbcb3e0e6225ff0ef921d1d21efcc23",
+    "commands/remove.md": "de8802ee8ad5db4c4f3d0f526eb8735ab7de1a4b8ad307355d11dac5e1e04fc6",
     "commands/report-bug.md": "af8a54bf8887b35e5c880898dd45783f6c2e80d3dc031d6479a6be613ac43053",
     "commands/store-repair.md": "9317be65deb400953b8642b4d353d5583d3b032546c0b8f73d6c3a9b3445ebdd",
     "commands/update-tools.md": "768c0d7ec07a17055c3d4b1b31370812f4292e03b1496723ba36f8caf596a609",
