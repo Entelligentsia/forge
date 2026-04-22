@@ -21,6 +21,11 @@ Capture sprint requirements via a structured interview and document them for pla
 ## Algorithm
 
 ```
+0. Pre-flight Gate Check:
+   - Run `/cost` to verify token reporting available
+   - If `/cost` succeeds → note for later (will use reported data)
+   - If `/cost` fails or unavailable → note for later (will use estimates)
+
 1. Load Context:
    - Read project vision and current MASTER_INDEX.md
    - Read any pending feature requests or bug reports
@@ -50,6 +55,13 @@ Capture sprint requirements via a structured interview and document them for pla
   - Reference project-specific requirement templates.
 - **Token Reporting:** The generated workflow MUST mandate the following before returning:
   1. Run `/cost` to retrieve session token usage.
-  2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+  2. If `/cost` succeeds:
+     - Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
+     - Add `"source": "reported"` to sidecar JSON.
+  3. If `/cost` fails or unavailable:
+     - Set token fields to `null`: `"inputTokens": null, "outputTokens": null, "estimatedCostUSD": null`.
+     - Add `"source": "missing"` to sidecar JSON.
+     - Log: "Token data unavailable (/cost failed). Backfill later via estimate-usage.cjs."
+  4. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+  5. **NEVER skip sidecar write.** Always emit (reported or placeholder with nulls).
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

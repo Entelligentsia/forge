@@ -1,4 +1,12 @@
 {
+  "0.24.1": {
+    "version": "0.24.2",
+    "date": "2026-04-22",
+    "notes": "Token telemetry reliability: workflows now emit placeholder sidecars with null token fields when /cost unavailable (was: skip silently). Users backfill via estimate-usage.cjs. Always emit sidecar with source: reported or missing.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
   "0.23.0": {
     "version": "0.24.0",
     "date": "2026-04-21",

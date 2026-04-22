@@ -21,6 +21,11 @@ Break sprint requirements into a set of estimated tasks with a dependency graph.
 ## Algorithm
 
 ```
+0. Pre-flight Gate Check:
+   - Run `/cost` to verify token reporting available
+   - If `/cost` succeeds → note for later (will use reported data)
+   - If `/cost` fails or unavailable → note for later (will use estimates)
+
 1. Load Context:
    - Read SPRINT_REQUIREMENTS.md
    - Read architecture and domain docs
@@ -118,8 +123,15 @@ environment variable is reserved for emergency operator repair only.
   - Reference project's task manifest schema.
 - **Token Reporting:** The generated workflow MUST mandate the following before returning:
   1. Run `/cost` to retrieve session token usage.
-  2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+  2. If `/cost` succeeds:
+     - Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
+     - Add `"source": "reported"` to sidecar JSON.
+  3. If `/cost` fails or unavailable:
+     - Set token fields to `null`: `"inputTokens": null, "outputTokens": null, "estimatedCostUSD": null`.
+     - Add `"source": "missing"` to sidecar JSON.
+     - Log: "Token data unavailable (/cost failed). Backfill later via estimate-usage.cjs."
+  4. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+  5. **NEVER skip sidecar write.** Always emit (reported or placeholder with nulls).
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.
 - **Store-Write Verification:** The generated workflow MUST include the "Store-Write
   Verification" section verbatim. Every `store-cli write`, `store-cli update-status`,

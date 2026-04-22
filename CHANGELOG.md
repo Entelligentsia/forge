@@ -5,6 +5,14 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.24.2] — 2026-04-22
+
+Token telemetry reliability fix. Workflows now emit placeholder sidecars with null token fields when `/cost` unavailable (previously: skip silently). Step 0 checks `/cost` availability; if fails, Token Reporting step emits sidecar with `"source": "missing"`, `"inputTokens": null`. Users backfill later via `estimate-usage.cjs --sprint SPRINT-ID`. Eliminates silent data loss. 7 meta workflows updated.
+
+**Regenerate:** workflows
+
+---
+
 ## [0.24.1] — 2026-04-21
 
 Fix init mode selection dialogue. Resume Detection now requires the `mode` field to be present in `.forge/init-progress.json` before treating a checkpoint as valid. Stale checkpoints without a `mode` field (from interrupted runs that didn't complete Mode Selection) now fall through to the full Fast/Full prompt instead of silently defaulting to 'full' via config.json fallback. This ensures users always see the mode selection dialogue on fresh or partial init runs.
