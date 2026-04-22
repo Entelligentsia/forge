@@ -1,0 +1,10 @@
+{
+  "bugId": "FORGE-BUG-014",
+  "title": "Permission prompt storm — 80+ approval prompts per Forge command without --dangerously-skip-permissions",
+  "description": "Every Forge command triggers 80+ individual permission prompts because no allow rules are shipped with the plugin. Each node tool call, shell command, Write/Edit, and compound operation (pipes, &&, ||) requires separate approval. /forge:report-bug itself fails on first step due to 2>&1 | head compound rejection. ~900 distinct permission triggers exist across plugin source.",
+  "severity": "critical",
+  "status": "open",
+  "path": "engineering/bugs/FORGE-BUG-014-permission-prompt-storm",
+  "reportedAt": "2026-04-22T00:00:00Z",
+  "resolvedAt": null
+}

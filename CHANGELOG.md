@@ -5,6 +5,16 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.26.0] — 2026-04-23
+
+Permission prompt storm fix (BUG-014): add `PermissionRequest` hook that auto-approves known Forge tool patterns and persists allow rules to `.claude/settings.local.json`. Covers `node` tool invocations, shell commands (`mkdir`, `cp`, `ls`, `cat`, `jq`, `gh`, etc.), writes/edits to `.forge/`, `.claude/commands/`, and `engineering/`, and WebFetch to `raw.githubusercontent.com`. First run shows ~17 approval prompts (one per rule pattern) that persist; subsequent runs have zero prompts for Forge patterns. Deny rules always take precedence. Closes #68.
+
+**Regenerate:** hooks
+
+> Manual: Restart Claude Code after updating for the new hook to take effect. On first Forge command, approve each permission prompt once — they persist for future sessions.
+
+---
+
 ## [0.25.0] — 2026-04-22
 
 Fix permission-check rejection of `$FORGE_ROOT` in slash command frontmatter. Claude Code's permission checker blocks `!`-prefixed frontmatter containing shell variable expansions ("Contains simple_expansion"), preventing Forge commands like `/forge:add-task`, `/forge:add-pipeline`, `/forge:remove`, and `/forge:refresh-kb-links` from running without `--dangerously-skip-permissions`. All `!`-prefixed `manage-config.cjs` calls now read directly from `.forge/config.json` using literal relative paths — zero variable expansions, passes the permission checker. Init instruction files also cleaned up: replaced misleading `!` backtick notation with standard bash command substitution. Closes #67.

@@ -1,4 +1,12 @@
 {
+  "0.25.0": {
+    "version": "0.26.0",
+    "date": "2026-04-23",
+    "notes": "Permission prompt storm fix (BUG-014): add PermissionRequest hook that auto-approves known Forge tool patterns (node tools, shell commands, writes to .forge/ and .claude/commands/, WebFetch to raw.githubusercontent.com). First run shows ~17 approval prompts that persist to .claude/settings.local.json; subsequent runs have zero prompts for Forge patterns. Also updates bug status for FORGE-BUG-014.",
+    "regenerate": ["hooks"],
+    "breaking": false,
+    "manual": ["Restart Claude Code after updating for the new hook to take effect. On first Forge command, approve each permission prompt once — they will persist for future sessions."]
+  },
   "0.24.2": {
     "version": "0.25.0",
     "date": "2026-04-22",
