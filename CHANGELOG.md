@@ -5,6 +5,16 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.27.0] — 2026-04-23
+
+Store query engine: deterministic NLP-based store querying integrated from the store-query marketplace experiment. A 5-stage rule-based parser (no LLM) maps natural language to structured traversal plans: entity synonyms, status/severity mapping, FK follow phrases, ordering/limit/count tokens, and keyword extraction. Replaces 5–6 manual KB navigation tool calls with 1–2 structured calls returning filtered, FK-resolved, excerpt-included results.
+
+New tools: `store-query.cjs` (CLI entry), `lib/store-facade.cjs` (StoreFacade + excerpt extraction), `lib/store-nlp.cjs` (NLP parser), `lib/store-query-exec.cjs` (query execution + result assembly), `query-logger.cjs` (PostToolUse hook). Dispatched via existing `store-cli.cjs` gateway: `nlp`, `query`, `schema` commands. New plugin skills: `forge:store-query-nlp`, `forge:store-query-grammar`. New agent: `forge:store-query-validator`. New command: `/forge:store-query`. Context-gathering query shortcuts added to plan-task, fix-bug, and sprint-plan workflows.
+
+**Regenerate:** tools, workflows
+
+---
+
 ## [0.26.0] — 2026-04-23
 
 Permission prompt storm fix (BUG-014): add `PermissionRequest` hook that auto-approves known Forge tool patterns and persists allow rules to `.claude/settings.local.json`. Covers `node` tool invocations, shell commands (`mkdir`, `cp`, `ls`, `cat`, `jq`, `gh`, etc.), writes/edits to `.forge/`, `.claude/commands/`, and `engineering/`, and WebFetch to `raw.githubusercontent.com`. First run shows ~17 approval prompts (one per rule pattern) that persist; subsequent runs have zero prompts for Forge patterns. Deny rules always take precedence. Closes #68.

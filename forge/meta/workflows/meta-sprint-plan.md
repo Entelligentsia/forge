@@ -27,6 +27,12 @@ Break sprint requirements into a set of estimated tasks with a dependency graph.
    - If `/cost` fails or unavailable → note for later (will use estimates)
 
 1. Load Context:
+   - Query the store to orient on current project state before reading docs:
+     ```sh
+     node "$FORGE_ROOT/tools/store-cli.cjs" nlp "latest sprint"
+     node "$FORGE_ROOT/tools/store-cli.cjs" nlp "open bugs"
+     ```
+     Use results (titles, statuses, excerpts, file refs) to skip manual MASTER_INDEX.md navigation where sufficient.
    - Read SPRINT_REQUIREMENTS.md
    - Read architecture and domain docs
    - Read the stack checklist

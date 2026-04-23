@@ -1,6 +1,6 @@
 {
-  "version": "0.23.0",
-  "generatedAt": "2026-04-21T01:36:24.948Z",
+  "version": "0.26.0",
+  "generatedAt": "2026-04-23T13:59:03.787Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -25,7 +25,6 @@
         "engineer-skills.md",
         "generic-skills.md",
         "qa-engineer-skills.md",
-        "store-custodian-skills.md",
         "supervisor-skills.md"
       ]
     },

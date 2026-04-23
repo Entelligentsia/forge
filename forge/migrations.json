@@ -1,4 +1,12 @@
 {
+  "0.26.0": {
+    "version": "0.27.0",
+    "date": "2026-04-23",
+    "notes": "Store query engine: deterministic NLP-based store querying via store-cli nlp/query/schema commands. Decomposes store-query marketplace experiment into 4 forge tool modules (store-query.cjs, lib/store-facade.cjs, lib/store-nlp.cjs, lib/store-query-exec.cjs). Adds query-logger.cjs PostToolUse hook, forge:store-query-nlp and forge:store-query-grammar plugin skills, forge:store-query-validator agent, /forge:store-query command, and context-gathering shortcuts in plan/fix-bug/sprint-plan workflows. Replaces 5-6 manual KB navigation tool calls with 1-2 structured query calls.",
+    "regenerate": ["tools", "workflows"],
+    "breaking": false,
+    "manual": []
+  },
   "0.25.0": {
     "version": "0.26.0",
     "date": "2026-04-23",

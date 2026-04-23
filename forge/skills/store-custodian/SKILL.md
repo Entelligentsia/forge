@@ -1,36 +1,11 @@
 ---
-id: store-custodian
-name: Store Custodian
-description: Delegate all store read/write operations to the deterministic store-cli.cjs gateway.
-role: Shared
-applies_to: [engineer, architect, bug-fixer, collator, orchestrator, product-manager, qa-engineer, supervisor]
-summary: >
-  Sole authorised gateway for the probabilistic layer to read and modify the
-  JSON store at .forge/store/. All mutations must go through store-cli.cjs.
-capabilities:
-  - Write sprint, task, bug, feature, and event records via store-cli.cjs
-  - Read, list, and validate entities against their JSON schemas
-  - Perform atomic status transitions with transition checks
-  - Emit events and manage sidecars (merge, purge)
-file_ref: .forge/skills/store-custodian-skills.md
+name: store-custodian
+description: "Sole authorized gateway for reading and writing the Forge JSON store (.forge/store/). Use whenever a workflow needs to write sprints, tasks, bugs, features, or events — or read/list/validate/transition them. All store mutations MUST go through store-cli.cjs, never by writing files directly."
+allowed-tools:
+  - Bash
 ---
 
-## Generation Instructions
-
-When generating project-specific skills during `/forge:regenerate skills`, the
-generator must include the Store Custodian skill as a standalone skill file in
-`.forge/skills/store-custodian-skills.md`. Unlike role-specific skills, this skill is
-cross-cutting and is invoked by any persona that needs to read or modify the
-JSON store. Do NOT duplicate this content into each role's skill set.
-
-1. Copy this skill verbatim into `.forge/skills/store-custodian-skills.md`.
-2. Interpolate `FORGE_ROOT` resolution instructions if the project has a
-   configured `paths.forgeRoot` in `.forge/config.json`.
-3. Ensure the invocation patterns table is preserved exactly.
-
-## Overview
-
-**Skill invocation:** `/forge:store <command> <args>`
+# forge:store-custodian
 
 The Store Custodian is the **sole authorized gateway** for the probabilistic
 layer (LLM-driven workflows and commands) to read and modify the JSON store at
@@ -44,7 +19,7 @@ report the error to the user and stop.
 
 Before invoking any store-cli command, resolve the plugin root path:
 
-```
+```sh
 FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
 ```
 
@@ -64,6 +39,8 @@ Exit codes: **0** on success, **1** on failure (validation error, illegal
 transition, entity not found, etc.).
 
 ## Invocation Patterns
+
+### Write / Read / Mutate
 
 | Intent | Command |
 |--------|---------|
@@ -85,6 +62,24 @@ transition, entity not found, etc.).
 | Purge sprint events | `node "$FORGE_ROOT/tools/store-cli.cjs" purge-events FORGE-S01` |
 | Write collation state | `node "$FORGE_ROOT/tools/store-cli.cjs" write-collation-state '{...}'` |
 | Force a transition | `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task T01 status committed --force` |
+
+### Query
+
+Use the query engine to find entities by intent, sprint, or keyword — without manual KB navigation.
+
+| Intent | Command |
+|--------|---------|
+| Query by natural language | `node "$FORGE_ROOT/tools/store-cli.cjs" nlp "open bugs in S12"` |
+| Query sprint tasks/bugs | `node "$FORGE_ROOT/tools/store-cli.cjs" query --sprint S12` |
+| Query specific bug | `node "$FORGE_ROOT/tools/store-cli.cjs" query --bug {PREFIX}-BUG-047` |
+| Query specific task | `node "$FORGE_ROOT/tools/store-cli.cjs" query --task {PREFIX}-S12-T03` |
+| Keyword search | `node "$FORGE_ROOT/tools/store-cli.cjs" query --keyword auth` |
+| Project schema / grammar | `node "$FORGE_ROOT/tools/store-cli.cjs" schema` |
+| Query (strict mode, no NLP) | `node "$FORGE_ROOT/tools/store-cli.cjs" query --mode strict --sprint S12` |
+
+Query returns structured JSON: entity IDs, titles, statuses, relationships, fileRefs, INDEX.md excerpts.
+See `forge:store-query-nlp` for full output schema and confidence signals.
+See `forge:store-query-grammar` for NLP token vocabulary.
 
 ## Entity Types
 

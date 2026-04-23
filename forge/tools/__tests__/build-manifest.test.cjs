@@ -26,8 +26,8 @@ describe('build-manifest.cjs — mapping tables', () => {
     }
   });
 
-  test('SKILL_MAP has 8 entries, each output ends with -skills.md', () => {
-    assert.equal(SKILL_MAP.length, 8);
+  test('SKILL_MAP has 7 entries, each output ends with -skills.md', () => {
+    assert.equal(SKILL_MAP.length, 7);
     for (const [src, out] of SKILL_MAP) {
       assert.ok(out.endsWith('-skills.md'), `expected "${out}" to end with -skills.md`);
     }

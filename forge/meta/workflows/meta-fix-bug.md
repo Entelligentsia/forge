@@ -22,6 +22,12 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
 
 ```
 1. Triage:
+   - If the bug ID is known, query the store for context before navigating the KB:
+     ```sh
+     node "$FORGE_ROOT/tools/store-cli.cjs" nlp "{bugId} with blocked tasks"
+     ```
+     If results include title, status, sprint, blocked tasks, and excerpt, use them directly.
+     Fall back to reading MASTER_INDEX.md manually only if the query returns empty or low-confidence results.
    - Locate or create the bug record (MANDATORY — do this before anything else):
      a. Determine the bug ID: if $ARGUMENTS is an existing FORGE-BUG-NNN ID, use it.
         Otherwise derive the next available ID by listing .forge/store/bugs/.

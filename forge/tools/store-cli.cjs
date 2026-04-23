@@ -1076,6 +1076,19 @@ switch (command) {
   case 'progress-clear':       cmdProgressClear(); break;
   case 'set-summary':          cmdSetSummary(); break;
   case 'set-bug-summary':      cmdSetBugSummary(); break;
+  case 'query':
+  case 'nlp':
+  case 'schema': {
+    // Delegate to store-query.cjs — query engine lives there
+    const { spawnSync } = require('child_process');
+    const queryBin = path.join(__dirname, 'store-query.cjs');
+    const result = spawnSync(process.execPath, [queryBin, command, ...args.slice(1)], {
+      stdio: 'inherit',
+      cwd: process.cwd(),
+    });
+    process.exit(result.status ?? 1);
+    break;
+  }
   default:
     console.error(`Unknown command: ${command}`);
     console.error('Run with --help for usage information.');

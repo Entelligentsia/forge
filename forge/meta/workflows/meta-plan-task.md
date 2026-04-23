@@ -34,6 +34,12 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
 
 1. Load Context:
    - Read task prompt (source of truth)
+   - Query the store for this task and any related entities — faster than manual KB navigation:
+     ```sh
+     node "$FORGE_ROOT/tools/store-cli.cjs" nlp "{taskId} with sprint with feature"
+     ```
+     If results include title, status, sprint, feature, and excerpt, use them directly.
+     Fall back to reading MASTER_INDEX.md manually only if the query returns empty or low-confidence results.
    - Consult the architecture context summary injected in your prompt (under
      "Architecture context"). If no summary was injected, read
      `engineering/architecture/stack.md` directly.

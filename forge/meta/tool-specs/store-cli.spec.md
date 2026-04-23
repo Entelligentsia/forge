@@ -39,6 +39,12 @@ needed.
 <tool> store-cli purge-events <sprintId>                     Delete all events for a sprint
 <tool> store-cli write-collation-state '<json>'              Write COLLATION_STATE.json
 <tool> store-cli validate <entity> '<json>'                  Validate against schema without writing
+<tool> store-cli nlp '<intent>'                              Query store by natural language intent (NLP)
+<tool> store-cli query [--sprint|--task|--bug|--feature <id>] [--status <s>]
+                       [--keyword <term>] [--type <entity>] [flags]
+                                                             Query store by exact flags or intent
+<tool> store-cli query --mode strict|nlp|off [flags]        Explicit mode control (strict=exact flags only)
+<tool> store-cli schema                                      Dump entity schemas, status enums, NLP grammar
 ```
 
 Entity types: `sprint`, `task`, `bug`, `event`, `feature`
@@ -48,6 +54,19 @@ Flags:
 - `--force` — bypass transition check on `update-status` (emits warning)
 - `--json` — output raw JSON on `read` (no pretty-print)
 - `--sidecar` — write as sidecar file on `emit` (ephemeral, `_`-prefixed)
+- `--sprint <id>` — filter query by sprint ID (e.g. `S12`)
+- `--task <id>` — query a specific task by ID
+- `--bug <id>` — query a specific bug by ID
+- `--feature <id>` — query a specific feature by ID
+- `--status <value>` — filter query by status value
+- `--keyword <term>` — keyword search on entity titles
+- `--type <entity>` — restrict `--keyword` to `sprints|tasks|bugs|features`
+- `--with-blockers` — follow `blockedBy` FK on tasks
+- `--with-blocked-tasks` — follow `blocksTask` FK on bugs
+- `--with-sprint` — follow `sprintId` FK on results
+- `--with-feature` — follow `featureId` FK on results
+- `--no-excerpts` — omit INDEX.md excerpts from results
+- `--mode strict|nlp|off` — engine mode (`strict`/`off` = exact flags only; `nlp` = intent parse)
 
 Exit codes: 0 on success, 1 on failure.
 
@@ -228,3 +247,74 @@ missing.
 1. Parse entity type and JSON payload.
 2. Validate against schema (same logic as `write`).
 3. Exit 1 on errors (no write), exit 0 with `{"ok":true,"valid":true}`.
+
+### `nlp '<intent>'`
+1. Spawn `store-query.cjs nlp` with the intent string.
+2. Output JSON to stdout: `{query, path, traversalTrace, results, relatedFileRefs, meta}`.
+3. `results[]` contains: `{id, title, status, type, relationships, fileRefs, excerpt}`.
+
+### `query [flags|intent]`
+1. If exact entity flags present (`--sprint/--task/--bug/--feature`), run exact-args path.
+2. If `--keyword` present, run keyword search path.
+3. If intent string present (no flags), run NLP path.
+4. `--mode strict|off` rejects intent strings; `--mode nlp` forces NLP path.
+5. Returns same JSON structure as `nlp`.
+
+### `schema`
+1. Load project config (prefix, paths).
+2. Return entity schemas, status/severity enums, FK relationships, and NLP grammar vocabulary.
+3. Output: `{project, entities, entitySynonyms, statusSynonyms, grammar}`.
+
+## Query Output Schema
+
+```json
+{
+  "query": "<input string>",
+  "path": "exact | keyword | intent-nlp",
+  "traversalTrace": ["<step descriptions>"],
+  "results": [
+    {
+      "id": "<entity ID>",
+      "title": "<entity title>",
+      "status": "<current status>",
+      "type": "task | bug | sprint | feature",
+      "relationships": {
+        "sprintId": "<sprint ID>",
+        "featureId": "<feature ID>",
+        "blockedBy": ["<bug IDs>"],
+        "blocksTask": ["<task IDs>"]
+      },
+      "fileRefs": {
+        "json": "<store JSON path>",
+        "md": "<INDEX.md path>"
+      },
+      "storeRef": "<store JSON path>",
+      "indexRef": "<INDEX.md path>",
+      "excerpt": "<first 4 sentences from INDEX.md, or null>"
+    }
+  ],
+  "relatedFileRefs": ["<all md and json paths>"],
+  "totalMatched": 7,
+  "returned": 3,
+  "limit": 3,
+  "sort": "desc",
+  "meta": {
+    "mode": "auto | strict | nlp | off",
+    "engineVersion": "1.0.0",
+    "totalTimeMs": 42
+  }
+}
+```
+
+Count mode response (when intent contains `how many`, `count of`, etc.):
+
+```json
+{
+  "query": "how many open bugs",
+  "path": "intent-nlp",
+  "traversalTrace": ["..."],
+  "count": 7,
+  "results": [],
+  "totalMatched": 7
+}
+```

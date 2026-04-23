@@ -39,7 +39,6 @@ const SKILL_MAP = [
   ['meta-qa-engineer-skills.md', 'qa-engineer-skills.md'],
   ['meta-supervisor-skills.md',  'supervisor-skills.md'],
   ['meta-generic-skills.md',     'generic-skills.md'],
-  ['meta-store-custodian.md',    'store-custodian-skills.md'],
 ];
 
 // 3. Workflows — explicit source → output mapping (irregular names)
