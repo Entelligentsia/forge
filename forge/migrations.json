@@ -1,4 +1,12 @@
 {
+  "0.27.0": {
+    "version": "0.27.1",
+    "date": "2026-04-28",
+    "notes": "Fix check-structure.cjs false-negative for namespaced commands: add prefixed:true to commands namespace in structure-manifest.json so the tool resolves .claude/commands/{prefix}/*.md correctly (GH-70).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.26.0": {
     "version": "0.27.0",
     "date": "2026-04-23",

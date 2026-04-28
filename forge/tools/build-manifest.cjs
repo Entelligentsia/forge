@@ -316,6 +316,7 @@ try {
       commands: {
         logicalKey: 'commands',
         dir: '.claude/commands',
+        prefixed: true,
         files: COMMAND_NAMES.slice().sort(),
       },
       schemas: {

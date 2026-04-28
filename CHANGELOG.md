@@ -5,6 +5,12 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.27.1] — 2026-04-28
+
+Fix `check-structure.cjs` false-negative for namespaced commands (GH-70): `structure-manifest.json` was missing `"prefixed": true` on the `commands` namespace entry, causing the tool to probe `.claude/commands/approve.md` instead of `.claude/commands/{prefix}/approve.md`. The tool had correct prefix-resolution logic at line 62 but the manifest never activated it. Fix adds `prefixed: true` in `build-manifest.cjs` and regenerates `structure-manifest.json`. Root cause: `configuration` — manifest generator omission.
+
+---
+
 ## [0.27.0] — 2026-04-23
 
 Store query engine: deterministic NLP-based store querying integrated from the store-query marketplace experiment. A 5-stage rule-based parser (no LLM) maps natural language to structured traversal plans: entity synonyms, status/severity mapping, FK follow phrases, ordering/limit/count tokens, and keyword extraction. Replaces 5–6 manual KB navigation tool calls with 1–2 structured calls returning filtered, FK-resolved, excerpt-included results.
