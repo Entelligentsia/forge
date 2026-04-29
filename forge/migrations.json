@@ -1,4 +1,12 @@
 {
+  "0.27.1": {
+    "version": "0.28.0",
+    "date": "2026-04-29",
+    "notes": "Escalation hardening (GH-66): subagent response validation with retry-then-escalate, blocked/escalated status guard in phase gates and pre-task check, inline escalation procedure at all call sites, Iron Law prohibiting silent workarounds, expanded Error Recovery table. No schema changes.",
+    "regenerate": ["workflows:orchestrate_task", "personas:orchestrator"],
+    "breaking": false,
+    "manual": ["Run /forge:update to regenerate the orchestrate_task workflow and orchestrator persona. Tasks previously stuck in blocked/escalated status will now be skipped by the orchestrator instead of re-attempted."]
+  },
   "0.27.0": {
     "version": "0.27.1",
     "date": "2026-04-28",

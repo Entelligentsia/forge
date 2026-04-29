@@ -5,6 +5,16 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.28.0] — 2026-04-29
+
+Escalation hardening (GH-66): orchestrator now validates subagent responses and retries once with a simplified prompt before escalating on second failure; blocks tasks with `blocked` or `escalated` status via phase gates and a pre-task guard; inlines the four-step escalation procedure at every call site so the LLM agent sees the full mandatory steps; adds an Iron Law prohibiting silent workarounds; expands Error Recovery table to cover all failure modes. No schema changes — `blocked` and `escalated` were already in the task status enum.
+
+**Regenerate:** workflows, personas
+
+> Manual: Run `/forge:update` to regenerate workflows and personas. Tasks previously stuck in `blocked`/`escalated` status will now be skipped by the orchestrator instead of re-attempted.
+
+---
+
 ## [0.27.1] — 2026-04-28
 
 Fix `check-structure.cjs` false-negative for namespaced commands (GH-70): `structure-manifest.json` was missing `"prefixed": true` on the `commands` namespace entry, causing the tool to probe `.claude/commands/approve.md` instead of `.claude/commands/{prefix}/approve.md`. The tool had correct prefix-resolution logic at line 62 but the manifest never activated it. Fix adds `prefixed: true` in `build-manifest.cjs` and regenerates `structure-manifest.json`. Root cause: `configuration` — manifest generator omission.

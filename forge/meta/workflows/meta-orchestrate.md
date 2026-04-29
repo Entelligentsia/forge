@@ -331,8 +331,19 @@ BANNER_MAP = {
 }
 
 for each task in dependency_sorted(tasks):
+  # --- Pre-task status guard ---
+  # If a task is already blocked or escalated from a prior sprint/run,
+  # skip it entirely rather than attempting any phase.
+  task_record = read_json(f".forge/store/tasks/{task.taskId}.json")
+  if task_record and task_record.get("status") in ("blocked", "escalated"):
+    print(f"  ⚠ {task.taskId}  — status is {task_record['status']}, skipping\n")
+    emit_event(task, phase=None, action="task_skipped",
+               notes=f"task status is {task_record['status']}")
+    continue
+
   phases = resolve_pipeline(task)           # from config.pipelines or default
   iteration_counts = {}                     # keyed by phase command name
+  retry_count = {}                           # keyed by phase command name (subagent retry tracking)
   i = 0
 
   # --- Detect execution cluster from env vars (see Model Resolution) ---
@@ -434,12 +445,26 @@ for each task in dependency_sorted(tasks):
       print(f"  ✗ {task_id}  {phase.role}  — gate failed\n{preflight_result.stderr}")
       append_progress(progress_log_path, f"❌ Gate failed for {phase.role}: {preflight_result.stderr}")
       emit_event(task, phase, action="gate_failed", notes=preflight_result.stderr)
-      escalate_to_human(task, phase, reason=f"gate_failed: {preflight_result.stderr}")
+      # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
+      run_bash(f'/forge:store update-status task {task_id} status escalated')
+      emit_event(task, phase, eventId=event_id, iteration=iteration,
+                 action="escalated", verdict="escalated",
+                 notes=f"gate_failed: {preflight_result.stderr}")
+      print(f"  ⚠ Task {task_id} escalated: gate_failed: {preflight_result.stderr}\n")
+      print(f"  Review artifact: {artifact_path}\n")
+      print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
       break                                   # stop processing this task
     elif preflight_result.exit_code == 2:
       # Misconfiguration (unknown phase, malformed gates block). Fail loud.
       print(f"  ⚠ {task_id}  {phase.role}  — gate misconfigured\n{preflight_result.stderr}")
-      escalate_to_human(task, phase, reason=f"gate_misconfigured: {preflight_result.stderr}")
+      # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
+      run_bash(f'/forge:store update-status task {task_id} status escalated')
+      emit_event(task, phase, eventId=event_id, iteration=iteration,
+                 action="escalated", verdict="escalated",
+                 notes=f"gate_misconfigured: {preflight_result.stderr}")
+      print(f"  ⚠ Task {task_id} escalated: gate_misconfigured: {preflight_result.stderr}\n")
+      print(f"  Review artifact: {artifact_path}\n")
+      print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
       break
 
     # --- Invoke phase as subagent (fresh context per phase) ---
@@ -545,6 +570,75 @@ for each task in dependency_sorted(tasks):
     # --- Stop progress Monitor ---
     stop_monitor(progress_log_path)
 
+    # --- Subagent response validation (retry once, escalate on second failure) ---
+    # The subagent must produce a usable result. Three failure classes:
+    #   1. Empty response: subagent returned nothing or whitespace-only output
+    #   2. Subagent error: subagent exited non-zero (crash, OOM, tool error)
+    #   3. Timeout: subagent did not return within the session timeout
+    #
+    # On first failure: retry once with a simplified prompt that strips
+    # non-essential context (summary block, architecture block) and adds
+    # a direct instruction to produce a verdict or error report.
+    # On second failure: escalate to human — do NOT continue the phase loop.
+
+    if subagent_failed_or_empty(result):
+      if retry_count.get(phase.command, 0) == 0:
+        # First failure: retry with simplified prompt
+        retry_count[phase.command] = 1
+        print(f"  ⚠ {task_id}  {phase.role}  — subagent response empty or errored, retrying with simplified prompt\n")
+        emit_event(task, phase, action="subagent_retry",
+                   notes=f"first failure: {subagent_failure_reason(result)}")
+
+        # Simplify: remove summary_block and architecture_block from prompt
+        simplified_kwargs = dict(spawn_kwargs)
+        simplified_kwargs["prompt"] = (
+          f"### Progress Reporting\n"
+          f"- Agent name: {agent_name}\n"
+          f"- Progress log: {progress_log_path}\n"
+          f"- Banner key: {banner_name}\n\n"
+          f"Append progress entries as you work.\n\n"
+          f"---\n\n"
+          f"{role_block}\n\n"
+          f"### Current Working Context\n"
+          f"- Sprint Root: {sprint_root_path}\n"
+          f"- Task Root:   {task_root_path}\n"
+          f"- Store Root:  {store_root_path}\n\n"
+          f"Read `{phase.workflow}` and follow it. Task ID: {task_id}. "
+          f"Also read `engineering/MASTER_INDEX.md` for project state.\n\n"
+          f"IMPORTANT: You MUST produce a result. If the workflow cannot complete, "
+          f"write a verdict or error report to the expected artifact path and return."
+        )
+        spawn_subagent(**simplified_kwargs)
+        stop_monitor(progress_log_path)
+
+        # Re-validate the retry result
+        if subagent_failed_or_empty(result):
+          # Second failure: escalate
+          print(f"  ✗ {task_id}  {phase.role}  — subagent failed after retry, escalating\n")
+          emit_event(task, phase, action="subagent_escalated",
+                     notes=f"second failure: {subagent_failure_reason(result)}")
+          # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
+          run_bash(f'/forge:store update-status task {task_id} status escalated')
+          emit_event(task, phase, eventId=event_id, iteration=iteration,
+                     action="escalated", verdict="escalated",
+                     notes=f"subagent failed after retry: {subagent_failure_reason(result)}")
+          print(f"  ⚠ Task {task_id} escalated: subagent {phase.role} failed after retry — {subagent_failure_reason(result)}\n")
+          print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
+          break
+      else:
+        # Already retried once — this is the second failure
+        print(f"  ✗ {task_id}  {phase.role}  — subagent failed after retry, escalating\n")
+        emit_event(task, phase, action="subagent_escalated",
+                   notes=f"second failure: {subagent_failure_reason(result)}")
+        # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
+        run_bash(f'/forge:store update-status task {task_id} status escalated')
+        emit_event(task, phase, eventId=event_id, iteration=iteration,
+                   action="escalated", verdict="escalated",
+                   notes=f"subagent failed after retry: {subagent_failure_reason(result)}")
+        print(f"  ⚠ Task {task_id} escalated: subagent {phase.role} failed after retry — {subagent_failure_reason(result)}\n")
+        print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
+        break
+
     # --- Sidecar merge: merge token usage written by subagent via custodian ---
     # The subagent wrote the sidecar via /forge:store emit {sprintId} '{sidecar-json}' --sidecar
     # Merge the sidecar into the canonical event and delete the sidecar file
@@ -579,8 +673,14 @@ for each task in dependency_sorted(tasks):
       print(f"  ⚠ {task_id}  {phase.role}  — verdict_malformed, escalating\n")
       emit_event(task, phase, action="verdict_malformed",
                  notes=f"parse-verdict exit={verdict_result.exit_code}")
-      escalate_to_human(task, phase,
-        reason="verdict_malformed: review artifact missing or verdict line unparseable")
+      # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
+      run_bash(f'/forge:store update-status task {task_id} status escalated')
+      emit_event(task, phase, eventId=event_id, iteration=iteration,
+                 action="escalated", verdict="escalated",
+                 notes="verdict_malformed: review artifact missing or verdict line unparseable")
+      print(f"  ⚠ Task {task_id} escalated: verdict_malformed — review artifact missing or verdict line unparseable\n")
+      print(f"  Review artifact: {review_artifact_path(phase, task)}\n")
+      print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
       break
 
     if verdict == "Approved":
@@ -595,7 +695,15 @@ for each task in dependency_sorted(tasks):
       print(f"  ↻ {task_id}  {phase.role}  — Revision Required (iteration {iteration_counts[phase.command]})\n")
 
       if iteration_counts[phase.command] >= phase.maxIterations: # default 3
-        escalate_to_human(task, phase, reason="max iterations reached")
+        # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
+        run_bash(f'/forge:store update-status task {task_id} status escalated')
+        emit_event(task, phase, eventId=event_id, iteration=iteration,
+                   action="escalated", verdict="escalated",
+                   notes="max iterations reached")
+        print(f"  ⚠ Task {task_id} escalated: max iterations reached\n")
+        print(f"  Review artifact: {review_artifact_path(phase, task)}\n")
+        print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
+        break
         break                               # stop processing this task
 
       # Route back to the revision target
@@ -734,6 +842,11 @@ as approved or revision; halt the loop and escalate via `verdict_malformed`.
 
 ## Escalation Procedure
 
+> **NOTE:** The Escalation Procedure is inlined at every call site in the
+> Execution Algorithm. This section remains as a reference. When adding new
+> escalation points, inline the full procedure — do NOT call `escalate_to_human()`
+> as a bare function name.
+
 When escalating to the human:
 
 1. Update task status via `/forge:store update-status task {taskId} status escalated`
@@ -767,32 +880,46 @@ Grammar (one directive per line):
 ```gates phase=plan
 forbid task.status == committed
 forbid task.status == abandoned
+forbid task.status == blocked
+forbid task.status == escalated
 ```
 
 ```gates phase=implement
 artifact {engineering}/sprints/{sprint}/{task}/PLAN.md min=200
 after review-plan = approved
 forbid task.status == committed
+forbid task.status == blocked
+forbid task.status == escalated
 ```
 
 ```gates phase=review-plan
 artifact {engineering}/sprints/{sprint}/{task}/PLAN.md min=200
+forbid task.status == blocked
+forbid task.status == escalated
 ```
 
 ```gates phase=review-code
 after review-plan = approved
+forbid task.status == blocked
+forbid task.status == escalated
 ```
 
 ```gates phase=validate
 after review-code = approved
+forbid task.status == blocked
+forbid task.status == escalated
 ```
 
 ```gates phase=approve
 after review-code = approved
+forbid task.status == blocked
+forbid task.status == escalated
 ```
 
 ```gates phase=commit
 after approve = approved
+forbid task.status == blocked
+forbid task.status == escalated
 ```
 
 Adjusting a gate is a data change — edit the block above, regenerate workflows
@@ -839,13 +966,33 @@ to unblock the pipeline.
 **Always read the verdict from the artifact.** Never assume approval because the
 review phase ran without error. The artifact is the source of truth.
 
+**YOU MUST NOT silently work around a blocker.** If a phase fails, a subagent
+returns empty, a gate fails, or a verdict cannot be parsed, the orchestrator
+MUST either retry once (for recoverable failures) or escalate to the human.
+Skipping the phase, fabricating a result, assuming success without evidence,
+or continuing with a degraded response is NEVER acceptable. Every failure MUST
+produce a visible signal (✗ or ⚠) and a structured event. Silent continuation
+is a violation of the Iron Laws.
+
 ## Error Recovery
 
 - Test/build failure: pass error to Engineer revision workflow, retry once
 - Verdict "Revision Required": enter revision loop (up to max_iterations)
-- Timeout/empty response: retry subagent once with simplified prompt
+- Subagent empty/crash/timeout response: retry once with simplified prompt
+  (strip summary and architecture blocks). Escalate on second failure.
+  See Subagent Response Validation in the Execution Algorithm.
+- Subagent non-zero exit code (not parse-verdict): same as above — retry
+  once, escalate on second failure. The crash reason is captured in the
+  escalation event notes.
+- Verdict malformed or missing: escalate to human immediately. Never guess.
+- Revision loop exhaustion: escalate to human immediately. Never approve
+  to unblock.
+- Gate failure (preflight): escalate to human. No retry, no fall-through.
+- Gate misconfiguration: escalate to human. No retry, no fall-through.
 - Git hook failure: diagnose, fix, create new commit
 - Merge conflict: escalate to human
+- Task status is blocked or escalated: skip the task entirely. Do not
+  attempt any phase on it.
 
 ## Event Emission
 

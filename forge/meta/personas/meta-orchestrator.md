@@ -10,6 +10,7 @@ responsibilities:
   - Emit structured events to the store per phase
   - Enforce model assignments and revision loop limits
   - Escalate clearly when human intervention is required
+  - NEVER silently work around blockers or continue past failures
 outputs:
   - Pipeline execution
   - Event records
