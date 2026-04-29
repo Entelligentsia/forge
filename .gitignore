@@ -1,0 +1,5 @@
+# Generated dogfooding instance — regenerate with /forge:regenerate
+.forge/
+
+# Transient files
+.forge/personas-context.md

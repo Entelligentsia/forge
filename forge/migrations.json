@@ -1,0 +1,446 @@
+{
+  "0.27.1": {
+    "version": "0.28.0",
+    "date": "2026-04-29",
+    "notes": "Escalation hardening (GH-66): subagent response validation with retry-then-escalate, blocked/escalated status guard in phase gates and pre-task check, inline escalation procedure at all call sites, Iron Law prohibiting silent workarounds, expanded Error Recovery table. No schema changes.",
+    "regenerate": ["workflows:orchestrate_task", "personas:orchestrator"],
+    "breaking": false,
+    "manual": ["Run /forge:update to regenerate the orchestrate_task workflow and orchestrator persona. Tasks previously stuck in blocked/escalated status will now be skipped by the orchestrator instead of re-attempted."]
+  },
+  "0.27.0": {
+    "version": "0.27.1",
+    "date": "2026-04-28",
+    "notes": "Fix check-structure.cjs false-negative for namespaced commands: add prefixed:true to commands namespace in structure-manifest.json so the tool resolves .claude/commands/{prefix}/*.md correctly (GH-70).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.26.0": {
+    "version": "0.27.0",
+    "date": "2026-04-23",
+    "notes": "Store query engine: deterministic NLP-based store querying via store-cli nlp/query/schema commands. Decomposes store-query marketplace experiment into 4 forge tool modules (store-query.cjs, lib/store-facade.cjs, lib/store-nlp.cjs, lib/store-query-exec.cjs). Adds query-logger.cjs PostToolUse hook, forge:store-query-nlp and forge:store-query-grammar plugin skills, forge:store-query-validator agent, /forge:store-query command, and context-gathering shortcuts in plan/fix-bug/sprint-plan workflows. Replaces 5-6 manual KB navigation tool calls with 1-2 structured query calls.",
+    "regenerate": ["tools", "workflows"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.25.0": {
+    "version": "0.26.0",
+    "date": "2026-04-23",
+    "notes": "Permission prompt storm fix (BUG-014): add PermissionRequest hook that auto-approves known Forge tool patterns (node tools, shell commands, writes to .forge/ and .claude/commands/, WebFetch to raw.githubusercontent.com). First run shows ~17 approval prompts that persist to .claude/settings.local.json; subsequent runs have zero prompts for Forge patterns. Also updates bug status for FORGE-BUG-014.",
+    "regenerate": ["hooks"],
+    "breaking": false,
+    "manual": ["Restart Claude Code after updating for the new hook to take effect. On first Forge command, approve each permission prompt once — they will persist for future sessions."]
+  },
+  "0.24.2": {
+    "version": "0.25.0",
+    "date": "2026-04-22",
+    "notes": "Fix permission-check rejection of $FORGE_ROOT in slash command frontmatter. Replace all !-prefixed manage-config.cjs calls with direct .forge/config.json reads using literal paths. Eliminates 'Contains simple_expansion' errors when running Forge commands without --dangerously-skip-permissions.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.24.1": {
+    "version": "0.24.2",
+    "date": "2026-04-22",
+    "notes": "Token telemetry reliability: workflows now emit placeholder sidecars with null token fields when /cost unavailable (was: skip silently). Users backfill via estimate-usage.cjs. Always emit sidecar with source: reported or missing.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.23.0": {
+    "version": "0.24.0",
+    "date": "2026-04-21",
+    "notes": "Multi-plugin detection: check-update.js now scans all plugin locations (~/.claude/plugins/, ./.claude/plugins/) to detect multiple Forge installations. Reports scope (user/project), distribution (forge@forge/forge@skillforge), and enabled status. Enables /forge:update to advise users with multiple installations.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.24.0": {
+    "version": "0.24.1",
+    "date": "2026-04-21",
+    "notes": "Fix init mode selection: Resume Detection now requires the mode field to be present in init-progress.json. Stale checkpoints without a mode field (from interrupted runs that didn't complete Mode Selection) fall through to the full Fast/Full prompt instead of silently defaulting to 'full' via config.json fallback.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.22.1": {
+    "version": "0.23.0",
+    "date": "2026-04-21",
+    "notes": "Fix path resolution bug: replace require('.forge/config.json') in node -e one-liners with manage-config.cjs calls. The bare require() resolved from process.cwd() which failed when the shell wasn't in the project root.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.22.0": {
+    "version": "0.22.1",
+    "date": "2026-04-20",
+    "notes": "Fix preflight-gate.cjs task directory resolution: scan sprint directory for artifact directory name instead of extracting source filename from task.path. Also fixes resolveVerdictSources to use the correct artifact directory path for verdict files.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.21.0": {
+    "version": "0.22.0",
+    "date": "2026-04-20",
+    "notes": "Calibrate baseline auto-initialization: /forge:calibrate now computes and writes the initial calibration baseline when absent instead of dead-ending with 'run /forge:init'. health.md recommends /forge:calibrate for missing baseline.",
+    "regenerate": ["commands"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.20.0": {
+    "version": "0.21.0",
+    "date": "2026-04-20",
+    "notes": "Structured Result returns for resolveTaskDir (collate.cjs) and estimateTokens (estimate-usage.cjs): both now return { ok, value } / { ok, code, message } instead of null. Shared error codes in forge/tools/lib/result.js. Callers checking for null must update to check result.ok.",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.19.2": {
+    "version": "0.20.0",
+    "date": "2026-04-20",
+    "notes": "S11 tech-debt fixes: event timestamp zeroing fixed (store-cli.cjs), preflight-gate now scans all workflow files, ROLE_TIER fallback applied in orchestrate_task, collate generates task INDEX.md files with correct links, calibrationBaseline backfilled in fast-mode init/update, quiz-agent slash command added, generate-commands updated with quiz-agent and flat-file cleanup.",
+    "regenerate": ["tools", "workflows", "commands"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.19.1": {
+    "version": "0.19.2",
+    "notes": "Add Japanese kanji to each banner, shown alongside the name in render and badge",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.19.0": {
+    "version": "0.19.1",
+    "notes": "Collapse banner art from 5-line ASCII blocks to single creative lines",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.18.1": {
+    "version": "0.19.0",
+    "notes": "UX polish: tomoshibi prefix lowercase, progress IPC persona emoji, ensure-ready single-line banner",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.18.0": {
+    "version": "0.18.1",
+    "date": "2026-04-19",
+    "notes": "Bug fix: preflight-gate.cjs now scans all .forge/workflows/*.md files for gates phase blocks instead of looking only for two hardcoded meta-*.md filenames that only exist in the Forge development environment.",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.17.1": {
+    "version": "0.18.0",
+    "date": "2026-04-19",
+    "notes": "Write-boundary schema enforcement. New PreToolUse hook (hooks/validate-write.js) intercepts Write/Edit/MultiEdit against Forge-owned paths under .forge/store/ and validates the proposed contents against the matching schema — task, sprint, bug, feature, event, event-sidecar, collation-state, and progress-log entries. Three new schemas added (event-sidecar, progress-entry, collation-state). store-cli gains schema enforcement on the four previously unvalidated write paths (sidecar emit, sidecar merge, progress append, collation-state write). Shared validator extracted to tools/lib/validate.js and reused by both the hook and store-cli. Emergency bypass via FORGE_SKIP_WRITE_VALIDATION=1, which also appends an audit line to the affected sprint's progress.log.",
+    "regenerate": ["hooks", "schemas"],
+    "breaking": false,
+    "manual": ["Run /forge:update to install the new write-boundary hook. Any existing tooling that writes malformed JSON to .forge/store/ will now be rejected at write time — fix the data, don't bypass the hook."]
+  },
+  "0.17.0": {
+    "version": "0.17.1",
+    "date": "2026-04-19",
+    "notes": "Architecture context pack. build-context-pack.cjs walks engineering/architecture/*.md and emits .forge/cache/context-pack.md and context-pack.json. Orchestrators inject the pack summary into every subagent prompt, replacing per-phase stack.md reads with a single cached summary. Phase workflows updated to consult the injected summary first and read full docs only on escalation. /forge:health detects stale packs. /forge:regenerate, /forge:collate, and /forge:materialize rebuild the pack.",
+    "regenerate": ["workflows", "tools"],
+    "breaking": false,
+    "manual": ["Run /forge:regenerate to build the initial context pack at .forge/cache/context-pack.md."]
+  },
+  "0.16.0": {
+    "version": "0.17.0",
+    "date": "2026-04-19",
+    "notes": "Artifact summaries in task manifest. Tasks and bugs gain an optional summaries field (plan, review_plan, implementation, code_review, validation). Phase workflows emit terse JSON sidecars via store-cli set-summary / set-bug-summary. Orchestrator injects summaries into downstream subagent prompts as a fast path, falling back to full artifact paths when summaries are absent. Old tasks without summaries continue to work unchanged.",
+    "regenerate": ["workflows", "tools"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.15.0": {
+    "version": "0.16.0",
+    "date": "2026-04-19",
+    "notes": "Persona/skill by reference. Subagent prompts inject a compact persona/skill summary from .forge/cache/persona-pack.json instead of verbatim persona and skill file prose. build-persona-pack.cjs compiles YAML frontmatter from meta/personas/ and meta/skills/ into the pack, triggered by /forge:regenerate and /forge:materialize. FORGE_PROMPT_MODE=inline preserves legacy behaviour for one version as a rollback path.",
+    "regenerate": ["personas", "workflows"],
+    "breaking": false,
+    "manual": ["Run /forge:regenerate to rebuild the persona pack at .forge/cache/persona-pack.json."]
+  },
+  "0.14.1": {
+    "version": "0.15.0",
+    "date": "2026-04-19",
+    "notes": "Gate-check enforcement. Orchestrator and atomic phase workflows now run preflight-gate.cjs before every subagent spawn and parse verdicts via parse-verdict.cjs (closed vocabulary). Missing artifacts, forbidden states, and malformed verdicts halt loudly with structured events instead of silently advancing. No schema changes.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.14.0": {
+    "version": "0.14.1",
+    "date": "2026-04-18",
+    "notes": "collate now generates Sprint, Task, and Bug INDEX.md files — closes broken knowledge graph links from MASTER_INDEX.md. refresh-kb-links skill gains KB integrity check that warns when INDEX files are missing.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.13.1": {
+    "version": "0.14.0",
+    "date": "2026-04-18",
+    "notes": "Tomoshibi unified into single oracle agent; KB-visibility logic extracted to forge:refresh-kb-links plugin skill. Agent-tool Tomoshibi invocations in update, init, and collate replaced with Skill-tool invocations.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.13.0": {
+    "version": "0.13.1",
+    "date": "2026-04-18",
+    "notes": "Tomoshibi Oracle warns before config changes that require regeneration — project.prefix change now shows impact and exact follow-up command before [Y/n] prompt.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.12.6": {
+    "version": "0.13.0",
+    "date": "2026-04-18",
+    "notes": "Generated commands are now namespaced under project prefix (/{prefix}:plan etc.). Command files gain description: frontmatter. /forge:remove is prefix-aware. /forge:add-task shows namespaced next-step commands.",
+    "regenerate": ["commands", "workflows"],
+    "breaking": false,
+    "manual": [
+      "After regenerating, delete the old flat command files: rm -f .claude/commands/{sprint-intake,sprint-plan,run-task,run-sprint,plan,review-plan,implement,review-code,fix-bug,approve,commit,collate,retrospective}.md"
+    ]
+  },
+  "0.12.5": {
+    "version": "0.12.6",
+    "date": "2026-04-18",
+    "notes": "New /forge:ask command (Tomoshibi Oracle concierge) + plugin integrity checks. /forge:ask routes project-status, config, version, workflow/command explanation queries through the new tomoshibi-oracle agent. /forge:health gains a tamper-evident integrity check via verify-integrity.cjs + inline verifier hash. gen-integrity.cjs generates the release-time hash manifest (integrity.json).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.12.4": {
+    "version": "0.12.5",
+    "date": "2026-04-17",
+    "notes": "Visual upgrade for fast-mode capability announcement: framed em-dash block with lantern-yellow progress bars and zen-blue horizontal rules. New banners.cjs ZEN_BLUE constant + ruleLine() helper + --rule CLI subcommand. phaseHeader em-dash banner is now zen-blue tinted for system-wide horizontal-rule consistency.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.12.3": {
+    "version": "0.12.4",
+    "date": "2026-04-17",
+    "notes": "Fast-mode capability announcement: every materialise round (per-workflow stub trigger or /forge:materialize --all) now emits a 2-line summary like '〇 Forge is currently in fast mode · 5% capabilities generated (2 of 41) — this round will lift capabilities to 29% (12 of 41, +10 artifact(s))'. Silent on full installs. New ensure-ready.cjs subcommands: --capabilities, --capabilities-after, --announce.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.12.2": {
+    "version": "0.12.3",
+    "date": "2026-04-17",
+    "notes": "Visual onboarding character: hero banners and per-phase/step badges across /forge:init, /forge:update, /forge:regenerate, /forge:health (and light touch on /forge:config and /forge:materialize). banners.cjs gains progressBar, subtitle, phaseHeader, plain-mode (NO_COLOR / non-tty / --plain). Backwards-compatible — all existing API + emits still work; new visuals are additive.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.12.1": {
+    "version": "0.12.2",
+    "date": "2026-04-17",
+    "notes": "/forge:init mode prompt now defaults to Fast (was Full). Order in the prompt and the resume switch options is also flipped so [1] = Fast, [2] = Full. Pressing Enter at the prompt picks Fast. Pre-existing --fast and --full flags continue to work unchanged.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.12.0": {
+    "version": "0.12.1",
+    "date": "2026-04-17",
+    "notes": "Interactive fast/full prompt for /forge:init (with --full escape hatch). New /forge:config command for mode switching. Regenerate and materialize now respect fast mode and no longer auto-flip to full. Explicit promotion: /forge:config mode full. /forge:init Phase 12 and /forge:update Step 5 now offer to gitignore .forge/store/events/ (transient agent logs).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.11.3": {
+    "version": "0.12.0",
+    "date": "2026-04-17",
+    "notes": "Fast-mode init: /forge:init --fast runs in ~30s + Phase 2, deferring heavy LLM generation to first use. Machine-readable dep graph (deps: frontmatter in all 17 meta workflows, edges section in structure-manifest.json). New lazy-materialize.md rulebook, ensure-ready.cjs tool, /forge:materialize command. Per-file scoping for skills and templates in /forge:regenerate. Config mode field (fast/full).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.11.2": {
+    "version": "0.11.3",
+    "date": "2026-04-16",
+    "notes": "Parallelise init and regenerate: Phase 3 KB fan-out (7 parallel docs), Phase 4 personas fan-out, Phases 5+6 skills+templates parallel, Phases 8+9 orchestration+commands parallel. Regenerate workflows now uses build-init-context.cjs fan-out. Regenerate default runs 4 parallel steps instead of 5 sequential categories. New per-subagent rulebooks: generate-persona.md, generate-skill.md, generate-template.md, generate-kb-doc.md.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.11.1": {
+    "version": "0.11.2",
+    "date": "2026-04-16",
+    "notes": "Fix generate-workflows.md: preserve meta-workflow requirements frontmatter in generated output (needed for runtime model selection); fix self-check to look for persona symbol after closing --- rather than at absolute line 1.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.11.0": {
+    "version": "0.11.1",
+    "date": "2026-04-16",
+    "notes": "Fix Phase 7 fan-out: extractPersonaSymbol now handles first-line emoji format; generate-workflows.md strips meta YAML frontmatter; workflow-gen-plan.json corrects architect_sprint_intake persona to product-manager.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.10.1": {
+    "version": "0.11.0",
+    "date": "2026-04-16",
+    "notes": "Phase 7 of /forge:init now fans out all 16 atomic workflow generations in parallel via Agent subagents; adds build-init-context.cjs (deterministic project brief) and workflow-gen-plan.json (fan-out table).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.10.0": {
+    "version": "0.10.1",
+    "date": "2026-04-16",
+    "notes": "Fix: quiz_agent.md was missing from new inits — add meta-quiz-agent.md so Phase 7 generates the KB knowledge-check workflow.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.18": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x → 0.10.0 — Tomoshibi agent (灯): coding-agent instruction files linked to Forge KB and workflows; KB folder name configurable at init pre-flight (paths.engineering); forge:init Phase 12, forge:update Step 7, meta-collate Finalize. Full 0.9.x cycle: store custodian gateway, named-agent IPC with phase banners and Monitor streaming, orchestrator context compaction, banner library, calibrate command, add-task, health improvements, structure manifest, BUG-008/009 fixes.",
+    "regenerate": ["workflows", "commands", "personas", "skills", "tools"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.17": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.16": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.15": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.14": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.13": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.12": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.11": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.10": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.9":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.8":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.7":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.6":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.5":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.4":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.3":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.2":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.1":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.0":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.8.10": {
+    "version": "0.9.0",
+    "date": "2026-04-15",
+    "notes": "0.8.x \u2192 0.9.0 \u2014 Store Custodian: deterministic store gateway (store-cli.cjs), 16 meta-workflows migrated from direct writes to custodian, sprint schema gains goal and features fields. Full 0.8.x cycle: Sprint S06 cap, slug-aware directory discovery, ghost event fix, collate purge-events, init migration baseline stamp, workflow canonical naming, effort: frontmatter, fix sprint-plan and forge:update Step 4.",
+    "regenerate": ["workflows", "commands", "personas", "skills", "tools"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.8.9":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.8.8":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.8.7":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.8.6":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.8.5":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.8.4":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.8.3":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.8.2":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.8.1":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.8.0":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.7.11": {
+    "version": "0.8.0",
+    "date": "2026-04-14",
+    "notes": "0.7.x \u2192 0.8.0 \u2014 Sprint S06: orchestrator persona noun-based lookup, meta-workflows purged of inline Persona sections, forge:regenerate includes personas, sprint schema path field, slug-aware seed-store/collate/validate-store. Full 0.7.x cycle: Japanese nature persona palette, orchestrator announcements, ghost event fix, false breaking-change suppression, validate-store slug and filesystem checks.",
+    "regenerate": ["workflows", "commands", "personas", "skills"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.7.10": { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
+  "0.7.9":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
+  "0.7.8":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
+  "0.7.7":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
+  "0.7.6":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
+  "0.7.5":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
+  "0.7.4":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
+  "0.7.3":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
+  "0.7.2":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
+  "0.7.1":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
+  "0.7.0":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
+  "0.6.13": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "0.6.x \u2192 0.7.0 \u25b3 Breaking \u2014 Portability migration: legacy model: fields \u2192 structured requirements blocks (3D Agent Model); grounding and descriptive pathing (ID-description folder naming, absolute path injection). Full 0.6.x cycle: distribution-aware update URLs, QA validate phase, store.cjs facade, collate fixes, skillforge git-subdir.",
+    "regenerate": ["workflows", "commands", "personas", "skills", "tools"],
+    "breaking": true,
+    "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."]
+  },
+  "0.6.12": { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
+  "0.6.11": { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
+  "0.6.10": { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
+  "0.6.9":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
+  "0.6.8":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
+  "0.6.7":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
+  "0.6.6":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
+  "0.6.5":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
+  "0.6.4":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
+  "0.6.3":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
+  "0.6.2":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
+  "0.6.1":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
+  "0.6.0":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
+  "0.5.9": {
+    "version": "0.6.0",
+    "date": "2026-04-09",
+    "notes": "0.5.x \u2192 0.6.0 \u2014 Feature tier: Feature entity (feature.schema.json, .forge/store/features/), feature_id in sprint/task schemas, collate generates features/ registry, health reports per-feature coverage, docs/concepts/ added. Full 0.5.x cycle: fix-bug as true orchestrator, validate-store null handling, collate FORGE_ROOT fix, update UX improvements, canary source detection.",
+    "regenerate": ["workflows", "commands", "tools"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.5.8":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
+  "0.5.7":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
+  "0.5.6":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
+  "0.5.5":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
+  "0.5.4":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
+  "0.5.3":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
+  "0.5.2":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
+  "0.5.1":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
+  "0.5.0":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
+  "0.4.1": {
+    "version": "0.5.0",
+    "date": "2026-04-06",
+    "notes": "0.4.x \u2192 0.5.0 \u2014 Japanese-style marks (\u3007\u25b3\u00d7\ud83c\udf31\ud83c\udf3f\u26f0\ufe0f) across all output, agent personas with symbols, command renames (plan/review-plan/review-code), generation-manifest tool, engineering/tools/ eliminated (all tools from $FORGE_ROOT/tools/), paths.forgeRoot and paths.customCommands added to config schema.",
+    "regenerate": ["workflows", "commands"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.4.0":  { "version": "0.5.0", "date": "2026-04-06", "notes": "0.4.x \u2192 0.5.0 \u2014 see 0.4.1 entry. If upgrading from 0.4.0 directly, first run: node engineering/tools/manage-config.cjs pipeline backfill-models", "regenerate": ["workflows", "commands"], "breaking": false, "manual": [] },
+  "0.3.15": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u25b3 Breaking \u2014 Pre-built CJS tools shipped (collate, seed-store, validate-store, manage-config); revision loop fix; context accumulation fix (BUG-001); error triage hook; graceful error handling. Full 0.3.x cycle included.",
+    "regenerate": ["workflows", "commands", "tools"],
+    "breaking": true,
+    "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"]
+  },
+  "0.3.14": { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.13": { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.12": { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.11": { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.10": { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.9":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.8":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.7":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.6":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.5":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.4":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.3":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.2":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.1":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.0":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.2.0": {
+    "version": "0.3.0",
+    "date": "2026-04-02",
+    "notes": "Pluggable pipeline routing, /forge:add-pipeline command, manage-config tool spec, extended /forge:regenerate with tools and knowledge-base categories.",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": []
+  }
+}

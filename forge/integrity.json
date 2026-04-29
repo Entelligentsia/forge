@@ -1,0 +1,31 @@
+{
+  "version": "0.28.0",
+  "generated": "2026-04-29",
+  "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
+  "files": {
+    "commands/add-pipeline.md": "402c1deb6f19ad99561b48548ad89e3e1f625b827dce633eb84317556c0a1a4a",
+    "commands/add-task.md": "b2640c4b3c8c4fb9d4a82633d8c4d8fcd13bd63d4d6deb2c5c6a2008508de770",
+    "commands/ask.md": "df15f0aa68c93d65bfef05adb514c377bfc65617cafcd79534eb9b4149302657",
+    "commands/calibrate.md": "8933a7ef7f675a929f15c0aae475f44944fbaf977a41bdc5a69f763cdf53620d",
+    "commands/config.md": "67251316b806d706bb77f063128e29995c6b4abaf554f4d5558bd97a1a6cfcfe",
+    "commands/health.md": "cf8a59cfb403ba268922bc60abcdd9255a3b5690ae0175bb2819b3f6789debc0",
+    "commands/init.md": "efbfe9d4dd915ff99b2c4c2ceefe2537fbdc76e86d7b73a7fe2bf872a332f6c9",
+    "commands/materialize.md": "195292c9e98f50773c1b0c84f9bbc42438c4c8c989a84bd98092f6692799d6d6",
+    "commands/migrate.md": "cfb2151f7c6e06694adfc47be2c5ae348eaa24e9c657d7494399169aacc95114",
+    "commands/quiz-agent.md": "ed261a5c8ac7cd3a1d7c8b372c9bf099bba9a4f9dc0a41cb5c80f22b57a133a1",
+    "commands/regenerate.md": "950aeee31a200f46cbe73830f0f0a972a99f1995380b81bb7a9eb457075880fc",
+    "commands/remove.md": "de8802ee8ad5db4c4f3d0f526eb8735ab7de1a4b8ad307355d11dac5e1e04fc6",
+    "commands/report-bug.md": "af8a54bf8887b35e5c880898dd45783f6c2e80d3dc031d6479a6be613ac43053",
+    "commands/store-query.md": "28925bd257ceb6645254628abf0e76524481460382192ea00081b17310b88fed",
+    "commands/store-repair.md": "9317be65deb400953b8642b4d353d5583d3b032546c0b8f73d6c3a9b3445ebdd",
+    "commands/update-tools.md": "768c0d7ec07a17055c3d4b1b31370812f4292e03b1496723ba36f8caf596a609",
+    "commands/update.md": "fec303564dbe18976cecc005fb67f9977c6df4bd86fa84d9addd5027aebd1ab0",
+    "agents/store-query-validator.md": "f4c3573edcf6e28809515705362df611806a805c5269404fb17e31433cf3a81c",
+    "agents/tomoshibi.md": "0112604af0856235d7f028683dbfa3f4af63355cb2dd79d26592e983a6ecec8b",
+    "hooks/check-update.js": "c7b6461858f74732df4e2e5a7ea485f38ed92fb3303a727ef252a95a5f19478f",
+    "hooks/forge-permissions.js": "3608419d27105c41313f2762582d459704e07fcd64d6ae56357ef88ba49b70d0",
+    "hooks/triage-error.js": "b1e9c1c9a9f3e4868fff295f2caf87a2a72a817ee767af35f6334c88e45e16d4",
+    "hooks/validate-write.js": "bf17f740ae43d85a7f4b18bc08e2628534c3698ec5202cb51ebd3f0792375f24",
+    "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
+  }
+}

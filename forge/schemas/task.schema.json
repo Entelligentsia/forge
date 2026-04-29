@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "forge/task.schema.json",
+  "title": "Task",
+  "type": "object",
+  "required": ["taskId", "sprintId", "title", "status", "path"],
+  "properties": {
+    "taskId":               { "type": "string" },
+    "feature_id":           { "type": ["string", "null"] },
+    "sprintId":             { "type": "string" },
+    "title":                { "type": "string" },
+    "description":          { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft", "planned", "plan-approved", "implementing",
+        "implemented", "review-approved", "approved", "committed",
+        "plan-revision-required", "code-revision-required", "blocked", "escalated", "abandoned"
+      ]
+    },
+    "path":                 { "type": "string" },
+    "estimate":             { "type": "string", "enum": ["S", "M", "L", "XL"] },
+    "dependencies":         { "type": "array", "items": { "type": "string" } },
+    "knowledgeUpdates":     { "type": "array" },
+    "planIterations":       { "type": "integer", "minimum": 0 },
+    "codeReviewIterations": { "type": "integer", "minimum": 0 },
+    "assignedModel":        { "type": "string" },
+    "pipeline":             { "type": "string" },
+    "summaries": {
+      "type": "object",
+      "description": "Terse structured summaries of phase artifacts. Optional; full artifacts on disk remain authoritative.",
+      "properties": {
+        "plan":           { "$ref": "#/$defs/phaseSummary" },
+        "review_plan":    { "$ref": "#/$defs/phaseSummary" },
+        "implementation": { "$ref": "#/$defs/phaseSummary" },
+        "code_review":    { "$ref": "#/$defs/phaseSummary" },
+        "validation":     { "$ref": "#/$defs/phaseSummary" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "phaseSummary": {
+      "type": "object",
+      "required": ["objective", "written_at"],
+      "properties": {
+        "objective":   { "type": "string", "maxLength": 280 },
+        "key_changes": { "type": "array", "items": { "type": "string", "maxLength": 200 }, "maxItems": 12 },
+        "findings":    { "type": "array", "items": { "type": "string", "maxLength": 200 }, "maxItems": 12 },
+        "verdict":     { "type": "string", "enum": ["approved", "revision", "n/a"] },
+        "written_at":  { "type": "string", "format": "date-time" },
+        "artifact_ref":{ "type": "string", "description": "Relative path to the full artifact" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
