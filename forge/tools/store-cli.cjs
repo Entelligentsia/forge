@@ -11,6 +11,23 @@ function _getStore() { return _store || (_store = require('./store.cjs')); }
 let _projectRoot;
 function _getProjectRoot() { return _projectRoot || (_projectRoot = require('./lib/project-root.cjs').findProjectRoot()); }
 
+const _path = require('path');
+
+// Path traversal guard — resolves the events directory and validates that
+// sprintOrBugId doesn't escape it. Same pattern as store.cjs purgeEvents.
+function _resolveEventsDir(sprintOrBugId) {
+  const root = _getProjectRoot();
+  const eventsBase = root
+    ? _path.resolve(root, '.forge', 'store', 'events')
+    : _path.resolve('.forge', 'store', 'events');
+  const resolvedDir = _path.resolve(eventsBase, sprintOrBugId);
+  if (!resolvedDir.startsWith(eventsBase + _path.sep) && resolvedDir !== eventsBase) {
+    console.error(`Path traversal blocked: '${sprintOrBugId}' resolves outside events directory`);
+    process.exit(1);
+  }
+  return resolvedDir;
+}
+
 let _schemas;
 function _getSchemas() {
   if (_schemas) return _schemas;
@@ -910,10 +927,7 @@ function cmdProgress() {
 
   const line = `${timestamp}|${agentName}|${bannerKey}|${status}|${detail}\n`;
 
-  const root = _getProjectRoot();
-  const dir = root
-    ? path.join(root, '.forge', 'store', 'events', sprintOrBugId)
-    : path.join('.forge', 'store', 'events', sprintOrBugId);
+  const dir = _resolveEventsDir(sprintOrBugId);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -940,10 +954,7 @@ function cmdProgressClear() {
     process.exit(1);
   }
 
-  const root = _getProjectRoot();
-  const dir = root
-    ? path.join(root, '.forge', 'store', 'events', sprintOrBugId)
-    : path.join('.forge', 'store', 'events', sprintOrBugId);
+  const dir = _resolveEventsDir(sprintOrBugId);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }

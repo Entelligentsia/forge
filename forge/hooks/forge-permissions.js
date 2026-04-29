@@ -32,9 +32,9 @@ process.on('uncaughtException', (err) => {
 const BASH_PATTERNS = [
   // Node tool invocations — covers $FORGE_ROOT/tools/*.cjs and $CLAUDE_PLUGIN_ROOT
   { pattern: /^node\s+.*\/tools\/[\w-]+\.(cjs|js)\b/, rule: 'node ~/.claude/plugins/cache/forge/forge/*/tools/*' },
-  // Inline node execution (config reads, one-liners)
-  { pattern: /^node\s+-e\s+/, rule: 'node -e *' },
-  { pattern: /^node\s+-p\s+/, rule: 'node -p *' },
+  // NOTE: node -e and node -p removed — arbitrary code execution must not be auto-approved.
+  // Forge workflows use node .../tools/*.cjs for tool invocations; inline node -e/p requires
+  // explicit user approval each time.
   // Shell commands used by Forge workflows
   { pattern: /^mkdir\s+-p\s+/, rule: 'mkdir -p .forge/*' },
   { pattern: /^mkdir\s+-p\s+\S+/, rule: 'mkdir -p .forge/*' },
@@ -44,11 +44,11 @@ const BASH_PATTERNS = [
   { pattern: /^date\s+-u\s+/, rule: 'date -u *' },
   { pattern: /^date\s+/, rule: 'date -u *' },
   { pattern: /^jq\s+/, rule: 'jq *' },
-  { pattern: /^touch\s+/, rule: 'touch *' },
+  { pattern: /^touch\s+/, rule: 'touch .forge/*' },
   { pattern: /^uname\s+/, rule: 'uname *' },
-  { pattern: /^rm\s+-f\s+/, rule: 'rm -f .forge/*' },
+  { pattern: /^rm\s+\.forge/, rule: 'rm .forge/*' },
   { pattern: /^rm\s+-rf\s+\.forge/, rule: 'rm -rf .forge/*' },
-  { pattern: /^rmdir\s+/, rule: 'rmdir *' },
+  { pattern: /^rmdir\s+/, rule: 'rmdir .forge/*' },
   { pattern: /^gh\s+auth\s+/, rule: 'gh auth status *' },
   { pattern: /^gh\s+issue\s+/, rule: 'gh issue create *' },
   // git read-only commands (already auto-approved by Claude Code, but belt-and-suspenders)
@@ -93,44 +93,6 @@ const PATTERN_MAP = {
   WebFetch: WEBFETCH_PATTERNS,
 };
 
-// ── All rules to persist on first approval ─────────────────────────
-// These are written to .claude/settings.local.json via updatedPermissions
-// so subsequent calls skip the PermissionRequest hook entirely.
-
-const ALL_RULES = [
-  { toolName: 'Bash', ruleContent: 'node ~/.claude/plugins/cache/forge/forge/*/tools/*' },
-  { toolName: 'Bash', ruleContent: 'node -e *' },
-  { toolName: 'Bash', ruleContent: 'node -p *' },
-  { toolName: 'Bash', ruleContent: 'mkdir -p .forge/*' },
-  { toolName: 'Bash', ruleContent: 'cp */schemas/*.schema.json .forge/schemas/' },
-  { toolName: 'Bash', ruleContent: 'ls *' },
-  { toolName: 'Bash', ruleContent: 'cat .forge/*' },
-  { toolName: 'Bash', ruleContent: 'date -u *' },
-  { toolName: 'Bash', ruleContent: 'jq *' },
-  { toolName: 'Bash', ruleContent: 'touch *' },
-  { toolName: 'Bash', ruleContent: 'uname *' },
-  { toolName: 'Bash', ruleContent: 'rm -f .forge/*' },
-  { toolName: 'Bash', ruleContent: 'rm -rf .forge/*' },
-  { toolName: 'Bash', ruleContent: 'rmdir *' },
-  { toolName: 'Bash', ruleContent: 'gh auth status *' },
-  { toolName: 'Bash', ruleContent: 'gh issue create *' },
-  { toolName: 'Bash', ruleContent: 'git add *' },
-  { toolName: 'Bash', ruleContent: 'git commit -m *' },
-  { toolName: 'Bash', ruleContent: 'git push *' },
-  { toolName: 'Write', ruleContent: '.forge/**' },
-  { toolName: 'Write', ruleContent: '.claude/commands/**' },
-  { toolName: 'Write', ruleContent: 'engineering/**' },
-  { toolName: 'Write', ruleContent: 'CLAUDE.md' },
-  { toolName: 'Write', ruleContent: 'AGENTS.md' },
-  { toolName: 'Write', ruleContent: '.gitignore' },
-  { toolName: 'Edit', ruleContent: '.forge/**' },
-  { toolName: 'Edit', ruleContent: '.claude/commands/**' },
-  { toolName: 'Edit', ruleContent: 'engineering/**' },
-  { toolName: 'Edit', ruleContent: 'CLAUDE.md' },
-  { toolName: 'Edit', ruleContent: 'AGENTS.md' },
-  { toolName: 'WebFetch', ruleContent: 'domain:raw.githubusercontent.com' },
-];
-
 // ── Core logic ─────────────────────────────────────────────────────
 
 function matchTool(toolName, toolInput) {
@@ -148,8 +110,11 @@ function matchTool(toolName, toolInput) {
   return null;
 }
 
-// ── Main ───────────────────────────────────────────────────────────
+// ── Export for testing ─────────────────────────────────────────────
+module.exports = { matchTool, BASH_PATTERNS, WRITE_PATTERNS, EDIT_PATTERNS, WEBFETCH_PATTERNS };
 
+// ── Main (hook runner) ────────────────────────────────────────────
+if (require.main === module) {
 let input = '';
 process.stdin.on('data', (d) => { input += d; });
 process.stdin.on('end', () => {
@@ -168,6 +133,7 @@ process.stdin.on('end', () => {
 
   const matchedRule = matchTool(tool_name, tool_input || {});
   if (matchedRule) {
+    // Persist only the matched rule — never bulk-approve all rules at once.
     const response = {
       hookSpecificOutput: {
         hookEventName: 'PermissionRequest',
@@ -175,7 +141,7 @@ process.stdin.on('end', () => {
           behavior: 'allow',
           updatedPermissions: [{
             type: 'addRules',
-            rules: ALL_RULES,
+            rules: [{ toolName: tool_name, ruleContent: matchedRule }],
             behavior: 'allow',
             destination: 'localSettings',
           }],
@@ -189,6 +155,4 @@ process.stdin.on('end', () => {
   // Not a Forge pattern — exit 0 with no output to let normal permission flow proceed
   process.exit(0);
 });
-
-// Export for testing
-module.exports = { matchTool, BASH_PATTERNS, WRITE_PATTERNS, EDIT_PATTERNS, WEBFETCH_PATTERNS, ALL_RULES };
+} // end require.main === module

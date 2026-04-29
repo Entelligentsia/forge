@@ -128,10 +128,27 @@ function isPluginEnabled(pluginPath, scope, homeDir, cwd) {
 // branch it was installed from (main for forge@forge, release for forge@skillforge),
 // so we read it directly — no hardcoded per-distribution URLs needed.
 const FALLBACK_UPDATE_URL = 'https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json';
+
+const ALLOWED_DOMAINS = ['raw.githubusercontent.com'];
+
+function validateUpdateUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.toLowerCase();
+    if (!ALLOWED_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d))) {
+      process.stderr.write(`forge-update: rejected update URL with disallowed domain '${hostname}', falling back\n`);
+      return FALLBACK_UPDATE_URL;
+    }
+    return url;
+  } catch {
+    return FALLBACK_UPDATE_URL;
+  }
+}
+
 function getUpdateUrl() {
   try {
     const manifest = JSON.parse(fs.readFileSync(path.join(pluginRoot, '.claude-plugin', 'plugin.json'), 'utf8'));
-    return manifest.updateUrl || FALLBACK_UPDATE_URL;
+    return validateUpdateUrl(manifest.updateUrl || FALLBACK_UPDATE_URL);
   } catch { return FALLBACK_UPDATE_URL; }
 }
 const remoteUrl = getUpdateUrl();
@@ -318,4 +335,4 @@ if (elapsed < checkInterval) {
 }
 
 // Export functions for testing
-module.exports = { scanPluginInstallations, isPluginEnabled, detectDistribution };
+module.exports = { scanPluginInstallations, isPluginEnabled, detectDistribution, validateUpdateUrl };

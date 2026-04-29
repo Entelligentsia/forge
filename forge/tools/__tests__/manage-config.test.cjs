@@ -10,6 +10,7 @@ const {
   VALID_ROLES,
   VALID_NAME,
   ROLE_MODEL_DEFAULTS,
+  assertSafeKeys,
 } = require('../manage-config.cjs');
 
 describe('manage-config.cjs', () => {
@@ -223,6 +224,44 @@ describe('manage-config.cjs', () => {
       assert.equal(ROLE_MODEL_DEFAULTS['plan'], 'sonnet');
       assert.equal(ROLE_MODEL_DEFAULTS['review-plan'], 'opus');
       assert.equal(ROLE_MODEL_DEFAULTS['commit'], 'haiku');
+    });
+  });
+
+  // ── C4: Prototype pollution guards ────────────────────────────────
+
+  describe('assertSafeKeys — prototype pollution guard', () => {
+    test('throws on __proto__ in getByPath', () => {
+      assert.throws(() => getByPath({}, '__proto__.polluted'), /Unsafe key path/);
+    });
+
+    test('throws on __proto__ in setByPath', () => {
+      assert.throws(() => setByPath({}, '__proto__.polluted', 'yes'), /Unsafe key path/);
+    });
+
+    test('throws on constructor in getByPath', () => {
+      assert.throws(() => getByPath({}, 'constructor.prototype'), /Unsafe key path/);
+    });
+
+    test('throws on constructor in setByPath', () => {
+      assert.throws(() => setByPath({}, 'constructor.prototype.polluted', true), /Unsafe key path/);
+    });
+
+    test('throws on prototype in getByPath', () => {
+      assert.throws(() => getByPath({}, 'prototype.toString'), /Unsafe key path/);
+    });
+
+    test('throws on prototype in setByPath', () => {
+      assert.throws(() => setByPath({}, 'a.prototype.b', 'val'), /Unsafe key path/);
+    });
+
+    test('normal paths still work in getByPath', () => {
+      assert.equal(getByPath({ a: { b: 1 } }, 'a.b'), 1);
+    });
+
+    test('normal paths still work in setByPath', () => {
+      const obj = {};
+      setByPath(obj, 'a.b', 2);
+      assert.deepEqual(obj, { a: { b: 2 } });
     });
   });
 

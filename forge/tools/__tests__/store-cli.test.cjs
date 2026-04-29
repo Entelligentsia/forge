@@ -1439,4 +1439,63 @@ describe('store-cli.cjs — record-usage auto-populates model via discoverModel'
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+
+  // ── C5: Path traversal guard for progress/progress-clear ──────────
+
+  describe('C5: path traversal guard in progress commands', () => {
+    test('progress rejects path traversal with ../', () => {
+      const tmpDir = makeTempStore();
+      try {
+        const r = spawnSync('node', [STORE_CLI, 'progress', '../etc/passwd', 'agent1', 'rift', 'start', 'test'], {
+          cwd: tmpDir,
+          encoding: 'utf8',
+        });
+        assert.notEqual(r.status, 0, 'should exit non-zero on path traversal');
+        assert.ok(r.stderr.includes('traversal') || r.stderr.includes('escapes'), `stderr should mention traversal: ${r.stderr}`);
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    test('progress-clear rejects path traversal with ../../', () => {
+      const tmpDir = makeTempStore();
+      try {
+        const r = spawnSync('node', [STORE_CLI, 'progress-clear', '../../tmp/evil'], {
+          cwd: tmpDir,
+          encoding: 'utf8',
+        });
+        assert.notEqual(r.status, 0, 'should exit non-zero on path traversal');
+        assert.ok(r.stderr.includes('traversal') || r.stderr.includes('escapes'), `stderr should mention traversal: ${r.stderr}`);
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    test('progress rejects absolute path', () => {
+      const tmpDir = makeTempStore();
+      try {
+        const r = spawnSync('node', [STORE_CLI, 'progress', '/etc/passwd', 'agent1', 'rift', 'start', 'test'], {
+          cwd: tmpDir,
+          encoding: 'utf8',
+        });
+        assert.notEqual(r.status, 0, 'should exit non-zero on absolute path');
+        assert.ok(r.stderr.includes('traversal') || r.stderr.includes('escapes'), `stderr should mention traversal: ${r.stderr}`);
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    test('progress accepts normal sprintOrBugId', () => {
+      const tmpDir = makeTempStore();
+      try {
+        const r = spawnSync('node', [STORE_CLI, 'progress', 'bugs', 'agent1', 'rift', 'start', 'test'], {
+          cwd: tmpDir,
+          encoding: 'utf8',
+        });
+        assert.equal(r.status, 0, `normal progress should succeed: ${r.stderr}`);
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+  });
 });

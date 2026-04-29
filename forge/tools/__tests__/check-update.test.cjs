@@ -242,4 +242,37 @@ describe('check-update.js — Multi-plugin scanning', () => {
       assert.strictEqual(detectDistribution('/home/user/.claude/plugins/marketplaces/skillforge/forge/forge'), 'forge@skillforge');
     });
   });
+
+  describe('validateUpdateUrl() — C3: URL domain allowlist', () => {
+    const FALLBACK = 'https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json';
+
+    it('allows raw.githubusercontent.com URLs', () => {
+      delete require.cache[require.resolve(hookPath)];
+      const { validateUpdateUrl } = require(hookPath);
+
+      const url = 'https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json';
+      assert.strictEqual(validateUpdateUrl(url), url);
+    });
+
+    it('rejects URLs with non-allowed domains and returns fallback', () => {
+      delete require.cache[require.resolve(hookPath)];
+      const { validateUpdateUrl } = require(hookPath);
+
+      assert.strictEqual(validateUpdateUrl('https://evil.com/payload'), FALLBACK);
+    });
+
+    it('rejects malformed URLs and returns fallback', () => {
+      delete require.cache[require.resolve(hookPath)];
+      const { validateUpdateUrl } = require(hookPath);
+
+      assert.strictEqual(validateUpdateUrl('not-a-url'), FALLBACK);
+    });
+
+    it('rejects URLs with subdomains of non-allowed domains', () => {
+      delete require.cache[require.resolve(hookPath)];
+      const { validateUpdateUrl } = require(hookPath);
+
+      assert.strictEqual(validateUpdateUrl('https://evil.raw.githubusercontent.com.evil.com/steal'), FALLBACK);
+    });
+  });
 });

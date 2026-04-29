@@ -1,4 +1,12 @@
 {
+  "0.28.1": {
+    "version": "0.29.0",
+    "date": "2026-04-29",
+    "notes": "Security hardening (FORGE-BUG-016): fix 5 critical findings from security scan v0.28.0. (1) Bulk permission escalation: persist only matched rule instead of all 31 rules. (2) Remove node -e/p auto-approve — arbitrary code execution requires explicit approval. (3) Add domain allowlist for update URLs. (4) Block prototype pollution (__proto__/constructor/prototype) in getByPath/setByPath. (5) Add path traversal guard to cmdProgress/cmdProgressClear. Also scopes broad wildcards (touch, rmdir, rm -f) and adds require.main guard to forge-permissions.js.",
+    "regenerate": ["hooks:forge-permissions", "hooks:check-update", "tools:manage-config", "tools:store-cli"],
+    "breaking": true,
+    "manual": ["node -e one-liners will now prompt for approval — this is intentional. Run /forge:update to refresh hooks and tools."]
+  },
   "0.27.1": {
     "version": "0.28.0",
     "date": "2026-04-29",

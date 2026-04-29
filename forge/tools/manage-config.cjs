@@ -63,11 +63,24 @@ function writeConfig(config, indent) {
   }
 }
 
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+function assertSafeKeys(dotPath) {
+  const keys = dotPath.split('.');
+  for (const key of keys) {
+    if (DANGEROUS_KEYS.has(key)) {
+      throw new Error(`Unsafe key path '${key}' in '${dotPath}' — prototype traversal blocked`);
+    }
+  }
+}
+
 function getByPath(obj, dotPath) {
+  assertSafeKeys(dotPath);
   return dotPath.split('.').reduce((cur, key) => (cur != null && typeof cur === 'object' ? cur[key] : undefined), obj);
 }
 
 function setByPath(obj, dotPath, value) {
+  assertSafeKeys(dotPath);
   const keys = dotPath.split('.');
   let cur = obj;
   for (let i = 0; i < keys.length - 1; i++) {
@@ -98,7 +111,7 @@ function parseArgs(argv) {
   return result;
 }
 
-module.exports = { getByPath, setByPath, validatePhases, detectIndent, parseArgs, VALID_ROLES, VALID_NAME, ROLE_MODEL_DEFAULTS };
+module.exports = { getByPath, setByPath, assertSafeKeys, validatePhases, detectIndent, parseArgs, VALID_ROLES, VALID_NAME, ROLE_MODEL_DEFAULTS };
 
 if (require.main === module) {
 const [,, subcmd, ...args] = process.argv;
