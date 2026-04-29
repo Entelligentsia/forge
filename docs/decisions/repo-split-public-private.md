@@ -1,6 +1,6 @@
 # Decision: Split Public Plugin from Private Engineering Data
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-04-29
 
 ---
@@ -249,11 +249,12 @@ echo ".forge/" >> ~/src/forge/.gitignore
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-04-29 | Boni | Initial proposal — gitignored clone pattern |
+| 2026-04-29 | Boni | Accepted — fresh repo (no history rewrite). Both repos pushed. |
 
 ---
 
 ## Open Questions
 
-1. **History rewrite vs. fresh repo?** Filter-repo preserves history but breaks forks. Fresh repo is cleaner but loses git blame. Low risk either way given few external contributors.
-2. **`forgeRef` pinning — needed now?** Can defer until sprint workflow instability is observed. Config field is cheap to add; verification can come later.
-3. **Should `.forge/` be git-tracked in `forge-engineering/`?** Currently 665 files. Generated output, but useful for history. Consider `.gitignore`-ing the cache/ directory only.
+1. **History rewrite vs. fresh repo?** Resolved: chose fresh repo. Tagged last pre-split commit as `v-last-pre-split` in old history. Clean break, no fork confusion.
+2. **`forgeRef` pinning — needed now?** Resolved: added `"forgeRef": "main"` to `.forge/config.json`. Verification deferred.
+3. **Should `.forge/` be git-tracked in `forge-engineering/`?** Resolved: yes, full `.forge/` tracked. Only `.forge/cache/` gitignored.
