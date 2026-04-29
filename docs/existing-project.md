@@ -6,25 +6,28 @@ Forge is discovery-driven. The more code there is to read, the more accurate the
 
 ## What happens during `/forge:init`
 
-Forge runs 9 automated phases — no interaction needed until the smoke test report.
+Forge runs 12 automated phases. Full mode takes 10–15 minutes. Fast mode (`--fast`) takes 2–3 minutes and writes stubs that self-materialize on first use.
 
 ```mermaid
 flowchart TD
     A([/forge:init]) --> B
 
-    subgraph gen["Generation  (~10–15 min, unattended)"]
-        B[Discover\nstack · processes · database · routing · tests] --> C
+    subgraph gen["Generation  (full mode: ~10–15 min, unattended)"]
+        B[Discover\nstack · processes · database · routing · tests] --> B2
+        B2[Marketplace Skills\nrecommend + install relevant skills] --> C
         C[Knowledge Base\narchitecture/ · entity-model · checklist] --> D
-        D[Personas\nEngineer · Supervisor · Architect] --> E
+        D[Personas\nEngineer · Supervisor · Architect · others] --> D2
+        D2[Skills\nskill definitions wired to stack] --> E
         E[Templates\nplan · review · retrospective] --> F
-        F[Atomic Workflows\n14 project-specific .md files] --> G
+        F[Workflows\n16 project-specific .md files] --> G
         G[Orchestration\norchestrate_task · run_sprint] --> H
         H[Commands\n/sprint-plan · /run-task · /implement …] --> I
-        I[Tools\ncollate · validate-store · seed-store]
+        I[Tools\ncollate · validate-store · seed-store · manage-config] --> J
+        J[Smoke Test\nvalidate + self-correct] --> T
+        T[Tomoshibi\nconcierge agent for project queries]
     end
 
-    I --> J[Smoke Test\nvalidate + self-correct]
-    J --> K([Review report\n— inspect engineering/])
+    T --> K([Review report\n— inspect engineering/])
 ```
 
 **Discovery reads your actual code**, not config files you fill in:
@@ -36,6 +39,8 @@ flowchart TD
 | Database | ORM model files, schema files, migration directories | Entity inventory, relationships, field types |
 | Routing | Route definitions, middleware, auth decorators | API surface, auth strategy |
 | Testing | Test directories, CI config, test scripts | Test command, build command, lint command |
+
+**Fast mode** (`/forge:init --fast`) skips heavy generation phases and writes stubs instead. Stubs self-materialize on first use. Use `/forge:materialize` or `/forge:config mode full` to promote to full mode later.
 
 ---
 
@@ -106,11 +111,14 @@ flowchart LR
     RP -->|approved| I[Engineer\nImplement]
     I --> RC{Supervisor\nReview Code}
     RC -->|revision required| I
-    RC -->|approved| AP[Architect\nApprove]
+    RC -->|approved| V{QA Engineer\nValidate}
+    V -->|issues found| I
+    V -->|passed| AP[Architect\nApprove]
     AP --> CM([commit])
 
     style RP fill:#f5a623,color:#000
     style RC fill:#f5a623,color:#000
+    style V fill:#9b59b6,color:#fff
     style AP fill:#4a90e2,color:#fff
 ```
 

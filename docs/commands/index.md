@@ -1,6 +1,6 @@
 # Command Reference
 
-Forge commands fall into three categories. Choose the section that matches what you need.
+Forge commands fall into four categories. Choose the section that matches what you need.
 
 ---
 
@@ -10,12 +10,23 @@ Manage the Forge installation and project-level generated artifacts. Run from an
 
 | Command | Purpose |
 |---|---|
-| [`/forge:init`](forge/init.md) | Bootstrap a complete SDLC instance from a codebase |
-| [`/forge:health`](forge/health.md) | Detect stale docs, orphaned entities, skill gaps |
-| [`/forge:regenerate`](forge/regenerate.md) | Refresh generated workflows, templates, tools, or KB docs |
-| [`/forge:update`](forge/update.md) | Propagate a plugin version upgrade into project artifacts |
-| [`/forge:add-pipeline`](forge/add-pipeline.md) | Add or manage custom task pipelines |
-| [`/forge:report-bug`](forge/report-bug.md) | File a bug against Forge itself |
+| [`/forge:init`](forge/init.md) | Bootstrap a complete SDLC instance from a codebase (12 phases, fast or full mode) |
+| [`/forge:health`](forge/health.md) | Detect stale docs, orphaned entities, missing skills, and 14 other health checks |
+| [`/forge:regenerate`](forge/regenerate.md) | Refresh generated workflows, templates, tools, KB docs, personas, skills, or commands |
+| [`/forge:update`](forge/update.md) | Propagate a plugin version upgrade into project artifacts (7 steps) |
+| [`/forge:calibrate`](forge/calibrate.md) | Detect drift, propose regeneration patches, and apply approved patches |
+| [`/forge:add-pipeline`](forge/add-pipeline.md) | Add, customize, view, or remove custom task pipelines |
+| [`/forge:add-task`](forge/add-task.md) | Add a task to an existing sprint mid-flight |
+| [`/forge:ask`](forge/ask.md) | Ask Tomoshibi about project status, config, workflows, or version |
+| [`/forge:config`](forge/config.md) | Inspect or change project config; promote fast mode to full |
+| [`/forge:materialize`](forge/materialize.md) | Fill stubs from fast-mode init without overwriting pristine files |
+| [`/forge:migrate`](forge/migrate.md) | Migrate a pre-existing AI-SDLC store to Forge format |
+| [`/forge:quiz-agent`](forge/quiz-agent.md) | Verify an agent has loaded and understood the project KB |
+| [`/forge:remove`](forge/remove.md) | Remove Forge artifacts from the current project (3 levels) |
+| [`/forge:report-bug`](forge/report-bug.md) | File a bug against Forge — gathers context and opens a GitHub issue |
+| [`/forge:store-query`](forge/store-query.md) | Query the Forge store by natural language or exact flags |
+| [`/forge:store-repair`](forge/store-repair.md) | Diagnose and repair corrupted store records |
+| [`/forge:update-tools`](forge/update-tools.md) | Refresh JSON schemas from the installed plugin |
 
 ---
 
@@ -73,16 +84,18 @@ flowchart LR
 flowchart TD
     RT([run-task]) --> P
 
-    P[plan-task\nEngineer] --> RP{review-plan\nSupervisor}
+    P["plan-task\nEngineer"] --> RP{review-plan\nSupervisor}
     RP -->|Revision Required\nmax 3 loops| P
-    RP -->|Approved| I[implement\nEngineer]
+    RP -->|Approved| I["implement\nEngineer"]
 
     I --> GC{Gate checks\ntests · build · lint}
     GC -->|fail → retry once| I
     GC -->|pass| RC{review-code\nSupervisor}
 
     RC -->|Revision Required\nmax 3 loops| I
-    RC -->|Approved| AP[approve\nArchitect]
+    RC -->|Approved| V{validate\nQA Engineer}
+    V -->|Issues found| I
+    V -->|Passed| AP[approve\nArchitect]
     AP --> CM([commit])
 
     RP -->|loop exhausted\nmax 3| ESC1([escalate to human])
@@ -90,6 +103,7 @@ flowchart TD
 
     style RP fill:#f5a623,color:#000
     style RC fill:#f5a623,color:#000
+    style V fill:#9b59b6,color:#fff
     style AP fill:#4a90e2,color:#fff
     style CM fill:#2ecc71,color:#fff
     style ESC1 fill:#e74c3c,color:#fff

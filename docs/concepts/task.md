@@ -17,7 +17,9 @@ flowchart TD
     RP -->|approved| I[Engineer\nimplement]
     I -->|syntax check\nbuild check| RC{Supervisor\nreview code}
     RC -->|revision required\nmax 3 loops| I
-    RC -->|approved| AP[Architect\napprove]
+    RC -->|approved| V{QA Engineer\nvalidate}
+    V -->|issues found| I
+    V -->|passed| AP[Architect\napprove]
     AP --> CM[commit]
 
     subgraph gates["Gate checks"]
@@ -31,6 +33,7 @@ flowchart TD
 
     style RP fill:#f5a623,color:#000
     style RC fill:#f5a623,color:#000
+    style V fill:#9b59b6,color:#fff
     style AP fill:#4a90e2,color:#fff
     style CM fill:#2ecc71,color:#fff
 ```

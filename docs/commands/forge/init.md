@@ -1,13 +1,13 @@
 # /forge:init
 
-**Category:** Forge plugin command  
+**Category:** Forge plugin command
 **Run from:** Any project directory
 
 ---
 
 ## Purpose
 
-Bootstraps a complete, project-specific SDLC instance from the codebase in the current directory. Runs 9 automated phases to produce a knowledge base, agent personas, workflows, templates, tools, and slash commands — all tailored to the actual project, not a template.
+Bootstraps a complete, project-specific SDLC instance from the codebase in the current directory. Runs 12 automated phases to produce a knowledge base, agent personas, workflows, templates, tools, slash commands, and the Tomoshibi concierge — all tailored to the actual project, not a template.
 
 Run once per project. Use `/forge:regenerate` to refresh individual categories later.
 
@@ -16,10 +16,32 @@ Run once per project. Use `/forge:regenerate` to refresh individual categories l
 ## Invocation
 
 ```bash
-/forge:init               # full run, all 9 phases
-/forge:init 6             # resume from phase 6
-/forge:init orchestration # resume from the named phase
+/forge:init                # full run, all 12 phases
+/forge:init --fast         # fast mode — stubs, self-materialize on first use
+/forge:init --full         # full mode (default) — all phases
+/forge:init 6              # resume from phase 6
+/forge:init orchestration   # resume from the named phase
 ```
+
+### Fast mode vs Full mode
+
+| | Full mode (`--full`) | Fast mode (`--fast`) |
+|---|---|---|
+| Phases | All 12 | 1–3 (skeleton), 7–12 (stubs) |
+| KB | Full docs with confidence ratings | Minimal skeleton |
+| Workflows | Full workflow files | Stub files (self-materialize on first use) |
+| Time | 10–15 min | 2–3 min |
+| After init | Review `[?]` markers, then sprint | Run `/forge:materialize` when you need full docs |
+
+Fast mode skips heavy LLM generation (Phases 3 full KB, 4 personas, 5 skills, 6 templates, 8 orchestration) and writes stub workflow files that self-materialize on first use.
+
+Promote from fast to full at any time:
+```bash
+/forge:config mode full
+/forge:materialize
+```
+
+This is a one-way operation. There is no full → fast downgrade.
 
 ---
 
@@ -27,30 +49,34 @@ Run once per project. Use `/forge:regenerate` to refresh individual categories l
 
 ```mermaid
 flowchart TD
-    P1[Phase 1 — Discover\n5 parallel codebase scans] --> P15
-    P15[Phase 1.5 — Skill Recommendations\ncross-reference stack vs installed skills] --> P2
-    P2[Phase 2 — Knowledge Base\narchitecture · entity model · checklist] --> P3
-    P3[Phase 3 — Personas\nEngineer · Supervisor · Architect] --> P4
-    P4[Phase 4 — Templates\nplan · review · retrospective] --> P5
-    P5[Phase 5 — Atomic Workflows\n14 project-specific .md files] --> P6
-    P6[Phase 6 — Orchestration\norchestrate_task · run_sprint] --> P7
-    P7[Phase 7 — Commands\n/sprint-plan · /run-task · /implement …] --> P8
-    P8[Phase 8 — Tools\ncollate · validate-store · seed-store · manage-config] --> P9
-    P9[Phase 9 — Smoke Test\nvalidate + self-correct]
+    P1["Phase 1 — Discover\n5 parallel codebase scans"] --> P2
+    P2["Phase 2 — Marketplace Skills\ncross-reference stack vs installed skills"] --> P3
+    P3["Phase 3 — Knowledge Base\narchitecture · entity model · checklist"] --> P4
+    P4["Phase 4 — Personas\nEngineer · Supervisor · Architect · others"] --> P5
+    P5["Phase 5 — Skills\nskill definitions wired to stack"] --> P6
+    P6["Phase 6 — Templates\nplan · review · retrospective formats"] --> P7
+    P7["Phase 7 — Workflows\n16 project-specific .md files"] --> P8
+    P8["Phase 8 — Orchestration\norchestrate_task · run_sprint"] --> P9
+    P9["Phase 9 — Commands\n/sprint-plan · /run-task · /implement …"] --> P10
+    P10["Phase 10 — Tools\ncollate · validate-store · seed-store · manage-config"] --> P11
+    P11["Phase 11 — Smoke Test\nvalidate + self-correct"] --> P12
+    P12["Phase 12 — Tomoshibi\nconcierge agent for project queries"]
 ```
 
 | Phase | Reads | Produces |
-|---|---|---|
+|-------|-------|---------|
 | 1 Discover | package.json, models, routes, tests, CI config | `.forge/config.json` |
-| 1.5 Skills | Installed plugins, recommendation mapping | `config.installedSkills` |
-| 2 Knowledge Base | Discovery context | `engineering/architecture/`, `entity-model.md`, `stack-checklist.md` |
-| 3 Personas | Meta-personas + KB | Persona context (embedded in workflows) |
-| 4 Templates | Meta-templates + KB | `.forge/templates/` |
-| 5 Workflows | Meta-workflows + KB + personas | `.forge/workflows/` (14 files) |
-| 6 Orchestration | `meta-orchestrate.md` + generated workflows | `orchestrate_task.md`, `run_sprint.md` |
-| 7 Commands | Generated workflows | `.claude/commands/` |
-| 8 Tools | Tool specs + config | `engineering/tools/` |
-| 9 Smoke Test | All generated artifacts | Validation report; self-corrects once |
+| 2 Marketplace Skills | Installed plugins, recommendation mapping | `config.installedSkills` |
+| 3 Knowledge Base | Discovery context | `engineering/architecture/`, `entity-model.md`, `stack-checklist.md` |
+| 4 Personas | Meta-personas + KB | `.forge/personas/` |
+| 5 Skills | Meta-skills + KB | `.forge/skills/` |
+| 6 Templates | Meta-templates + KB | `.forge/templates/` |
+| 7 Workflows | Meta-workflows + KB + personas | `.forge/workflows/` (16 files) |
+| 8 Orchestration | `meta-orchestrate.md` + generated workflows | `orchestrate_task.md`, `run_sprint.md` |
+| 9 Commands | Generated workflows | `.claude/commands/` |
+| 10 Tools | Tool specs + config | `engineering/tools/` |
+| 11 Smoke Test | All generated artifacts | Validation report; self-corrects once |
+| 12 Tomoshibi | Config + KB | `.forge/agents/tomoshibi.md` (project-local) |
 
 ---
 
@@ -58,17 +84,21 @@ flowchart TD
 
 ```
 .forge/
-  config.json             Project configuration
-  workflows/              14 project-specific agent workflows + orchestrator
+  config.json             Project configuration (stack, paths, pipeline, mode)
+  workflows/              16 project-specific agent workflows + orchestrator
+  personas/               Agent identity files (Engineer, Supervisor, Architect, etc.)
+  skills/                 Skill definitions wired to your stack
   templates/              Plan, review, retrospective document templates
-  store/                  Empty JSON store directories
+  schemas/                 JSON validation schemas for the store
+  store/                   Empty JSON store directories (sprints, tasks, bugs, events, features)
+  cache/                   Persona packs and context packs
 engineering/
   architecture/           stack · processes · database · routing · deployment docs
   business-domain/        entity-model.md
   stack-checklist.md      Initial review criteria
-  MASTER_INDEX.md         Empty scaffold
+  MASTER_INDEX.md         KB scaffold
   tools/                  collate · validate-store · seed-store · manage-config
-.claude/commands/         All slash commands
+.claude/commands/         All slash commands (project-scoped)
 ```
 
 ---
@@ -84,12 +114,18 @@ Generated docs include confidence ratings and `[?]` markers:
 
 Review `engineering/` before the first sprint. Use `/quiz` to correct errors interactively. See [Onboarding an existing project](../../existing-project.md) for a full walkthrough.
 
+After the quiz session, regenerate workflows so they reflect the corrected KB:
+```bash
+/forge:regenerate workflows
+```
+
 ---
 
 ## Gate checks
 
-- Smoke test (Phase 9) validates structural completeness, referential integrity, and tool execution.
+- Smoke test (Phase 11) validates structural completeness, referential integrity, and tool execution.
 - Self-corrects once per failing component; reports remaining failures if self-correction is unsuccessful.
+- Config is validated against `sdlc-config.schema.json` after Phase 1.
 
 ---
 
@@ -98,5 +134,8 @@ Review `engineering/` before the first sprint. Use `/quiz` to correct errors int
 | If you want to… | Run |
 |---|---|
 | Refresh workflows after KB enrichment | [`/forge:regenerate workflows`](regenerate.md) |
+| Fill stubs from fast mode | [`/forge:materialize`](materialize.md) |
 | Add a new pipeline | [`/forge:add-pipeline`](add-pipeline.md) |
 | Check for drift after codebase changes | [`/forge:health`](health.md) |
+| Change init mode | [`/forge:config`](config.md) |
+| Ask about project status | [`/forge:ask`](ask.md) |

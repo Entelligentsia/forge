@@ -1,16 +1,15 @@
 # /forge:update
 
-**Category:** Forge plugin command  
+**Category:** Forge plugin command
 **Run from:** Any Forge-initialised project directory
 
 ---
 
 ## Purpose
 
-Propagates a Forge plugin upgrade into the project's generated artifacts. Reads the migration manifest, computes the delta from the previously-installed version to the current one, runs exactly the regeneration targets that are required — no more — and records the new baseline.
+Single entry point for updating Forge. Checks GitHub for new versions, shows what changed, guides you through the install, applies migrations to generated artifacts, runs a pipeline audit, and refreshes Tomoshibi's KB links.
 
-Run this after installing or upgrading Forge (`/plugin install forge@skillforge` for stable,
-or `/plugin install forge@forge` for canary).
+Run this after installing or upgrading Forge (`/plugin install forge@skillforge` for stable, `/plugin install forge@forge` for canary).
 
 ---
 
@@ -19,36 +18,95 @@ or `/plugin install forge@forge` for canary).
 ```bash
 /forge:update                    # auto-detect versions from cache
 /forge:update --from 0.2.0       # override baseline version (if cache is missing)
+/forge:update --skip-check       # skip remote version check — only apply pending migrations
 ```
 
 ---
 
-## How version tracking works
+## Steps
 
-The `check-update.js` session hook caches the local plugin version at each session start. When `/plugin install` upgrades the plugin between sessions, the next session start detects the version change and writes `migratedFrom` into the cache. `/forge:update` reads that field as its baseline.
+Forge update runs 7 steps:
 
 ```mermaid
-flowchart LR
-    PI[/plugin install] -->|version changes| SH[SessionStart hook\ndetects delta\nwrites migratedFrom to cache]
-    SH -->|user runs| FU([/forge:update])
-    FU --> MF[Read migratedFrom\nfrom cache]
-    MF --> CV[Read current version\nfrom plugin.json]
-    CV --> MJ[Walk migrations.json\nfrom baseline to current]
-    MJ --> AGG[Aggregate regeneration targets]
-    AGG --> CONF[Show summary\nask to confirm]
-    CONF --> RUN[Run regeneration]
-    RUN --> WRITE[Write new baseline\nto cache]
+flowchart TD
+    S1["Step 1 — Check for updates"] --> S2
+    S2{"Step 2 — Update available?"}
+    S2 -->|Plugin update| S2A["2A — Plugin update"]
+    S2 -->|Migrations only| S2B["2B — Apply migrations"]
+    S2A --> S3["Step 3 — Verify installation"]
+    S3 --> S4["Step 4 — Apply migrations"]
+    S2B --> S4
+    S4 --> S5["Step 5 — Pipeline audit"]
+    S5 --> S6["Step 6 — Record state"]
+    S6 --> S7["Step 7 — Tomoshibi KB links"]
 ```
 
----
+### Step 1 — Check for updates
 
-## Reads
+Reads the local plugin version and fetches the remote manifest from GitHub. Determines whether an update is available and whether any pending migrations exist for this project.
 
-| Source | Purpose |
-|---|---|
-| `$FORGE_ROOT/.claude-plugin/plugin.json` | Current plugin version |
-| `CLAUDE_PLUGIN_DATA/update-check-cache.json` | `migratedFrom` — the pre-upgrade baseline |
-| `$FORGE_ROOT/migrations.json` | Migration manifest — maps version pairs to regeneration targets |
+If the network is unavailable, proceeds with local version only.
+
+### Step 2A — Plugin update available
+
+Shows the update summary: what changed between versions, what regeneration targets will run, and whether any breaking changes require manual steps.
+
+Guides you through the install via the plugin manager. Waits for your confirmation that the install completed.
+
+### Step 2B — Project migration pending
+
+Reached when the plugin is already current but the project's generated artifacts lag behind. Shows what migrations need to be applied.
+
+### Step 3 — Verify installation
+
+After you confirm the install, re-reads the plugin version to verify the update succeeded. Re-derives `FORGE_ROOT` in case the cache path changed.
+
+### Step 4 — Apply migrations
+
+Walks the migration chain from your baseline version to the current version. Aggregates all regeneration targets across every step in the path.
+
+**Regeneration order:**
+
+| Order | Target | Depends on |
+|-------|--------|-----------|
+| 1 | tools | — |
+| 2 | workflows | — |
+| 3 | templates | — |
+| 4 | personas | — |
+| 5 | commands | workflows |
+| 6 | knowledge-base sub-targets | — |
+
+After regeneration, runs a structure check and refreshes the `calibrationBaseline` in config.
+
+### Step 5 — Pipeline audit
+
+Scans for retired files, legacy fields, missing workflow fields, and configuration drift. Presents a consolidated list of findings with four options:
+
+| Choice | What happens |
+|--------|-------------|
+| **[Y]** Apply required | Applies required items, skips optional decorations |
+| **[a]** Apply all | Applies everything including optional decorations |
+| **[r]** Review individually | Walks through each item one at a time |
+| **[n]** Skip all | Skips everything, lists what was skipped |
+
+**What the audit checks:**
+- Retired command and workflow files from old Forge versions
+- Legacy `model:` frontmatter in workflow files
+- Retired command names in pipeline configurations
+- Missing `workflow` field on custom pipeline phases
+- Missing `paths.customCommands` config key
+- Missing `.gitignore` entry for `.forge/store/events/`
+- Missing persona symbol lines in custom commands
+
+### Step 6 — Record state
+
+Updates `paths.forgeRoot` in config to point to the current plugin directory. Writes the update-check cache with the completed migration baseline.
+
+Prints a summary: what was updated, what was regenerated, what the audit found.
+
+### Step 7 — Tomoshibi KB links
+
+Invokes the `forge:refresh-kb-links` skill to ensure all agent instruction files have current links to the knowledge base and workflow entry points.
 
 ---
 
@@ -72,33 +130,9 @@ If upgrading across multiple versions (e.g., 0.2.0 → 0.4.0), the command walks
 
 ---
 
-## Summary report (before running)
+## Model-alias auto-suppression
 
-```
-Forge 0.2.0 → 0.3.0
-
-Changes:
-  Pluggable pipeline routing, manage-config tool, extended /forge:regenerate.
-
-Regeneration required:
-  tools      — re-generate engineering/tools/ from updated tool specs
-  workflows  — re-generate .forge/workflows/ from updated meta-definitions
-
-Proceed? [Y/n]
-```
-
-If any migration step has `breaking: true`, the user must confirm they have completed the manual steps before regeneration runs.
-
----
-
-## Produces
-
-Updated artifacts per the regeneration targets (see [`/forge:regenerate`](regenerate.md) for what each target produces).
-
-Updates the cache:
-```json
-{ "migratedFrom": "0.3.0", "localVersion": "0.3.0" }
-```
+When a migration mentions custom `model` overrides as a manual step, the update command checks your config automatically. If all `model` values in your pipelines are standard Forge aliases (`sonnet`, `opus`, `haiku`), the manual step is a false positive and is removed. You only see the manual step if you have non-standard model values.
 
 ---
 
@@ -107,9 +141,10 @@ Updates the cache:
 | Situation | Behaviour |
 |---|---|
 | `migratedFrom` not in cache | Ask user for baseline version; or pass `--from <version>` |
-| No migration path found | Warn user; recommend `regenerate workflows tools` as a safe fallback |
+| No migration path found | Warn; recommend `regenerate workflows tools` as safe fallback |
 | Breaking changes — manual steps not confirmed | Do not run regeneration until confirmed |
 | Regeneration fails mid-run | Report which target failed; remaining targets not run |
+| Cross-distribution downgrade detected | Ask to reset baseline and regenerate from current version |
 
 ---
 
@@ -125,3 +160,4 @@ If `migratedFrom` equals the current version, the command reports "Already up to
 |---|---|
 | [`/forge:regenerate`](regenerate.md) | Manual regeneration by category |
 | [`/forge:health`](health.md) | Check for remaining drift after update |
+| [`/forge:add-pipeline`](add-pipeline.md) | Add pipelines (audit may reference these) |

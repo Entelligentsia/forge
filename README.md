@@ -17,8 +17,10 @@
 [⚡ Quick Start](#quick-start) &nbsp;·&nbsp;
 [📦 Install](#install) &nbsp;·&nbsp;
 [🚀 Get Started](#get-started) &nbsp;·&nbsp;
-[📖 Command Reference](docs/commands/index.md) &nbsp;·&nbsp;
-[🗺️ Onboarding Guides](#get-started) &nbsp;·&nbsp;
+[📖 Philosophy](docs/philosophy.md) &nbsp;·&nbsp;
+[🔁 Default Flow](docs/default-flow.md) &nbsp;·&nbsp;
+[📖 Commands](docs/commands/index.md) &nbsp;·&nbsp;
+[🏗️ Architecture](docs/architecture/orchestrator.md) &nbsp;·&nbsp;
 [🔧 Customise](docs/customising-workflows.md) &nbsp;·&nbsp;
 [🐛 Report a Bug](docs/commands/forge/report-bug.md)
 
@@ -31,6 +33,10 @@
 Forge is a Claude Code plugin that turns your codebase into a self-improving AI engineering team. Run it once on any project — it reads your stack, generates a complete set of project-specific agents, workflows, and a structured knowledge base, then deploys them as slash commands. Every sprint, the system learns from what it builds and gets sharper.
 
 **One install. One init. A full engineering practice that improves with every task.**
+
+> **Forge is not for every project.** It is designed for non-trivial software with real accountability requirements. If you are building a small script, a one-page website, or creating content, Forge adds process without benefit. See [Philosophy](docs/philosophy.md) for the full positioning.
+
+**Version 1.0 targets solo engineers.** Team collaboration and project visualization are in active development.
 
 ---
 
@@ -50,9 +56,10 @@ Forge is a Claude Code plugin that turns your codebase into a self-improving AI 
 **2. Bootstrap your project:**
 ```
 cd /path/to/your/project
-/forge:init
+/forge:init            # Full mode: ~10–15 min, generates everything
+/forge:init --fast     # Fast mode: ~2–3 min, writes stubs that materialize on first use
 ```
-Forge scans your codebase and generates everything in ~10–15 minutes. No config files to fill in.
+No config files to fill in. Review lines marked `[?]` in `engineering/` before your first sprint.
 
 **3. Run your first sprint:**
 ```
@@ -174,7 +181,11 @@ Choose the guide that matches your situation:
 |---|---|
 | Onboard an existing codebase into Forge | [Existing project →](docs/existing-project.md) |
 | Start a new project with Forge from day 1 | [New project →](docs/new-project.md) |
-| Understand the core concepts | [docs/concepts/index.md](docs/concepts/index.md) |
+| Try Forge with a sandbox project | [Onboarding with testbench →](docs/onboarding.md) |
+| Understand the core concepts | [Concepts →](docs/concepts/index.md) |
+| Understand why Forge works this way | [Philosophy →](docs/philosophy.md) |
+| Follow the recommended flow step by step | [Default flow →](docs/default-flow.md) |
+| Learn how the orchestrator, store, and collation work | [Architecture →](docs/architecture/orchestrator.md) |
 | Adapt Forge pipelines and workflows to my team's process | [Customising workflows →](docs/customising-workflows.md) |
 
 ---
@@ -199,20 +210,22 @@ The general lifecycle is:
 /forge:init  →  review engineering/  →  /sprint-intake  →  /sprint-plan  →  /run-sprint  →  /retrospective
 ```
 
-`/forge:init` scans your codebase and runs 9 automated phases (~10–15 min, no interaction needed):
+`/forge:init` scans your codebase and runs 12 automated phases (~10–15 min for full mode, ~2–3 min for fast mode):
 
 | Phase | What happens |
 |---|---|
-| Discover | Reads your stack, routes, models, tests, CI config |
-| Skill Recommendations | Checks installed skills, recommends marketplace additions for your stack |
-| Knowledge Base | Generates `engineering/` — architecture docs, entity model, review checklist |
-| Personas | Generates Engineer, Supervisor, Architect identities specific to your stack |
-| Templates | Generates plan, review, and retrospective document formats |
-| Workflows | Generates 15 agent workflows wired to your actual commands and paths |
-| Orchestration | Assembles the task pipeline and sprint scheduler |
-| Commands | Creates `/sprint-intake`, `/sprint-plan`, `/run-sprint`, `/run-task`, etc. in `.claude/commands/` |
-| Tools | Generates `collate`, `validate-store`, `seed-store`, `manage-config` in your project's language |
-| Smoke Test | Validates everything connects; self-corrects if needed |
+| 1. Discover | Reads your stack, routes, models, tests, CI config |
+| 2. Marketplace Skills | Checks installed skills, recommends marketplace additions for your stack |
+| 3. Knowledge Base | Generates `engineering/` — architecture docs, entity model, review checklist |
+| 4. Personas | Generates Engineer, Supervisor, Architect identities specific to your stack |
+| 5. Skills | Generates skill definitions wired to your stack |
+| 6. Templates | Generates plan, review, and retrospective document formats |
+| 7. Workflows | Generates 16 agent workflows wired to your actual commands and paths |
+| 8. Orchestration | Assembles the task pipeline and sprint scheduler |
+| 9. Commands | Creates `/sprint-intake`, `/sprint-plan`, `/run-sprint`, `/run-task`, etc. in `.claude/commands/` |
+| 10. Tools | Generates `collate`, `validate-store`, `seed-store`, `manage-config` in your project's language |
+| 11. Smoke Test | Validates everything connects; self-corrects if needed |
+| 12. Tomoshibi | Generates the concierge agent for project queries |
 
 After init, each sprint task runs through the full pipeline automatically:
 
@@ -223,11 +236,14 @@ flowchart LR
     RP -->|approved| I["Engineer<br/>Implement"]
     I --> RC{"Supervisor<br/>Review Code"}
     RC -->|revision| I
-    RC -->|approved| AP["Architect<br/>Approve"]
+    RC -->|approved| V{"QA Engineer<br/>Validate"}
+    V -->|issues found| I
+    V -->|passed| AP["Architect<br/>Approve"]
     AP --> CM([commit])
 
     style RP fill:#f5a623,color:#000
     style RC fill:#f5a623,color:#000
+    style V fill:#9b59b6,color:#fff
     style AP fill:#4a90e2,color:#fff
 ```
 
@@ -274,7 +290,16 @@ Full lifecycle documentation — inputs, outputs, gate checks, revision loops, a
 | `/forge:regenerate [target]` | Refresh workflows, templates, tools, or knowledge-base docs | [→](docs/commands/forge/regenerate.md) |
 | `/forge:update` | Propagate a plugin version upgrade into project artifacts | [→](docs/commands/forge/update.md) |
 | `/forge:add-pipeline [name]` | Add or manage a custom task pipeline in `.forge/config.json` | [→](docs/commands/forge/add-pipeline.md) |
-| `/forge:migrate` | Migrate a pre-existing AI-SDLC store to Forge format — interviews you to define the mapping | |
+| `/forge:add-task` | Add a task to an existing sprint mid-flight | [→](docs/commands/forge/add-task.md) |
+| `/forge:ask` | Ask Tomoshibi about project status, config, workflows, or version | [→](docs/commands/forge/ask.md) |
+| `/forge:config` | Inspect or change project config; promote fast mode to full | [→](docs/commands/forge/config.md) |
+| `/forge:materialize` | Fill stubs from fast-mode init without overwriting files | [→](docs/commands/forge/materialize.md) |
+| `/forge:migrate` | Migrate a pre-existing AI-SDLC store to Forge format | [→](docs/commands/forge/migrate.md) |
+| `/forge:quiz-agent` | Verify an agent has loaded and understood the project KB | [→](docs/commands/forge/quiz-agent.md) |
+| `/forge:remove` | Remove Forge artifacts from the current project | [→](docs/commands/forge/remove.md) |
+| `/forge:store-query` | Query the Forge store by natural language or exact flags | [→](docs/commands/forge/store-query.md) |
+| `/forge:store-repair` | Diagnose and repair corrupted store records | [→](docs/commands/forge/store-repair.md) |
+| `/forge:update-tools` | Refresh JSON schemas from the installed plugin | [→](docs/commands/forge/update-tools.md) |
 | `/forge:report-bug` | File a bug against Forge — gathers context and opens a GitHub issue | [→](docs/commands/forge/report-bug.md) |
 
 ---
@@ -314,4 +339,3 @@ Maintainer Note:
 After saving `assets/forge_social.png`, upload it manually to set the social preview:
 GitHub → Entelligentsia/forge → Settings → Social preview → Edit → Upload image
 -->
-| 0.6.13 | 2026-04-12 | [scan-v0.6.13.md](docs/security/scan-v0.6.13.md) | SAFE TO USE |

@@ -1,13 +1,13 @@
 # /forge:add-pipeline
 
-**Category:** Forge plugin command  
+**Category:** Forge plugin command
 **Run from:** Any Forge-initialised project directory
 
 ---
 
 ## Purpose
 
-Adds, updates, removes, or lists named pipeline definitions in `.forge/config.json`. All JSON reads and writes are delegated to the `manage-config` deterministic tool — the config file is never edited directly by the LLM.
+Conversational pipeline manager. Adds, customizes, views, or removes named pipeline definitions in `.forge/config.json`. Guides you through creating custom commands when a pipeline needs a phase that doesn't exist yet.
 
 Use this when you have a recurring specialised task type that the default pipeline handles poorly. See [Customising workflows](../../customising-workflows.md) for the full context.
 
@@ -16,94 +16,134 @@ Use this when you have a recurring specialised task type that the default pipeli
 ## Invocation
 
 ```bash
-/forge:add-pipeline api-client-sync          # add or update a pipeline
-/forge:add-pipeline --list                   # list all configured pipelines
-/forge:add-pipeline --remove api-client-sync # remove a pipeline
+/forge:add-pipeline                    # conversational — pick a mode
+/forge:add-pipeline api-client-sync    # add or edit a named pipeline
+/forge:add-pipeline --list             # view configured pipelines
+/forge:add-pipeline --remove name      # remove a pipeline
 ```
 
 ---
 
-## Add / update mode
+## Modes
 
-### Step 1 — Collect pipeline definition
+The pipeline manager has four modes:
 
-The command prompts for:
+| Mode | What it does |
+|------|-------------|
+| **1. Add** | Create a new pipeline, phase by phase |
+| **2. Customize** | Edit an existing pipeline — override phases, change models, reorder |
+| **3. View** | List and inspect configured pipelines |
+| **4. Remove** | Delete a pipeline from config |
 
-1. **Description** — one sentence describing which task types should use this pipeline. The sprint planner matches this against task descriptions during `/sprint-plan` to auto-assign the pipeline.
-
-2. **Phases** — one phase per line:
-   ```
-   <command>  <role>  [model]  [maxIterations]
-   ```
-   Valid roles: `plan`, `review-plan`, `implement`, `review-code`, `validate`, `approve`, `commit`
-
-### Step 2 — Validate
-
-Before touching the config file:
-
-| Check | Failure behaviour |
-|---|---|
-| Each phase `role` is a valid enum value | Reject and re-prompt |
-| `command` is non-empty | Reject and re-prompt |
-| First phase is a `review-*` role | Warn: review with no preceding phase escalates immediately on first revision |
-| Pipeline name already exists | Ask whether to overwrite or abort |
-| Pipeline name is `default` | Warn: `default` is Forge-managed and updated by migrations. To customise the default flow, create a named pipeline as a copy instead — e.g. `/forge:add-pipeline my-default` — and assign it to tasks via their `pipeline` field. Editing `default` directly means your changes will be overwritten on the next migration that updates the default pipeline. |
-
-### Step 3 — Preview and confirm
-
-Prints the entry as it will appear in `config.json` and asks for confirmation before writing.
-
-### Step 4 — Write
-
-Delegates to `engineering/tools/manage-config`:
-
-```
-manage-config pipeline add <name> --description "..." --phases '[...]'
-```
-
-The tool validates the phases against the schema, writes atomically (temp file → rename), and preserves all other config fields exactly — key order, indentation, and unrelated sections are untouched.
-
-### Step 5 — Post-write guidance
-
-```
-Pipeline "api-client-sync" added to .forge/config.json.
-
-Next steps:
-1. Ensure the commands listed as phases exist in .claude/commands/
-2. Run /forge:regenerate workflows to wire pipeline routing into the orchestrator
-3. Tasks are assigned this pipeline explicitly (in the JSON manifest) or automatically
-   by the sprint planner when descriptions match during /sprint-plan
-```
+When you run `/forge:add-pipeline` without arguments, the manager asks which mode you want. With a pipeline name, it jumps to Add mode pre-filled. With `--list`, it jumps to View. With `--remove`, it jumps to Remove.
 
 ---
 
-## List mode
+## Add mode
 
-```bash
-/forge:add-pipeline --list
-```
+### Step 1 — Understand the use case
 
-Calls `manage-config list-pipelines`. Prints a table:
+The manager asks what kind of tasks this pipeline should handle. From your description, it suggests a pipeline name.
 
-```
-Name              Description                                    Phases
-default           (hardcoded)                                    6
-api-client-sync   Regenerates typed API clients from OpenAPI     4
-```
+### Step 2 — Phase-by-phase walkthrough
+
+Shows the standard Forge phases as a starting point:
+
+| # | Phase role | Default command | Default model |
+|---|-----------|----------------|--------------|
+| 1 | plan | `plan` | sonnet |
+| 2 | review-plan | `review-plan` | opus |
+| 3 | implement | `implement` | sonnet |
+| 4 | review-code | `review-code` | opus |
+| 5 | validate | `validate` | opus |
+| 6 | approve | `approve` | opus |
+| 7 | commit | `commit` | haiku |
+
+For each phase, you can:
+- **Keep it** as the default
+- **Override** it with a different command (custom or built-in)
+- **Change the model** (haiku, sonnet, opus)
+- **Skip it** entirely (remove from pipeline)
+- **Add a new phase** at a specific position
+
+If a custom command doesn't exist yet, the manager guides you through creating it (see Custom Command Creation below).
+
+### Step 3 — Check for existing pipeline
+
+If a pipeline with the same name already exists, asks whether to replace, edit, or pick a different name.
+
+### Step 4 — Preview and confirm
+
+Displays the full pipeline as it will be saved. You can approve, edit further, or cancel.
+
+---
+
+## Customize mode
+
+Select an existing pipeline, then choose what to change:
+
+| Intent | Action |
+|--------|--------|
+| Stricter review, same role | Custom command with tighter instructions |
+| Faster / cheaper phase | Lower the model (sonnet → haiku) |
+| Domain-specific validation | New custom command |
+| Skip a phase entirely | Remove it from the phase list |
+| Different agent persona | New custom command |
+| Reorder phases | Specify new sequence; verify revision loops stay intact |
+
+---
+
+## View mode
+
+Lists all configured pipelines and their phase counts. Drill into a specific pipeline to see full phase details.
 
 ---
 
 ## Remove mode
 
+Checks for tasks that reference the pipeline being removed. Shows affected tasks and asks for confirmation. Tasks referencing a removed pipeline fall back to the default pipeline at runtime.
+
+---
+
+## Custom Command Creation
+
+When a phase needs a command that doesn't exist yet, the manager creates it interactively:
+
+1. **What should it do?** — behavior description
+2. **What persona should it have?** — agent character and constraints
+3. **What artifact does it produce?** — e.g., `SCHEMA_REVIEW.md`
+
+From your answers, the manager:
+- Picks a persona symbol based on the phase role (🌱 plan/implement, 🌿 review, ⛰️ approve, etc.)
+- Creates the command file using `.forge/templates/CUSTOM_COMMAND_TEMPLATE.md` as scaffold
+- Sets the phase's `workflow` field so the orchestrator can read it directly
+
+Custom commands are created in `engineering/commands/` (or wherever `paths.customCommands` points).
+
+---
+
+## Validation
+
+Before writing, the manager checks:
+
+| Check | Failure behaviour |
+|-------|-----------------|
+| Each phase `role` is a valid enum value | Reject and re-prompt |
+| `command` is non-empty | Reject and re-prompt |
+| Pipeline name already exists | Ask whether to overwrite or abort |
+| Pipeline name is `default` | Warn: `default` is Forge-managed. Create a named copy instead. |
+
+All config writes are delegated to `manage-config` — the config file is never edited directly by the LLM.
+
+---
+
+## After adding a pipeline
+
 ```bash
-/forge:add-pipeline --remove api-client-sync
+/forge:regenerate workflows
 ```
 
-1. Scans `.forge/store/tasks/` for any task with `"pipeline": "api-client-sync"` — lists them as affected.
-2. Asks for explicit confirmation.
-3. Calls `manage-config pipeline remove api-client-sync`.
-
-Tasks that reference a removed pipeline will fail at orchestration time with an escalation (not a silent fallback).
+The orchestrator is only updated on explicit regeneration — adding a pipeline to `config.json` alone is not sufficient.
 
 ---
 
@@ -113,18 +153,8 @@ Requires `engineering/tools/manage-config` to exist. If not yet generated:
 
 ```
 The manage-config tool has not been generated yet.
-Run /forge:init (phase 8) or /forge:regenerate tools to generate it first.
+Run /forge:init (phase 10) or /forge:regenerate tools to generate it first.
 ```
-
----
-
-## After adding a pipeline
-
-```bash
-/forge:regenerate workflows   # wire routing into the generated orchestrator
-```
-
-The orchestrator is only updated on explicit regeneration — adding a pipeline to `config.json` alone is not sufficient.
 
 ---
 
@@ -133,4 +163,5 @@ The orchestrator is only updated on explicit regeneration — adding a pipeline 
 | Command | Purpose |
 |---|---|
 | [`/forge:regenerate workflows`](regenerate.md) | Wire new pipeline into the orchestrator |
+| [`/forge:materialize`](materialize.md) | Materialize stubs if in fast mode |
 | [`/run-task`](../task-pipeline/run-task.md) | See how pipelines are resolved at task execution time |
