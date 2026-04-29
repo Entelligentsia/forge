@@ -1,26 +1,24 @@
-# Forge — Project Guidelines for Claude
+# Forge — Plugin Development Guidelines
 
-## Two-Layer Architecture — Read This First
-
-This repo contains the Forge plugin source and distribution infrastructure.
+## What This Repo Contains
 
 ```
-forge/          ← PLUGIN SOURCE. You develop here.
-                  Meta-definitions, hooks, tools, commands, schemas.
-                  Changes here ship to all Forge users on next install.
+forge/              ← Plugin source (installable by all users)
+.claude-plugin/     ← Marketplace descriptor
+docs/               ← Plugin documentation (concepts, commands, security scans)
 ```
 
-### Decision rule — before touching any file, ask:
+This is the **public** Forge repository. It contains only the plugin source and its documentation. Private engineering data (sprints, bugs, dogfooding) lives in `Entelligentsia/forge-engineering`.
 
-> **"Am I fixing/building Forge itself?"** → work in `forge/`
+### Decision rule
+
+> **"Am I fixing/building Forge itself?"** → edit `forge/`
 
 ### Hard boundaries
 
-**NEVER** edit generated output (`.forge/` directories in installed instances) to fix
-a plugin behaviour. The fix goes in `forge/meta/`.
+**NEVER** edit generated output (`.forge/` in installed instances) to fix plugin behaviour. The fix goes in `forge/meta/`.
 
-**NEVER** regenerate `.forge/` as a side-effect of plugin development work —
-regeneration is a user action (`/forge:regenerate`) that runs after they upgrade.
+**NEVER** regenerate `.forge/` as a side-effect of plugin development — regeneration is a user action (`/forge:regenerate`).
 
 ### Where things live
 
@@ -36,43 +34,7 @@ regeneration is a user action (`/forge:regenerate`) that runs after they upgrade
 
 ---
 
-## Forge Engineering Skills
-
-Seven project-level skills codify the engineering procedures for working on Forge itself. Each skill is a Claude Code Skill in `.claude/skills/<name>/SKILL.md` that loads on demand.
-
-| Skill | When to use | What it does |
-|-------|-------------|--------------|
-| **forge-architect** | Designing a feature or planning a fix | Blast radius assessment, two-layer compliance, implementation plan, CLAUDE.md requirements |
-| **forge-engineer** | Implementing an approved plan | Edit `forge/` only, test-first for `.cjs` tools, progressive verification |
-| **forge-validator** | After implementation, before commit | 8-gate compliance: tests, lint, schema, manifest, integrity, health hash, security scan, grep assertions, migration granularity |
-| **forge-packager** | Version bump and release prep | `plugin.json` bump, migration entry (granular sub-targets), CHANGELOG entry |
-| **forge-bugfixer** | Fixing a reported bug | Triage, locate defect, failing test first, fix, versioning assessment |
-| **forge-releaser** | Promote validated version to skillforge | Merge main→release, tag, push, update skillforge repo reference |
-| **forge-meta-creator** | Adding new workflow/persona/skill meta sources | Create meta file, update TEMPLATE_MAP, regenerate manifest, verify output |
-
-### Iron Laws (shared across all skills)
-
-1. ONLY edit files in `forge/`. NEVER edit `.forge/` or `engineering/` to fix Forge itself.
-2. Every change to a `.cjs` tool must be preceded by a failing test.
-3. Schema changes that affect entity lifecycle require concepts diagram updates.
-4. Version bump required for material changes. Migration entry required. Tests must pass.
-5. Silent continuation past failures is never acceptable.
-
-### Typical workflow
-
-```
-/forge-architect  →  /forge-engineer  →  /forge-validator  →  /forge-packager  →  /forge-releaser
-       ↑                                                          │
-       └──────────── /forge-bugfixer (for bugs) ──────────────────┘
-
-/forge-meta-creator (for new meta sources, after /forge-architect)
-```
-
----
-
 ## Versioning — Key Rules
-
-For the full step-by-step procedure, see `/forge-packager` and `/forge-validator`.
 
 - Bump `forge/.claude-plugin/plugin.json` version for every material change
 - A change is material if it can affect the engineering workflow of an installed Forge user
@@ -86,13 +48,21 @@ For the full step-by-step procedure, see `/forge-packager` and `/forge-validator
 
 ## Script Test Suite — Key Rules
 
-For the full test-first procedure, see `/forge-engineer`.
-
 - Every `.cjs` tool has a corresponding test in `forge/tools/__tests__/*.test.cjs`
 - Run with: `node --test forge/tools/__tests__/*.test.cjs`
 - **Every change to a `.cjs` script must be preceded by a failing test** — write test, watch it fail, implement, watch it pass
 - New exports require new tests
 - Test-only helpers belong in `__tests__/`, never in tool scripts themselves
+
+---
+
+## Iron Laws
+
+1. ONLY edit files in `forge/`. NEVER edit `.forge/` or `engineering/` to fix Forge itself.
+2. Every change to a `.cjs` tool must be preceded by a failing test.
+3. Schema changes that affect entity lifecycle require concepts diagram updates.
+4. Version bump required for material changes. Migration entry required. Tests must pass.
+5. Silent continuation past failures is never acceptable.
 
 ---
 
@@ -102,6 +72,8 @@ For the full test-first procedure, see `/forge-engineer`.
 - **Marketplace development** — https://code.claude.com/docs/en/plugin-marketplaces.md
 - **Plugins reference** — https://code.claude.com/docs/en/plugins-reference.md
 - **Discover & install plugins** — https://code.claude.com/docs/en/discover-plugins.md
+
+---
 
 ## Plugin Structure
 
@@ -165,7 +137,3 @@ To promote a version to skillforge users:
    git push origin main
    cd ../forge
    ```
-
-Users installing via skillforge will get the pinned version on their next
-install or `/forge:update`. The tag reference forces a fresh clone, breaking
-version caches in Claude Code's plugin installation system.
