@@ -3,3 +3,6 @@
 
 # Transient files
 .forge/personas-context.md
+
+# Local Claude Code settings — belongs in forge-engineering repo
+.claude/
