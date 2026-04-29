@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { findProjectRoot } = require('./lib/project-root.cjs');
 
 /**
  * Store Facade for Forge
@@ -74,12 +75,17 @@ class FSImpl {
   }
 
   _resolveStoreRoot() {
+    const configPathIsAbsolute = path.isAbsolute(this.configPath);
+    const projectRoot = configPathIsAbsolute ? null : findProjectRoot();
     try {
-      const config = JSON.parse(fs.readFileSync(this.configPath, 'utf8'));
-      return config.paths.store;
+      const resolved = projectRoot ? path.join(projectRoot, this.configPath) : this.configPath;
+      const config = JSON.parse(fs.readFileSync(resolved, 'utf8'));
+      const storePath = config.paths.store;
+      return path.isAbsolute(storePath) ? storePath
+        : projectRoot ? path.join(projectRoot, storePath) : storePath;
     } catch (e) {
       // Fallback to default if config is missing or corrupt
-      return '.forge/store';
+      return projectRoot ? path.join(projectRoot, '.forge', 'store') : '.forge/store';
     }
   }
 

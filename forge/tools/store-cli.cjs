@@ -8,6 +8,8 @@
 
 let _store;
 function _getStore() { return _store || (_store = require('./store.cjs')); }
+let _projectRoot;
+function _getProjectRoot() { return _projectRoot || (_projectRoot = require('./lib/project-root.cjs').findProjectRoot()); }
 
 let _schemas;
 function _getSchemas() {
@@ -908,7 +910,10 @@ function cmdProgress() {
 
   const line = `${timestamp}|${agentName}|${bannerKey}|${status}|${detail}\n`;
 
-  const dir = path.join('.forge', 'store', 'events', sprintOrBugId);
+  const root = _getProjectRoot();
+  const dir = root
+    ? path.join(root, '.forge', 'store', 'events', sprintOrBugId)
+    : path.join('.forge', 'store', 'events', sprintOrBugId);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -935,7 +940,10 @@ function cmdProgressClear() {
     process.exit(1);
   }
 
-  const dir = path.join('.forge', 'store', 'events', sprintOrBugId);
+  const root = _getProjectRoot();
+  const dir = root
+    ? path.join(root, '.forge', 'store', 'events', sprintOrBugId)
+    : path.join('.forge', 'store', 'events', sprintOrBugId);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }

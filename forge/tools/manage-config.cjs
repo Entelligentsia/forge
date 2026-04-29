@@ -12,8 +12,12 @@
 
 const fs = require('fs');
 const path = require('path');
+const { findProjectRoot } = require('./lib/project-root.cjs');
 
-const CONFIG_PATH = path.join(process.cwd(), '.forge', 'config.json');
+const _projectRoot = findProjectRoot();
+const CONFIG_PATH = _projectRoot
+  ? path.join(_projectRoot, '.forge', 'config.json')
+  : path.join(process.cwd(), '.forge', 'config.json');
 
 const VALID_ROLES = ['plan', 'review-plan', 'implement', 'review-code', 'validate', 'approve', 'commit'];
 const VALID_NAME = /^[a-z0-9_-]+$/;
