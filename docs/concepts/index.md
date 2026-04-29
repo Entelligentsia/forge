@@ -30,4 +30,4 @@ graph TD
 
 ## Command Reference
 
-To manage these entities via the command line, refer to the [Commands Reference](../commands/INDEX.md).
+To manage these entities via the command line, refer to the [Commands Reference](../commands/index.md).

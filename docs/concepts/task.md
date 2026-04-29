@@ -114,4 +114,4 @@ A `phaseSummary` object has the following shape:
 
 Summaries are written via `store-cli set-summary <taskId> <phase> <summaryFile>`. Old tasks that lack summaries continue to work — the orchestrator falls back to injecting the full artifact path.
 
-For commands related to tasks, see the [Commands Reference](../commands/INDEX.md).
+For commands related to tasks, see the [Commands Reference](../commands/index.md).

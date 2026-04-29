@@ -22,4 +22,4 @@ stateDiagram-v2
 
 *(Note: Internal JSON schema uses hyphens if applicable, though Bug's states are mostly single words except `in-progress`.)*
 
-For managing bugs, see the [Commands Reference](../commands/INDEX.md).
+For managing bugs, see the [Commands Reference](../commands/index.md).

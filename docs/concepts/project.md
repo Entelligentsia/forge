@@ -13,4 +13,4 @@ A Project serves as the top-level container:
 
 Forge manages a single project per repository. When you install Forge, you initialize it for the current repository, making that repository the working Project. 
 
-For commands related to project initialization and health, see the [Commands Reference](../commands/INDEX.md).
+For commands related to project initialization and health, see the [Commands Reference](../commands/index.md).

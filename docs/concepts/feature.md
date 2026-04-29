@@ -17,4 +17,4 @@ stateDiagram-v2
     shipped --> retired
 ```
 
-For commands related to managing features, see the [Commands Reference](../commands/INDEX.md).
+For commands related to managing features, see the [Commands Reference](../commands/index.md).

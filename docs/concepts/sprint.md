@@ -26,7 +26,7 @@ stateDiagram-v2
 
 *(Note: Internal JSON schema uses hyphens in state names, e.g., `retrospective-done`, `partially-completed`.)*
 
-For commands related to starting and managing sprints, see the [Commands Reference](../commands/INDEX.md).
+For commands related to starting and managing sprints, see the [Commands Reference](../commands/index.md).
 
 ## Execution waves
 

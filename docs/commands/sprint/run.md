@@ -69,7 +69,7 @@ flowchart LR
     T -->|no| DEF[Use default pipeline\nor config.pipelines.default]
 ```
 
-Each resolved pipeline runs through its phases in order. Review phases loop on "Revision Required" up to `maxIterations` (default 3). See [`/run-task`](run-task.md) for the per-task detail.
+Each resolved pipeline runs through its phases in order. Review phases loop on "Revision Required" up to `maxIterations` (default 3). See [`/run-task`](../task-pipeline/run-task.md) for the per-task detail.
 
 ---
 
