@@ -26,7 +26,7 @@ Update sprint `status` to `active`.
 
 ### Wave Computation Algorithm
 
-```
+```python
 function compute_waves(tasks):
     # Build adjacency list from task.dependencies
     graph = {task_id: set() for task_id in tasks}
@@ -77,7 +77,7 @@ This ensures a clean log for each sprint run.
 
 ### Sequential Mode (default)
 
-```
+```python
 for each task in dependency_sorted(tasks):
   # Announce with the orchestrator banner
   print("🌊 Sprint {SPRINT_ID} — running {task.taskId}")
