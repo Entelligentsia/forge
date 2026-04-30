@@ -1,6 +1,6 @@
 {
   "version": "0.29.0",
-  "generatedAt": "2026-04-30T08:58:39.599Z",
+  "generatedAt": "2026-04-30T17:24:42.386Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -85,6 +85,15 @@
         "run-task.md",
         "sprint-intake.md",
         "sprint-plan.md"
+      ]
+    },
+    "fragments": {
+      "logicalKey": "fragments",
+      "dir": ".forge/workflows/_fragments",
+      "files": [
+        "context-injection.md",
+        "event-emission-schema.md",
+        "progress-reporting.md"
       ]
     },
     "schemas": {

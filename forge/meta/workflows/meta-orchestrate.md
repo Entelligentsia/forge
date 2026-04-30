@@ -33,94 +33,31 @@ Each phase has:
 
 ## Model Resolution
 
-Subagents inherit the parent session's model by default. **Omit the `model`
-parameter on Agent tool spawns** — Claude Code resolves the correct model
-from its environment.
+Detect cluster from env vars at session start, then dispatch accordingly:
 
-### Cluster Detection
-
-At session start, detect the execution cluster from environment variables
-provided by Claude Code:
-
-| Variable | Purpose |
-|----------|---------|
-| `CLAUDE_CODE_SUBAGENT_MODEL` | The actual model subagents run on |
+| Env var | Purpose |
+|---------|---------|
 | `ANTHROPIC_DEFAULT_OPUS_MODEL` | What "opus" resolves to |
 | `ANTHROPIC_DEFAULT_SONNET_MODEL` | What "sonnet" resolves to |
 | `ANTHROPIC_DEFAULT_HAIKU_MODEL` | What "haiku" resolves to |
 
-```
-if ANTHROPIC_DEFAULT_OPUS_MODEL == ANTHROPIC_DEFAULT_SONNET_MODEL == ANTHROPIC_DEFAULT_HAIKU_MODEL:
-    cluster = "single"  # all tiers resolve to same model
-else:
-    cluster = "tiered"  # tiers resolve to different models
-```
-
-On **single** clusters (e.g. non-Anthropic runtimes), omit `model` — all
-phases inherit the parent model. On **tiered** clusters, the orchestrator
-passes `model=opus|sonnet|haiku` based on the role-to-tier mapping below,
-and Claude Code resolves the tier name to the actual runtime model.
+- **Single cluster** — all three vars equal (or unset): omit `model` on Agent spawns; subagents inherit the parent.
+- **Tiered cluster** — vars differ: pass `model=tier` (opus/sonnet/haiku) based on ROLE_TIER mapping.
+- **Unknown cluster** — no `ANTHROPIC_DEFAULT_*` vars: pass the canonical model ID from ROLE_TIER_DEFAULTS.
+- **Per-phase override** — `model` field in `config.pipelines` phase takes highest precedence.
 
 ### Role-to-Tier Mapping
 
-Used only on tiered clusters to select the appropriate model tier:
+| Role | Tier |
+|------|------|
+| `review-plan`, `review-code`, `validate`, `approve` | opus |
+| `plan`, `implement` | sonnet |
+| `commit`, `writeback` | haiku |
 
-| Role | Tier | Rationale |
-|------|------|-----------|
-| `review-plan` | opus | Deep reasoning for spec compliance |
-| `review-code` | opus | Deep reasoning for code quality |
-| `validate` | opus | Adversarial review needs highest precision |
-| `approve` | opus | Architectural sign-off needs broad context |
-| `plan` | sonnet | Balanced implementation planning |
-| `implement` | sonnet | Balanced coding and iteration |
-| `commit` | haiku | Fast, reliable state machine transition |
-| `writeback` | haiku | Fast, reliable collation and file writes |
+Unknown cluster canonical defaults: opus → `claude-opus-4-5`, sonnet → `claude-sonnet-4-6`, haiku → `claude-haiku-4-5`.
 
-### Dispatch Behavior
-
-| Cluster type | Agent tool `model` param | Phase announcement |
-|-------------|------------------------|-------------------|
-| Single | Omitted (inherit parent) | `[glm-5.1:cloud]` |
-| Tiered | Tier name from mapping | `[opus → claude-opus-4-6]` |
-| Per-phase override | Override value from config | `[sonnet → claude-sonnet-4-6]` |
-| Unknown | Canonical model from ROLE_TIER defaults | `[sonnet → claude-sonnet-4-6]` |
-
-On **unknown** clusters (no `ANTHROPIC_DEFAULT_*_MODEL` vars set), the orchestrator
-falls back to ROLE_TIER with these canonical defaults:
-
-| Tier | Canonical default |
-|------|-------------------|
-| `opus` | `claude-opus-4-5` |
-| `sonnet` | `claude-sonnet-4-6` |
-| `haiku` | `claude-haiku-4-5` |
-
-The resolved canonical model is passed as `dispatch_model` so subagents run on a
-known model rather than inheriting the orchestrator's own model.
-
-### Phase Announcements
-
-Display the resolved model name in phase announcements:
-
-```
-# Single cluster — show the model directly
-→ SPECT-T01  [glm-5.1:cloud]
-
-# Tiered cluster — show tier → resolved model
-→ SPECT-T01  [opus → claude-opus-4-6]
-```
-
-Resolve the display name by reading `ANTHROPIC_DEFAULT_{TIER}_MODEL` from
-the environment. If the variable is unset, fall back to the tier name.
-
-### Per-Phase Override
-
-If a pipeline phase definition in `config.pipelines` includes a `model`
-field, it takes precedence over the cluster-based dispatch. This is the
-highest priority — it allows users to pin specific phases to specific models
-regardless of the detected cluster type.
-
-The orchestrator itself runs on whichever model it was invoked with — it is
-a lightweight state machine and does not need a heavy model.
+Phase announcement format: `→ TASK-ID  [tier → resolved-model]` (e.g. `→ SPECT-T01  [opus → claude-opus-4-6]`).
+On single cluster, show the model directly. On unknown, show `tier → canonical`.
 
 ## Pipeline Resolution
 
@@ -476,60 +413,12 @@ for each task in dependency_sorted(tasks):
     role_block = compose_role_block(persona_noun)
 
     # --- Compose prior-phase summary block (fast path for downstream context) ---
-    # Read task.summaries from disk (re-read after each phase so summaries accumulate)
-    task_record_fresh = read_json(f".forge/store/tasks/{task_id}.json")
-    summaries = (task_record_fresh or {}).get("summaries", {})
-
-    SUMMARY_PHASE_LABELS = {
-      "plan": "Plan", "review_plan": "Plan review",
-      "implementation": "Implementation", "code_review": "Code review", "validation": "Validation"
-    }
-    summary_lines = []
-    for phase_key, label in SUMMARY_PHASE_LABELS.items():
-      s = summaries.get(phase_key)
-      if s:
-        summary_lines.append(f"- {label}: {s.get('objective', '(no objective)')}")
-        if s.get('key_changes'):
-          for c in s['key_changes'][:3]:
-            summary_lines.append(f"    • {c}")
-        if s.get('findings'):
-          for f_ in s['findings'][:3]:
-            summary_lines.append(f"    • {f_}")
-        if s.get('verdict') and s['verdict'] != 'n/a':
-          summary_lines.append(f"    Verdict: {s['verdict']}  Full: {s.get('artifact_ref', '(unknown)')}")
-      else:
-        # Phase may not have run yet — omit from summary block
-        pass
-
-    if summary_lines:
-      summary_block = (
-        "### Prior phase summaries (fast path — read full artifacts if you need more detail)\n\n"
-        + "\n".join(summary_lines)
-        + "\n\nIf any summary above is missing or insufficient, read the corresponding full artifact from disk before proceeding.\n\n"
-      )
-    else:
-      summary_block = ""
+    # <!-- See _fragments/context-injection.md for canonical definition -->
+    summary_block = compose_summary_block(task_id, record_type="task")
 
     # --- Compose architecture context block from context pack ---
-    context_pack_path = ".forge/cache/context-pack.md"
-    context_pack_json_path = ".forge/cache/context-pack.json"
-    if file_exists(context_pack_path):
-      context_pack_md = read_file(context_pack_path)
-      try:
-        context_pack_json = read_json(context_pack_json_path)
-        full_doc_paths = "\n".join(f"- {s['path']}" for s in context_pack_json.get("sources", []))
-      except:
-        full_doc_paths = "engineering/architecture/ (see context-pack.json for full list)"
-      architecture_block = (
-        "### Architecture context (summary — full docs available at paths listed below)\n\n"
-        + context_pack_md
-        + "\n\nRead full architecture docs only if the summary above is insufficient for "
-        + "your decision. Full docs:\n"
-        + full_doc_paths
-        + "\n\n"
-      )
-    else:
-      architecture_block = ""
+    # <!-- See _fragments/context-injection.md for canonical definition -->
+    architecture_block = compose_architecture_block(".forge/cache/context-pack.md", ".forge/cache/context-pack.json")
 
     spawn_kwargs = dict(
       prompt=(
@@ -745,37 +634,10 @@ feedback.
 
 ## Progress Reporting
 
-Each subagent writes progress entries to a transient log file that the
-orchestrator monitors in real time.
+<!-- See _fragments/progress-reporting.md for canonical definition -->
+> See `_fragments/progress-reporting.md` for the full progress log format and `store-cli progress` command reference.
 
-**Log path:** `.forge/store/events/{sprintId}/progress.log`
-
-**Format per line:**
-
-```
-{ISO_TIMESTAMP}|{agent_name}|{banner_key}|{status}|{detail}
-```
-
-| Field | Format | Example |
-|-------|--------|---------|
-| `ISO_TIMESTAMP` | ISO 8601 UTC | `2026-04-16T14:15:23Z` |
-| `agent_name` | `{taskId}:{persona_noun}:{phase.role}:{iteration}` | `FORGE-S09-T01:engineer:plan:1` |
-| `banner_key` | Banner identity key from BANNER_MAP | `forge` |
-| `status` | One of: `start`, `progress`, `done`, `error` | `progress` |
-| `detail` | Free text (no pipe characters) | `Reading codebase` |
-
-**Writing entries:** Use `store-cli progress`:
-
-```
-node "$FORGE_ROOT/tools/store-cli.cjs" progress {sprintId} {agentName} {bannerKey} {status} "detail text"
-```
-
-**Monitoring:** The orchestrator starts a Monitor on the progress log before
-spawning each subagent and stops it after the subagent returns. This streams
-real-time status to the orchestrator's chat.
-
-**Clearing:** The orchestrator clears the progress log at task start using
-`store-cli progress-clear {sprintId}`.
+Log path: `.forge/store/events/{sprintId}/progress.log`. Format: `{ISO_TIMESTAMP}|{agent_name}|{banner_key}|{status}|{detail}`. Clear at task start: `store-cli progress-clear {sprintId}`.
 
 ## Phase-Exit Signals
 
@@ -952,19 +814,10 @@ write through and append an audit line to the affected sprint's
 
 ## Iron Laws
 
-**YOU MUST NOT advance a phase until its gate checks pass.** Skipping a gate
-because "it's probably fine" or "it's a small change" is not allowed. No exceptions.
+<!-- Shared orchestrator laws live in generic-skills.md § Orchestrator Iron Laws. -->
+> See `generic-skills.md § Orchestrator Iron Laws` for the six universal laws that apply to all orchestrators.
 
-**Review ordering is hardcoded:** spec compliance review ALWAYS runs before
-code quality review. Never reverse this. Checking quality before confirming
-correctness is wasted work.
-
-**Revision loop exhaustion is an escalation trigger.** If max_iterations is
-reached without approval, escalate to the human immediately. Do NOT approve
-to unblock the pipeline.
-
-**Always read the verdict from the artifact.** Never assume approval because the
-review phase ran without error. The artifact is the source of truth.
+**Additional law specific to this pipeline:**
 
 **YOU MUST NOT silently work around a blocker.** If a phase fails, a subagent
 returns empty, a gate fails, or a verdict cannot be parsed, the orchestrator
@@ -996,31 +849,10 @@ is a violation of the Iron Laws.
 
 ## Event Emission
 
-Every phase emits a structured event via `/forge:store emit {sprintId} '{event-json}'`.
+<!-- See _fragments/event-emission-schema.md for canonical field table -->
+> See `_fragments/event-emission-schema.md` for the full required/optional field reference.
 
-**Required fields** (defined in `.forge/schemas/event.schema.json`):
-
-| Field | Value |
-|-------|-------|
-| `eventId` | `{ISO_TIMESTAMP}_{TASK_ID}_{role}_{action}` e.g. `20260415T141523000Z_ACME-S02-T03_implement_plan-task` |
-| `taskId` | Task ID from the task manifest |
-| `sprintId` | Sprint ID from the task manifest |
-| `role` | Pipeline phase role (e.g. `plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`) |
-| `action` | Slash command invoked in namespaced form (e.g. `/{prefix}:implement`, `/{prefix}:review-plan`) |
-| `phase` | Pipeline phase name (e.g. `plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`) |
-| `iteration` | 1-based iteration count for this phase |
-| `startTimestamp` | ISO 8601 timestamp recorded **before** spawning the phase subagent |
-| `endTimestamp` | ISO 8601 timestamp recorded **after** the subagent returns |
-| `durationMinutes` | Decimal minutes elapsed between start and end (compute from the two timestamps) |
-| `model` | Resolved model identifier for this phase (e.g. `claude-sonnet-4-6`, `gpt-4o`, `glm-5.1:cloud`). Read from `CLAUDE_CODE_SUBAGENT_MODEL` on single-cluster runtimes, or from `ANTHROPIC_DEFAULT_{TIER}_MODEL` on tiered clusters. Use the full identifier, not a short alias like "opus" or "sonnet". |
-
-**Optional fields**: `verdict` (for review phases: `Approved` / `Revision Required`), `notes`,
-`inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`
-(token usage merged from the subagent sidecar — present only when the subagent wrote
-the sidecar).
-
-Use only the field names above — no aliases (`agent`, `status`, `timestamp`, `details`, etc.).
-When in doubt, read `.forge/schemas/event.schema.json` directly.
+Every phase emits via `/forge:store emit {sprintId} '{event-json}'`. Required fields: `eventId`, `taskId`, `sprintId`, `role`, `action`, `phase`, `iteration`, `startTimestamp`, `endTimestamp`, `durationMinutes`, `model`. Optional: `verdict`, `notes`, token fields.
 
 ## Generation Instructions
 - Fill in concrete test/build/lint commands from .forge/config.json

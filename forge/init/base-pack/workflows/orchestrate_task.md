@@ -152,7 +152,7 @@ Each phase subagent is responsible for reporting its own token usage via a sidec
 
 The `eventId` is computed by the orchestrator before spawning and passed in the subagent prompt —
 it follows the format `{ISO_TIMESTAMP}_{TASK_ID}_{role}_{action}` (e.g.
-`20260415T141523000Z_{{PREFIX}}-S02-T03_engineer_implement`).
+`20260415T141523000Z_ACME-S02-T03_engineer_implement`).
 
 The leading underscore on the sidecar filename marks it as ephemeral — `validate-store.cjs` skips
 files prefixed with `_`, so the sidecar will never be treated as a real event record. If `/cost` is
@@ -211,7 +211,7 @@ persona and skill meta files into `.forge/cache/persona-pack.json`.
 
 ### Helper: `compose_role_block(persona_noun)`
 
-```
+```python
 def compose_role_block(persona_noun):
     mode = os.environ.get("FORGE_PROMPT_MODE", "reference")
 
@@ -268,7 +268,7 @@ The `inline` branch will be removed one version after `reference` ships.
 
 The orchestrator MUST follow this procedure exactly. Do not deviate.
 
-```
+```python
 # --- Persona symbol lookup (emoji, name, tagline) ---
 PERSONA_MAP = {
   "plan":        ("🌱", "Engineer",    "I plan what will be built before any code is written."),
@@ -743,7 +743,7 @@ following `.forge/schemas/event.schema.json`.
 
 | Field | Value |
 |---|---|
-| `eventId` | `{ISO_TIMESTAMP}_{TASK_ID}_{role}_{action}` e.g. `20260415T141523000Z_{{PREFIX}}-S02-T03_implement_plan-task` |
+| `eventId` | `{ISO_TIMESTAMP}_{TASK_ID}_{role}_{action}` e.g. `20260415T141523000Z_ACME-S02-T03_implement_plan-task` |
 | `taskId` | Task ID from the task manifest |
 | `sprintId` | Sprint ID from the task manifest |
 | `role` | Phase role (`plan`, `review-plan`, `implement`, `review-code`, `validate`, `approve`, `commit`) |

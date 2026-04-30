@@ -24,8 +24,8 @@ You are the Forge Bug Fixer. You triage reported bugs, confirm root causes from 
 
 ## What You Know
 
-- **Bug store:** `.forge/store/bugs/{{PREFIX}}-BUG-NNN.json`. Always locate or create the record via `node "$FORGE_ROOT/tools/store-cli.cjs" write bug '{...}'` — never write store files directly.
-- **Bug IDs:** `{{PREFIX}}-BUG-NNN` format. Engineering artifacts go in `engineering/bugs/BUG-NNN-{slug}/`.
+- **Bug store:** `.forge/store/bugs/ACME-BUG-001.json`. Always locate or create the record via `node "$FORGE_ROOT/tools/store-cli.cjs" write bug '{...}'` — never write store files directly.
+- **Bug IDs:** `ACME-BUG-001` format (your project prefix + sequential number). Engineering artifacts go in `engineering/bugs/BUG-NNN-{slug}/`.
 - **Root cause categories:** `validation`, `auth`, `business-rule`, `data-integrity`, `race-condition`, `integration`, `configuration`, `regression`.
 - **Two-layer architecture:** The same rules as the Engineer apply. Bugs in `forge/` require version bump, migration entry, and security scan. Bugs in `.forge/` (stale generated output) are fixed by editing `forge/meta/` and regenerating — never by editing `.forge/` directly.
 - **Stack:** Node.js 18+ CJS only. `node --check` after every JS/CJS edit. `validate-store --dry-run` after schema changes.
@@ -60,7 +60,7 @@ YOU MUST invoke the `typescript-lsp` skill for go-to-definition and call-graph t
 
 **Context:**
 - Bugs are reported via `/forge:report-bug` and filed as GitHub issues at `Entelligentsia/forge`
-- Store bugs locally at `.forge/store/bugs/{{PREFIX}}-BUG-{N}.json`
+- Store bugs locally at `.forge/store/bugs/ACME-BUG-001.json` (using your project prefix)
 - Root causes tend to be: `configuration`, `business-rule`, `regression`, `integration`, `validation`, `data-integrity`
 
 ---
@@ -71,7 +71,7 @@ Before spawning any subagent, the orchestrator triages the bug **inline**
 (triage only reads and classifies — it produces no implementation artifacts):
 
 1. **Locate or create the bug record (MANDATORY — before anything else):**
-   a. Determine the bug ID: if `$ARGUMENTS` is an existing `{{PREFIX}}-BUG-NNN` ID, use it.
+   a. Determine the bug ID: if `$ARGUMENTS` is an existing bug ID (e.g., `ACME-BUG-001`), use it.
       Otherwise derive the next available ID by listing `.forge/store/bugs/`.
    b. If `.forge/store/bugs/{BUG_ID}.json` does NOT exist:
       - Derive a short slug from the bug title (kebab-case, ≤ 5 words)
@@ -148,7 +148,7 @@ Resolve using this priority:
 
 The orchestrator MUST follow this procedure exactly. Do not deviate.
 
-```
+```python
 # --- Role-to-noun mapping (persona and skill file lookups) ---
 ROLE_TO_NOUN = {
   "plan-fix":    "bug-fixer",
@@ -223,9 +223,8 @@ while i < len(phases):
              iteration=iteration,
              action="start")
 
-  # --- Symmetric Injection: noun resolved from ROLE_TO_NOUN ---
-  persona_content = read_file(f".forge/personas/{persona_noun}.md")
-  skill_content   = read_file(f".forge/skills/{persona_noun}-skills.md")
+  # --- Symmetric Injection: compose role block (reference mode by default) ---
+  role_block = compose_role_block(persona_noun)
 
   # --- Compose architecture context block from context pack ---
   context_pack_path = ".forge/cache/context-pack.md"
@@ -319,8 +318,7 @@ while i < len(phases):
       f"---\n\n"
       f"{bug_architecture_block}"
       f"{bug_summary_block}"
-      f"{persona_content}\n\n"
-      f"{skill_content}\n\n"
+      f"{role_block}\n\n"
       f"### Current Working Context\n"
       f"- Bug Root:    {bug_root_path}\n"
       f"- Store Root:  {store_root_path}\n"

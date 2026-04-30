@@ -63,7 +63,16 @@ const WORKFLOW_MAP = [
   [null,                               'run_sprint.md'],   // orchestration-generated
 ];
 
-// 4. Templates — explicit mapping
+// 4. Fragments — non-standalone reference files shared by multiple workflows.
+//    Sources live in meta/workflows/_fragments/, outputs in base-pack/workflows/_fragments/.
+//    These are copied verbatim (no placeholder substitution); the build script mirrors the dir.
+const FRAGMENT_MAP = [
+  ['context-injection.md',    'context-injection.md'],
+  ['progress-reporting.md',   'progress-reporting.md'],
+  ['event-emission-schema.md','event-emission-schema.md'],
+];
+
+// 5. Templates — explicit mapping
 //    CUSTOM_COMMAND_TEMPLATE.md is a one-shot init artifact (no meta source).
 //    Source is null — same pattern as orchestration-generated workflows.
 const TEMPLATE_MAP = [
@@ -207,6 +216,7 @@ module.exports = {
   PERSONA_MAP,
   SKILL_MAP,
   WORKFLOW_MAP,
+  FRAGMENT_MAP,
   TEMPLATE_MAP,
   COMMAND_NAMES,
   checkReverseDrift,
@@ -253,6 +263,7 @@ try {
     ...checkReverseDrift(path.join(forgeRoot, 'meta', 'skills'), SKILL_MAP, 'SKILL_MAP'),
     ...checkReverseDrift(path.join(forgeRoot, 'meta', 'workflows'), WORKFLOW_MAP, 'WORKFLOW_MAP'),
     ...checkReverseDrift(path.join(forgeRoot, 'meta', 'templates'), TEMPLATE_MAP, 'TEMPLATE_MAP'),
+    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'workflows', '_fragments'), FRAGMENT_MAP, 'FRAGMENT_MAP'),
   ];
   for (const w of driftWarnings) {
     process.stdout.write(`△ Reverse-drift warning: ${path.relative(process.cwd(), path.join(w.dir, w.file))} found in meta/ but is not referenced by ${w.label}. Add it to the mapping table or confirm it intentionally has no generated output.\n`);
@@ -265,6 +276,7 @@ try {
     ...verifySources(path.join(forgeRoot, 'meta', 'skills'), SKILL_MAP, 'SKILL_MAP'),
     ...verifySources(path.join(forgeRoot, 'meta', 'workflows'), WORKFLOW_MAP, 'WORKFLOW_MAP'),
     ...verifySources(path.join(forgeRoot, 'meta', 'templates'), TEMPLATE_MAP, 'TEMPLATE_MAP'),
+    ...verifySources(path.join(forgeRoot, 'meta', 'workflows', '_fragments'), FRAGMENT_MAP, 'FRAGMENT_MAP'),
   ];
   for (const m of sourceMissing) {
     process.stdout.write(`△ Source missing: ${m.label} entry "${m.source}" — file not found at ${path.relative(process.cwd(), path.join(m.dir, m.source))}\n`);
@@ -318,6 +330,11 @@ try {
         dir: '.claude/commands',
         prefixed: true,
         files: COMMAND_NAMES.slice().sort(),
+      },
+      fragments: {
+        logicalKey: 'fragments',
+        dir: '.forge/workflows/_fragments',
+        files: FRAGMENT_MAP.map(([, out]) => out).sort(),
       },
       schemas: {
         logicalKey: 'schemas',

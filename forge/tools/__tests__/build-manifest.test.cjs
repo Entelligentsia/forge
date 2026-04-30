@@ -8,6 +8,7 @@ const {
   PERSONA_MAP,
   SKILL_MAP,
   WORKFLOW_MAP,
+  FRAGMENT_MAP,
   TEMPLATE_MAP,
   COMMAND_NAMES,
   checkReverseDrift,
@@ -35,6 +36,23 @@ describe('build-manifest.cjs — mapping tables', () => {
 
   test('WORKFLOW_MAP has 18 entries', () => {
     assert.equal(WORKFLOW_MAP.length, 18);
+  });
+
+  test('FRAGMENT_MAP has 3 entries, each is a [source, output] tuple', () => {
+    assert.ok(Array.isArray(FRAGMENT_MAP), 'FRAGMENT_MAP must be exported');
+    assert.equal(FRAGMENT_MAP.length, 3);
+    for (const entry of FRAGMENT_MAP) {
+      assert.equal(entry.length, 2);
+      assert.equal(typeof entry[0], 'string');
+      assert.equal(typeof entry[1], 'string');
+    }
+  });
+
+  test('all source files referenced in FRAGMENT_MAP exist in forge/meta/workflows/_fragments/', () => {
+    const dir = path.join(__dirname, '..', '..', 'meta', 'workflows', '_fragments');
+    for (const [src] of FRAGMENT_MAP) {
+      assert.ok(fs.existsSync(path.join(dir, src)), `missing: ${src}`);
+    }
   });
 
   test('TEMPLATE_MAP has 9 entries, one has null source (CUSTOM_COMMAND_TEMPLATE)', () => {
