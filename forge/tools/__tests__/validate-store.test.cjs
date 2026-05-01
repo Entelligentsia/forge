@@ -348,3 +348,38 @@ describe('project-context.schema.json — x-placeholder annotations', () => {
     );
   });
 });
+
+describe('structure-versions.schema.json — existence and shape', () => {
+  const path = require('path');
+  const fs = require('fs');
+  const schemaPath = path.join(__dirname, '../../schemas/structure-versions.schema.json');
+
+  test('schema file exists and is valid JSON', () => {
+    assert.ok(fs.existsSync(schemaPath), 'structure-versions.schema.json must exist');
+    const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+    assert.ok(schema && typeof schema === 'object', 'schema must parse to an object');
+  });
+
+  test('schema top-level $schema is draft 2020-12', () => {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+    assert.strictEqual(schema.$schema, 'https://json-schema.org/draft/2020-12/schema');
+  });
+});
+
+describe('validate-store.cjs — ANCILLARY_SCHEMAS includes structure-versions', () => {
+  test('contains structure-versions', () => {
+    assert.ok(ANCILLARY_SCHEMAS.includes('structure-versions'), 'should include structure-versions');
+  });
+});
+
+describe('project-overlay.schema.json — version field', () => {
+  const path = require('path');
+  const fs = require('fs');
+  const schemaPath = path.join(__dirname, '../../schemas/project-overlay.schema.json');
+
+  test('has a version property', () => {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+    assert.ok('version' in schema, 'project-overlay.schema.json must have a version property');
+    assert.strictEqual(typeof schema.version, 'string', 'version must be a string');
+  });
+});

@@ -1,6 +1,6 @@
 {
-  "version": "0.30.0",
-  "generatedAt": "2026-05-01T02:11:26.096Z",
+  "version": "0.32.0",
+  "generatedAt": "2026-05-01T18:37:22.983Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -107,8 +107,10 @@
         "event.schema.json",
         "feature.schema.json",
         "progress-entry.schema.json",
+        "project-context.schema.json",
         "project-overlay.schema.json",
         "sprint.schema.json",
+        "structure-versions.schema.json",
         "task.schema.json"
       ]
     }

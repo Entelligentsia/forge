@@ -1,0 +1,323 @@
+'use strict';
+
+// Tests for manage-versions.cjs
+// Written BEFORE implementation (Iron Law 2 — failing tests first).
+
+const { test, describe } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { spawnSync } = require('child_process');
+
+const TOOL_PATH = path.join(__dirname, '..', 'manage-versions.cjs');
+const FORGE_ROOT = path.join(__dirname, '..', '..');
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function makeTmpProject() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-mv-test-'));
+  // Create minimal plugin.json layout
+  const pluginDir = path.join(dir, 'plugin-root', '.claude-plugin');
+  fs.mkdirSync(pluginDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(pluginDir, 'plugin.json'),
+    JSON.stringify({ version: '0.99.0' }, null, 2) + '\n',
+    'utf8'
+  );
+  // Create .forge dir
+  fs.mkdirSync(path.join(dir, '.forge'), { recursive: true });
+  // Copy project-overlay.schema.json for overlayToolVersion reading
+  const overlaySchemaDir = path.join(dir, 'plugin-root', 'schemas');
+  fs.mkdirSync(overlaySchemaDir, { recursive: true });
+  const overlaySchema = {
+    '$schema': 'https://json-schema.org/draft/2020-12/schema',
+    '$id': 'project-overlay.schema.json',
+    'title': 'Project Overlay',
+    'type': 'object',
+    'version': '1.0.0',
+    'properties': {}
+  };
+  fs.writeFileSync(
+    path.join(overlaySchemaDir, 'project-overlay.schema.json'),
+    JSON.stringify(overlaySchema, null, 2) + '\n',
+    'utf8'
+  );
+  return dir;
+}
+
+function cleanup(dir) {
+  try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+}
+
+// ---------------------------------------------------------------------------
+// Import module under test
+// ---------------------------------------------------------------------------
+
+let initStructureVersions, readStructureVersions, writeStructureVersions, VERSIONS_PATH;
+
+try {
+  const mod = require(TOOL_PATH);
+  initStructureVersions = mod.initStructureVersions;
+  readStructureVersions = mod.readStructureVersions;
+  writeStructureVersions = mod.writeStructureVersions;
+  VERSIONS_PATH = mod.VERSIONS_PATH;
+} catch (e) {
+  // Module doesn't exist yet — tests will fail (Iron Law 2: write failing tests first)
+}
+
+// ---------------------------------------------------------------------------
+// Test 1: initStructureVersions writes valid snapshot-0 document
+// ---------------------------------------------------------------------------
+
+describe('manage-versions.cjs — initStructureVersions', () => {
+  test('writes valid snapshot-0 document', () => {
+    const tmp = makeTmpProject();
+    try {
+      assert.ok(typeof initStructureVersions === 'function', 'initStructureVersions must be exported');
+      const forgeRoot = path.join(tmp, 'plugin-root');
+      initStructureVersions(tmp, forgeRoot);
+      const outPath = path.join(tmp, '.forge', 'structure-versions.json');
+      assert.ok(fs.existsSync(outPath), 'structure-versions.json must be created');
+      const doc = JSON.parse(fs.readFileSync(outPath, 'utf8'));
+      assert.strictEqual(doc.basePackVersion, '0.99.0', 'basePackVersion must match plugin.json');
+      assert.strictEqual(doc.overlayToolVersion, '1.0.0', 'overlayToolVersion must match project-overlay.schema.json version field');
+      assert.strictEqual(doc.currentSnapshot, 0, 'currentSnapshot must be 0');
+      assert.ok(Array.isArray(doc.snapshots), 'snapshots must be an array');
+      assert.strictEqual(doc.snapshots.length, 1, 'snapshots must have exactly one entry');
+      const snap = doc.snapshots[0];
+      assert.strictEqual(snap.index, 0, 'snapshot index must be 0');
+      assert.strictEqual(snap.source, 'base-pack', 'source must be base-pack');
+      assert.deepStrictEqual(snap.enhancedElements, [], 'enhancedElements must be empty array');
+      assert.strictEqual(snap.archivePath, null, 'archivePath must be null for snapshot 0');
+      assert.ok(typeof snap.createdAt === 'string', 'createdAt must be a string');
+      assert.ok(!isNaN(Date.parse(snap.createdAt)), 'createdAt must be a valid ISO datetime');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  // Test 2: currentSnapshot invariant
+  test('currentSnapshot equals snapshots[snapshots.length - 1].index', () => {
+    const tmp = makeTmpProject();
+    try {
+      const forgeRoot = path.join(tmp, 'plugin-root');
+      initStructureVersions(tmp, forgeRoot);
+      const doc = JSON.parse(fs.readFileSync(path.join(tmp, '.forge', 'structure-versions.json'), 'utf8'));
+      assert.strictEqual(doc.currentSnapshot, doc.snapshots[doc.snapshots.length - 1].index,
+        'currentSnapshot must equal last snapshot index (invariant)');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  // Test 3: overlayToolVersion falls back to "1.0.0" when version field absent in schema
+  test('falls back to "1.0.0" when project-overlay.schema.json has no version field', () => {
+    const tmp = makeTmpProject();
+    try {
+      const overlayPath = path.join(tmp, 'plugin-root', 'schemas', 'project-overlay.schema.json');
+      const schema = JSON.parse(fs.readFileSync(overlayPath, 'utf8'));
+      delete schema.version;
+      fs.writeFileSync(overlayPath, JSON.stringify(schema, null, 2) + '\n', 'utf8');
+      const forgeRoot = path.join(tmp, 'plugin-root');
+      initStructureVersions(tmp, forgeRoot);
+      const doc = JSON.parse(fs.readFileSync(path.join(tmp, '.forge', 'structure-versions.json'), 'utf8'));
+      assert.strictEqual(doc.overlayToolVersion, '1.0.0', 'must fall back to 1.0.0 when version field absent');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  // Test 4: idempotency
+  test('is idempotent — second call does not overwrite', () => {
+    const tmp = makeTmpProject();
+    try {
+      const forgeRoot = path.join(tmp, 'plugin-root');
+      initStructureVersions(tmp, forgeRoot);
+      const outPath = path.join(tmp, '.forge', 'structure-versions.json');
+      const first = fs.readFileSync(outPath, 'utf8');
+      initStructureVersions(tmp, forgeRoot); // second call
+      const second = fs.readFileSync(outPath, 'utf8');
+      assert.strictEqual(first, second, 'file must not change on second init call');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Test 5: readStructureVersions
+// ---------------------------------------------------------------------------
+
+describe('manage-versions.cjs — readStructureVersions', () => {
+  test('returns parsed object when file exists', () => {
+    const tmp = makeTmpProject();
+    try {
+      const forgeRoot = path.join(tmp, 'plugin-root');
+      initStructureVersions(tmp, forgeRoot);
+      const doc = readStructureVersions(tmp);
+      assert.ok(doc && typeof doc === 'object', 'must return an object');
+      assert.ok('currentSnapshot' in doc, 'must have currentSnapshot');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  test('throws with descriptive message when file absent', () => {
+    const tmp = makeTmpProject();
+    try {
+      assert.throws(
+        () => readStructureVersions(tmp),
+        (err) => {
+          assert.ok(err instanceof Error, 'must throw an Error');
+          assert.ok(err.message.includes('structure-versions.json') || err.message.includes('not found'),
+            `error message should mention the file or "not found": ${err.message}`);
+          return true;
+        }
+      );
+    } finally {
+      cleanup(tmp);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Test 6: writeStructureVersions
+// ---------------------------------------------------------------------------
+
+describe('manage-versions.cjs — writeStructureVersions', () => {
+  test('atomic write and round-trip', () => {
+    const tmp = makeTmpProject();
+    try {
+      const data = {
+        basePackVersion: '1.2.3',
+        overlayToolVersion: '1.0.0',
+        currentSnapshot: 0,
+        snapshots: [{ index: 0, createdAt: new Date().toISOString(), source: 'base-pack', enhancedElements: [], archivePath: null }]
+      };
+      writeStructureVersions(tmp, data);
+      const outPath = path.join(tmp, '.forge', 'structure-versions.json');
+      assert.ok(fs.existsSync(outPath), 'file must be created');
+      const back = JSON.parse(fs.readFileSync(outPath, 'utf8'));
+      assert.deepStrictEqual(back, data, 'round-trip must preserve all fields');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Test 7: VERSIONS_PATH constant
+// ---------------------------------------------------------------------------
+
+describe('manage-versions.cjs — VERSIONS_PATH', () => {
+  test('ends with .forge/structure-versions.json', () => {
+    assert.ok(typeof VERSIONS_PATH === 'string', 'VERSIONS_PATH must be a string');
+    assert.ok(
+      VERSIONS_PATH.endsWith(path.join('.forge', 'structure-versions.json')),
+      `VERSIONS_PATH must end with .forge/structure-versions.json, got: ${VERSIONS_PATH}`
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests 8-11: CLI subcommand smoke tests via spawnSync
+// ---------------------------------------------------------------------------
+
+describe('manage-versions.cjs — CLI smoke tests', () => {
+  test('init subcommand exits 0, file appears, valid JSON', () => {
+    const tmp = makeTmpProject();
+    try {
+      const forgeRoot = path.join(tmp, 'plugin-root');
+      const result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'init'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0, `CLI init must exit 0, got ${result.status}. stderr: ${result.stderr}`);
+      const outPath = path.join(tmp, '.forge', 'structure-versions.json');
+      assert.ok(fs.existsSync(outPath), 'structure-versions.json must exist after CLI init');
+      const doc = JSON.parse(fs.readFileSync(outPath, 'utf8'));
+      assert.ok(doc && typeof doc === 'object', 'output must be valid JSON');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  test('current subcommand outputs current snapshot index', () => {
+    const tmp = makeTmpProject();
+    try {
+      const forgeRoot = path.join(tmp, 'plugin-root');
+      // Init first
+      spawnSync(process.execPath, [TOOL_PATH, 'init'], {
+        cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8'
+      });
+      const result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'current'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0, `CLI current must exit 0, got ${result.status}. stderr: ${result.stderr}`);
+      assert.ok(result.stdout.includes('0'), 'current output must mention snapshot 0');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  test('list subcommand outputs tabular summary', () => {
+    const tmp = makeTmpProject();
+    try {
+      const forgeRoot = path.join(tmp, 'plugin-root');
+      spawnSync(process.execPath, [TOOL_PATH, 'init'], {
+        cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8'
+      });
+      const result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'list'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0, `CLI list must exit 0, got ${result.status}. stderr: ${result.stderr}`);
+      assert.ok(result.stdout.length > 0, 'list output must be non-empty');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  test('--dry-run flag exits 0 without creating file', () => {
+    const tmp = makeTmpProject();
+    try {
+      const forgeRoot = path.join(tmp, 'plugin-root');
+      const result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'init', '--dry-run'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0, `CLI init --dry-run must exit 0, got ${result.status}. stderr: ${result.stderr}`);
+      const outPath = path.join(tmp, '.forge', 'structure-versions.json');
+      assert.ok(!fs.existsSync(outPath), 'structure-versions.json must NOT exist after --dry-run');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  test('add-snapshot stub exits non-zero (exit 2)', () => {
+    const tmp = makeTmpProject();
+    try {
+      const forgeRoot = path.join(tmp, 'plugin-root');
+      spawnSync(process.execPath, [TOOL_PATH, 'init'], {
+        cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8'
+      });
+      const result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'add-snapshot'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.ok(result.status !== 0, 'add-snapshot stub must exit non-zero');
+      assert.strictEqual(result.status, 2, `add-snapshot stub must exit 2 (input error), got ${result.status}`);
+    } finally {
+      cleanup(tmp);
+    }
+  });
+});

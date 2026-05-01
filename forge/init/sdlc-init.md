@@ -412,38 +412,18 @@ Read `$FORGE_ROOT/init/generation/generate-tools.md` and follow it.
 **Input**: `.forge/config.json`
 **Output**: `paths.forgeRoot` written to `.forge/config.json`, schema copies to `.forge/schemas/`
 
-### Step 4-2 — structure-versions.json (T05 stub)
+### Step 4-2 — structure-versions.json
 
 Write `.forge/structure-versions.json` (NOT under `.forge/store/`):
 
 ```sh
-node -e "
-const fs = require('fs');
-const path = require('path');
-const pluginPkg = JSON.parse(fs.readFileSync(path.join(process.env.FORGE_ROOT || '$FORGE_ROOT', '.claude-plugin', 'plugin.json'), 'utf8'));
-const sv = {
-  basePackVersion: pluginPkg.version,
-  overlayToolVersion: pluginPkg.version,
-  currentSnapshot: 0,
-  snapshots: [{
-    index: 0,
-    createdAt: new Date().toISOString(),
-    source: 'base-pack',
-    enhancedElements: [],
-    archivePath: null
-  }]
-};
-fs.mkdirSync('.forge', { recursive: true });
-fs.writeFileSync('.forge/structure-versions.json', JSON.stringify(sv, null, 2) + '\n', 'utf8');
-console.log('ノ structure-versions.json written (snapshot 0, source: base-pack)');
-"
+node "$FORGE_ROOT/tools/manage-versions.cjs" init
 ```
 
-**`overlayToolVersion` rationale:** `project-overlay.schema.json` has
-`\$id: "project-overlay.schema.json"` (a filename, not a version) and no `version`
-field. Using `\$id` would produce the non-version string `"project-overlay.schema.json"`.
-Therefore Phase 4 uses `pluginPkg.version` as a proxy until T05 adds a `version`
-field to `project-overlay.schema.json`.
+The tool reads `$FORGE_ROOT/.claude-plugin/plugin.json` for `basePackVersion` and
+`$FORGE_ROOT/schemas/project-overlay.schema.json` for `overlayToolVersion` (falls back
+to `"1.0.0"` if the field is absent). The call is idempotent — if the file already exists,
+the tool exits 0 without overwriting.
 
 **`source: 'base-pack'`:** per T05 contract.
 

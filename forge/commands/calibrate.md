@@ -36,6 +36,33 @@ $ARGUMENTS
 
 ---
 
+## Step 0 — Structural-element readiness check
+
+Before the KB drift check, verify that installed structural elements are current
+with the active plugin version. This check is advisory — it does not block the
+existing KB-level drift detection in Steps 2–8.
+
+1. Read current plugin version from `$FORGE_ROOT/.claude-plugin/plugin.json` → `currentVersion`.
+
+2. Check for `.forge/structure-versions.json` (relative to `PROJECT_ROOT` — defer
+   `PROJECT_ROOT` resolution to Step 1; for this step, assume current working directory
+   if `--path` was not yet parsed):
+
+   - **File present**: Read `basePackVersion` and `currentSnapshot` from the file.
+
+     - If `basePackVersion === currentVersion`, emit:
+       > 〇 Structural elements current — snapshot {currentSnapshot} (plugin v{basePackVersion})
+
+     - If `basePackVersion !== currentVersion`, emit:
+       > △ Structural element drift detected — installed elements were generated from plugin v{basePackVersion}; current plugin is v{currentVersion}. Run `/forge:update` to refresh structural elements.
+
+   - **File absent**: emit:
+     > ◇ structure-versions.json absent — project predates snapshot versioning. Run `/forge:update` to install the versioning system.
+
+3. Continue to Step 1 regardless of the readiness check result. The check is informational only.
+
+---
+
 ## Step 1 — Locate plugin root and config
 
 Resolve `$FORGE_ROOT` from `$CLAUDE_PLUGIN_ROOT`.
