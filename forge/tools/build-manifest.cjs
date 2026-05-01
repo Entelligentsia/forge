@@ -60,6 +60,7 @@ const WORKFLOW_MAP = [
   ['meta-update-plan.md',              'update_plan.md'],
   ['meta-validate.md',                 'validate_task.md'],
   ['meta-quiz-agent.md',               'quiz_agent.md'],
+  ['meta-migrate.md',                  'migrate_structural.md'],
   [null,                               'run_sprint.md'],   // orchestration-generated
 ];
 

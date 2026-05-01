@@ -34,8 +34,8 @@ describe('build-manifest.cjs — mapping tables', () => {
     }
   });
 
-  test('WORKFLOW_MAP has 18 entries', () => {
-    assert.equal(WORKFLOW_MAP.length, 18);
+  test('WORKFLOW_MAP has 19 entries', () => {
+    assert.equal(WORKFLOW_MAP.length, 19);
   });
 
   test('FRAGMENT_MAP has 4 entries, each is a [source, output] tuple', () => {

@@ -1,6 +1,6 @@
 {
   "version": "0.32.0",
-  "generatedAt": "2026-05-01T18:37:22.983Z",
+  "generatedAt": "2026-05-01T20:56:59.697Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -40,6 +40,7 @@
         "commit_task.md",
         "fix_bug.md",
         "implement_plan.md",
+        "migrate_structural.md",
         "orchestrate_task.md",
         "plan_task.md",
         "quiz_agent.md",
@@ -466,6 +467,21 @@
           "{KB_PATH}/architecture/stack.md",
           "{KB_PATH}/MASTER_INDEX.md"
         ],
+        "config_fields": [
+          "paths.engineering"
+        ]
+      },
+      "migrate_structural": {
+        "personas": [
+          ".forge/personas/engineer.md"
+        ],
+        "skills": [
+          ".forge/skills/engineer-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [],
+        "sub_workflows": [],
+        "kb_docs": [],
         "config_fields": [
           "paths.engineering"
         ]

@@ -13,6 +13,21 @@ Migrate an existing project store to Forge format. Requires `forge:init` to have
 FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 ```
 
+## Step 0 — Detect migration type
+
+Check whether a structural migration (v0.x prose-heavy → v0.40 base-pack
+format) is needed:
+
+- If the user passed `--structural` explicitly, OR
+- If `.forge/structure-versions.json` is absent (pre-T05 install detected):
+
+  → Load and run the structural migration workflow:
+    Read `"$FORGE_ROOT/meta/workflows/meta-migrate.md"` and follow it.
+  → Do NOT proceed to Step 1 of this command.
+
+If neither condition applies (post-T05 install and no `--structural` flag):
+continue to Step 1 (store schema migration).
+
 ## Step 1 — Verify forge:init has run
 
 Check that `.forge/config.json` exists. If it does not, stop and tell the user:
