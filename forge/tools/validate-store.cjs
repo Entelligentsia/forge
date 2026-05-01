@@ -88,7 +88,7 @@ function _getSchemas() {
 const ENTITY_TYPES = ['sprint', 'task', 'bug', 'event', 'feature'];
 
 // Non-entity schemas: referenced and parsed for validity but not used for store record validation.
-const ANCILLARY_SCHEMAS = ['project-overlay'];
+const ANCILLARY_SCHEMAS = ['project-overlay', 'project-context'];
 
 const MINIMAL_REQUIRED = {
   sprint:  ['sprintId', 'title', 'status', 'taskIds', 'createdAt'],

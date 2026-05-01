@@ -1,7 +1,7 @@
 'use strict';
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { validateRecord, MINIMAL_REQUIRED, NULLABLE_FK, BACKFILL, ENTITY_TYPES } = require('../validate-store.cjs');
+const { validateRecord, MINIMAL_REQUIRED, NULLABLE_FK, BACKFILL, ENTITY_TYPES, ANCILLARY_SCHEMAS } = require('../validate-store.cjs');
 
 describe('validate-store.cjs — MINIMAL_REQUIRED', () => {
   test('has expected entity types as keys', () => {
@@ -251,5 +251,100 @@ describe('validate-store.cjs — BACKFILL', () => {
 describe('validate-store.cjs — ENTITY_TYPES', () => {
   test('contains all five entity types', () => {
     assert.deepEqual(ENTITY_TYPES, ['sprint', 'task', 'bug', 'event', 'feature']);
+  });
+});
+
+describe('validate-store.cjs — ANCILLARY_SCHEMAS', () => {
+  test('is an array', () => {
+    assert.ok(Array.isArray(ANCILLARY_SCHEMAS), 'ANCILLARY_SCHEMAS should be an array');
+  });
+
+  test('contains project-overlay', () => {
+    assert.ok(ANCILLARY_SCHEMAS.includes('project-overlay'), 'should include project-overlay');
+  });
+
+  test('contains project-context', () => {
+    assert.ok(ANCILLARY_SCHEMAS.includes('project-context'), 'should include project-context');
+  });
+});
+
+describe('project-context.schema.json — x-placeholder annotations', () => {
+  const path = require('path');
+  const fs = require('fs');
+  const schemaPath = path.join(__dirname, '../../schemas/project-context.schema.json');
+
+  test('schema file exists and is valid JSON', () => {
+    assert.ok(fs.existsSync(schemaPath), 'project-context.schema.json must exist');
+    const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+    assert.ok(schema && typeof schema === 'object', 'schema must parse to an object');
+  });
+
+  test('schema top-level $schema is draft 2020-12', () => {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+    assert.strictEqual(schema.$schema, 'https://json-schema.org/draft/2020-12/schema');
+  });
+
+  test('architecture.frameworks carries x-placeholder STACK_SUMMARY', () => {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+    assert.strictEqual(
+      schema.properties.architecture.properties.frameworks['x-placeholder'],
+      'STACK_SUMMARY'
+    );
+  });
+
+  test('architecture.keyDirectories carries x-placeholder KEY_DIRECTORIES', () => {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+    assert.strictEqual(
+      schema.properties.architecture.properties.keyDirectories['x-placeholder'],
+      'KEY_DIRECTORIES'
+    );
+  });
+
+  test('impactCategories carries x-placeholder IMPACT_CATEGORIES', () => {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+    assert.strictEqual(
+      schema.properties.impactCategories['x-placeholder'],
+      'IMPACT_CATEGORIES'
+    );
+  });
+
+  test('technicalDebt carries x-placeholder TECHNICAL_DEBT', () => {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+    assert.strictEqual(
+      schema.properties.technicalDebt['x-placeholder'],
+      'TECHNICAL_DEBT'
+    );
+  });
+
+  test('verification carries x-placeholder VERIFICATION_COMMANDS', () => {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+    assert.strictEqual(
+      schema.properties.verification['x-placeholder'],
+      'VERIFICATION_COMMANDS'
+    );
+  });
+
+  test('deployment.environments carries x-placeholder DEPLOYMENT_ENVIRONMENTS', () => {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+    assert.strictEqual(
+      schema.properties.deployment.properties.environments['x-placeholder'],
+      'DEPLOYMENT_ENVIRONMENTS'
+    );
+  });
+
+  test('conventions.branching carries x-placeholder BRANCHING_CONVENTION', () => {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+    assert.strictEqual(
+      schema.properties.conventions.properties.branching['x-placeholder'],
+      'BRANCHING_CONVENTION'
+    );
+  });
+
+  test('skillWiring carries x-placeholder SKILL_DIRECTIVES', () => {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+    assert.strictEqual(
+      schema.properties.skillWiring['x-placeholder'],
+      'SKILL_DIRECTIVES'
+    );
   });
 });
