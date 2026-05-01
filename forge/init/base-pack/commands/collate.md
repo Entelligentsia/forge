@@ -5,7 +5,7 @@ description: Regenerate KB documents from the JSON store
 
 # /{{PREFIX}}:collate
 
-Read the collator workflow and follow it.
+Read the collate workflow and follow it.
 
 ## Locate the Forge plugin
 

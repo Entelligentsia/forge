@@ -5,8 +5,8 @@ description: Baseline capabilities for support and orchestration roles.
 role: Generic
 applies_to: [orchestrator, collator, supervisor]
 summary: >
-  Baseline coordination, information synthesis, and basic tooling that every
-  support role needs regardless of domain.
+  Baseline coordination, information synthesis, and basic tooling that
+  every support role needs regardless of domain.
 capabilities:
   - Schedule tasks and manage dependency resolution
   - Hand off context between roles cleanly
@@ -17,17 +17,23 @@ capabilities:
 
 # {{PROJECT_NAME}} Generic Skills
 
-## 📋 Coordination
+## 🔄 Coordination & Orchestration
 
-- **Task Scheduling**: Managing task ordering based on dependencies.
-- **Context Handoff**: Transferring context between roles cleanly and completely.
-- **Progress Aggregation**: Collecting and summarising progress from multiple agents.
+{{GENERIC_SKILL_PROJECT_CONTEXT}}
 
-## 🔧 Basic Tooling
+- **Task Scheduling**: Managing the sequence of task execution and dependency resolution.
+- **Agent Handoff**: Ensuring smooth transitions of context and responsibility between different roles.
+- **Status Reporting**: Aggregating progress from multiple agents into a concise summary.
 
-- **File Operations**: Reading, writing, and managing project files.
-- **Git Operations**: Committing, branching, and merging per the project's {{BRANCHING_CONVENTION}}.
-- **Log Monitoring**: Watching logs and events for triggers and status changes.
+## 📑 Information Synthesis
+- **Data Collation**: Gathering disparate pieces of information into a structured format.
+- **Summary Generation**: Distilling complex technical discussions into key takeaways and action items.
+- **Artifact Mapping**: Ensuring that tasks, bugs, and features are correctly linked in the store.
+
+## 🛠️ Basic Tooling
+- **File Management**: Basic use of `Read`, `Write`, and `Glob` for housekeeping.
+- **Git Basics**: Performing simple commits and status checks.
+- **Log Monitoring**: Watching for specific event patterns to trigger transitions.
 
 ## Orchestrator Iron Laws
 

@@ -5,7 +5,7 @@ description: Final architect approval gate for a completed task
 
 # /{{PREFIX}}:approve
 
-Read the architect approval workflow and follow it.
+Read the approve workflow and follow it.
 
 ## Locate the Forge plugin
 

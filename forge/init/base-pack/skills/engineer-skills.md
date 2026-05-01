@@ -17,27 +17,21 @@ capabilities:
 
 # {{PROJECT_NAME}} Engineer Skills
 
-## 🔍 Code Analysis
+## 🛠️ Implementation & Coding
 
 {{ENGINEER_SKILL_PROJECT_CONTEXT}}
 
-- **Codebase Traversal**: Using Grep, Read, and Glob to understand code structure and patterns.
-- **Root Cause Analysis**: Tracing bugs to their source through log analysis and code inspection.
-- **Impact Analysis**: Determining the blast radius of a proposed change before implementing it.
+- **Code Analysis**: Ability to read, analyze, and understand existing codebases using `Grep`, `Read`, and `Glob`.
+- **Feature Implementation**: Converting technical designs into working code while adhering to project style guides.
+- **Refactoring**: Improving code structure without altering behavior, focusing on maintainability and efficiency.
+- **Test Writing**: Implementing unit, integration, and end-to-end tests to ensure correctness.
 
-## 🔨 Implementation
+## 🔍 Investigation & Debugging
+- **Root Cause Analysis**: Using logs, debugger tools, and hypothesis testing to isolate bugs.
+- **Impact Analysis**: Assessing how a change in one part of the system affects other components.
+- **Performance Profiling**: Identifying bottlenecks and optimizing critical paths.
 
-- **Plan-Following**: Implementing features per approved plans and project conventions.
-- **Convention Adherence**: Following existing code patterns, naming conventions, and style rules.
-- **Incremental Progress**: Making small changes that compile and pass tests.
-
-## 🧪 Testing & Verification
-
-- **Test Writing**: Creating unit, integration, and end-to-end tests for new features.
-- **Verification**: Running `{{TEST_COMMAND}}` and `{{LINT_COMMAND}}` to verify changes.
-- **Regression Detection**: Ensuring existing tests still pass after changes.
-
-## 🔀 Version Control
-
-- **Commit Discipline**: Aligning commits and branches with the project's {{BRANCHING_CONVENTION}}.
-- **Incremental Commits**: Committing working code incrementally, never disabled tests.
+## ⚙️ Workflow Integration
+- **Git Mastery**: Managing branches, commits, and PRs following the project's git flow.
+- **CI/CD Alignment**: Ensuring code passes pipeline checks and is deployable.
+- **Tool Synthesis**: Creating small scripts or tools to automate repetitive engineering tasks.

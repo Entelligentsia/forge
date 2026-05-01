@@ -5,7 +5,7 @@ description: Verify an agent has loaded and understood the project knowledge bas
 
 # /{{PREFIX}}:quiz-agent
 
-Read the quiz agent workflow and follow it.
+Read the quiz-agent workflow and follow it.
 
 ## Locate the Forge plugin
 

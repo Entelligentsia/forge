@@ -5,7 +5,7 @@ description: Orchestrate the full plan→implement→review→approve pipeline f
 
 # /{{PREFIX}}:run-task
 
-Read the orchestrate task workflow and follow it.
+Read the run-task workflow and follow it.
 
 ## Locate the Forge plugin
 

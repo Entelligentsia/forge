@@ -1,6 +1,6 @@
 # PLAN REVIEW — {TASK_ID}: {TASK_TITLE}
 
-🌿 *Forge Supervisor*
+🌿 *{{PROJECT_NAME}} Supervisor*
 
 **Task:** {TASK_ID}
 

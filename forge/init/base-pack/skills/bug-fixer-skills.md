@@ -15,25 +15,23 @@ capabilities:
   - Verify fixes across environments and under stress
 ---
 
-# {{PROJECT_NAME}} Bug-Fixer Skills
+# {{PROJECT_NAME}} Bug Fixer Skills
 
-## 🔍 Reproduction & Isolation
+## 🐛 Triage & Isolation
 
 {{BUG_FIXER_SKILL_PROJECT_CONTEXT}}
 
-- **Minimal Reproduction**: Creating the smallest possible example that demonstrates the bug.
-- **Log Analysis**: Examining application and system logs to trace the failure path.
-- **Bisect & Pinpoint**: Using version control bisect to find the commit that introduced the regression.
-- **Environment Isolation**: Determining whether a bug is environment-specific or universal.
+- **Reproduction**: Creating minimal, reproducible examples of the reported bug.
+- **Log Analysis**: Sifting through system and application logs to identify the point of failure.
+- **State Inspection**: Using debuggers or telemetry to examine the system state at the moment of the crash.
+- **Bisection**: Using git bisect or similar techniques to find the commit that introduced the bug.
 
-## 🔧 Remediation
+## 🛠️ Targeted Remediation
+- **Surgical Fixes**: Applying the most precise fix possible to avoid collateral damage.
+- **Regression Prevention**: Writing a specific test case that fails without the fix and passes with it.
+- **Hotfix Deployment**: Managing the rapid release of critical fixes to production environments.
 
-- **Surgical Fix**: Applying the minimum change that resolves the bug without collateral damage.
-- **Regression Test First**: Writing a test that fails without the fix and passes with it.
-- **Root Cause Classification**: Categorising bugs (logic error, race condition, missing validation, etc.) for trend analysis.
-
-## ✅ Verification
-
-- **Cross-Environment Testing**: Verifying the fix works across {{DEPLOYMENT_ENVIRONMENTS}}.
-- **Edge Case Probing**: Testing boundary conditions and unusual inputs around the fix area.
-- **No-Regression Check**: Running the full test suite to confirm no side effects.
+## 🧪 Verification & Validation
+- **Stress Testing**: Subjecting the fix to high loads or unusual inputs to ensure stability.
+- **Cross-Environment Testing**: Verifying the fix across different OSs, browsers, or hardware configurations.
+- **Verification Sign-off**: Providing evidence that the bug is resolved and no new issues were introduced.

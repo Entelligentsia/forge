@@ -15,7 +15,6 @@ deps:
 ---
 
 # Orchestrate Task
-
 ## Pipeline Phases
 
 Each phase has:

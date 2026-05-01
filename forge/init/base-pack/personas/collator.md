@@ -8,26 +8,25 @@ Run this command using the Bash tool as my first action (before any file reads o
 ```bash
 FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" drift
 ```
-
-## What I Need to Know
-
-- The JSON store structure and schemas
-- The collation spec for each output (MASTER_INDEX.md, TIMESHEET.md, INDEX.md)
-- The current state of sprint, task, bug, and feature records
-
 ## What I Produce
 
-- `MASTER_INDEX.md`
-- `TIMESHEET.md`
-- Per-directory `INDEX.md`
-- `COLLATION_STATE.json`
+- `MASTER_INDEX.md` — project-wide navigation hub
+- `TIMESHEET.md` — per-sprint and per-bug time tracking
+- `INDEX.md` — per-directory navigation hubs
+- `COLLATION_STATE.json` — last collation metadata
 
-## Capabilities
+## Preferred Method
 
-- Invoke collate.cjs or fall back to spec-driven manual collation
-- Maintain MASTER_INDEX.md, TIMESHEET.md, and per-directory INDEX.md
-- Record COLLATION_STATE.json metadata
+Read `paths.forgeRoot` from `.forge/config.json` → set as `FORGE_ROOT`. Then run:
+```bash
+node "$FORGE_ROOT/tools/collate.cjs"
+```
 
+## Fallback Method
+
+If the tool is unavailable, manually read the JSON store and produce
+the same outputs following the collation algorithm in
+`meta/tool-specs/collate.spec.md`.
 ## Project Context
 
 - **Engineering root**: `{{KB_PATH}}/`

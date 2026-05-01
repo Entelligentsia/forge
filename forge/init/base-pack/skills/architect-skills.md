@@ -22,18 +22,16 @@ capabilities:
 {{ARCHITECT_SKILL_PROJECT_CONTEXT}}
 
 - **Architecture Analysis**: Evaluating the current system structure to identify technical debt and bottlenecks.
-- **Design Pattern Selection**: Determining the most appropriate patterns for new features.
+- **Design Pattern Selection**: Determining the most appropriate patterns (e.g., Microservices, Event-driven) for new features.
 - **Data Modeling**: Designing efficient database schemas and data flow diagrams.
 - **Interface Specification**: Defining clear API contracts and communication protocols between components.
 
 ## 🗺️ Strategic Planning
-
 - **Technical Roadmap**: Mapping out the evolution of the system over multiple sprints.
-- **Trade-off Analysis**: Weighing the pros and cons of different technical approaches.
+- **Trade-off Analysis**: Weighing the pros and cons of different technical approaches (e.g., Build vs. Buy).
 - **Complexity Management**: Breaking down large architectural goals into manageable technical tasks.
 
 ## 🔍 High-Level Review
-
-- **Architecture Review**: Ensuring that implementations align with the intended design and don't introduce architectural drift.
+- **Architecture Review**: Ensuring that implementations align with the intended design and don't introduce "architectural drift".
 - **Scalability Assessment**: Analyzing how the system will handle growth in users or data volume.
 - **Security Modeling**: Identifying potential attack vectors and designing mitigation strategies.

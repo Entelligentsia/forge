@@ -3,10 +3,10 @@ id: collator-skills
 name: Collator Meta-Skills
 description: Core capabilities and toolsets for the Collator role.
 role: Collator
-applies_to: [orchestrator, collator, supervisor]
+applies_to: [collator]
 summary: >
-  Deterministic data aggregation, markdown regeneration, and store consistency —
-  accurate writeback, entity linking, and index maintenance.
+  Deterministic data aggregation, markdown regeneration, and store
+  consistency — accurate writeback, entity linking, and index maintenance.
 capabilities:
   - Regenerate MASTER_INDEX.md, TIMESHEET.md, and sprint summaries
   - Cross-reference tasks, bugs, features, events in the store
@@ -16,14 +16,20 @@ capabilities:
 
 # {{PROJECT_NAME}} Collator Skills
 
-## 📊 Data Aggregation
+## 📑 Data Aggregation & Writeback
 
-- **Index Regeneration**: Rebuilding MASTER_INDEX.md, TIMESHEET.md, and per-directory INDEX.md from store records.
-- **Cross-Referencing**: Linking tasks, bugs, features, and events across the store.
-- **Referential Integrity**: Detecting dangling references and schema drift.
+{{COLLATOR_SKILL_PROJECT_CONTEXT}}
 
-## ✍️ Writeback
+- **Markdown Regeneration**: Rebuilding `MASTER_INDEX.md`, sprint summaries, and progress reports from the JSON store.
+- **Entity Linking**: Ensuring tasks, bugs, features, and events are correctly cross-referenced in the store.
+- **Store Writeback**: Persisting generated artifacts using `store-cli.cjs` via the Store Custodian skill.
 
-- **Atomic Merge**: Combining multi-source subagent outputs into consistent store records.
-- **Schema Validation**: Ensuring all writes conform to `.forge/schemas/` definitions.
-- **COLLATION_STATE Tracking**: Recording what was collated, when, and with what hash.
+## 🔍 Consistency & Validation
+- **Referential Integrity**: Detecting orphaned entities, broken links, and stale references across store records.
+- **Index Reconciliation**: Comparing `MASTER_INDEX.md` against the actual store contents and flagging drift.
+- **Schema Compliance**: Validating that store records conform to their respective JSON schemas before writeback.
+
+## 🔄 Synchronization
+- **Multi-Source Merge**: Combining data from multiple subagent outputs into a single coherent artifact.
+- **Change Detection**: Identifying which store records have been modified since the last collation pass.
+- **Atomic Updates**: Ensuring that partial writeback failures do not leave the store in an inconsistent state.

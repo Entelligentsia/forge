@@ -5,7 +5,7 @@ description: Code quality review of a completed task implementation
 
 # /{{PREFIX}}:review-code
 
-Read the review code workflow and follow it.
+Read the review-code workflow and follow it.
 
 ## Locate the Forge plugin
 

@@ -5,7 +5,7 @@ description: Architectural review of a task implementation plan
 
 # /{{PREFIX}}:review-plan
 
-Read the review plan workflow and follow it.
+Read the review-plan workflow and follow it.
 
 ## Locate the Forge plugin
 

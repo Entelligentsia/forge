@@ -20,11 +20,10 @@ deps:
   config_fields: [commands.test, paths.engineering]
 ---
 
-# Review Code
-
+# Review Implementation
 ## Iron Law
 
-Evaluate the code against the approved PLAN.md and the original task prompt. Do not accept "it works" as a substitute for "it is correct and maintainable."
+YOU MUST evaluate the code against the approved PLAN.md and the original task prompt. Do not accept "it works" as a substitute for "it is correct and maintainable."
 
 ## Algorithm
 

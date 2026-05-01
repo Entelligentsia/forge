@@ -1,6 +1,6 @@
 # PROGRESS — {TASK_ID}: {TASK_TITLE}
 
-🌱 *Forge Engineer*
+🌱 *{{PROJECT_NAME}} Engineer*
 
 **Task:** {TASK_ID}
 **Sprint:** {SPRINT_ID}

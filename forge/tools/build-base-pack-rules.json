@@ -1,0 +1,73 @@
+{
+  "stringReplacements": [
+    { "from": "Forge Architect",   "to": "{{PROJECT_NAME}} Architect" },
+    { "from": "Forge Engineer",    "to": "{{PROJECT_NAME}} Engineer" },
+    { "from": "Forge Collator",    "to": "{{PROJECT_NAME}} Collator" },
+    { "from": "Forge Supervisor",  "to": "{{PROJECT_NAME}} Supervisor" },
+    { "from": "Forge QA Engineer", "to": "{{PROJECT_NAME}} QA Engineer" },
+    { "from": "Forge Orchestrator","to": "{{PROJECT_NAME}} Orchestrator" },
+    { "from": "Forge Bug Fixer",   "to": "{{PROJECT_NAME}} Bug Fixer" },
+    { "from": "Forge-specific invariant", "to": "project-specific invariant" },
+    { "from": "Forge as a distributed plugin that runs in every user's project", "to": "{{PROJECT_NAME}} and its architectural constraints" },
+    { "from": "since this repository is Forge itself — use the in-tree tool:\n   ```bash\n   node forge/tools/collate.cjs\n   ```", "to": "" },
+    { "from": "   Or — since this repository is Forge itself — use the in-tree tool:\n   ```bash\n   node forge/tools/collate.cjs\n   ```\n", "to": "" }
+  ],
+  "personaProjectContext": {
+    "architect": [
+      "- **Entity model and service boundaries**: See `{{KB_PATH}}/` and `{{KB_PATH}}/../business-domain/entity-model.md`",
+      "- **ID format and prefix convention**: Task IDs use the {{PREFIX}} prefix from `.forge/config.json`",
+      "- **Technical debt areas**: {{TECHNICAL_DEBT}}",
+      "- **Deployment topology**: See `{{KB_PATH}}/deployment.md`",
+      "- **Operational impact categories**: {{IMPACT_CATEGORIES}}"
+    ],
+    "engineer": [
+      "- **Entity model**: {{ENTITY_MODEL}}",
+      "- **Data access patterns**: {{DATA_ACCESS}}",
+      "- **Key directories**: {{KEY_DIRECTORIES}}",
+      "- **Technical debt**: {{TECHNICAL_DEBT}}",
+      "- **Impact categories**: {{IMPACT_CATEGORIES}}"
+    ],
+    "supervisor": [
+      "- **Entity model**: {{ENTITY_MODEL}}",
+      "- **Impact categories**: {{IMPACT_CATEGORIES}}",
+      "- **Key directories**: {{KEY_DIRECTORIES}}",
+      "- **Technical debt**: {{TECHNICAL_DEBT}}"
+    ],
+    "collator": [
+      "- **Engineering root**: `{{KB_PATH}}/`",
+      "- **Store root**: `.forge/store/`",
+      "- **Entity model**: {{ENTITY_MODEL}}"
+    ],
+    "bug-fixer": [
+      "- **Entity model**: {{ENTITY_MODEL}}",
+      "- **Data access patterns**: {{DATA_ACCESS}}",
+      "- **Key directories**: {{KEY_DIRECTORIES}}",
+      "- **Technical debt**: {{TECHNICAL_DEBT}}",
+      "- **Impact categories**: {{IMPACT_CATEGORIES}}"
+    ],
+    "qa-engineer": [
+      "- **Verification commands**: {{VERIFICATION_COMMANDS}}",
+      "- **Entity model**: {{ENTITY_MODEL}}",
+      "- **Key directories**: {{KEY_DIRECTORIES}}",
+      "- **Deployment environments**: {{DEPLOYMENT_ENVIRONMENTS}}"
+    ]
+  },
+  "commandMetadata": [
+    { "file": "approve.md",       "description": "Final architect approval gate for a completed task",                        "workflow": "architect_approve.md" },
+    { "file": "collate.md",       "description": "Regenerate KB documents from the JSON store",                               "workflow": "collator_agent.md" },
+    { "file": "commit.md",        "description": "Stage and commit completed task artifacts",                                  "workflow": "commit_task.md" },
+    { "file": "fix-bug.md",       "description": "Triage, diagnose, and fix a bug",                                           "workflow": "fix_bug.md" },
+    { "file": "implement.md",     "description": "Execute the approved implementation plan for a task",                       "workflow": "implement_plan.md" },
+    { "file": "plan.md",          "description": "Design and document the implementation plan for a task",                    "workflow": "plan_task.md" },
+    { "file": "quiz-agent.md",    "description": "Verify an agent has loaded and understood the project knowledge base",      "workflow": "quiz_agent.md" },
+    { "file": "retrospective.md", "description": "Produce sprint retrospective and lessons-learned document",                  "workflow": "sprint_retrospective.md" },
+    { "file": "review-code.md",   "description": "Code quality review of a completed task implementation",                    "workflow": "review_code.md" },
+    { "file": "review-plan.md",   "description": "Architectural review of a task implementation plan",                        "workflow": "review_plan.md" },
+    { "file": "run-sprint.md",    "description": "Execute all tasks in a sprint (sequential or parallel)",                    "workflow": "run_sprint.md" },
+    { "file": "run-task.md",      "description": "Orchestrate the full plan→implement→review→approve pipeline for a task",    "workflow": "orchestrate_task.md" },
+    { "file": "sprint-intake.md", "description": "Elicit and structure requirements for a new sprint",                        "workflow": "architect_sprint_intake.md" },
+    { "file": "sprint-plan.md",   "description": "Decompose sprint requirements into tasks with dependencies",                 "workflow": "architect_sprint_plan.md" },
+    { "file": "validate.md",      "description": "Validate that a task implementation satisfies acceptance criteria",          "workflow": "validate_task.md" },
+    { "file": "enhance.md",       "description": "Progressive project-specific enrichment of structural elements",             "workflow": "ENHANCE_AGENT_SENTINEL" }
+  ]
+}

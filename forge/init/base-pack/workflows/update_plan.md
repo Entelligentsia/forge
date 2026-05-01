@@ -21,7 +21,6 @@ deps:
 ---
 
 # Update Plan
-
 ## Algorithm
 
 ```

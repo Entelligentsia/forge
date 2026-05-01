@@ -20,8 +20,7 @@ deps:
   config_fields: [paths.engineering]
 ---
 
-# Architect Approve
-
+# Approve Task
 ## Algorithm
 
 ```

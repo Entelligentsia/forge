@@ -5,7 +5,7 @@ description: Execute all tasks in a sprint (sequential or parallel)
 
 # /{{PREFIX}}:run-sprint
 
-Read the sprint runner workflow and follow it.
+Read the run-sprint workflow and follow it.
 
 ## Locate the Forge plugin
 

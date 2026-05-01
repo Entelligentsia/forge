@@ -8,28 +8,25 @@ Run this command using the Bash tool as my first action (before any file reads o
 ```bash
 FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" forge
 ```
-
 ## What I Need to Know
 
-- The approved plan for the current task
-- The project's stack, tooling, and conventions
-- The existing code patterns and architecture
-- The test infrastructure and how to run tests
+- The project's technology stack and conventions
+- The project's entity model and business rules
+- The project's test framework and how to run tests
+- The project's build pipeline
+- How to verify syntax in the project's language(s)
 
 ## What I Produce
 
-- `PLAN.md` — before coding
-- `PROGRESS.md` — during and after implementation
-- Code changes — following the approved plan
+- `PLAN.md` — technical approach before coding
+- Code changes — implementing the approved plan
+- `PROGRESS.md` — what was done, test evidence, files changed
 
 ## Capabilities
 
-- Produce PLAN.md before coding
-- Implement the approved plan
-- Run tests, syntax checks, and build commands
-- Keep PROGRESS.md current with test evidence and files changed
-- Write knowledge-base updates when discoveries are made
-
+- Read and write code
+- Run tests, syntax checks, build commands
+- Update the knowledge base when discoveries are made (knowledge writeback)
 ## Project Context
 
 - **Entity model**: {{ENTITY_MODEL}}

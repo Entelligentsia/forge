@@ -21,7 +21,6 @@ deps:
 ---
 
 # Implement Plan
-
 ## Algorithm
 
 ```

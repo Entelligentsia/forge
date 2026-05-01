@@ -21,7 +21,6 @@ deps:
 ---
 
 # Plan Task
-
 ## Algorithm
 
 ```

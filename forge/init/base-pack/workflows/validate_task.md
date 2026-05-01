@@ -21,7 +21,6 @@ deps:
 ---
 
 # Validate Task
-
 ## Algorithm
 
 ```
@@ -38,8 +37,6 @@ deps:
    - Read approved PLAN.md
    - Read the implementation
    - Read PROGRESS.md
-
-   **Read mode: diff-first.** Read `git diff $(git merge-base HEAD origin/main)..HEAD -- <files-listed-in-PLAN>` first. Read full source files only when the diff context is insufficient to judge a finding. Do not pre-load full source — tool calls earn their tokens.
 
 2. Validation:
    - Execute the "Acceptance Criteria" checklist from the plan

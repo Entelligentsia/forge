@@ -17,21 +17,21 @@ capabilities:
 
 # {{PROJECT_NAME}} Supervisor Skills
 
-## 🔍 Review & Governance
+## ✅ Quality Assurance & Verification
 
 {{SUPERVISOR_SKILL_PROJECT_CONTEXT}}
 
-- **Requirements Validation**: Checking that implementations satisfy acceptance criteria, not just that code compiles.
-- **Test Plan Review**: Analysing test plans for coverage and effectiveness.
-- **Code Review**: Conducting reviews for logic, style, and maintainability.
+- **Requirement Validation**: Comparing implemented features against the original specifications and acceptance criteria.
+- **Test Plan Review**: Evaluating the coverage and effectiveness of the Engineer's test suite.
+- **Edge Case Discovery**: Identifying potential failure modes and boundary conditions that may have been missed.
+- **Regression Testing**: Ensuring that new changes do not break existing functionality.
 
-## 🛡️ Quality Assurance
+## 📋 Review & Governance
+- **Code Review**: Conducting thorough reviews of PRs for logic, style, and maintainability.
+- **Audit Trails**: Ensuring that all changes are documented and linked to the appropriate tasks/bugs.
+- **Compliance Checking**: Verifying that the code adheres to organizational standards and security policies.
 
-- **Audit Trails**: Maintaining verifiable evidence for every review decision.
-- **Compliance Checks**: Ensuring changes follow project conventions and security requirements.
-- **Approval Governance**: Orchestrrating transitions from implementing to review-approved.
-
-## 🔧 Project-Specific Checks
-
-- **Convention Verification**: Checking that code follows {{PROJECT_NAME}} conventions.
-- **Security Review**: Scanning for OWASP top 10 vulnerabilities and project-specific security requirements.
+## 📈 Feedback & Coordination
+- **Defect Reporting**: Clearly documenting bugs and assigning them back to engineers with reproducible steps.
+- **Progress Tracking**: Monitoring task completion and identifying blockers in the pipeline.
+- **Approval Orchestration**: Managing the transition of tasks from `implementing` to `review-approved`.

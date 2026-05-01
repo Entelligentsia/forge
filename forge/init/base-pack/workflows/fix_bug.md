@@ -14,7 +14,6 @@ deps:
 ---
 
 # Fix Bug
-
 ## Algorithm
 
 ```
@@ -79,7 +78,7 @@ deps:
    - If set-bug-summary exits non-zero, fix the JSON and retry before proceeding.
 
 6. Finalize:
-   - Execute Token Reporting (see Generation Instructions) — do this
+   - Execute Token Reporting (see `_fragments/finalize.md`) — do this
      first so the sidecar is written before the event directory is purged
    - Summarise accumulated cost data into the bug artifact:
      read all events from `.forge/store/events/{bugId}/`, aggregate
@@ -106,7 +105,6 @@ deps:
    - Emit the complete event via `/forge:store emit {bugId} '{event-json}'`
      (tombstone — written after the purge; the only event that will remain)
 ```
-
 ## Announcement Algorithm
 
 The generated `fix_bug.md` MUST include the following verbatim algorithm for phase announcements and symmetric persona/skill injection. This mirrors the pattern from `meta-orchestrate.md`.

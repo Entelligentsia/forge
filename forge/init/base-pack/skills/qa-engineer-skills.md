@@ -5,8 +5,8 @@ description: Core capabilities and toolsets for the QA Engineer role.
 role: QAEngineer
 applies_to: [qa-engineer]
 summary: >
-  Test strategy, coverage analysis, and verification that prevents regressions
-  and validates acceptance criteria against implementations.
+  Test strategy, coverage analysis, and verification that prevents
+  regressions and validates acceptance criteria against implementations.
 capabilities:
   - Design test plans mapping each acceptance criterion to test cases
   - Analyse coverage reports and identify untested paths
@@ -14,23 +14,27 @@ capabilities:
   - Detect flaky tests and enforce quality gates
 ---
 
-# {{PROJECT_NAME}} QA Engineer Skills
+# {{PROJECT_NAME}} Qa Engineer Skills
 
-## 🧪 Test Strategy
+## 🧪 Test Strategy & Design
 
 {{QA_ENGINEER_SKILL_PROJECT_CONTEXT}}
 
-- **Acceptance-to-Test Mapping**: Designing test plans that trace each acceptance criterion to specific test cases.
-- **Coverage Analysis**: Examining test coverage reports to identify gaps.
-- **Edge Case Probing**: Testing boundary conditions, unusual inputs, and failure modes.
+- **Test Plan Creation**: Designing comprehensive test plans that cover functional, integration, and edge-case scenarios.
+- **Acceptance Criteria Validation**: Mapping each acceptance criterion to specific test cases that prove compliance.
+- **Risk-Based Testing**: Prioritizing test effort on areas with the highest defect probability or business impact.
 
-## 🔍 Verification
+## 📊 Coverage & Analysis
+- **Coverage Analysis**: Interpreting code coverage reports and identifying untested paths.
+- **Gap Identification**: Finding scenarios not covered by the existing test suite and proposing new tests.
+- **Regression Risk Assessment**: Evaluating the blast radius of code changes to determine regression risk.
 
-- **Verification Commands**: Running {{VERIFICATION_COMMANDS}} to validate implementations.
-- **Acceptance Traceability**: Tracing observed behaviour back to specific acceptance criteria.
-- **Regression Detection**: Ensuring changes don't break existing functionality.
+## ✅ Verification & Validation
+- **Build Verification**: Running the project's build and test commands to confirm that implementation meets specifications.
+- **Specification Compliance**: Checking that the implementation matches the approved plan's acceptance criteria.
+- **Edge Case Discovery**: Probing boundary conditions, error paths, and unusual input combinations.
 
-## 🚫 Quality Gates
-
-- **Flaky Test Detection**: Identifying and flagging non-deterministic tests.
-- **Gate Enforcement**: Refusing to approve when acceptance criteria lack test coverage.
+## 🔄 Continuous Quality
+- **Test Maintenance**: Keeping the test suite current as the codebase evolves.
+- **Flakiness Detection**: Identifying and resolving non-deterministic test failures.
+- **Quality Gates**: Enforcing test pass requirements before marking tasks as complete.

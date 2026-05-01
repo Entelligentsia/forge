@@ -21,7 +21,6 @@ deps:
 ---
 
 # Commit Task
-
 ## Algorithm
 
 ```

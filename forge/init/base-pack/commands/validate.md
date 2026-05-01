@@ -5,7 +5,7 @@ description: Validate that a task implementation satisfies acceptance criteria
 
 # /{{PREFIX}}:validate
 
-Read the validation workflow and follow it.
+Read the validate workflow and follow it.
 
 ## Locate the Forge plugin
 

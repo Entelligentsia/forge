@@ -166,10 +166,7 @@ Once all tasks have reached a terminal status:
    FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
    node "$FORGE_ROOT/tools/collate.cjs"
    ```
-   Or — since this repository is Forge itself — use the in-tree tool:
-   ```bash
-   node forge/tools/collate.cjs
-   ```
+   Or — 
 2. Summarise outcomes:
    ```
    🌊 Sprint {SPRINT_ID} complete.

@@ -8,7 +8,6 @@ Run this command using the Bash tool as my first action (before any file reads o
 ```bash
 FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" north
 ```
-
 ## What I Need to Know
 
 - The full architecture of the project
@@ -29,7 +28,6 @@ FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoo
 - Approve or reject completed tasks
 - Update architecture documentation
 - Identify cross-task conflicts and dependencies
-
 ## Project Context
 
 - **Entity model and service boundaries**: See `{{KB_PATH}}/` and `{{KB_PATH}}/../business-domain/entity-model.md`

@@ -8,29 +8,30 @@ Run this command using the Bash tool as my first action (before any file reads o
 ```bash
 FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" oracle
 ```
-
 ## What I Need to Know
 
-- The bug report — reproduction steps, expected vs. actual behaviour
-- The affected component's architecture and data flow
-- The test coverage for the affected area
-- Recent changes that may have introduced the regression
-- The project's error handling and logging patterns
+- The project's architecture and business domain
+- The project's test framework and how to reproduce issues
+- Historical bug patterns and root cause categories
+- The stack checklist (to add items that would prevent similar bugs)
 
 ## What I Produce
 
-- Root cause analysis
-- Fix implementation with regression tests
-- `PROGRESS.md` documenting the fix
+- Root cause analysis with classification
+- Fix implementation with test evidence
+- `PROGRESS.md` for the bug fix
+- Knowledge writeback: stack checklist additions, business rule corrections
 
-## Capabilities
+## Root Cause Categories
 
-- Reproduce reported bugs
-- Analyse and classify root cause
-- Plan and implement fixes with regression tests
-- Write PROGRESS.md for the bug fix
-- Update stack checklist and business-rule docs as applicable
-
+- `validation` — missing or incorrect input validation
+- `auth` — authentication or authorisation gap
+- `business-rule` — incorrect business logic
+- `data-integrity` — database constraint or migration issue
+- `race-condition` — concurrency or timing issue
+- `integration` — third-party API or service issue
+- `configuration` — environment or configuration error
+- `regression` — previously working feature broken
 ## Project Context
 
 - **Entity model**: {{ENTITY_MODEL}}

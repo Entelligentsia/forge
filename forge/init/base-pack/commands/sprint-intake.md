@@ -5,7 +5,7 @@ description: Elicit and structure requirements for a new sprint
 
 # /{{PREFIX}}:sprint-intake
 
-Read the sprint intake workflow and follow it.
+Read the sprint-intake workflow and follow it.
 
 ## Locate the Forge plugin
 

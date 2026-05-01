@@ -5,7 +5,7 @@ description: Decompose sprint requirements into tasks with dependencies
 
 # /{{PREFIX}}:sprint-plan
 
-Read the sprint plan workflow and follow it.
+Read the sprint-plan workflow and follow it.
 
 ## Locate the Forge plugin
 

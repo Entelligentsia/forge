@@ -1,4 +1,12 @@
 {
+  "0.30.0": {
+    "version": "0.31.0",
+    "date": "2026-05-01",
+    "notes": "Add build-base-pack development tool (T06): new forge/tools/build-base-pack.cjs regenerates init/base-pack/ from meta-sources with genericization rules; forge/tools/build-base-pack-rules.json defines string-replacement map; re-genericizes all base-pack files (workflows, templates, commands, personas, skills) to replace hardcoded 'Forge' persona names with {{PROJECT_NAME}} placeholders; forge/package.json exposes npm run build-base-pack; 208 tests pass.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.29.0": {
     "version": "0.30.0",
     "date": "2026-05-01",
