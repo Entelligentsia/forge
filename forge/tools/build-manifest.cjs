@@ -70,6 +70,7 @@ const FRAGMENT_MAP = [
   ['context-injection.md',    'context-injection.md'],
   ['progress-reporting.md',   'progress-reporting.md'],
   ['event-emission-schema.md','event-emission-schema.md'],
+  ['finalize.md',             'finalize.md'],
 ];
 
 // 5. Templates — explicit mapping

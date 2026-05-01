@@ -3,6 +3,14 @@ requirements:
   reasoning: High
   context: Medium
   speed: Low
+audience: subagent
+phase: review-plan
+context:
+  architecture: false
+  prior_summaries: delta
+  persona: summary
+  master_index: false
+  diff_mode: false
 deps:
   personas: [supervisor]
   skills: [supervisor, generic]
@@ -13,10 +21,6 @@ deps:
 ---
 
 # 🌿 Meta-Workflow: Review Plan
-
-## Purpose
-
-The Supervisor reviews the Engineer's implementation plan for feasibility, security, and architecture alignment.
 
 ## Iron Law
 
@@ -32,19 +36,10 @@ YOU MUST evaluate the plan against what the task actually requires, not against 
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
-   - Run `/cost` to verify token reporting available.
-   - If `/cost` succeeds → note for later (will use reported data)
-   - If `/cost` fails or unavailable → note for later (will use estimates)
-
 1. Load Context:
    - Read task prompt (source of truth)
    - Read PLAN.md (subject of review)
-   - Consult the architecture context summary injected in your prompt (under
-     "Architecture context"). If no summary was injected, read
-     `engineering/architecture/stack.md` directly.
-   - Read full architecture docs (paths listed in the injected context) only
-     when the summary is insufficient for your review.
-   - Read stack checklist
+   - Read stack checklist if available
 
 2. Review:
    - Evaluate feasibility, completeness, security, architecture alignment, and testing strategy
@@ -56,15 +51,12 @@ YOU MUST evaluate the plan against what the task actually requires, not against 
      - If Revision Required: provide numbered, actionable items
      - If Approved: provide any advisory notes
 
-4. Knowledge Writeback:
-   - Update stack-checklist.md if a new check should be added based on this review
-
-5. Finalize:
+4. Finalize:
    - Update task status via `/forge:store update-status task {taskId} status review-approved` (if Approved) or `/forge:store update-status task {taskId} status plan-revision-required` (if Revision Required)
    - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
-   - Execute Token Reporting (see Generation Instructions)
+   - Execute Token Reporting (see `_fragments/finalize.md`)
 
-6. Emit Summary Sidecar:
+5. Emit Summary Sidecar:
    - Write `REVIEW-PLAN-SUMMARY.json` to the task directory with the following shape:
      ```json
      {
@@ -83,22 +75,8 @@ YOU MUST evaluate the plan against what the task actually requires, not against 
    - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 
-## Generation Instructions
+## Generation Notes
 
-- **Workflow Structure:** The generated `review_plan.md` must follow the strict "Algorithm" block format.
-- **Verdict Detection:** The generated workflow MUST enforce the strict `**Verdict:** [Approved | Revision Required]` format. This is critical for orchestrator branching.
-- **Context Isolation:** Forbid inline execution of complex review logic; use the `Agent` tool for sub-tasks.
-- **Project Specifics:**
-  - Embed project-specific architecture sub-docs and security checks from the checklist.
-- **Token Reporting:** The generated workflow MUST mandate the following before returning:
-  1. Run `/cost` to retrieve session token usage.
-  2. If `/cost` succeeds:
-     - Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-     - Add `"source": "reported"` to sidecar JSON.
-  3. If `/cost` fails or unavailable:
-     - Set token fields to `null`: `"inputTokens": null, "outputTokens": null, "estimatedCostUSD": null`.
-     - Add `"source": "missing"` to sidecar JSON.
-     - Log: "Token data unavailable (/cost failed). Backfill later via estimate-usage.cjs."
-  4. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
-  5. **NEVER skip sidecar write.** Always emit (reported or placeholder with nulls).
-- **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.
+- Enforce `**Verdict:** [Approved | Revision Required]` format exactly — orchestrator branches on this.
+- Token Reporting: `_fragments/finalize.md` — wire via `file_ref:`.
+- Event Emission: "complete" event MUST include the `eventId` passed by the orchestrator.

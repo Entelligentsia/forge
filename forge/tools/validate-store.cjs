@@ -87,6 +87,9 @@ function _getSchemas() {
 
 const ENTITY_TYPES = ['sprint', 'task', 'bug', 'event', 'feature'];
 
+// Non-entity schemas: referenced and parsed for validity but not used for store record validation.
+const ANCILLARY_SCHEMAS = ['project-overlay'];
+
 const MINIMAL_REQUIRED = {
   sprint:  ['sprintId', 'title', 'status', 'taskIds', 'createdAt'],
   task:    ['taskId', 'sprintId', 'title', 'status', 'path'],
@@ -175,7 +178,7 @@ const BACKFILL = {
   },
 };
 
-module.exports = { validateRecord, MINIMAL_REQUIRED, NULLABLE_FK, BACKFILL, ENTITY_TYPES };
+module.exports = { validateRecord, MINIMAL_REQUIRED, NULLABLE_FK, BACKFILL, ENTITY_TYPES, ANCILLARY_SCHEMAS };
 
 // ---------------------------------------------------------------------------
 // CLI

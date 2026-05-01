@@ -728,7 +728,7 @@ describe('store-cli.cjs — write-boundary in-tool schema enforcement', () => {
     }
   });
 
-  test('progress writes log line and emits human-readable summary to stdout', () => {
+  test('progress writes log line; stdout silent by default', () => {
     const tmpDir = makeSprintStore();
     try {
       const r = spawnSync('node', [STORE_CLI, 'progress', 'S1', 'engineer', 'oracle', 'progress', 'Mapping AC coverage'], {
@@ -742,8 +742,21 @@ describe('store-cli.cjs — write-boundary in-tool schema enforcement', () => {
       const logContent = fs.readFileSync(logPath, 'utf8');
       assert.match(logContent, /\|engineer\|oracle\|progress\|Mapping AC coverage/);
 
-      // Verify stdout emits human-readable summary with persona emoji
-      assert.ok(r.stdout.trim().length > 0, 'stdout should emit a summary line');
+      // stdout is silent by default
+      assert.equal(r.stdout, '', 'stdout should be empty without --verbose');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('progress --verbose emits human-readable summary to stdout', () => {
+    const tmpDir = makeSprintStore();
+    try {
+      const r = spawnSync('node', [STORE_CLI, 'progress', 'S1', 'engineer', 'oracle', 'progress', 'Mapping AC coverage', '--verbose'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, r.stderr);
+      assert.ok(r.stdout.trim().length > 0, 'stdout should emit a summary line with --verbose');
       assert.ok(r.stdout.includes('🌕'), 'stdout should include oracle emoji 🌕');
       assert.ok(r.stdout.includes('[progress]'), 'stdout should include bracketed status');
       assert.ok(r.stdout.includes('Mapping AC coverage'), 'stdout should include detail');
@@ -752,10 +765,10 @@ describe('store-cli.cjs — write-boundary in-tool schema enforcement', () => {
     }
   });
 
-  test('progress stdout falls back gracefully for unknown bannerKey', () => {
+  test('progress --verbose falls back gracefully for unknown bannerKey', () => {
     const tmpDir = makeSprintStore();
     try {
-      const r = spawnSync('node', [STORE_CLI, 'progress', 'S1', 'engineer', 'unknown-key', 'start', 'Starting work'], {
+      const r = spawnSync('node', [STORE_CLI, 'progress', 'S1', 'engineer', 'unknown-key', 'start', 'Starting work', '--verbose'], {
         cwd: tmpDir, encoding: 'utf8',
       });
       assert.equal(r.status, 0, r.stderr);

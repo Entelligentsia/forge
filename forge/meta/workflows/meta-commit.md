@@ -3,6 +3,14 @@ requirements:
   reasoning: Low
   context: Low
   speed: High
+audience: subagent
+phase: commit
+context:
+  architecture: false
+  prior_summaries: none
+  persona: summary
+  master_index: false
+  diff_mode: false
 deps:
   personas: [engineer]
   skills: [engineer, generic]
@@ -56,8 +64,5 @@ Seal a completed and approved task by committing its artifacts to the VCS and up
 - **Context Isolation:** Forbid inline execution of commit operations; use the `Agent` tool for sub-tasks.
 - **Project Specifics:**
   - Embed project's commit message conventions.
-- **Token Reporting:** The generated workflow MUST mandate the following before returning:
-  1. Run `/cost` to retrieve session token usage.
-  2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+- **Token Reporting:** See `_fragments/finalize.md` — wire via `file_ref:`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

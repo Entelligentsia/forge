@@ -1,115 +1,85 @@
-# Workflow: Orchestrate Task (Forge)
-
-## Purpose
-
-Drive a single Forge task through the full pipeline: plan → review-plan →
-implement → review-code → validate → approve → commit. The orchestrator is a
-minimal state machine — every phase runs as an Agent tool subagent with a
-fresh context window.
-
+---
+requirements:
+  reasoning: High
+  context: High
+  speed: Medium
+audience: orchestrator-only
+deps:
+  personas: [architect, engineer, supervisor, bug-fixer, collator, qa-engineer]
+  skills: [architect, engineer, supervisor, generic]
+  templates: []
+  sub_workflows: [plan_task, implement_plan, review_plan, review_code, fix_bug, architect_approve, commit_task, validate_task]
+  kb_docs: [architecture/stack.md]
+  context_pack: .forge/cache/context-pack.md
+  config_fields: [paths.engineering]
 ---
 
-## Pipeline Resolution
+# Orchestrate Task
 
-1. Read `.forge/store/tasks/{TASK_ID}.json`.
-2. If `task.pipeline` is set, look up `config.pipelines[task.pipeline]` in `.forge/config.json`.
-3. If found, use those phases. Otherwise use the **Default Pipeline** below.
+## Pipeline Phases
 
-## Default Pipeline
-
-```
-plan → review-plan [max 3] → implement → review-code [max 3] → validate [max 3] → approve → commit
-```
-
-| # | Phase | Command | Role | Workflow File | Max Iter |
-|---|-------|---------|------|---------------|----------|
-| 1 | plan | `/forge:plan {TASK_ID}` | `plan` | `.forge/workflows/plan_task.md` | — |
-| 2 | review-plan | `/forge:review-plan {TASK_ID}` | `review-plan` | `.forge/workflows/review_plan.md` | 3 |
-| 3 | implement | `/forge:implement {TASK_ID}` | `implement` | `.forge/workflows/implement_plan.md` | — |
-| 4 | review-code | `/forge:review-code {TASK_ID}` | `review-code` | `.forge/workflows/review_code.md` | 3 |
-| 5 | validate | `/forge:validate {TASK_ID}` | `validate` | `.forge/workflows/validate_task.md` | 3 |
-| 6 | approve | `/forge:approve {TASK_ID}` | `approve` | `.forge/workflows/architect_approve.md` | — |
-| 7 | commit | `/forge:commit {TASK_ID}` | `commit` | `.forge/workflows/commit_task.md` | — |
-
-Revision routing: on `Revision Required`, `review-plan` → `plan`, `review-code` → `implement`, `validate` → `implement`.
-
-Custom pipeline phases that define `"model"` in config override the role default.
+Each phase has:
+- `name` — identifier
+- `agent` — which role executes
+- `workflow` — which workflow file to load
+- `requires` — prerequisite artifact
+- `produces` — output artifact
+- `max_iterations` — revision loop limit (for review phases)
+- `gate_checks` — conditions that must pass before proceeding
 
 ## Model Resolution
 
-Subagents inherit the parent session's model by default. **Omit the `model`
-parameter on Agent tool spawns** — Claude Code resolves the correct model
-from its environment.
+Detect cluster from env vars at session start, then dispatch accordingly:
 
-### Cluster Detection
-
-At session start, detect the execution cluster from environment variables
-provided by Claude Code:
-
-| Variable | Purpose |
-|----------|---------|
-| `CLAUDE_CODE_SUBAGENT_MODEL` | The actual model subagents run on |
+| Env var | Purpose |
+|---------|---------|
 | `ANTHROPIC_DEFAULT_OPUS_MODEL` | What "opus" resolves to |
 | `ANTHROPIC_DEFAULT_SONNET_MODEL` | What "sonnet" resolves to |
 | `ANTHROPIC_DEFAULT_HAIKU_MODEL` | What "haiku" resolves to |
 
-```
-if ANTHROPIC_DEFAULT_OPUS_MODEL == ANTHROPIC_DEFAULT_SONNET_MODEL == ANTHROPIC_DEFAULT_HAIKU_MODEL:
-    cluster = "single"  # all tiers resolve to same model
-else:
-    cluster = "tiered"  # tiers resolve to different models
-```
-
-On **single** clusters (e.g. non-Anthropic runtimes), omit `model` — all
-phases inherit the parent model. On **tiered** clusters, the orchestrator
-passes `model=opus|sonnet|haiku` based on the role-to-tier mapping below,
-and Claude Code resolves the tier name to the actual runtime model.
+- **Single cluster** — all three vars equal (or unset): omit `model` on Agent spawns; subagents inherit the parent.
+- **Tiered cluster** — vars differ: pass `model=tier` (opus/sonnet/haiku) based on ROLE_TIER mapping.
+- **Unknown cluster** — no `ANTHROPIC_DEFAULT_*` vars: pass the canonical model ID from ROLE_TIER_DEFAULTS.
+- **Per-phase override** — `model` field in `config.pipelines` phase takes highest precedence.
 
 ### Role-to-Tier Mapping
 
-Used only on tiered clusters to select the appropriate model tier:
+| Role | Tier |
+|------|------|
+| `review-plan`, `review-code`, `validate`, `approve` | opus |
+| `plan`, `implement` | sonnet |
+| `commit`, `writeback` | haiku |
 
-| Role | Tier | Rationale |
-|------|------|-----------|
-| `review-plan` | opus | Deep reasoning for spec compliance |
-| `review-code` | opus | Deep reasoning for code quality |
-| `validate` | opus | Adversarial review needs highest precision |
-| `approve` | opus | Architectural sign-off needs broad context |
-| `plan` | sonnet | Balanced implementation planning |
-| `implement` | sonnet | Balanced coding and iteration |
-| `commit` | haiku | Fast, reliable state machine transition |
-| `writeback` | haiku | Fast, reliable collation and file writes |
+Unknown cluster canonical defaults: opus → `claude-opus-4-5`, sonnet → `claude-sonnet-4-6`, haiku → `claude-haiku-4-5`.
 
-### Dispatch Behavior
+Phase announcement format: `→ TASK-ID  [tier → resolved-model]` (e.g. `→ SPECT-T01  [opus → claude-opus-4-6]`).
+On single cluster, show the model directly. On unknown, show `tier → canonical`.
 
-| Cluster type | Agent tool `model` param | Phase announcement |
-|-------------|------------------------|-------------------|
-| Single | Omitted (inherit parent) | `[glm-5.1:cloud]` |
-| Tiered | Tier name from mapping | `[opus → claude-opus-4-6]` |
-| Per-phase override | Override value from config | `[sonnet → claude-sonnet-4-6]` |
-| Unknown | Canonical model from ROLE_TIER defaults | `[sonnet → claude-sonnet-4-6]` |
+## Pipeline Resolution
 
-On **unknown** clusters (no `ANTHROPIC_DEFAULT_*_MODEL` vars set), the orchestrator
-falls back to ROLE_TIER with these canonical defaults:
+The orchestrator supports pluggable pipelines. When starting a task:
 
-| Tier | Canonical default |
-|------|-------------------|
-| `opus` | `claude-opus-4-5` |
-| `sonnet` | `claude-sonnet-4-6` |
-| `haiku` | `claude-haiku-4-5` |
+1. Read the task manifest from `.forge/store/tasks/{TASK_ID}.json`.
+2. If `task.pipeline` is set, look up that key in `.forge/config.json` → `pipelines`.
+3. If found, use the phases defined in that pipeline.
+4. If `task.pipeline` is not set or the key is not found, use the `default` pipeline
+   (either from `config.pipelines.default` or the hardcoded default below).
 
-The resolved canonical model is passed as `dispatch_model` so subagents run on a
-known model rather than inheriting the orchestrator's own model.
+Each phase in a pipeline has:
+- `command` — the slash command to invoke (passed the task ID as argument)
+- `role` — semantic role (`plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`)
+- `maxIterations` — for review roles, the revision loop limit (default 3)
+- `on_revision` — (optional) command name of the phase to re-invoke on "Revision Required";
+  if absent, defaults to the nearest preceding phase whose role is not a review role
 
-### Per-Phase Override
+## Default Pipeline
 
-If a pipeline phase definition in `config.pipelines` includes a `model`
-field, it takes precedence over the cluster-based dispatch. This is the
-highest priority — it allows users to pin specific phases to specific models
-regardless of the detected cluster type.
+```
+plan → review-plan → [loop max 3] → implement → review-code → [loop max 3] → validate → [loop max 3] → approve → writeback → commit
+```
 
-The orchestrator itself runs on whichever model it was invoked with — it is
-a lightweight state machine and does not need a heavy model.
+When no `pipelines` section exists in config, the orchestrator uses this
+hardcoded default. Projects that define `config.pipelines.default` override it.
 
 ## Context Isolation
 
@@ -124,7 +94,7 @@ is irrelevant to the current phase.
 The fix: use the Agent tool to spawn a subagent per phase. Each subagent:
 - Starts with a fresh context window
 - Receives only what it needs: the workflow file path and the task ID
-- Reads all other context from disk (task JSON, PLAN.md, MASTER_INDEX.md, etc.)
+- Receives a PROJECT_OVERLAY (task-scoped index slice) instead of reading MASTER_INDEX.md directly
 - Writes results to disk (artifacts, task status updates)
 - Returns to the orchestrator, which then reads the verdict from disk
 
@@ -180,19 +150,9 @@ ROLE_TO_NOUN = {
 }
 ```
 
-| Role | Noun | Persona File | Skill File |
-|------|------|-------------|------------|
-| `plan` | `engineer` | `.forge/personas/engineer.md` | `.forge/skills/engineer-skills.md` |
-| `implement` | `engineer` | `.forge/personas/engineer.md` | `.forge/skills/engineer-skills.md` |
-| `review-plan` | `supervisor` | `.forge/personas/supervisor.md` | `.forge/skills/supervisor-skills.md` |
-| `review-code` | `supervisor` | `.forge/personas/supervisor.md` | `.forge/skills/supervisor-skills.md` |
-| `validate` | `qa-engineer` | `.forge/personas/qa-engineer.md` | `.forge/skills/qa-engineer-skills.md` |
-| `approve` | `architect` | `.forge/personas/architect.md` | `.forge/skills/architect-skills.md` |
-| `commit` | `engineer` | `.forge/personas/engineer.md` | `.forge/skills/engineer-skills.md` |
-| `writeback` | `collator` | `.forge/personas/collator.md` | `.forge/skills/collator-skills.md` |
-
-Generated lookups use `{persona_noun}.md` and `{persona_noun}-skills.md`,
-never `{phase.role}.md` or `{phase.role}-skills.md`.
+The `.get(key, fallback)` pattern preserves the old role-literal behaviour for
+any role not yet in the table, which is a safe degradation path for custom
+pipeline roles.
 
 ## Persona Injection Modes
 
@@ -202,16 +162,17 @@ and what capabilities it has. Two modes are supported, selected by the
 
 | Mode | Behaviour | Default |
 |------|-----------|---------|
-| `reference` | Compact summary from `.forge/cache/persona-pack.json`, plus a file_ref pointer to the full persona/skill definitions. | Yes |
+| `reference` | Compact summary from `.forge/cache/persona-pack.json`, plus a file_ref pointer to the full persona/skill definitions. | ✅ |
 | `inline` | Legacy: inject the full verbatim persona and skill file contents. Kept for one version as a rollback path. | |
 
 The pack is built by `/forge:regenerate` and `/forge:materialize` via
 `forge/tools/build-persona-pack.cjs`. It compiles YAML frontmatter from
-persona and skill meta files into `.forge/cache/persona-pack.json`.
+`$FORGE_ROOT/meta/personas/meta-*.md` and `$FORGE_ROOT/meta/skills/meta-*.md`
+into `.forge/cache/persona-pack.json`.
 
 ### Helper: `compose_role_block(persona_noun)`
 
-```python
+```
 def compose_role_block(persona_noun):
     mode = os.environ.get("FORGE_PROMPT_MODE", "reference")
 
@@ -227,6 +188,8 @@ def compose_role_block(persona_noun):
     skill   = pack["skills"].get(f"{persona_noun}-skills")
 
     if not persona:
+        # Fail loud rather than silently degrade. Missing pack entry is a
+        # regeneration bug and should be reported via /forge:report-bug.
         raise OrchestratorError(
             f"persona '{persona_noun}' not in persona-pack. "
             "Run /forge:regenerate to rebuild the pack."
@@ -255,8 +218,8 @@ def compose_role_block(persona_noun):
     lines.append(
         f"Full persona definition: {persona['file_ref']}. "
         + (f"Full skill definition: {skill['file_ref']}. " if skill else "")
-        + "Read these only if the task requires deeper behavioural context "
-        + "than the summary above provides."
+        + "The summary above is authoritative. If insufficient, escalate — "
+        + "do not read the full persona or skill file."
     )
     return "\n".join(lines)
 ```
@@ -268,7 +231,7 @@ The `inline` branch will be removed one version after `reference` ships.
 
 The orchestrator MUST follow this procedure exactly. Do not deviate.
 
-```python
+```
 # --- Persona symbol lookup (emoji, name, tagline) ---
 PERSONA_MAP = {
   "plan":        ("🌱", "Engineer",    "I plan what will be built before any code is written."),
@@ -284,6 +247,7 @@ PERSONA_MAP = {
 }
 
 # --- Banner identity map (banner name per phase role) ---
+# Maps each role to a banner in forge/tools/banners.cjs.
 # Displayed by the orchestrator ONLY (badge before spawn, exit signal after return).
 # Subagents do NOT display banners — the orchestrator owns phase announcements.
 BANNER_MAP = {
@@ -300,8 +264,19 @@ BANNER_MAP = {
 }
 
 for each task in dependency_sorted(tasks):
+  # --- Pre-task status guard ---
+  # If a task is already blocked or escalated from a prior sprint/run,
+  # skip it entirely rather than attempting any phase.
+  task_record = read_json(f".forge/store/tasks/{task.taskId}.json")
+  if task_record and task_record.get("status") in ("blocked", "escalated"):
+    print(f"  ⚠ {task.taskId}  — status is {task_record['status']}, skipping\n")
+    emit_event(task, phase=None, action="task_skipped",
+               notes=f"task status is {task_record['status']}")
+    continue
+
   phases = resolve_pipeline(task)           # from config.pipelines or default
   iteration_counts = {}                     # keyed by phase command name
+  retry_count = {}                           # keyed by phase command name (subagent retry tracking)
   i = 0
 
   # --- Detect execution cluster from env vars (see Model Resolution) ---
@@ -401,14 +376,28 @@ for each task in dependency_sorted(tasks):
       # Gate failed: halt the orchestrator loop for THIS task. Do not retry,
       # do not spawn. Missing prerequisites are listed on stderr.
       print(f"  ✗ {task_id}  {phase.role}  — gate failed\n{preflight_result.stderr}")
-      append_progress(progress_log_path, f"Gate failed for {phase.role}: {preflight_result.stderr}")
+      append_progress(progress_log_path, f"❌ Gate failed for {phase.role}: {preflight_result.stderr}")
       emit_event(task, phase, action="gate_failed", notes=preflight_result.stderr)
-      escalate_to_human(task, phase, reason=f"gate_failed: {preflight_result.stderr}")
+      # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
+      run_bash(f'/forge:store update-status task {task_id} status escalated')
+      emit_event(task, phase, eventId=event_id, iteration=iteration,
+                 action="escalated", verdict="escalated",
+                 notes=f"gate_failed: {preflight_result.stderr}")
+      print(f"  ⚠ Task {task_id} escalated: gate_failed: {preflight_result.stderr}\n")
+      print(f"  Review artifact: {artifact_path}\n")
+      print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
       break                                   # stop processing this task
     elif preflight_result.exit_code == 2:
       # Misconfiguration (unknown phase, malformed gates block). Fail loud.
       print(f"  ⚠ {task_id}  {phase.role}  — gate misconfigured\n{preflight_result.stderr}")
-      escalate_to_human(task, phase, reason=f"gate_misconfigured: {preflight_result.stderr}")
+      # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
+      run_bash(f'/forge:store update-status task {task_id} status escalated')
+      emit_event(task, phase, eventId=event_id, iteration=iteration,
+                 action="escalated", verdict="escalated",
+                 notes=f"gate_misconfigured: {preflight_result.stderr}")
+      print(f"  ⚠ Task {task_id} escalated: gate_misconfigured: {preflight_result.stderr}\n")
+      print(f"  Review artifact: {artifact_path}\n")
+      print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
       break
 
     # --- Invoke phase as subagent (fresh context per phase) ---
@@ -416,98 +405,45 @@ for each task in dependency_sorted(tasks):
 
     # Symmetric Injection Assembly: Persona -> Skill -> Workflow
     # Mode is governed by FORGE_PROMPT_MODE (default: "reference").
-    # See "Persona injection modes" above for the full helper definition.
+    # See "Persona injection modes" below for the full helper definition.
     role_block = compose_role_block(persona_noun)
 
-    # --- Compose prior-phase summary block (fast path for downstream context) ---
-    # Read task.summaries from disk (re-read after each phase so summaries accumulate)
-    task_record_fresh = read_json(f".forge/store/tasks/{task_id}.json")
-    summaries = (task_record_fresh or {}).get("summaries", {})
+    # --- Compose prior-phase summary block (delta: last 3 phases only) ---
+    # <!-- See _fragments/context-injection.md for canonical definition -->
+    summary_block = compose_summary_block(task_id, record_type="task") if phase.context.prior_summaries != "none" else ""
 
-    SUMMARY_PHASE_LABELS = {
-      "plan": "Plan", "review_plan": "Plan review",
-      "implementation": "Implementation", "code_review": "Code review", "validation": "Validation"
-    }
-    summary_lines = []
-    for phase_key, label in SUMMARY_PHASE_LABELS.items():
-      s = summaries.get(phase_key)
-      if s:
-        summary_lines.append(f"- {label}: {s.get('objective', '(no objective)')}")
-        if s.get('key_changes'):
-          for c in s['key_changes'][:3]:
-            summary_lines.append(f"    • {c}")
-        if s.get('findings'):
-          for f_ in s['findings'][:3]:
-            summary_lines.append(f"    • {f_}")
-        if s.get('verdict') and s['verdict'] != 'n/a':
-          summary_lines.append(f"    Verdict: {s['verdict']}  Full: {s.get('artifact_ref', '(unknown)')}")
-      else:
-        # Phase may not have run yet — omit from summary block
-        pass
+    # --- Compose architecture context block (conditional on phase.context.architecture) ---
+    # <!-- See _fragments/context-injection.md for canonical definition -->
+    architecture_block = (
+      compose_architecture_block(".forge/cache/context-pack.md", ".forge/cache/context-pack.json")
+      if phase.context.architecture else ""
+    )
 
-    if summary_lines:
-      summary_block = (
-        "### Prior phase summaries (fast path — read full artifacts if you need more detail)\n\n"
-        + "\n".join(summary_lines)
-        + "\n\nIf any summary above is missing or insufficient, read the corresponding full artifact from disk before proceeding.\n\n"
-      )
-    else:
-      summary_block = ""
+    # --- Materialize project overlay (replaces MASTER_INDEX.md read in subagent) ---
+    overlay_result = run_bash(
+      f'node "$FORGE_ROOT/tools/build-overlay.cjs" --task {task_id} --format md'
+    )
+    overlay_md = overlay_result.stdout if overlay_result.exit_code == 0 else ""
 
-    # --- Compose architecture context block from context pack ---
-    context_pack_path = ".forge/cache/context-pack.md"
-    context_pack_json_path = ".forge/cache/context-pack.json"
-    if file_exists(context_pack_path):
-      context_pack_md = read_file(context_pack_path)
-      try:
-        context_pack_json = read_json(context_pack_json_path)
-        full_doc_paths = "\n".join(f"- {s['path']}" for s in context_pack_json.get("sources", []))
-      except:
-        full_doc_paths = "engineering/architecture/ (see context-pack.json for full list)"
-      architecture_block = (
-        "### Architecture context (summary — full docs available at paths listed below)\n\n"
-        + context_pack_md
-        + "\n\nRead full architecture docs only if the summary above is insufficient for "
-        + "your decision. Full docs:\n"
-        + full_doc_paths
-        + "\n\n"
-      )
-    else:
-      architecture_block = ""
-
-    # --- Resolve absolute paths for subagent injection ---
-    sprint_root_path = f"engineering/sprints/{sprint_dir}"
-    task_root_path   = f"engineering/sprints/{sprint_dir}/{task_dir}"
-    store_root_path  = ".forge/store"
+    # --- Load finalize fragment (token reporting contract) ---
+    finalize_fragment = read_file(f"{FORGE_ROOT}/meta/workflows/_fragments/finalize.md") if file_exists(f"{FORGE_ROOT}/meta/workflows/_fragments/finalize.md") else ""
 
     spawn_kwargs = dict(
       prompt=(
-        f"### Progress Reporting\n"
-        f"- Agent name: {agent_name}\n"
-        f"- Progress log: {progress_log_path}\n"
-        f"- Banner key: {banner_name}\n\n"
-        f"Append progress entries to the log as you work:\n\n"
-        f"```\n"
-        f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress {sprint_id} {agent_name} {banner_name} start \"Starting {phase.role} phase\"\n"
-        f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress {sprint_id} {agent_name} {banner_name} progress \"Reading codebase\"\n"
-        f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress {sprint_id} {agent_name} {banner_name} done \"Completed {phase.role}\"\n"
-        f"```\n\n"
-        f"Write a `start` entry when you begin, `progress` entries as you make headway, "
-        f"a `done` entry when you finish, or an `error` entry if something fails. "
-        f"The orchestrator is monitoring this log in real time.\n\n"
+        f"Append progress entries to {progress_log_path} via store-cli "
+        f"(agent: {agent_name}, banner: {banner_name}) — see _fragments/progress-reporting.md.\n\n"
         f"---\n\n"
         f"{architecture_block}"
         f"{summary_block}"
         f"{role_block}\n\n"
+        f"### Project Context\n"
+        f"{overlay_md}\n\n"
         f"### Current Working Context\n"
         f"- Sprint Root: {sprint_root_path}\n"
         f"- Task Root:   {task_root_path}\n"
         f"- Store Root:  {store_root_path}\n\n"
-        f"Read `{phase.workflow}` and follow it. Task ID: {task_id}. "
-        f"Also read `engineering/MASTER_INDEX.md` for project state. "
-        f"Before returning: run /cost, parse token usage, and write the usage sidecar via "
-        f"`/forge:store emit {sprint_id} '{{sidecar-json}}' --sidecar` with fields: "
-        f"inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD."
+        f"Read `.forge/workflows/{phase.workflow}` and follow it. Task ID: {task_id}.\n\n"
+        f"{finalize_fragment}"
       ),
       description=f"{emoji} {persona_name} — {phase.name} for {task_id}",
     )
@@ -518,6 +454,75 @@ for each task in dependency_sorted(tasks):
 
     # --- Stop progress Monitor ---
     stop_monitor(progress_log_path)
+
+    # --- Subagent response validation (retry once, escalate on second failure) ---
+    # The subagent must produce a usable result. Three failure classes:
+    #   1. Empty response: subagent returned nothing or whitespace-only output
+    #   2. Subagent error: subagent exited non-zero (crash, OOM, tool error)
+    #   3. Timeout: subagent did not return within the session timeout
+    #
+    # On first failure: retry once with a simplified prompt that strips
+    # non-essential context (summary block, architecture block) and adds
+    # a direct instruction to produce a verdict or error report.
+    # On second failure: escalate to human — do NOT continue the phase loop.
+
+    if subagent_failed_or_empty(result):
+      if retry_count.get(phase.command, 0) == 0:
+        # First failure: retry with simplified prompt
+        retry_count[phase.command] = 1
+        print(f"  ⚠ {task_id}  {phase.role}  — subagent response empty or errored, retrying with simplified prompt\n")
+        emit_event(task, phase, action="subagent_retry",
+                   notes=f"first failure: {subagent_failure_reason(result)}")
+
+        # Simplify: remove summary_block and architecture_block from prompt
+        simplified_kwargs = dict(spawn_kwargs)
+        simplified_kwargs["prompt"] = (
+          f"### Progress Reporting\n"
+          f"- Agent name: {agent_name}\n"
+          f"- Progress log: {progress_log_path}\n"
+          f"- Banner key: {banner_name}\n\n"
+          f"Append progress entries as you work.\n\n"
+          f"---\n\n"
+          f"{role_block}\n\n"
+          f"### Current Working Context\n"
+          f"- Sprint Root: {sprint_root_path}\n"
+          f"- Task Root:   {task_root_path}\n"
+          f"- Store Root:  {store_root_path}\n\n"
+          f"Read `.forge/workflows/{phase.workflow}` and follow it. Task ID: {task_id}.\n\n"
+          f"{overlay_md}\n\n"
+          f"IMPORTANT: You MUST produce a result. If the workflow cannot complete, "
+          f"write a verdict or error report to the expected artifact path and return."
+        )
+        spawn_subagent(**simplified_kwargs)
+        stop_monitor(progress_log_path)
+
+        # Re-validate the retry result
+        if subagent_failed_or_empty(result):
+          # Second failure: escalate
+          print(f"  ✗ {task_id}  {phase.role}  — subagent failed after retry, escalating\n")
+          emit_event(task, phase, action="subagent_escalated",
+                     notes=f"second failure: {subagent_failure_reason(result)}")
+          # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
+          run_bash(f'/forge:store update-status task {task_id} status escalated')
+          emit_event(task, phase, eventId=event_id, iteration=iteration,
+                     action="escalated", verdict="escalated",
+                     notes=f"subagent failed after retry: {subagent_failure_reason(result)}")
+          print(f"  ⚠ Task {task_id} escalated: subagent {phase.role} failed after retry — {subagent_failure_reason(result)}\n")
+          print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
+          break
+      else:
+        # Already retried once — this is the second failure
+        print(f"  ✗ {task_id}  {phase.role}  — subagent failed after retry, escalating\n")
+        emit_event(task, phase, action="subagent_escalated",
+                   notes=f"second failure: {subagent_failure_reason(result)}")
+        # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
+        run_bash(f'/forge:store update-status task {task_id} status escalated')
+        emit_event(task, phase, eventId=event_id, iteration=iteration,
+                   action="escalated", verdict="escalated",
+                   notes=f"subagent failed after retry: {subagent_failure_reason(result)}")
+        print(f"  ⚠ Task {task_id} escalated: subagent {phase.role} failed after retry — {subagent_failure_reason(result)}\n")
+        print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
+        break
 
     # --- Sidecar merge: merge token usage written by subagent via custodian ---
     # The subagent wrote the sidecar via /forge:store emit {sprintId} '{sidecar-json}' --sidecar
@@ -553,8 +558,14 @@ for each task in dependency_sorted(tasks):
       print(f"  ⚠ {task_id}  {phase.role}  — verdict_malformed, escalating\n")
       emit_event(task, phase, action="verdict_malformed",
                  notes=f"parse-verdict exit={verdict_result.exit_code}")
-      escalate_to_human(task, phase,
-        reason="verdict_malformed: review artifact missing or verdict line unparseable")
+      # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
+      run_bash(f'/forge:store update-status task {task_id} status escalated')
+      emit_event(task, phase, eventId=event_id, iteration=iteration,
+                 action="escalated", verdict="escalated",
+                 notes="verdict_malformed: review artifact missing or verdict line unparseable")
+      print(f"  ⚠ Task {task_id} escalated: verdict_malformed — review artifact missing or verdict line unparseable\n")
+      print(f"  Review artifact: {review_artifact_path(phase, task)}\n")
+      print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
       break
 
     if verdict == "Approved":
@@ -569,7 +580,15 @@ for each task in dependency_sorted(tasks):
       print(f"  ↻ {task_id}  {phase.role}  — Revision Required (iteration {iteration_counts[phase.command]})\n")
 
       if iteration_counts[phase.command] >= phase.maxIterations: # default 3
-        escalate_to_human(task, phase, reason="max iterations reached")
+        # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
+        run_bash(f'/forge:store update-status task {task_id} status escalated')
+        emit_event(task, phase, eventId=event_id, iteration=iteration,
+                   action="escalated", verdict="escalated",
+                   notes="max iterations reached")
+        print(f"  ⚠ Task {task_id} escalated: max iterations reached\n")
+        print(f"  Review artifact: {review_artifact_path(phase, task)}\n")
+        print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
+        break
         break                               # stop processing this task
 
       # Route back to the revision target
@@ -578,18 +597,85 @@ for each task in dependency_sorted(tasks):
       # Compact context: all state is on disk; preserve loop bookkeeping in the summary
       print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
       /compact
+
+    # No `else:` branch needed — parse-verdict.cjs already exhausts the
+    # possibilities (approved | revision | verdict_malformed), and the
+    # malformed case is handled above before this if/elif chain.
+```
+
+## Agent Naming Convention
+
+Each subagent is assigned a structured name at spawn time:
+
+```
+{taskId}:{persona_noun}:{phase.role}:{iteration}
+```
+
+| Component | Source | Example |
+|-----------|--------|---------|
+| `taskId` | Task ID from manifest | `FORGE-S09-T01` |
+| `persona_noun` | `ROLE_TO_NOUN` mapping | `engineer`, `supervisor`, `qa-engineer` |
+| `phase.role` | Pipeline phase role | `plan`, `review-plan`, `implement` |
+| `iteration` | 1-based revision count for this phase | `1`, `2`, `3` |
+
+Examples:
+
+- `FORGE-S09-T01:engineer:plan:1` — First plan attempt for T01
+- `FORGE-S09-T01:supervisor:review-plan:1` — First plan review for T01
+- `FORGE-S09-T01:engineer:update-impl:2` — Second implementation revision for T01
+
+The agent name is passed in the subagent prompt and used in every progress log
+entry the subagent writes. It provides identity and traceability for mid-task
+feedback.
+
+## Progress Reporting
+
+<!-- See _fragments/progress-reporting.md for canonical definition -->
+> See `_fragments/progress-reporting.md` for the full progress log format and `store-cli progress` command reference.
+
+Log path: `.forge/store/events/{sprintId}/progress.log`. Format: `{ISO_TIMESTAMP}|{agent_name}|{banner_key}|{status}|{detail}`. Clear at task start: `store-cli progress-clear {sprintId}`.
+
+## Phase-Exit Signals
+
+After each subagent returns, the orchestrator prints a phase-exit signal:
+
+| Outcome | Format |
+|---------|--------|
+| Non-review phase completed | `  ✓ {task_id}  {phase_role}  — completed` |
+| Review verdict: Approved | `  ✓ {task_id}  {phase_role}  — Approved` |
+| Review verdict: Revision Required | `  ↻ {task_id}  {phase_role}  — Revision Required (iteration {n})` |
+| Escalated | `  ⚠ {task_id}  {phase_role}  — escalated to human` |
+
+Examples:
+
+```
+  ✓ FORGE-S09-T01  plan  — completed
+  ✓ FORGE-S09-T01  review-plan  — Approved
+  ↻ FORGE-S09-T01  review-plan  — Revision Required (iteration 2)
+  ⚠ FORGE-S09-T01  validate  — escalated to human
 ```
 
 ## Verdict Detection
 
-After each review phase, read the verdict from the written artifact — **never
-infer from conversation context**.
+After each review phase completes, the orchestrator MUST read the verdict
+before branching. Do not infer the verdict from conversation context alone —
+always read the artifact.
 
-| Phase role | Artifact | Verdict Line |
-|---|---|---|
-| `review-plan` | `engineering/sprints/{SPRINT_DIR}/{TASK_DIR}/PLAN_REVIEW.md` | Line matching `**Verdict:**` |
-| `review-code` | `engineering/sprints/{SPRINT_DIR}/{TASK_DIR}/CODE_REVIEW.md` | Line matching `**Verdict:**` |
-| `validate` | `engineering/sprints/{SPRINT_DIR}/{TASK_DIR}/VALIDATION_REPORT.md` | Line matching `**Verdict:**` |
+| Phase role    | Artifact to read                                                          | Verdict field                |
+|---------------|---------------------------------------------------------------------------|------------------------------|
+| `review-plan` | `{engineering}/sprints/{sprintDir}/{taskDir}/PLAN_REVIEW.md`              | Line matching `**Verdict:**` |
+| `review-code` | `{engineering}/sprints/{sprintDir}/{taskDir}/CODE_REVIEW.md`              | Line matching `**Verdict:**` |
+| `validate`    | `{engineering}/sprints/{sprintDir}/{taskDir}/VALIDATION_REPORT.md`        | Line matching `**Verdict:**` |
+
+The verdict line format is:
+
+```
+**Verdict:** Approved
+```
+or
+```
+**Verdict:** Revision Required
+```
 
 **Parse the verdict via `parse-verdict.cjs`** — do NOT pattern-match the
 line manually. The tool enforces a closed verdict vocabulary so typos, case
@@ -614,6 +700,11 @@ as approved or revision; halt the loop and escalate via `verdict_malformed`.
 
 ## Escalation Procedure
 
+> **NOTE:** The Escalation Procedure is inlined at every call site in the
+> Execution Algorithm. This section remains as a reference. When adding new
+> escalation points, inline the full procedure — do NOT call `escalate_to_human()`
+> as a bare function name.
+
 When escalating to the human:
 
 1. Update task status via `/forge:store update-status task {taskId} status escalated`
@@ -622,7 +713,7 @@ When escalating to the human:
    ```
    ⚠ Task {TASK_ID} escalated: {reason}
    Review artifact: {artifact_path}
-   Resume with: /forge:{phase.command} {TASK_ID} after addressing the issues.
+   Resume with: /{phase.command} {TASK_ID} after addressing the issues.
    ```
 4. Stop processing this task. Continue to the next task in the sprint.
 
@@ -647,33 +738,51 @@ Grammar (one directive per line):
 ```gates phase=plan
 forbid task.status == committed
 forbid task.status == abandoned
+forbid task.status == blocked
+forbid task.status == escalated
 ```
 
 ```gates phase=implement
-artifact engineering/sprints/{sprint}/{task}/PLAN.md min=200
+artifact {engineering}/sprints/{sprint}/{task}/PLAN.md min=200
 after review-plan = approved
 forbid task.status == committed
+forbid task.status == blocked
+forbid task.status == escalated
 ```
 
 ```gates phase=review-plan
-artifact engineering/sprints/{sprint}/{task}/PLAN.md min=200
+artifact {engineering}/sprints/{sprint}/{task}/PLAN.md min=200
+forbid task.status == blocked
+forbid task.status == escalated
 ```
 
 ```gates phase=review-code
 after review-plan = approved
+forbid task.status == blocked
+forbid task.status == escalated
 ```
 
 ```gates phase=validate
 after review-code = approved
+forbid task.status == blocked
+forbid task.status == escalated
 ```
 
 ```gates phase=approve
 after review-code = approved
+forbid task.status == blocked
+forbid task.status == escalated
 ```
 
 ```gates phase=commit
 after approve = approved
+forbid task.status == blocked
+forbid task.status == escalated
 ```
+
+Adjusting a gate is a data change — edit the block above, regenerate workflows
+on the user side via `/forge:update`, and the new gate takes effect on the next
+orchestrator run. No code change required to relax or tighten a gate.
 
 ## Write-Boundary Contract
 
@@ -701,63 +810,42 @@ write through and append an audit line to the affected sprint's
 
 ## Iron Laws
 
-**YOU MUST NOT advance a phase until its gate checks pass.** Skipping a gate
-because "it's probably fine" or "it's a small change" is not allowed. No exceptions.
+<!-- Shared orchestrator laws live in generic-skills.md § Orchestrator Iron Laws. -->
+> See `generic-skills.md § Orchestrator Iron Laws` for the six universal laws that apply to all orchestrators.
 
-**Review ordering is hardcoded:** spec compliance review ALWAYS runs before
-code quality review. Never reverse this. Checking quality before confirming
-correctness is wasted work.
+**Additional law specific to this pipeline:**
 
-**Revision loop exhaustion is an escalation trigger.** If max_iterations is
-reached without approval, escalate to the human immediately. Do NOT approve
-to unblock the pipeline.
-
-**Always read the verdict from the artifact.** Never assume approval because the
-review phase ran without error. The artifact is the source of truth.
-
-**Phase banners are orchestrator-owned.** Do NOT include banner-first instructions
-in subagent prompts. The orchestrator displays the badge before spawning and the
-exit signal after return.
-
-**No emoji in machine-readable fields.** Emoji belong only in stdout
-announcements and human-facing Markdown. JSON fields use plain values only.
+**YOU MUST NOT silently work around a blocker.** If a phase fails, a subagent
+returns empty, a gate fails, or a verdict cannot be parsed, the orchestrator
+MUST either retry once (for recoverable failures) or escalate to the human.
+Skipping the phase, fabricating a result, assuming success without evidence,
+or continuing with a degraded response is NEVER acceptable. Every failure MUST
+produce a visible signal (✗ or ⚠) and a structured event. Silent continuation
+is a violation of the Iron Laws.
 
 ## Error Recovery
 
-| Situation | Action |
-|---|---|
-| Test/build failure | Pass error to revision workflow (`update_implementation.md`), retry once |
-| `validate-store` fails | Same — treat as implement failure |
-| Verdict `Revision Required` | Enter revision loop (up to `maxIterations`) |
-| Timeout/empty subagent response | Retry once with simplified prompt |
-| Missing security scan for `forge/` change | Review phase returns `Revision Required` |
-| Git hook failure at commit | Diagnose, fix, create NEW commit (never `--amend` blindly) |
-| Merge conflict | Escalate to human |
+- Test/build failure: pass error to Engineer revision workflow, retry once
+- Verdict "Revision Required": enter revision loop (up to max_iterations)
+- Subagent empty/crash/timeout response: retry once with simplified prompt
+  (strip summary and architecture blocks). Escalate on second failure.
+  See Subagent Response Validation in the Execution Algorithm.
+- Subagent non-zero exit code (not parse-verdict): same as above — retry
+  once, escalate on second failure. The crash reason is captured in the
+  escalation event notes.
+- Verdict malformed or missing: escalate to human immediately. Never guess.
+- Revision loop exhaustion: escalate to human immediately. Never approve
+  to unblock.
+- Gate failure (preflight): escalate to human. No retry, no fall-through.
+- Gate misconfiguration: escalate to human. No retry, no fall-through.
+- Git hook failure: diagnose, fix, create new commit
+- Merge conflict: escalate to human
+- Task status is blocked or escalated: skip the task entirely. Do not
+  attempt any phase on it.
 
 ## Event Emission
 
-Write every event to `.forge/store/events/{SPRINT_ID}/{eventId}.json`
-following `.forge/schemas/event.schema.json`.
+<!-- See _fragments/event-emission-schema.md for canonical field table -->
+> See `_fragments/event-emission-schema.md` for the full required/optional field reference.
 
-**Required fields:**
-
-| Field | Value |
-|---|---|
-| `eventId` | `{ISO_TIMESTAMP}_{TASK_ID}_{role}_{action}` e.g. `20260415T141523000Z_ACME-S02-T03_implement_plan-task` |
-| `taskId` | Task ID from the task manifest |
-| `sprintId` | Sprint ID from the task manifest |
-| `role` | Phase role (`plan`, `review-plan`, `implement`, `review-code`, `validate`, `approve`, `commit`) |
-| `action` | Slash command invoked in namespaced form (e.g. `/forge:implement`, `/forge:review-plan`) |
-| `phase` | Pipeline phase name (e.g. `plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`) |
-| `iteration` | 1-based iteration count for this phase |
-| `startTimestamp` | ISO 8601 timestamp recorded **before** spawning the phase subagent |
-| `endTimestamp` | ISO 8601 timestamp recorded **after** the subagent returns |
-| `durationMinutes` | Decimal minutes elapsed between start and end (compute from the two timestamps) |
-| `model` | Resolved model identifier for this phase (e.g. `claude-sonnet-4-6`, `gpt-4o`, `glm-5.1:cloud`). Read from `CLAUDE_CODE_SUBAGENT_MODEL` on single-cluster runtimes, or from `ANTHROPIC_DEFAULT_{TIER}_MODEL` on tiered clusters. Use the full identifier, not a short alias like "opus" or "sonnet". |
-
-**Optional fields** (merged from sidecar when present):
-`verdict`, `notes`, `inputTokens`, `outputTokens`, `cacheReadTokens`,
-`cacheWriteTokens`, `estimatedCostUSD`.
-
-Use only the field names above — no aliases (`agent`, `status`, `timestamp`,
-`details`). When in doubt, read `.forge/schemas/event.schema.json` directly.
+Every phase emits via `/forge:store emit {sprintId} '{event-json}'`. Required fields: `eventId`, `taskId`, `sprintId`, `role`, `action`, `phase`, `iteration`, `startTimestamp`, `endTimestamp`, `durationMinutes`, `model`. Optional: `verdict`, `notes`, token fields.

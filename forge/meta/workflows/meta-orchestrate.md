@@ -3,6 +3,7 @@ requirements:
   reasoning: High
   context: High
   speed: Medium
+audience: orchestrator-only
 deps:
   personas: [architect, engineer, supervisor, bug-fixer, collator, qa-engineer]
   skills: [architect, engineer, supervisor, generic]
@@ -98,7 +99,7 @@ is irrelevant to the current phase.
 The fix: use the Agent tool to spawn a subagent per phase. Each subagent:
 - Starts with a fresh context window
 - Receives only what it needs: the workflow file path and the task ID
-- Reads all other context from disk (task JSON, PLAN.md, MASTER_INDEX.md, etc.)
+- Receives a PROJECT_OVERLAY (task-scoped index slice) instead of reading MASTER_INDEX.md directly
 - Writes results to disk (artifacts, task status updates)
 - Returns to the orchestrator, which then reads the verdict from disk
 
@@ -222,8 +223,8 @@ def compose_role_block(persona_noun):
     lines.append(
         f"Full persona definition: {persona['file_ref']}. "
         + (f"Full skill definition: {skill['file_ref']}. " if skill else "")
-        + "Read these only if the task requires deeper behavioural context "
-        + "than the summary above provides."
+        + "The summary above is authoritative. If insufficient, escalate — "
+        + "do not read the full persona or skill file."
     )
     return "\n".join(lines)
 ```
@@ -412,42 +413,42 @@ for each task in dependency_sorted(tasks):
     # See "Persona injection modes" below for the full helper definition.
     role_block = compose_role_block(persona_noun)
 
-    # --- Compose prior-phase summary block (fast path for downstream context) ---
+    # --- Compose prior-phase summary block (delta: last 3 phases only) ---
     # <!-- See _fragments/context-injection.md for canonical definition -->
-    summary_block = compose_summary_block(task_id, record_type="task")
+    summary_block = compose_summary_block(task_id, record_type="task") if phase.context.prior_summaries != "none" else ""
 
-    # --- Compose architecture context block from context pack ---
+    # --- Compose architecture context block (conditional on phase.context.architecture) ---
     # <!-- See _fragments/context-injection.md for canonical definition -->
-    architecture_block = compose_architecture_block(".forge/cache/context-pack.md", ".forge/cache/context-pack.json")
+    architecture_block = (
+      compose_architecture_block(".forge/cache/context-pack.md", ".forge/cache/context-pack.json")
+      if phase.context.architecture else ""
+    )
+
+    # --- Materialize project overlay (replaces MASTER_INDEX.md read in subagent) ---
+    overlay_result = run_bash(
+      f'node "$FORGE_ROOT/tools/build-overlay.cjs" --task {task_id} --format md'
+    )
+    overlay_md = overlay_result.stdout if overlay_result.exit_code == 0 else ""
+
+    # --- Load finalize fragment (token reporting contract) ---
+    finalize_fragment = read_file(f"{FORGE_ROOT}/meta/workflows/_fragments/finalize.md") if file_exists(f"{FORGE_ROOT}/meta/workflows/_fragments/finalize.md") else ""
 
     spawn_kwargs = dict(
       prompt=(
-        f"### Progress Reporting\n"
-        f"- Agent name: {agent_name}\n"
-        f"- Progress log: {progress_log_path}\n"
-        f"- Banner key: {banner_name}\n\n"
-        f"Append progress entries to the log as you work:\n\n"
-        f"```\n"
-        f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress {sprint_id} {agent_name} {banner_name} start \"Starting {phase.role} phase\"\n"
-        f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress {sprint_id} {agent_name} {banner_name} progress \"Reading codebase\"\n"
-        f"node \"$FORGE_ROOT/tools/store-cli.cjs\" progress {sprint_id} {agent_name} {banner_name} done \"Completed {phase.role}\"\n"
-        f"```\n\n"
-        f"Write a `start` entry when you begin, `progress` entries as you make headway, "
-        f"a `done` entry when you finish, or an `error` entry if something fails. "
-        f"The orchestrator is monitoring this log in real time.\n\n"
+        f"Append progress entries to {progress_log_path} via store-cli "
+        f"(agent: {agent_name}, banner: {banner_name}) — see _fragments/progress-reporting.md.\n\n"
         f"---\n\n"
         f"{architecture_block}"
         f"{summary_block}"
         f"{role_block}\n\n"
+        f"### Project Context\n"
+        f"{overlay_md}\n\n"
         f"### Current Working Context\n"
         f"- Sprint Root: {sprint_root_path}\n"
         f"- Task Root:   {task_root_path}\n"
         f"- Store Root:  {store_root_path}\n\n"
-        f"Read `{phase.workflow}` and follow it. Task ID: {task_id}. "
-        f"Also read `engineering/MASTER_INDEX.md` for project state. "
-        f"Before returning: run /cost, parse token usage, and write the usage sidecar via "
-        f"`/forge:store emit {sprint_id} '{{sidecar-json}}' --sidecar` with fields: "
-        f"inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, estimatedCostUSD."
+        f"Read `.forge/workflows/{phase.workflow}` and follow it. Task ID: {task_id}.\n\n"
+        f"{finalize_fragment}"
       ),
       description=f"{emoji} {persona_name} — {phase.name} for {task_id}",
     )
@@ -492,8 +493,8 @@ for each task in dependency_sorted(tasks):
           f"- Sprint Root: {sprint_root_path}\n"
           f"- Task Root:   {task_root_path}\n"
           f"- Store Root:  {store_root_path}\n\n"
-          f"Read `{phase.workflow}` and follow it. Task ID: {task_id}. "
-          f"Also read `engineering/MASTER_INDEX.md` for project state.\n\n"
+          f"Read `.forge/workflows/{phase.workflow}` and follow it. Task ID: {task_id}.\n\n"
+          f"{overlay_md}\n\n"
           f"IMPORTANT: You MUST produce a result. If the workflow cannot complete, "
           f"write a verdict or error report to the expected artifact path and return."
         )

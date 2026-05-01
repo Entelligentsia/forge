@@ -3,6 +3,14 @@ requirements:
   reasoning: High
   context: Medium
   speed: Low
+audience: subagent
+phase: validate
+context:
+  architecture: false
+  prior_summaries: none
+  persona: summary
+  master_index: false
+  diff_mode: true
 deps:
   personas: [qa-engineer]
   skills: [qa-engineer, generic]
@@ -77,8 +85,6 @@ The Supervisor performs a final validation of the implementation against the acc
 - **Context Isolation:** Forbid inline execution of validation tests; use the `Agent` tool for sub-tasks.
 - **Project Specifics:**
   - Reference project-specific validation tools or smoke tests.
-- **Token Reporting:** The generated workflow MUST mandate the following before returning:
-  1. Run `/cost` to retrieve session token usage.
-  2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+- **Token Reporting:** See `_fragments/finalize.md` — wire via `file_ref:`.
+- **Diff-mode:** Generated workflow MUST include the diff-first read mode instruction (see plan PLAN.md A6).
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

@@ -283,6 +283,7 @@ const store = _getStore();
 const schemas = _getSchemas();
 
 const DRY_RUN = process.argv.includes('--dry-run');
+const VERBOSE = process.argv.includes('--verbose');
 
 // ---------------------------------------------------------------------------
 // Entity ID field mapping
@@ -472,7 +473,7 @@ function cmdWrite() {
   } else {
     writeEntity(entity, data);
   }
-  console.log(JSON.stringify({ ok: true, entity, id: data[ENTITY_ID_FIELD[entity]], dryRun: DRY_RUN }));
+  if (VERBOSE) console.log(JSON.stringify({ ok: true, entity, id: data[ENTITY_ID_FIELD[entity]], dryRun: DRY_RUN }));
 }
 
 function cmdRead() {
@@ -562,7 +563,7 @@ function cmdDelete() {
   }
 
   deleteEntity(entity, id);
-  console.log(JSON.stringify({ ok: true, deleted: `${entity}/${id}` }));
+  if (VERBOSE) console.log(JSON.stringify({ ok: true, deleted: `${entity}/${id}` }));
 }
 
 function cmdUpdateStatus() {
@@ -612,7 +613,7 @@ function cmdUpdateStatus() {
     record[field] = value;
     writeEntity(entity, record);
   }
-  console.log(JSON.stringify({ ok: true, entity, id, field, from: currentValue, to: value, force, dryRun: DRY_RUN }));
+  if (VERBOSE) console.log(JSON.stringify({ ok: true, entity, id, field, from: currentValue, to: value, force, dryRun: DRY_RUN }));
 }
 
 // ---------------------------------------------------------------------------
@@ -686,7 +687,7 @@ function cmdEmit() {
 
       fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf8');
     }
-    console.log(JSON.stringify({ ok: true, sidecar: true, eventId: data.eventId, sprintId, dryRun: DRY_RUN }));
+    if (VERBOSE) console.log(JSON.stringify({ ok: true, sidecar: true, eventId: data.eventId, sprintId, dryRun: DRY_RUN }));
   } else {
     // Normalize zeroed timestamps before validation so agents that provide
     // date-only values (T00:00:00Z) get real time-of-day stamped in (#56).
@@ -711,7 +712,7 @@ function cmdEmit() {
     } else {
       store.writeEvent(sprintId, data);
     }
-    console.log(JSON.stringify({ ok: true, event: true, eventId: data.eventId, sprintId, dryRun: DRY_RUN }));
+    if (VERBOSE) console.log(JSON.stringify({ ok: true, event: true, eventId: data.eventId, sprintId, dryRun: DRY_RUN }));
   }
 }
 
@@ -783,7 +784,7 @@ function cmdMergeSidecar() {
     fs.unlinkSync(scPath);
   }
 
-  console.log(JSON.stringify({ ok: true, merged: true, eventId, sprintId, dryRun: DRY_RUN }));
+  if (VERBOSE) console.log(JSON.stringify({ ok: true, merged: true, eventId, sprintId, dryRun: DRY_RUN }));
 }
 
 function cmdRecordUsage() {
@@ -853,7 +854,7 @@ function cmdRecordUsage() {
     }
     fs.writeFileSync(filePath, JSON.stringify(sidecar, null, 2) + '\n', 'utf8');
   }
-  console.log(JSON.stringify({ ok: true, sidecar: true, eventId, sprintId, dryRun: DRY_RUN }));
+  if (VERBOSE) console.log(JSON.stringify({ ok: true, sidecar: true, eventId, sprintId, dryRun: DRY_RUN }));
 }
 
 function cmdPurgeEvents() {
@@ -868,7 +869,7 @@ function cmdPurgeEvents() {
   if (DRY_RUN && !result.purged) {
     console.log(`[dry-run] would purge ${result.fileCount} event(s) for ${sprintId}`);
   }
-  console.log(JSON.stringify(result, null, 2));
+  if (VERBOSE) console.log(JSON.stringify(result, null, 2));
 }
 
 function cmdWriteCollationState() {
@@ -898,7 +899,7 @@ function cmdWriteCollationState() {
   } else {
     store.writeCollationState(data);
   }
-  console.log(JSON.stringify({ ok: true, dryRun: DRY_RUN }));
+  if (VERBOSE) console.log(JSON.stringify({ ok: true, dryRun: DRY_RUN }));
 }
 
 function cmdProgress() {
@@ -943,7 +944,7 @@ function cmdProgress() {
     try { emoji = banners.mark(bannerKey); } catch { emoji = bannerKey; }
   }
   const summary = `${emoji}  ${agentName}  [${status}]${detail ? '  ' + detail : ''}`;
-  process.stdout.write(summary + '\n');
+  if (VERBOSE) process.stdout.write(summary + '\n');
 }
 
 function cmdProgressClear() {
@@ -961,7 +962,7 @@ function cmdProgressClear() {
 
   const logPath = path.join(dir, 'progress.log');
   fs.writeFileSync(logPath, '', 'utf8');
-  console.log(`Cleared ${logPath}`);
+  if (VERBOSE) console.log(`Cleared ${logPath}`);
 }
 
 function cmdValidate() {
@@ -992,7 +993,7 @@ function cmdValidate() {
     process.exit(1);
   }
 
-  console.log(JSON.stringify({ ok: true, entity, valid: true }));
+  if (VERBOSE) console.log(JSON.stringify({ ok: true, entity, valid: true }));
 }
 
 function _setSummaryOnEntity(entityKind, entityId, phase, summaryFilePath) {
@@ -1046,7 +1047,7 @@ function _setSummaryOnEntity(entityKind, entityId, phase, summaryFilePath) {
     fs.renameSync(tmpPath, filePath);
   }
 
-  console.log(JSON.stringify({ ok: true, entityKind, id: entityId, phase, dryRun: DRY_RUN }));
+  if (VERBOSE) console.log(JSON.stringify({ ok: true, entityKind, id: entityId, phase, dryRun: DRY_RUN }));
 }
 
 function cmdSetSummary() {

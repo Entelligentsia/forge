@@ -1,4 +1,28 @@
 {
+  "0.29.0": {
+    "version": "0.30.0",
+    "date": "2026-05-01",
+    "notes": "Prompt-efficiency structural cut (T01_6): (1) phase meta sources split by audience — orchestrate_task/fix_bug carry audience:orchestrator-only, all phase files carry audience:subagent with context: block; (2) PROJECT_OVERLAY replaces mandatory MASTER_INDEX.md reads — build-overlay.cjs materialises a ≤1kB task-scoped index slice injected by the orchestrator; architecture_block is now conditional on phase.context.architecture; (3) store-cli success-path stdout is now silent — pass --verbose for legacy JSON echo; (4) new _fragments/finalize.md carries the /cost sidecar contract; (5) review-code and validate phases default to diff-first read mode. Breaking: store-cli JSON stdout no longer emitted on success.",
+    "regenerate": [
+      "workflows:orchestrate_task",
+      "workflows:fix_bug",
+      "workflows:plan_task",
+      "workflows:implement_plan",
+      "workflows:review_plan",
+      "workflows:review_code",
+      "workflows:validate_task",
+      "workflows:architect_approve",
+      "workflows:commit_task",
+      "workflows:update_plan",
+      "workflows:update_implementation",
+      "workflows:_fragments",
+      "schemas:project-overlay",
+      "tools:build-overlay",
+      "tools:store-cli"
+    ],
+    "breaking": true,
+    "manual": ["store-cli success-path stdout is now silent. Any script that parsed store-cli JSON output must be updated to pass --verbose or read from disk. Run /forge:update to regenerate all workflows and tools."]
+  },
   "0.28.1": {
     "version": "0.29.0",
     "date": "2026-04-29",

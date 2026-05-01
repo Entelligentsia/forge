@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "project-overlay.schema.json",
+  "title": "Project Overlay",
+  "description": "Per-spawn context overlay materialized by the orchestrator. Budget: ≤1kB JSON.",
+  "type": "object",
+  "required": ["projectPrefix", "storeRoot", "indexSlice"],
+  "additionalProperties": false,
+  "properties": {
+    "projectPrefix":    { "type": "string", "pattern": "^[A-Z][A-Z0-9-]+$" },
+    "sprintId":         { "type": "string" },
+    "sprintDir":        { "type": "string" },
+    "taskId":           { "type": "string" },
+    "taskDir":          { "type": "string" },
+    "taskStatus":       { "type": "string" },
+    "bugId":            { "type": "string" },
+    "bugDir":           { "type": "string" },
+    "storeRoot":        { "type": "string" },
+    "indexSlice":       { "type": "string", "maxLength": 800 },
+    "toolCommands":     { "type": "object" },
+    "lastPhaseSummary": { "type": "object" }
+  }
+}

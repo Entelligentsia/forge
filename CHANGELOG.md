@@ -5,6 +5,28 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.30.0] — 2026-05-01 **△ Breaking**
+
+Prompt-efficiency structural cut (T01_6) — locks in the 40–50% per-task token reduction from the redesign analysis.
+
+**Phase/orchestrator split:** `meta-orchestrate.md` and `meta-fix-bug.md` now carry `audience: orchestrator-only` and contain no per-phase subagent prose. All 9 phase meta sources (`meta-plan-task.md`, `meta-implement.md`, `meta-review-plan.md`, `meta-review-implementation.md`, `meta-validate.md`, `meta-approve.md`, `meta-commit.md`, `meta-update-plan.md`, `meta-update-implementation.md`) carry `audience: subagent` with a `context:` block (5 keys) that governs orchestrator prompt assembly. Byte budgets enforced: plan/implement/review-code/validate ≤4kB, remaining ≤3kB. Five forbidden strings (MASTER_INDEX.md, defensive read phrasing, etc.) absent from all subagent files — enforced by CI tests.
+
+**PROJECT_OVERLAY:** New `build-overlay.cjs` tool materialises a ≤1kB task-scoped index slice (task row + sprint siblings from MASTER_INDEX.md, last phase summary, tool commands). The orchestrator calls it per-spawn and injects `overlay_md` instead of instructing subagents to read the full MASTER_INDEX.md. Architecture context block is now conditional on `phase.context.architecture` (true only for plan and approve phases). New schema: `project-overlay.schema.json`.
+
+**`store-cli` silence:** Success-path stdout is now silent. Pass `--verbose` for legacy JSON echo. Error paths still write to stderr. Callers that parsed stdout must be updated.
+
+**`_fragments/finalize.md`:** New shared fragment carries the `/cost` + sidecar emission contract. Per-phase `/cost` prose replaced with `file_ref:` to this fragment.
+
+**Diff-mode defaults:** `review-code` and `validate` phases carry `diff_mode: true` — diff-first instruction instructs subagents to read `git diff` before loading full source files.
+
+**Regenerate:** workflows (all phase files + orchestrator), schemas, tools (build-overlay, store-cli)
+
+> **Breaking:** `store-cli` JSON stdout is no longer emitted on success. Any downstream script that parses `store-cli` output must pass `--verbose` or read results from disk.
+>
+> Manual: Run `/forge:update` to regenerate all workflows, tools, and schemas.
+
+---
+
 ## [0.28.0] — 2026-04-29
 
 Escalation hardening (GH-66): orchestrator now validates subagent responses and retries once with a simplified prompt before escalating on second failure; blocks tasks with `blocked` or `escalated` status via phase gates and a pre-task guard; inlines the four-step escalation procedure at every call site so the LLM agent sees the full mandatory steps; adds an Iron Law prohibiting silent workarounds; expands Error Recovery table to cover all failure modes. No schema changes — `blocked` and `escalated` were already in the task status enum.

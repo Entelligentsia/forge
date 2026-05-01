@@ -3,6 +3,7 @@ requirements:
   reasoning: Medium
   context: Medium
   speed: Medium
+audience: orchestrator-only
 deps:
   personas: [bug-fixer]
   skills: [bug-fixer, generic]
@@ -117,7 +118,7 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
 - Symmetric injection pattern: `[Persona] -> [Skill] -> [Workflow]` for every subagent.
 - No inline triage or fix logic; use the `Agent` tool for sub-tasks.
 - Reference project-specific bug reporting paths.
-- Token reporting: run `/cost`, parse five fields, write sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+- Token reporting: see `_fragments/finalize.md` — wire via `file_ref:` in each phase subagent prompt.
 - Event emission: "complete" event MUST include the `eventId` passed by the orchestrator.
 
 ## Announcement Algorithm
@@ -204,13 +205,22 @@ elif preflight_result.exit_code == 2:
 # the generated fix-bug orchestrator shares the same helper.
 role_block = compose_role_block(persona_noun)
 
-# --- Compose architecture context block from context pack ---
+# --- Compose architecture context block (conditional on phase.context.architecture) ---
 # <!-- See _fragments/context-injection.md for canonical definition -->
-bug_architecture_block = compose_architecture_block(".forge/cache/context-pack.md", ".forge/cache/context-pack.json")
+bug_architecture_block = (
+  compose_architecture_block(".forge/cache/context-pack.md", ".forge/cache/context-pack.json")
+  if phase.context.architecture else ""
+)
 
 # --- Compose prior-phase summary block for bug context ---
 # <!-- See _fragments/context-injection.md for canonical definition -->
-bug_summary_block = compose_summary_block(bug_id, record_type="bug")
+bug_summary_block = compose_summary_block(bug_id, record_type="bug") if phase.context.prior_summaries != "none" else ""
+
+# --- Materialize project overlay (replaces MASTER_INDEX.md read in subagent) ---
+overlay_result = run_bash(
+  f'node "$FORGE_ROOT/tools/build-overlay.cjs" --bug {bug_id} --format md'
+)
+bug_overlay_md = overlay_result.stdout if overlay_result.exit_code == 0 else ""
 
 # --- Spawn subagent (no banner command in prompt) ---
 spawn_subagent(
@@ -218,7 +228,7 @@ spawn_subagent(
     agent_name=agent_name, progress_log_path=progress_log_path, banner_name=banner_name,
     sprint_or_bug_id="bugs", phase_role=phase.role,
     architecture_block=bug_architecture_block, summary_block=bug_summary_block,
-    role_block=role_block,
+    role_block=role_block, overlay_md=bug_overlay_md,
     context={"Bug Root": bug_root_path, "Store Root": store_root_path,
              "Events Root": ".forge/store/events/bugs/"},
     workflow=phase.workflow, record_id=bug_id,

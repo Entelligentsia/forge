@@ -3,6 +3,14 @@ requirements:
   reasoning: Medium
   context: Medium
   speed: Medium
+audience: subagent
+phase: update-impl
+context:
+  architecture: false
+  prior_summaries: delta
+  persona: summary
+  master_index: false
+  diff_mode: false
 deps:
   personas: [engineer]
   skills: [engineer, generic]
@@ -47,8 +55,5 @@ Update the implementation of a task based on a "Revision Required" verdict from 
 - **Context Isolation:** Forbid inline execution of fix logic; use the `Agent` tool for sub-tasks.
 - **Project Specifics:**
   - Reference project-specific verification commands.
-- **Token Reporting:** The generated workflow MUST mandate the following before returning:
-  1. Run `/cost` to retrieve session token usage.
-  2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+- **Token Reporting:** See `_fragments/finalize.md` — wire via `file_ref:`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

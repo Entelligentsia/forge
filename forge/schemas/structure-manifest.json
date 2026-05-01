@@ -1,6 +1,6 @@
 {
-  "version": "0.29.0",
-  "generatedAt": "2026-04-30T17:24:42.386Z",
+  "version": "0.30.0",
+  "generatedAt": "2026-05-01T02:11:26.096Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -93,6 +93,7 @@
       "files": [
         "context-injection.md",
         "event-emission-schema.md",
+        "finalize.md",
         "progress-reporting.md"
       ]
     },
@@ -106,6 +107,7 @@
         "event.schema.json",
         "feature.schema.json",
         "progress-entry.schema.json",
+        "project-overlay.schema.json",
         "sprint.schema.json",
         "task.schema.json"
       ]
@@ -260,8 +262,7 @@
           ".forge/workflows/review_plan.md"
         ],
         "kb_docs": [
-          "{KB_PATH}/architecture/stack.md",
-          "{KB_PATH}/MASTER_INDEX.md"
+          "{KB_PATH}/architecture/stack.md"
         ],
         "config_fields": [
           "commands.test",

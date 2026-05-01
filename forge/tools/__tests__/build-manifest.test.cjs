@@ -38,9 +38,9 @@ describe('build-manifest.cjs — mapping tables', () => {
     assert.equal(WORKFLOW_MAP.length, 18);
   });
 
-  test('FRAGMENT_MAP has 3 entries, each is a [source, output] tuple', () => {
+  test('FRAGMENT_MAP has 4 entries, each is a [source, output] tuple', () => {
     assert.ok(Array.isArray(FRAGMENT_MAP), 'FRAGMENT_MAP must be exported');
-    assert.equal(FRAGMENT_MAP.length, 3);
+    assert.equal(FRAGMENT_MAP.length, 4);
     for (const entry of FRAGMENT_MAP) {
       assert.equal(entry.length, 2);
       assert.equal(typeof entry[0], 'string');

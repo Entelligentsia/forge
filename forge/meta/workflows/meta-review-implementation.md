@@ -3,6 +3,14 @@ requirements:
   reasoning: High
   context: Medium
   speed: Low
+audience: subagent
+phase: review-code
+context:
+  architecture: false
+  prior_summaries: delta
+  persona: summary
+  master_index: false
+  diff_mode: true
 deps:
   personas: [supervisor]
   skills: [supervisor, generic]
@@ -32,20 +40,12 @@ YOU MUST evaluate the code against the approved PLAN.md and the original task pr
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
-   - Run `/cost` to verify token reporting available.
-   - If `/cost` succeeds → note for later (will use reported data)
-   - If `/cost` fails or unavailable → note for later (will use estimates)
-
 1. Load Context:
    - Read task prompt
    - Read approved PLAN.md
-   - Read the implementation (code changes)
    - Read PROGRESS.md
-   - Consult the architecture context summary injected in your prompt (under
-     "Architecture context"). If no summary was injected, read
-     `engineering/architecture/stack.md` directly.
-   - Read full architecture docs (paths listed in the injected context) only
-     when the summary is insufficient for your review.
+
+   **Read mode: diff-first.** Read `git diff $(git merge-base HEAD origin/main)..HEAD -- <files-listed-in-PLAN>` first. Read full source files only when the diff context is insufficient to judge a finding (e.g., the change is an inversion of an invariant defined elsewhere). Do not pre-load full source — tool calls earn their tokens.
 
 2. Review:
    - Verify all plan steps were executed
@@ -92,15 +92,6 @@ YOU MUST evaluate the code against the approved PLAN.md and the original task pr
 - **Context Isolation:** Forbid inline execution of complex code review logic; use the `Agent` tool for sub-tasks.
 - **Project Specifics:**
   - Embed project-specific code quality standards and linting rules.
-- **Token Reporting:** The generated workflow MUST mandate the following before returning:
-  1. Run `/cost` to retrieve session token usage.
-  2. If `/cost` succeeds:
-     - Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-     - Add `"source": "reported"` to sidecar JSON.
-  3. If `/cost` fails or unavailable:
-     - Set token fields to `null`: `"inputTokens": null, "outputTokens": null, "estimatedCostUSD": null`.
-     - Add `"source": "missing"` to sidecar JSON.
-     - Log: "Token data unavailable (/cost failed). Backfill later via estimate-usage.cjs."
-  4. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
-  5. **NEVER skip sidecar write.** Always emit (reported or placeholder with nulls).
+- **Token Reporting:** See `_fragments/finalize.md` — wire via `file_ref:`.
+- **Diff-mode:** Generated workflow MUST include the diff-first read mode instruction (see PLAN.md A6).
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.
