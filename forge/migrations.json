@@ -1,4 +1,12 @@
 {
+  "0.31.0": {
+    "version": "0.32.0",
+    "date": "2026-05-01",
+    "notes": "Init flow rewrite (T04): replace 12-phase init with 4-phase model (Collect → Discover → Materialize → Register). forge/commands/init.md and forge/init/sdlc-init.md fully rewritten. Phase 3 calls substitute-placeholders.cjs to produce fully functional workflows (no stubs). Phase 4 writes structure-versions.json at .forge/structure-versions.json (T05 stub), generation-manifest.json, persona-pack.json, context-pack.md/json, init-context.json/md, store seed, update-check cache, and invokes refresh-kb-links. --fast and --full flags accepted as no-ops (both run identical 4-phase flow). Old 12-phase checkpoint files deleted automatically on resume.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.30.0": {
     "version": "0.31.0",
     "date": "2026-05-01",
