@@ -208,6 +208,26 @@ section-level changes), emit:
 
 Exit.
 
+### Enhancement agent delegation (structural-element drift)
+
+After presenting the KB-level patch proposals above, also offer enhancement agent Phase 3
+for structural-element drift detection. This is an opt-in upgrade path:
+
+```
+── Enhancement agent available: run structural-element drift detection?
+   This compares .forge/ personas, skills, and workflows against the current codebase state.
+   [E] Run enhancement agent (Phase 3)  [n] Skip
+```
+
+If the user selects `[E]`, read and follow `$FORGE_ROOT/meta/workflows/meta-enhance.md`
+with `--phase 3` explicitly (do not rely on the default). Pass `$PROJECT_ROOT` context.
+The enhancement workflow handles its own approval gate and snapshot creation — return
+to this calibrate flow after it completes.
+
+If `meta-enhance.md` is absent (older plugin version), emit:
+
+> ◇ Enhancement agent not available — run `/forge:update` to install it.
+
 ## Step 6 — Architect approval gate
 
 For each proposed patch, require explicit approval before any regeneration.

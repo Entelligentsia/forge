@@ -8,7 +8,7 @@
 //   init         Write snapshot 0 at first init (idempotent: no-op if file exists)
 //   current      Print current snapshot index and metadata
 //   list         Print tabular summary of all snapshots
-//   add-snapshot STUB — requires enhancement agent context (T08); exits 2
+//   add-snapshot Archive current structural elements and record a new snapshot entry
 //
 // Composition model: Working Artifact = base@pluginVersion + snapshot@currentSnapshot + user_enhancements
 // Snapshot-array invariant: snapshots is ordered ascending by index; currentSnapshot always equals
@@ -18,7 +18,10 @@
 //   node manage-versions.cjs init [--dry-run]
 //   node manage-versions.cjs current
 //   node manage-versions.cjs list
-//   node manage-versions.cjs add-snapshot
+//   node manage-versions.cjs add-snapshot --source <source> [--enhanced-elements <csv>] [--dry-run]
+//     --source <string>              Required. One of: post-init | post-sprint:<ID> | on-demand
+//     --enhanced-elements <csv>      Optional. Comma-separated list of .forge/-relative paths that were enhanced.
+//     --dry-run                      Log intent without performing I/O.
 //
 // Environment:
 //   FORGE_ROOT — path to forge plugin root (used by init to locate plugin.json and schemas)
@@ -133,6 +136,87 @@ function readOverlayToolVersion(forgeRoot) {
   return '1.0.0';
 }
 
+// Structural element directories that are eligible to be archived.
+const STRUCTURAL_ELEMENT_DIRS = ['personas', 'skills', 'workflows', 'templates'];
+
+/**
+ * Copy a file, creating intermediate directories as needed.
+ * @param {string} src
+ * @param {string} dest
+ */
+function copyFileWithDirs(src, dest) {
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.copyFileSync(src, dest);
+}
+
+/**
+ * Add a new snapshot entry to structure-versions.json and archive the
+ * current structural elements listed in enhancedElements.
+ *
+ * @param {string} projectRoot        - path to the project root (where .forge/ lives)
+ * @param {string} source             - snapshot source label (post-init | post-sprint:<ID> | on-demand)
+ * @param {string[]} enhancedElements - list of .forge/-relative paths that were enhanced
+ * @param {boolean} [dryRun]          - when true, log intent but perform no I/O
+ */
+function addSnapshot(projectRoot, source, enhancedElements, dryRun) {
+  if (!source) {
+    throw new Error('--source is required for add-snapshot. Provide one of: post-init | post-sprint:<ID> | on-demand');
+  }
+
+  const doc = readStructureVersions(projectRoot);
+  const nextIndex = doc.currentSnapshot + 1;
+  const archivePath = path.join('.forge', 'archive', `snap-${nextIndex}`);
+  const archiveAbsPath = path.join(projectRoot, archivePath);
+
+  // Guard: fail if archive directory already exists to prevent corruption.
+  if (fs.existsSync(archiveAbsPath)) {
+    throw new Error(
+      `Archive directory already exists: ${archiveAbsPath} (snap-${nextIndex}). ` +
+      'Cannot create snapshot — remove or rename the existing archive directory first.'
+    );
+  }
+
+  const createdAt = new Date().toISOString();
+  const newSnapshot = {
+    index: nextIndex,
+    createdAt,
+    source,
+    enhancedElements: enhancedElements || [],
+    archivePath
+  };
+
+  if (dryRun) {
+    console.log(`[dry-run] Would create archive at: ${archiveAbsPath}`);
+    console.log(`[dry-run] Would archive ${(enhancedElements || []).length} element(s).`);
+    console.log(`[dry-run] Would write snapshot entry:`);
+    console.log(JSON.stringify(newSnapshot, null, 2));
+    return;
+  }
+
+  // Archive each enhanced element by copying from .forge/ into the archive dir.
+  for (const relPath of (enhancedElements || [])) {
+    const srcPath = path.join(projectRoot, '.forge', relPath);
+    const destPath = path.join(archiveAbsPath, relPath);
+    if (fs.existsSync(srcPath)) {
+      copyFileWithDirs(srcPath, destPath);
+    }
+    // If the source file does not exist, skip silently — the element list
+    // may reference files that were removed or renamed; archiving what's there
+    // is better than failing the whole snapshot.
+  }
+
+  // Also create the archive directory even if no elements were listed,
+  // so archivePath references a real directory.
+  fs.mkdirSync(archiveAbsPath, { recursive: true });
+
+  // Append snapshot entry and advance currentSnapshot.
+  doc.snapshots.push(newSnapshot);
+  doc.currentSnapshot = nextIndex;
+  writeStructureVersions(projectRoot, doc);
+
+  console.log(`ノ add-snapshot complete — snapshot ${nextIndex} written (source: ${source}, elements: ${(enhancedElements || []).length})`);
+}
+
 /**
  * Initialise structure-versions.json with snapshot 0 (base-pack).
  * Idempotent: if the file already exists, exits cleanly without overwriting.
@@ -184,6 +268,7 @@ function initStructureVersions(projectRoot, forgeRoot, dryRun) {
 
 module.exports = {
   initStructureVersions,
+  addSnapshot,
   readStructureVersions,
   writeStructureVersions,
   VERSIONS_PATH,
@@ -243,11 +328,26 @@ if (require.main === module) {
       }
 
       case 'add-snapshot': {
-        // STUB — full implementation deferred to T08 (enhancement agent).
-        // Exits 2 (input error) to surface accidental invocations as hard failures.
-        console.error('× add-snapshot requires enhancement agent context (T08) — not implemented in T05.');
-        console.error('  This subcommand will be fully implemented when the enhancement agent is available.');
-        process.exit(2);
+        // Parse --source flag
+        const sourceIdx = args.indexOf('--source');
+        const source = sourceIdx !== -1 ? args[sourceIdx + 1] : null;
+        if (!source || source.startsWith('--')) {
+          console.error('× add-snapshot requires --source <value>.');
+          console.error('  Accepted values: post-init | post-sprint:<SPRINT_ID> | on-demand');
+          process.exit(1);
+        }
+
+        // Parse optional --enhanced-elements flag (comma-separated list)
+        const elementsIdx = args.indexOf('--enhanced-elements');
+        let enhancedElements = [];
+        if (elementsIdx !== -1) {
+          const raw = args[elementsIdx + 1];
+          if (raw && !raw.startsWith('--')) {
+            enhancedElements = raw.split(',').map(s => s.trim()).filter(Boolean);
+          }
+        }
+
+        addSnapshot(projectRoot, source, enhancedElements, DRY_RUN);
         break;
       }
 

@@ -302,20 +302,215 @@ describe('manage-versions.cjs — CLI smoke tests', () => {
     }
   });
 
-  test('add-snapshot stub exits non-zero (exit 2)', () => {
-    const tmp = makeTmpProject();
+});
+
+// ---------------------------------------------------------------------------
+// Tests 12-19: add-snapshot subcommand (Iron Law 2 — written before implementation)
+// ---------------------------------------------------------------------------
+
+/**
+ * Create a project with initialized structure-versions.json and some
+ * representative structural element files (.forge/personas, .forge/skills).
+ */
+function makeInitedProject() {
+  const tmp = makeTmpProject();
+  const forgeRoot = path.join(tmp, 'plugin-root');
+  // Run init via module (not CLI) to avoid spawning a process
+  initStructureVersions(tmp, forgeRoot);
+  // Create structural element directories with sample files
+  const personasDir = path.join(tmp, '.forge', 'personas');
+  const skillsDir = path.join(tmp, '.forge', 'skills');
+  fs.mkdirSync(personasDir, { recursive: true });
+  fs.mkdirSync(skillsDir, { recursive: true });
+  fs.writeFileSync(path.join(personasDir, 'engineer.md'), '# Engineer\nYou are an engineer.\n', 'utf8');
+  fs.writeFileSync(path.join(skillsDir, 'engineer-skills.md'), '# Engineer Skills\nCore skills.\n', 'utf8');
+  return { tmp, forgeRoot };
+}
+
+describe('manage-versions.cjs — add-snapshot', () => {
+  // Test 12: creates archive directory and copies files
+  test('creates .forge/archive/snap-1/ and copies enhanced element files', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
     try {
-      const forgeRoot = path.join(tmp, 'plugin-root');
-      spawnSync(process.execPath, [TOOL_PATH, 'init'], {
-        cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8'
-      });
+      const result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'add-snapshot', '--source', 'post-init',
+         '--enhanced-elements', 'personas/engineer.md,skills/engineer-skills.md'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0,
+        `add-snapshot must exit 0. stdout: ${result.stdout} stderr: ${result.stderr}`);
+      const archiveDir = path.join(tmp, '.forge', 'archive', 'snap-1');
+      assert.ok(fs.existsSync(archiveDir), '.forge/archive/snap-1/ must be created');
+      assert.ok(
+        fs.existsSync(path.join(archiveDir, 'personas', 'engineer.md')),
+        'archived personas/engineer.md must exist in snap-1'
+      );
+      assert.ok(
+        fs.existsSync(path.join(archiveDir, 'skills', 'engineer-skills.md')),
+        'archived skills/engineer-skills.md must exist in snap-1'
+      );
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  // Test 13: appends snapshot entry with correct fields
+  test('appends snapshot entry to snapshots[] with correct index, source, enhancedElements, archivePath', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
+      const result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'add-snapshot', '--source', 'post-init',
+         '--enhanced-elements', 'personas/engineer.md'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0,
+        `add-snapshot must exit 0. stderr: ${result.stderr}`);
+      const doc = JSON.parse(fs.readFileSync(
+        path.join(tmp, '.forge', 'structure-versions.json'), 'utf8'
+      ));
+      assert.strictEqual(doc.snapshots.length, 2, 'snapshots[] must have 2 entries (0 + new)');
+      const snap = doc.snapshots[1];
+      assert.strictEqual(snap.index, 1, 'new snapshot index must be 1');
+      assert.strictEqual(snap.source, 'post-init', 'source must match --source flag');
+      assert.deepStrictEqual(snap.enhancedElements, ['personas/engineer.md'],
+        'enhancedElements must match --enhanced-elements flag');
+      assert.ok(typeof snap.archivePath === 'string' && snap.archivePath.includes('snap-1'),
+        `archivePath must reference snap-1, got: ${snap.archivePath}`);
+      assert.ok(typeof snap.createdAt === 'string' && !isNaN(Date.parse(snap.createdAt)),
+        'createdAt must be a valid ISO datetime');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  // Test 14: advances currentSnapshot to the new index
+  test('advances currentSnapshot to the new snapshot index', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
+      spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'add-snapshot', '--source', 'post-init'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      const doc = JSON.parse(fs.readFileSync(
+        path.join(tmp, '.forge', 'structure-versions.json'), 'utf8'
+      ));
+      assert.strictEqual(doc.currentSnapshot, 1, 'currentSnapshot must advance to 1');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  // Test 15: invariant — currentSnapshot === snapshots[snapshots.length - 1].index
+  test('invariant: currentSnapshot === snapshots[snapshots.length - 1].index after add-snapshot', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
+      spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'add-snapshot', '--source', 'post-init'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      const doc = JSON.parse(fs.readFileSync(
+        path.join(tmp, '.forge', 'structure-versions.json'), 'utf8'
+      ));
+      assert.strictEqual(
+        doc.currentSnapshot,
+        doc.snapshots[doc.snapshots.length - 1].index,
+        'currentSnapshot must equal last snapshot index (invariant)'
+      );
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  // Test 16: CLI smoke — exits 0, structure-versions.json updated
+  test('CLI smoke: exits 0 and structure-versions.json is updated', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
+      const result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'add-snapshot', '--source', 'on-demand'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0,
+        `CLI add-snapshot must exit 0. stdout: ${result.stdout} stderr: ${result.stderr}`);
+      const doc = JSON.parse(fs.readFileSync(
+        path.join(tmp, '.forge', 'structure-versions.json'), 'utf8'
+      ));
+      assert.ok(doc.snapshots.length >= 2, 'snapshots[] must have at least 2 entries after add-snapshot');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  // Test 17: requires --source flag; exits 1 with descriptive error if absent
+  test('exits 1 with descriptive error when --source flag is absent', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
       const result = spawnSync(
         process.execPath,
         [TOOL_PATH, 'add-snapshot'],
         { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
       );
-      assert.ok(result.status !== 0, 'add-snapshot stub must exit non-zero');
-      assert.strictEqual(result.status, 2, `add-snapshot stub must exit 2 (input error), got ${result.status}`);
+      assert.strictEqual(result.status, 1,
+        `add-snapshot without --source must exit 1, got ${result.status}`);
+      assert.ok(
+        result.stderr.includes('--source') || result.stderr.includes('source'),
+        `stderr must mention --source, got: ${result.stderr}`
+      );
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  // Test 18: --enhanced-elements flag populates the array correctly
+  test('--enhanced-elements flag populates enhancedElements array correctly', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
+      const result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'add-snapshot', '--source', 'post-sprint:FORGE-S13',
+         '--enhanced-elements', 'personas/engineer.md,skills/engineer-skills.md'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0,
+        `add-snapshot must exit 0. stderr: ${result.stderr}`);
+      const doc = JSON.parse(fs.readFileSync(
+        path.join(tmp, '.forge', 'structure-versions.json'), 'utf8'
+      ));
+      const snap = doc.snapshots[doc.snapshots.length - 1];
+      assert.deepStrictEqual(
+        snap.enhancedElements,
+        ['personas/engineer.md', 'skills/engineer-skills.md'],
+        'enhancedElements must contain both elements passed via --enhanced-elements'
+      );
+      assert.strictEqual(snap.source, 'post-sprint:FORGE-S13',
+        'source must preserve sprint ID suffix');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  // Test 19: idempotency of archive — if snap-N/ already exists, exits 1 with clear error
+  test('exits 1 with clear error if archive snap-N/ already exists (prevents corruption)', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
+      // Pre-create the archive directory to simulate a collision
+      const archiveDir = path.join(tmp, '.forge', 'archive', 'snap-1');
+      fs.mkdirSync(archiveDir, { recursive: true });
+      const result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'add-snapshot', '--source', 'post-init'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 1,
+        `add-snapshot must exit 1 when archive already exists, got ${result.status}`);
+      assert.ok(
+        result.stderr.includes('already exists') || result.stderr.includes('snap-1'),
+        `stderr must mention the collision, got: ${result.stderr}`
+      );
     } finally {
       cleanup(tmp);
     }
