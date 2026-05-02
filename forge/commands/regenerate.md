@@ -256,6 +256,31 @@ current knowledge base. Covers both atomic workflows and orchestration.
 or the colon form `workflows:plan_task`), regenerate only the single workflow
 file `.forge/workflows/<sub-target>.md`.
 
+**Special case — `_fragments` sub-target (directory fan-out):**
+
+`_fragments` is a directory in `$FORGE_ROOT/meta/workflows/_fragments/`, not a
+single file. When the sub-target is `_fragments` (or when
+`$FORGE_ROOT/meta/workflows/<sub-target>` resolves to a directory rather than a
+file), use directory fan-out mode instead of single-file mode:
+
+1. Enumerate all `.md` files in `$FORGE_ROOT/meta/workflows/_fragments/`.
+2. Ensure `.forge/workflows/_fragments/` directory exists (create if absent).
+3. For each fragment file, copy verbatim (no placeholder substitution) to
+   `.forge/workflows/_fragments/<filename>`.
+4. Record a manifest hash for each copied file:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/workflows/_fragments/<filename>
+   ```
+5. Emit `〇 workflows:_fragments — N fragment files copied`.
+
+> **Note:** When invoked as `/forge:regenerate workflows:_fragments`, this command
+> fans out to copy all fragment files (currently four: `context-injection.md`,
+> `progress-reporting.md`, `event-emission-schema.md`, `finalize.md`). Verify the
+> result with `ls .forge/workflows/_fragments/`.
+
+For all other sub-targets (non-directory), continue with the standard single-file
+path below.
+
 If `CONFIG_MODE == "fast"`: apply the single-file materialized check —
 the workflow file must exist AND its first non-blank line must NOT begin
 with `<!-- FORGE FAST-MODE STUB`. If the file is a stub or missing, emit
