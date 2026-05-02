@@ -628,6 +628,40 @@ from the migration path, or Step 4 was entered with `baseline == LOCAL_VERSION`)
 
 Emit: `〇 calibrationBaseline refreshed — version <ver>, hash <first-8-chars-of-hash>...`
 
+### Post-migration pack rebuild
+
+After the calibrationBaseline refresh, if the aggregated regeneration targets
+include any of `workflows`, `personas`, or `skills` (bare category or sub-target),
+rebuild the persona and context packs so they reflect the newly regenerated artifacts.
+
+If no `workflows`, `personas`, or `skills` targets were applied (e.g. only `tools`,
+`schemas`, `commands`, or `knowledge-base` were in the migration path), skip this
+step entirely — these categories do not affect the packs.
+
+**1. Rebuild persona pack:**
+
+```sh
+node "$FORGE_ROOT/tools/build-persona-pack.cjs" --out .forge/cache/persona-pack.json
+```
+
+- Exit 0: emit `〇 persona pack refreshed`
+- Exit 1: surface error, warn user (non-fatal — pack will refresh on next full regenerate)
+
+**2. Rebuild context pack:**
+
+```sh
+ENGINEERING=$(node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo engineering)
+node "$FORGE_ROOT/tools/build-context-pack.cjs" \
+  --arch-dir "$ENGINEERING/architecture" \
+  --out-md .forge/cache/context-pack.md \
+  --out-json .forge/cache/context-pack.json
+```
+
+- Exit 0: emit `〇 context pack refreshed`
+- Exit 1: warn (non-fatal — architecture directory may not yet exist for new projects)
+
+Full Step 4 post-migration sequence: regenerate → structure check → calibrationBaseline refresh → pack rebuild.
+
 ### Iron Laws for Step 4
 
 - YOU MUST NOT call `generation-manifest.cjs record` directly for migration targets.
