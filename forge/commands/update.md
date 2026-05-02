@@ -404,6 +404,17 @@ node "$FORGE_ROOT/tools/banners.cjs" --phase 4 7 "Apply migrations" forge \
   "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
 ```
 
+> **Sequencing note:** `paths.forgeRoot` is written at the very start of Step 4,
+> before any migration targets or regeneration commands execute. This ensures all
+> subsequent tool invocations in Step 4 (including `build-init-context.cjs` called
+> by regeneration sub-steps) use the current, correct plugin path.
+
+**Refresh `paths.forgeRoot` before applying migrations:**
+
+```sh
+node "$FORGE_ROOT/tools/manage-config.cjs" set paths.forgeRoot "$FORGE_ROOT"
+```
+
 Determine the baseline version:
 - Use `migratedFrom` from `CACHE_FILE` (set in Step 1)
 - Or the `--from <version>` argument if provided
@@ -990,15 +1001,8 @@ node "$FORGE_ROOT/tools/banners.cjs" --phase 6 7 "Record state" drift \
   "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
 ```
 
-**Refresh `paths.forgeRoot` in `.forge/config.json`:**
-
-```sh
-node "$FORGE_ROOT/tools/manage-config.cjs" set paths.forgeRoot "$FORGE_ROOT"
-```
-
-This ensures generated workflows reference the correct tool path after
-distribution switches or reinstalls. `FORGE_ROOT` was captured at the top of
-this command from `CLAUDE_PLUGIN_ROOT` and is always current.
+> **Note:** `paths.forgeRoot` was already written at the start of Step 4. Step 6
+> does not repeat that write — it records migration state only.
 
 **Write `.forge/update-check-cache.json`** to record the completed migration.
 Read the existing file if present, update `migratedFrom`, `localVersion`,
