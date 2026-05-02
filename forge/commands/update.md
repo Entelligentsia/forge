@@ -467,14 +467,22 @@ the confirmation prompt below.
 
 Execute regeneration targets in this order:
 
-| Order | Target | Can run after |
-|-------|--------|---------------|
-| 1 | `tools` | — (independent) |
-| 2 | `workflows` | — (independent) |
-| 3 | `templates` | — (independent) |
-| 4 | `personas` | — (independent) |
-| 5 | `commands` | Must run after `workflows` |
-| 6 | `knowledge-base` sub-targets | — (independent) |
+| Order | Target | Can run after | Special handling |
+|-------|--------|---------------|-----------------|
+| 0 | `hooks` | — (N/A) | **No-op for project copies.** Hooks ship with the plugin — they are already updated at the time of install. Emit: `〇 hooks — updated via plugin install (no project copy to regenerate)` |
+| 1 | `tools` | — (independent) | — |
+| 2 | `workflows` | — (independent) | — |
+| 3 | `templates` | — (independent) | — |
+| 4 | `personas` | — (independent) | — |
+| 5 | `commands` | Must run after `workflows` | — |
+| 6 | `knowledge-base` sub-targets | — (independent) | — |
+| 7 | `schemas` | — (independent) | **Delegate to `/forge:update-tools`.** Emit: `Delegating schemas regeneration to /forge:update-tools…` then read and follow `$FORGE_ROOT/commands/update-tools.md`. |
+
+> **Known special targets — note for migration authors:** `hooks` and `schemas` are
+> special-cased here. Future `migrations.json` entries should only use recognised
+> target names; using unknown bare-category targets will produce a warning and be
+> skipped. The recognised targets are: `hooks`, `tools`, `workflows`, `templates`,
+> `personas`, `commands`, `knowledge-base`, `skills`, `schemas`.
 
 `commands` depends on `workflows` because command wrappers reference workflow
 filenames. All other targets are independent and could run in parallel, but
