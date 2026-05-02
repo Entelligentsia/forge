@@ -36,6 +36,16 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/tools/query-logger.cjs\"",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/post-init.cjs\"",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/post-sprint.cjs\"",
+            "timeout": 10000
           }
         ]
       }
