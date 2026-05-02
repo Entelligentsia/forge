@@ -193,9 +193,16 @@ Now evaluate — **stop at the first matching row and follow only that row's act
 | 1 | `REMOTE_VERSION` == `LOCAL_VERSION` and `LOCAL_VERSION` == baseline | Print "Forge {LOCAL_VERSION} — up to date. No pending migrations." and **exit**. |
 | 2 | `REMOTE_VERSION` == `LOCAL_VERSION` and `LOCAL_VERSION` != baseline | Jump to **Step 2B** (project migration — no install needed). |
 | 3 | `IS_CANARY` is true | Jump to **Step 2B** (canary — no install needed). |
-| 4 | `REMOTE_VERSION` != `LOCAL_VERSION` | Proceed to **Step 2A** (plugin update available). |
+| 4 | `LOCAL_VERSION` > `REMOTE_VERSION` | Print "Local version ({LOCAL_VERSION}) is ahead of the release channel ({REMOTE_VERSION}). No install needed — applying any pending project migrations." then jump to **Step 2B**. |
+| 5 | `REMOTE_VERSION` != `LOCAL_VERSION` | Proceed to **Step 2A** (plugin update available). |
 
-**Do NOT show an install prompt for rows 1, 2, or 3. Install prompts only appear in Step 2A.**
+> **Row 4 worked example:** If `LOCAL_VERSION` is `0.35.0` and `REMOTE_VERSION` is
+> `0.32.0` (user built from source or is on a forward canary), row 4 triggers — project
+> migrations from baseline forward are applied, but no install prompt is shown. This
+> handles cases where `IS_CANARY` was not detected (e.g. a managed install whose
+> `plugin.json` version was manually bumped ahead of the release branch).
+
+**Do NOT show an install prompt for rows 1, 2, 3, or 4. Install prompts only appear in Step 2A.**
 
 ---
 
