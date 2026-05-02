@@ -369,6 +369,20 @@ try {
     process.stdout.write(`   ${key}: ${ns.files.length}\n`);
   }
 
+  // ── Integrity manifest (release guard) ────────────────────────────────────────
+  // Regenerate integrity.json alongside structure-manifest.json so that running
+  // build-manifest.cjs (the natural release-prep step) also refreshes file hashes.
+  // This prevents future ships from leaving stale hashes in integrity.json.
+  try {
+    const { generateManifest } = require('./gen-integrity.cjs');
+    const integrityOut = path.join(forgeRoot, 'integrity.json');
+    generateManifest(forgeRoot, integrityOut, pluginVersion);
+    process.stdout.write(`〇 integrity.json regenerated — ${pluginVersion}\n`);
+  } catch (integrityErr) {
+    process.stderr.write(`△ integrity.json regeneration failed: ${integrityErr.message}\n`);
+    // Non-fatal — structure manifest already written successfully
+  }
+
   process.exit(0);
 
 } catch (err) {
