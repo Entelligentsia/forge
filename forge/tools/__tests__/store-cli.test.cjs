@@ -1218,10 +1218,10 @@ describe('store-cli.cjs — discoverModel', () => {
   test('returns CLAUDE_CODE_SUBAGENT_MODEL when set', () => {
     // We test discoverModel via a subprocess so env vars are isolated
     const r = spawnSync(process.execPath, ['-e', `
-      const { discoverModel } = require('./forge/tools/store-cli.cjs');
+      const { discoverModel } = require(${JSON.stringify(STORE_CLI)});
       process.stdout.write(discoverModel());
     `], {
-      cwd: '/home/boni/src/forge',
+      cwd: os.tmpdir(),
       encoding: 'utf8',
       env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: 'glm-5.1:cloud' },
     });
@@ -1231,10 +1231,10 @@ describe('store-cli.cjs — discoverModel', () => {
 
   test('falls back to ANTHROPIC_MODEL when CLAUDE_CODE_SUBAGENT_MODEL is not set', () => {
     const r = spawnSync(process.execPath, ['-e', `
-      const { discoverModel } = require('./forge/tools/store-cli.cjs');
+      const { discoverModel } = require(${JSON.stringify(STORE_CLI)});
       process.stdout.write(discoverModel());
     `], {
-      cwd: '/home/boni/src/forge',
+      cwd: os.tmpdir(),
       encoding: 'utf8',
       env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: '', ANTHROPIC_MODEL: 'claude-sonnet-4-6' },
     });
@@ -1244,10 +1244,10 @@ describe('store-cli.cjs — discoverModel', () => {
 
   test('falls back to CLAUDE_MODEL when CLAUDE_CODE_SUBAGENT_MODEL and ANTHROPIC_MODEL are not set', () => {
     const r = spawnSync(process.execPath, ['-e', `
-      const { discoverModel } = require('./forge/tools/store-cli.cjs');
+      const { discoverModel } = require(${JSON.stringify(STORE_CLI)});
       process.stdout.write(discoverModel());
     `], {
-      cwd: '/home/boni/src/forge',
+      cwd: os.tmpdir(),
       encoding: 'utf8',
       env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: '', ANTHROPIC_MODEL: '', CLAUDE_MODEL: 'gpt-4o' },
     });
@@ -1257,10 +1257,10 @@ describe('store-cli.cjs — discoverModel', () => {
 
   test('returns "unknown" when no model env var is set', () => {
     const r = spawnSync(process.execPath, ['-e', `
-      const { discoverModel } = require('./forge/tools/store-cli.cjs');
+      const { discoverModel } = require(${JSON.stringify(STORE_CLI)});
       process.stdout.write(discoverModel());
     `], {
-      cwd: '/home/boni/src/forge',
+      cwd: os.tmpdir(),
       encoding: 'utf8',
       env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: '', ANTHROPIC_MODEL: '', CLAUDE_MODEL: '' },
     });
@@ -1270,10 +1270,10 @@ describe('store-cli.cjs — discoverModel', () => {
 
   test('CLAUDE_CODE_SUBAGENT_MODEL takes priority over ANTHROPIC_MODEL', () => {
     const r = spawnSync(process.execPath, ['-e', `
-      const { discoverModel } = require('./forge/tools/store-cli.cjs');
+      const { discoverModel } = require(${JSON.stringify(STORE_CLI)});
       process.stdout.write(discoverModel());
     `], {
-      cwd: '/home/boni/src/forge',
+      cwd: os.tmpdir(),
       encoding: 'utf8',
       env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: 'glm-5.1:cloud', ANTHROPIC_MODEL: 'claude-sonnet-4-6' },
     });
@@ -1283,10 +1283,10 @@ describe('store-cli.cjs — discoverModel', () => {
 
   test('trims whitespace from model env var values', () => {
     const r = spawnSync(process.execPath, ['-e', `
-      const { discoverModel } = require('./forge/tools/store-cli.cjs');
+      const { discoverModel } = require(${JSON.stringify(STORE_CLI)});
       process.stdout.write(discoverModel());
     `], {
-      cwd: '/home/boni/src/forge',
+      cwd: os.tmpdir(),
       encoding: 'utf8',
       env: { ...process.env, CLAUDE_CODE_SUBAGENT_MODEL: '  claude-opus-4-5  ' },
     });
