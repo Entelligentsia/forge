@@ -153,23 +153,10 @@ if (require.main === module) {
   const { parseGates } = require('./parse-gates.cjs');
   const store = require('./store.cjs');
 
-  const workflowMd = loadWorkflowMarkdown(args.phase, args.workflow);
-  if (!workflowMd) {
-    process.stderr.write(`preflight-gate: could not locate workflow file defining phase "${args.phase}"\n`);
-    process.exit(2);
-  }
-  let gates;
-  try {
-    gates = parseGates(workflowMd);
-  } catch (err) {
-    process.stderr.write(`preflight-gate: ${err.message}\n`);
-    process.exit(2);
-  }
-  if (!gates[args.phase]) {
-    process.stderr.write(`preflight-gate: no gates block for phase "${args.phase}"\n`);
-    process.exit(2);
-  }
-
+  // Resolve store records and substitutions BEFORE calling loadWorkflowMarkdown
+  // so the placeholder-key filter can use them to select the correct workflow file.
+  // (Previously loadWorkflowMarkdown was called first, causing fix_bug.md to shadow
+  // orchestrate_task.md for phases shared between the two workflows — forge#72.)
   const taskRecord = args.task ? safe(() => store.getTask(args.task)) : null;
   const bugRecord = args.bug ? safe(() => store.getBug(args.bug)) : null;
   const state = {};
@@ -211,6 +198,25 @@ if (require.main === module) {
     bug: bugDir,
   };
 
+  // Now load the workflow, passing substitutions so the placeholder-key filter
+  // can skip workflows whose gate block references keys not present in subs.
+  const workflowMd = loadWorkflowMarkdown(args.phase, args.workflow, substitutions);
+  if (!workflowMd) {
+    process.stderr.write(`preflight-gate: could not locate workflow file defining phase "${args.phase}"\n`);
+    process.exit(2);
+  }
+  let gates;
+  try {
+    gates = parseGates(workflowMd);
+  } catch (err) {
+    process.stderr.write(`preflight-gate: ${err.message}\n`);
+    process.exit(2);
+  }
+  if (!gates[args.phase]) {
+    process.stderr.write(`preflight-gate: no gates block for phase "${args.phase}"\n`);
+    process.exit(2);
+  }
+
   const verdictSources = resolveVerdictSources(gates[args.phase].after || [], taskArtifactPath, bugRecord);
 
   const result = preflight({ phase: args.phase, gates, state, substitutions, verdictSources });
@@ -236,7 +242,34 @@ function safe(fn) {
   try { return fn(); } catch (_) { return null; }
 }
 
-function loadWorkflowMarkdown(phaseName, workflowName) {
+// Extract the gate block body for a given phase from a workflow markdown string.
+// Returns the text between the opening and closing fence for that phase, or null.
+function extractGateBlockBody(md, phaseName) {
+  const openPattern = new RegExp('^```gates\\s+phase=' + escapeRegex(phaseName) + '\\s*$', 'm');
+  const openMatch = openPattern.exec(md);
+  if (!openMatch) return null;
+  const afterOpen = md.slice(openMatch.index + openMatch[0].length);
+  const closeIdx = afterOpen.indexOf('\n```');
+  if (closeIdx === -1) return afterOpen; // unterminated fence — return what we have
+  return afterOpen.slice(0, closeIdx);
+}
+
+// Check whether all {placeholder} keys in a gate block body are satisfied by
+// the given substitutions map. Returns true if all placeholders are satisfied
+// (or there are none), false if any placeholder key is missing from subs.
+function gatePlaceholdersSatisfied(gateBody, subs) {
+  const tokenRe = /\{(\w+)\}/g;
+  let match;
+  while ((match = tokenRe.exec(gateBody)) !== null) {
+    const key = match[1];
+    if (!Object.prototype.hasOwnProperty.call(subs, key) || subs[key] === undefined) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function loadWorkflowMarkdown(phaseName, workflowName, substitutions) {
   const workflowsDir = path.resolve(process.cwd(), '.forge/workflows');
   let entries;
   try {
@@ -256,9 +289,46 @@ function loadWorkflowMarkdown(phaseName, workflowName) {
     }
   }
 
+  // Placeholder-key filter: when substitutions are provided, skip any workflow
+  // whose gate block for this phase references a {key} not present in subs.
+  // This prevents fix_bug.md (which uses {bug}) from shadowing orchestrate_task.md
+  // (which uses {task}) when only --task is supplied and --bug is absent.
+  // Fall-back: if NO workflow passes the filter, return the first match regardless
+  // (preserves existing behaviour for malformed/unknown invocations).
+  const subs = substitutions || {};
+  const hasSubstitutions = Object.keys(subs).some(k => subs[k] !== undefined);
+
+  let firstMatch = null; // fallback candidate
   for (const entry of entries) {
     const md = fs.readFileSync(path.join(workflowsDir, entry), 'utf8');
-    if (fencePattern.test(md)) return md;
+    if (!fencePattern.test(md)) continue;
+
+    if (firstMatch === null) firstMatch = md; // remember first match for fallback
+
+    if (!hasSubstitutions) {
+      // No substitutions provided — use original first-match behaviour
+      return md;
+    }
+
+    const gateBody = extractGateBlockBody(md, phaseName);
+    if (gateBody !== null && gatePlaceholdersSatisfied(gateBody, subs)) {
+      return md;
+    }
+    // Placeholder(s) unsatisfied — log at warn level and continue scanning
+    process.stderr.write(
+      `preflight-gate: skipping ${entry} for phase "${phaseName}" — gate block contains ` +
+      `placeholder key(s) not present in supplied substitutions\n`
+    );
+  }
+
+  // Fallback: no workflow passed the placeholder filter — return first match to
+  // avoid total breakage for malformed invocations (preserves existing behaviour)
+  if (firstMatch !== null) {
+    process.stderr.write(
+      `preflight-gate: placeholder filter matched no workflow for phase "${phaseName}" — ` +
+      `falling back to first match\n`
+    );
+    return firstMatch;
   }
   return null;
 }
