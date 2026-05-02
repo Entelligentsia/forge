@@ -175,8 +175,30 @@ CACHE_FILE = .forge/update-check-cache.json
 ```
 
 This file is project-scoped — each project maintains its own migration state.
-Read it if it exists. Extract `migratedFrom` from the JSON. If absent, fall
-back to `localVersion` from the file. If both are absent, use `LOCAL_VERSION`.
+Read it if it exists.
+
+**Baseline derivation formula (evaluated in order, stop at first defined value):**
+
+```
+baseline = migratedFrom ?? localVersion ?? LOCAL_VERSION
+```
+
+- `migratedFrom` — written by Step 4 of the last successful update run. It represents
+  "the version from which the last successful migration chain was applied to this project"
+  (i.e. the baseline of the prior migration, not the version the project is currently at).
+  This field was introduced in v0.30.0; older cache files may not have it.
+- `localVersion` — the version recorded when the cache was last written. Used when
+  `migratedFrom` is absent (cache file predates v0.30.0 or was written before the first
+  migration ran).
+- `LOCAL_VERSION` — the installed plugin version. Last resort when the cache file does not
+  exist at all (fresh project, or cache deleted).
+
+> **Semantics note:** `migratedFrom` may be *lower* than `localVersion` — it is the
+> starting point of the last migration chain, not the end point. Example: a project that
+> migrated from 0.28.0 to 0.32.0 has `migratedFrom: "0.28.0"` and `localVersion: "0.32.0"`.
+> The next update run uses `0.28.0` as the baseline to walk forward from. This is correct —
+> any migrations between 0.28.0 and 0.32.0 that were applied should be idempotent, and
+> any new steps after 0.32.0 will be picked up.
 
 > **Legacy fallback:** If `.forge/update-check-cache.json` does not exist but a
 > plugin-level cache does (`${CLAUDE_PLUGIN_DATA}/forge-plugin-data/update-check-cache.json`
@@ -185,6 +207,12 @@ back to `localVersion` from the file. If both are absent, use `LOCAL_VERSION`.
 
 The user can also pass `--from <version>` as an argument to set the baseline
 explicitly — this overrides any cached value.
+
+### Baseline derivation — worked examples
+
+- **Scenario A:** Cache contains `{ "migratedFrom": "0.28.0", "localVersion": "0.32.0" }` → baseline is `0.28.0` (`migratedFrom` takes precedence).
+- **Scenario B:** Cache contains `{ "localVersion": "0.29.0" }` (no `migratedFrom` — pre-v0.30.0 cache) → baseline is `0.29.0`.
+- **Scenario C:** Cache file absent → baseline is `LOCAL_VERSION` (the currently installed version).
 
 Now evaluate — **stop at the first matching row and follow only that row's action**:
 
