@@ -5,6 +5,14 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.40.1] — 2026-05-02
+
+Read-side collate patch — corrects COST_REPORT.md generation by merging sidecars by `eventId` (eliminates duplicate-counting), adding an Ingestion Quality (IQ) section that surfaces missing / malformed sidecar events, canonicalizing model names via the new `tools/lib/pricing.cjs` library (29 tests, covers all Claude 3 / 3.5 / 3.7 / 4 model IDs plus aliases), and computing costs deterministically from the canonical model rather than trusting potentially-stale sidecar values. The `(unknown)` row that appeared when a model string couldn't be resolved is gone — unresolvable models are captured in the IQ section instead. This is a read-side-only fix; no emit-side behavior, schemas, or workflows changed. v0.41 will add the companion emit-side improvements.
+
+**Regenerate:** `tools:collate`, `tools:pricing`
+
+---
+
 ## [0.40.0] — 2026-05-02 **△ Breaking**
 
 Base-pack init with progressive enhancement (FORGE-S13). Replaces multi-minute LLM cold-start init with a deterministic 4-phase pipeline (Collect → Discover → Materialize → Register, ~30–45s) and ships every workflow / template / persona as a working artefact with `{{KEY}}` placeholders that the init substitutes from `config.json` + `project-context.json`. No LLM in materialisation. Adds an enhancement agent and post-init / post-sprint hooks that progressively refine generated artefacts as the project's KB grows, plus a migration agent that converts pre-v0.40 installations onto the new substrate.

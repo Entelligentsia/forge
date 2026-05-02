@@ -1,4 +1,12 @@
 {
+  "0.40.0": {
+    "version": "0.40.1",
+    "date": "2026-05-02",
+    "notes": "Read-side collate patch (FORGE-S13-T12): sidecar merge by eventId deduplication, ingestion-quality (IQ) section in COST_REPORT.md, model canonicalization via new pricing.cjs library, no (unknown) row in cost table, deterministic cost recompute replaces stale sidecar values. Foundation for v0.41 emit-side improvements. New tool: tools/lib/pricing.cjs (29 tests). No schema changes. No emit-side changes. No workflow regeneration required.",
+    "regenerate": ["tools:collate", "tools:pricing"],
+    "breaking": false,
+    "manual": []
+  },
   "0.32.0": {
     "version": "0.40.0",
     "date": "2026-05-02",
