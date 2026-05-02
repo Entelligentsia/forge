@@ -5,6 +5,38 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.40.0] — 2026-05-02 **△ Breaking**
+
+Base-pack init with progressive enhancement (FORGE-S13). Replaces multi-minute LLM cold-start init with a deterministic 4-phase pipeline (Collect → Discover → Materialize → Register, ~30–45s) and ships every workflow / template / persona as a working artefact with `{{KEY}}` placeholders that the init substitutes from `config.json` + `project-context.json`. No LLM in materialisation. Adds an enhancement agent and post-init / post-sprint hooks that progressively refine generated artefacts as the project's KB grows, plus a migration agent that converts pre-v0.40 installations onto the new substrate.
+
+**T02 — `project-context.schema.json`:** New schema at `forge/schemas/project-context.schema.json` defines the structured project facts that drive substitution (project, architecture, entities, conventions, impact categories, technical debt, deployment, verification, skill wiring). `additionalProperties: false` throughout. JSON Schema annotations carry `x-placeholder` hints used by the init's discovery → context construction step.
+
+**T03 — `substitute-placeholders.cjs`:** New ~506-line tool at `forge/tools/substitute-placeholders.cjs` walks the base-pack and substitutes `{{KEY}}` placeholders by joined key path (`project.name`, `architecture.frameworks.backend`, etc.). Supports default-on-missing (`{{KEY:default}}`) and is honoured `--dry-run` aware. Output directory mapping in the tool's `SUBDIR_OUTPUT_MAP` (commands → `.claude/commands/forge/`, personas → `.forge/personas/`, etc.). 624-line test suite at `__tests__/substitute-placeholders.test.cjs`.
+
+**T04 — 4-phase `sdlc-init.md`:** Init flow rewritten end-to-end. `forge/init/sdlc-init.md` and `forge/commands/init.md` now drive: Phase 1 Collect (5 parallel discovery prompts → `config.json`), Phase 2 Discover (KB doc fan-out + inline `project-context.json` construction + calibration baseline), Phase 3 Materialize (substitute base-pack into `.forge/`), Phase 4 Register (tools registration, snapshot v0 in `structure-versions.json`, generation manifest, persona/context packs, store seed, update-check cache, refresh-kb-links, gitignore hygiene). `--fast` and `--full` are now CLI aliases — same 4-phase pipeline runs for both. Old 12-phase `init-progress.json` checkpoints are deleted automatically on resume.
+
+**T05 — `structure-versions.json` + `manage-versions.cjs`:** New file at `.forge/structure-versions.json` carries versioned snapshots of the structural element set (workflows, commands, personas, skills, templates, schemas). New ~364-line tool at `forge/tools/manage-versions.cjs` is the single gateway for snapshot writes — `init`, `snapshot`, `enhance`, `migrate`, and `list` subcommands. Snapshot v0 is written by Phase 4 with `source: "base-pack"`; subsequent snapshots from enhancement / migration carry `source: "enhancement" | "migration"` and `enhancedElements[]` / `migratedFrom`. 518-line test suite.
+
+**T06 — `npm run build-base-pack`:** New ~851-line tool at `forge/tools/build-base-pack.cjs` regenerates `forge/init/base-pack/` from the meta sources by walking `forge/meta/` and applying genericisation rules from `forge/tools/build-base-pack-rules.json` (replaces hardcoded "Forge" persona names with `{{PROJECT_NAME}}` placeholders). Exposed as `npm run build-base-pack` via `forge/package.json`. Test suites: `__tests__/build-base-pack.test.cjs` and `__tests__/placeholder-coverage.test.cjs`.
+
+**T08 — Enhancement agent:** New meta workflow at `forge/meta/workflows/meta-enhance.md` and command at `forge/commands/enhance.md`. Three phases: Phase 1 (post-init `{{KEY}}` fills based on freshly-discovered context), Phase 2 (post-sprint dry-run diff proposals against newly-accumulated KB), Phase 3 (drift detection comparing live structural elements against snapshot baselines — produces a drift report; T08 augments `/forge:calibrate` to call Phase 3). Proposals are never auto-applied; the user reviews `.forge/enhancement-proposals/`.
+
+**T09 — Enhancement hooks:** Two new fail-open hooks at `forge/hooks/post-init.cjs` and `forge/hooks/post-sprint.cjs` fire enhancement Phase 1 / Phase 2 on the appropriate trigger event. Hooks emit `enhancement-trigger`, `enhancement-completed`, and `enhancement-error` events via store-cli (event schema enum extended; no schema-shape change). Both hooks honour `process.on('uncaughtException', () => process.exit(0))` and never block init or retrospective happy paths. Observability: `/forge:store-query 'events where action = "enhancement-trigger"'`.
+
+**T10 — Migration agent:** New meta workflow at `forge/meta/workflows/meta-migrate.md` and command at `forge/commands/migrate.md`. Synthesises `project-context.json` from existing `.forge/` artefacts (config.json, KB docs, store entries) using JSON-Schema-validated extraction passes; archives the pre-migration `.forge/` contents to `.forge/archive/pre-migration/`; writes snapshot v0 with `source: "migration"` and `migratedFrom` set. `/forge:health` clean post-migration; rollback path documented.
+
+**T11 — Bucket-A friction reconciliation:** Eight sub-fixes covering `forge#71` (7 sub-bugs in `/forge:update`) and `forge#72` (preflight-gate workflow shadowing). Highlights: `/forge:update` Step 1 baseline derivation now uses `localVersion ?? migratedFrom ?? LOCAL_VERSION`; `LOCAL > REMOTE` decision-table case handled; `_fragments` directory fan-out in `regenerate.md`; integrity.json release-time guard regenerates from current hashes; `paths.forgeRoot` updated in Step 4 (was Step 6, leaving stale path baked into regenerated workflows); `hooks` and `schemas` regenerate categories explicitly omitted with documentation pointing at `/forge:update-tools`. `preflight-gate.cjs` no longer requires the `--workflow orchestrate_task` workaround for task pipelines.
+
+**Substrate fixup (FR-007):** Phase 4 of `sdlc-init.md` now creates `.forge/enhancements/` and explicitly copies `project-overlay.schema.json` into `.forge/schemas/` (idempotent, defence-in-depth on the wildcard copy in Step 4-1). Closes the slipped FR-007 carry-over from T04 / T05.
+
+**Regenerate:** 21 workflows (every base-pack workflow plus the new `enhance` and `migrate_structural`), 6 commands (`init`, `enhance`, `migrate`, `calibrate`, `update`, `regenerate`), 4 tools (`substitute-placeholders`, `manage-versions`, `build-base-pack`, `preflight-gate`). Categories `hooks` and `schemas` are deliberately omitted — hooks ship with the plugin (project copy is no-op), schemas are installed via `/forge:update-tools`.
+
+> **Breaking:** Init flow is observably different (4 phases, ~30–45s). `--fast` aliases to default. `init-progress.json` schema changes from 12-phase to 4-phase. Two net-new files at `.forge/`: `structure-versions.json` and `project-context.json`. Downstream tooling that wrote to `structure-versions.json` directly must now route through `manage-versions.cjs`. Existing v0.28–v0.30.x installations: run `/forge:update`, then `/forge:update-tools` to install the three new schemas, then `/forge:migrate` to synthesise `project-context.json` and reformat `.forge/`, then `/forge:health` to verify.
+>
+> Manual: see `migrations.json` `0.32.0` entry for the full upgrade sequence and the `/forge:update-tools` rationale.
+
+---
+
 ## [0.30.0] — 2026-05-01 **△ Breaking**
 
 Prompt-efficiency structural cut (T01_6) — locks in the 40–50% per-task token reduction from the redesign analysis.

@@ -412,6 +412,22 @@ Read `$FORGE_ROOT/init/generation/generate-tools.md` and follow it.
 **Input**: `.forge/config.json`
 **Output**: `paths.forgeRoot` written to `.forge/config.json`, schema copies to `.forge/schemas/`
 
+### Step 4-1b — Enhancement substrate (FR-007)
+
+Materialize the substrate that the post-init / post-sprint enhancement hooks
+(T08, T09) and the migration agent (T10) write into:
+
+```sh
+mkdir -p .forge/enhancements/
+cp "$FORGE_ROOT/schemas/project-overlay.schema.json" .forge/schemas/
+```
+
+The schema copy is idempotent — Step 4-1 already wildcard-copies every
+`*.schema.json` into `.forge/schemas/`, so the explicit copy here is a
+release-time guard against a future change to that wildcard. The directory
+must exist before any enhancement run because the hooks fail-open when the
+target tree is missing.
+
 ### Step 4-2 — structure-versions.json
 
 Write `.forge/structure-versions.json` (NOT under `.forge/store/`):
