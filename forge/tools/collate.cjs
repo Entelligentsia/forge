@@ -20,6 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const { ok: resultOk, fail: resultFail, RESULT_CODES } = require('./lib/result.js');
+const { computeCost, canonicalizeModel } = require('./lib/pricing.cjs');
 
 let _store;
 function _getStore() { return _store || (_store = require('./store.cjs')); }
@@ -258,7 +259,378 @@ function isBugId(id) {
   return /BUG-\d+/.test(id) || /-B\d+\b/.test(id);
 }
 
-module.exports = { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex, resolveTaskDir, isBugId };
+/**
+ * mergeSidecarEvents(primaryEvents, sidecars)
+ *
+ * Merges sidecar token data onto matching primary events by eventId.
+ * Returns { events, orphanSidecars, huskPrimaries } where:
+ *   - events:         all primary events (merged primaries have token fields from sidecar)
+ *   - orphanSidecars: sidecars with no matching primary
+ *   - huskPrimaries:  primaries that still have no token data after merge attempt
+ *
+ * On merge:
+ *   - Token fields (inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens,
+ *     estimatedCostUSD) are copied from the sidecar onto the primary.
+ *   - If all four token counts are present after merge and the primary has a known
+ *     model, estimatedCostUSD is recomputed via pricing.computeCost (overwrites
+ *     any fabricated value from the sidecar).
+ *   - The model field on the primary is canonicalized if possible.
+ *
+ * Pure function — no filesystem I/O.
+ */
+function mergeSidecarEvents(primaryEvents, sidecars) {
+  // Build sidecar lookup map by eventId
+  const sidecarMap = new Map();
+  for (const s of sidecars) {
+    if (s && s.eventId) {
+      sidecarMap.set(s.eventId, s);
+    }
+  }
+
+  const usedSidecarIds = new Set();
+  const events = [];
+  const huskPrimaries = [];
+
+  for (const primary of primaryEvents) {
+    if (!primary) continue;
+    const merged = Object.assign({}, primary);
+
+    // Canonicalize model on read
+    if (merged.model) {
+      const canonResult = canonicalizeModel(merged.model);
+      if (canonResult !== null) {
+        merged.model = canonResult.canonical;
+      }
+    }
+
+    // Attempt sidecar merge
+    const sidecar = sidecarMap.get(merged.eventId);
+    if (sidecar) {
+      usedSidecarIds.add(merged.eventId);
+      // Merge token fields from sidecar
+      if (sidecar.inputTokens      !== undefined) merged.inputTokens      = sidecar.inputTokens;
+      if (sidecar.outputTokens     !== undefined) merged.outputTokens     = sidecar.outputTokens;
+      if (sidecar.cacheReadTokens  !== undefined) merged.cacheReadTokens  = sidecar.cacheReadTokens;
+      if (sidecar.cacheWriteTokens !== undefined) merged.cacheWriteTokens = sidecar.cacheWriteTokens;
+      if (sidecar.estimatedCostUSD !== undefined) merged.estimatedCostUSD = sidecar.estimatedCostUSD;
+      if (sidecar.tokenSource      !== undefined) merged.tokenSource      = sidecar.tokenSource;
+      if (sidecar.model && !merged.model) merged.model = sidecar.model;
+    }
+
+    // Recompute cost when all four counts are present and model is known
+    if (
+      merged.inputTokens !== undefined &&
+      merged.outputTokens !== undefined &&
+      merged.cacheReadTokens !== undefined &&
+      merged.cacheWriteTokens !== undefined &&
+      merged.model
+    ) {
+      const recomputed = computeCost({
+        inputTokens: merged.inputTokens,
+        outputTokens: merged.outputTokens,
+        cacheReadTokens: merged.cacheReadTokens,
+        cacheWriteTokens: merged.cacheWriteTokens,
+        model: merged.model,
+      });
+      if (recomputed !== null) {
+        merged.estimatedCostUSD = recomputed;
+      }
+    }
+
+    events.push(merged);
+
+    // Classify as husk if no token data after merge
+    if (merged.inputTokens === undefined) {
+      huskPrimaries.push(merged);
+    }
+  }
+
+  // Collect orphan sidecars (no matching primary)
+  const orphanSidecars = sidecars.filter(s => s && s.eventId && !usedSidecarIds.has(s.eventId));
+
+  return { events, orphanSidecars, huskPrimaries };
+}
+
+/**
+ * loadSprintEvents(sprintId)
+ *
+ * Reads primary and sidecar event files for a sprint from the store.
+ * Returns { events, orphanSidecars, huskPrimaries } — see mergeSidecarEvents.
+ *
+ * Primary files: .json files NOT starting with '_'
+ * Sidecar files: .json files starting with '_' and ending with '_usage.json'
+ */
+function loadSprintEvents(sprintId) {
+  const store = _getStore();
+  const allFilenames = store.listEventFilenames(sprintId);
+
+  const primaryFilenames = allFilenames.filter(({ filename }) => !filename.startsWith('_'));
+  const sidecarFilenames = allFilenames.filter(({ filename }) =>
+    filename.startsWith('_') && filename.endsWith('_usage.json')
+  );
+
+  // Read each primary event individually (avoids re-reading sidecars)
+  const primaryEvents = primaryFilenames
+    .map(({ id }) => store.getEvent(id, sprintId))
+    .filter(Boolean);
+
+  // Read sidecar files via getEvent using the id (filename without .json)
+  const sidecars = sidecarFilenames
+    .map(({ id }) => store.getEvent(id, sprintId))
+    .filter(Boolean);
+
+  return mergeSidecarEvents(primaryEvents, sidecars);
+}
+
+/**
+ * buildIngestionQuality(orphanSidecars, huskPrimaries, noTaskEvents, unmappedModels, totalEvents, tokenSourceCounts)
+ *
+ * Builds the "## Ingestion Quality" section for COST_REPORT.md.
+ * Returns a markdown string (without trailing newline; caller adds one).
+ *
+ * @param {object[]} orphanSidecars      - sidecars with no matching primary
+ * @param {object[]} huskPrimaries       - primaries with no token data
+ * @param {object[]} noTaskEvents        - token events with no taskId
+ * @param {string[]} unmappedModels      - raw model strings that did not canonicalize
+ * @param {number}   totalEvents         - total primary events loaded (with and without token data)
+ * @param {{reported: number, estimated: number, missing: number}} tokenSourceCounts - tokenSource tallies
+ */
+function buildIngestionQuality(orphanSidecars, huskPrimaries, noTaskEvents, unmappedModels, totalEvents, tokenSourceCounts) {
+  const lines = ['## Ingestion Quality', ''];
+
+  const orphanCount   = orphanSidecars  ? orphanSidecars.length  : 0;
+  const huskCount     = huskPrimaries   ? huskPrimaries.length   : 0;
+  const noTaskCount   = noTaskEvents    ? noTaskEvents.length    : 0;
+  const unmappedCount = unmappedModels  ? unmappedModels.length  : 0;
+  const total         = (typeof totalEvents === 'number') ? totalEvents : null;
+  const tsc           = tokenSourceCounts || null;
+
+  const hasIssues = orphanCount > 0 || huskCount > 0 || noTaskCount > 0 || unmappedCount > 0;
+
+  if (!hasIssues && total === null && tsc === null) {
+    lines.push('_All events attributed cleanly — no data gaps detected._', '');
+    return lines.join('\n');
+  }
+
+  const rows = [['Metric', 'Count', 'Detail']];
+
+  // Total events row — always rendered when totalEvents is provided
+  if (total !== null) {
+    const withTokenData = total - huskCount;
+    rows.push(['Total events', String(total), `${withTokenData} with token data`]);
+  }
+
+  // Token source breakdown — always rendered when tokenSourceCounts is provided
+  if (tsc !== null) {
+    const reported  = tsc.reported  || 0;
+    const estimated = tsc.estimated || 0;
+    const missing   = tsc.missing   || 0;
+    rows.push(['Token source breakdown', String(reported + estimated + missing), `reported: ${reported}, estimated: ${estimated}, missing: ${missing}`]);
+  }
+
+  if (orphanCount > 0) {
+    const ids = orphanSidecars.map(s => s.eventId || '?').join(', ');
+    rows.push(['Orphan sidecars (no matching primary)', String(orphanCount), ids.length > 80 ? ids.slice(0, 77) + '…' : ids]);
+  }
+
+  if (huskCount > 0) {
+    const ids = huskPrimaries.map(h => h.eventId || '?').join(', ');
+    rows.push(['Primary events with no token data (husks)', String(huskCount), ids.length > 80 ? ids.slice(0, 77) + '…' : ids]);
+  }
+
+  if (noTaskCount > 0) {
+    rows.push(['Primary events with no taskId (no-task)', String(noTaskCount), 'Attributed to "no-task" row in Per-Task Totals']);
+  }
+
+  if (unmappedCount > 0) {
+    const raw = unmappedModels.join(', ');
+    rows.push(['Unmapped model names (cost not recomputed)', String(unmappedCount), raw.length > 80 ? raw.slice(0, 77) + '…' : raw]);
+  }
+
+  lines.push(padTable(rows), '');
+  return lines.join('\n');
+}
+
+/**
+ * buildCostReport(sprint, events, orphanSidecars, huskPrimaries)
+ *
+ * Pure function — builds the full COST_REPORT.md content string for a sprint.
+ *
+ * @param {object} sprint             - sprint record with sprintId and title
+ * @param {object[]} events           - merged primary events (from mergeSidecarEvents)
+ * @param {object[]} orphanSidecars   - sidecars with no matching primary
+ * @param {object[]} huskPrimaries    - primaries with no token data
+ * @returns {string}                  - full markdown content for COST_REPORT.md
+ */
+function buildCostReport(sprint, events, orphanSidecars, huskPrimaries) {
+  const REVIEW_PHASES = new Set(['review', 'review-plan', 'review-code', 'review-implementation']);
+
+  // Only events that have at least inputTokens present
+  const tokenEvents = events.filter(e => e.inputTokens !== undefined);
+
+  const lines = [
+    GENERATED,
+    '',
+    `# Cost Report — ${sprint.sprintId}`,
+    '',
+    `> Generated: ${new Date().toISOString().slice(0, 10)}`,
+    `> Sprint: ${sprint.title || sprint.sprintId}`,
+    '',
+  ];
+
+  // Tally total events and tokenSource counts over all primary events (including husks)
+  const totalEvents = events.length;
+  const tokenSourceCounts = { reported: 0, estimated: 0, missing: 0 };
+  for (const e of events) {
+    if (e.tokenSource === 'reported') tokenSourceCounts.reported++;
+    else if (e.tokenSource === 'estimated') tokenSourceCounts.estimated++;
+    else tokenSourceCounts.missing++;
+  }
+
+  if (tokenEvents.length === 0) {
+    lines.push('_No token data available for this sprint._', '');
+    lines.push(buildIngestionQuality(orphanSidecars || [], huskPrimaries || [], [], [], totalEvents, tokenSourceCounts), '');
+    return lines.join('\n') + '\n';
+  }
+
+  // Collect no-task events and unmapped models for IQ section
+  const noTaskEvents = tokenEvents.filter(e => !e.taskId);
+  const unmappedModels = [];
+  const seenUnmapped = new Set();
+  for (const e of tokenEvents) {
+    if (e.model) {
+      const c = canonicalizeModel(e.model);
+      if (c === null && !seenUnmapped.has(e.model)) {
+        seenUnmapped.add(e.model);
+        unmappedModels.push(e.model);
+      }
+    }
+  }
+
+  // --- Section 1: Per-task totals ---
+  lines.push('## Per-Task Totals', '');
+  {
+    const byTask = {};
+    for (const e of tokenEvents) {
+      const tid = e.taskId || 'no-task';
+      if (!byTask[tid]) byTask[tid] = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0, sources: new Set() };
+      const g = byTask[tid];
+      g.inputTokens     += e.inputTokens     || 0;
+      g.outputTokens    += e.outputTokens    || 0;
+      g.cacheReadTokens += e.cacheReadTokens  || 0;
+      g.cacheWriteTokens+= e.cacheWriteTokens || 0;
+      g.estimatedCostUSD+= e.estimatedCostUSD || 0;
+      g.sources.add(e.tokenSource);
+    }
+    const rows = [['Task', 'Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD', 'Source']];
+    for (const [tid, g] of Object.entries(byTask).sort(([a], [b]) => a.localeCompare(b))) {
+      rows.push([
+        tid,
+        fmtTokens(g.inputTokens),
+        fmtTokens(g.outputTokens),
+        fmtTokens(g.cacheReadTokens),
+        fmtTokens(g.cacheWriteTokens),
+        fmtCost(g.estimatedCostUSD),
+        sourceLabel(g.sources),
+      ]);
+    }
+    lines.push(padTable(rows), '');
+  }
+
+  // --- Section 2: Per-role breakdown ---
+  lines.push('## Per-Role Breakdown', '');
+  {
+    const byRole = {};
+    for (const e of tokenEvents) {
+      const role = e.role || '(unknown)';
+      if (!byRole[role]) byRole[role] = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0 };
+      const g = byRole[role];
+      g.inputTokens     += e.inputTokens     || 0;
+      g.outputTokens    += e.outputTokens    || 0;
+      g.cacheReadTokens += e.cacheReadTokens  || 0;
+      g.cacheWriteTokens+= e.cacheWriteTokens || 0;
+      g.estimatedCostUSD+= e.estimatedCostUSD || 0;
+    }
+    const rows = [['Role', 'Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD']];
+    for (const [role, g] of Object.entries(byRole).sort(([a], [b]) => a.localeCompare(b))) {
+      rows.push([
+        role,
+        fmtTokens(g.inputTokens),
+        fmtTokens(g.outputTokens),
+        fmtTokens(g.cacheReadTokens),
+        fmtTokens(g.cacheWriteTokens),
+        fmtCost(g.estimatedCostUSD),
+      ]);
+    }
+    lines.push(padTable(rows), '');
+  }
+
+  // --- Section 3: Revision waste ---
+  lines.push('## Revision Waste', '');
+  {
+    const revisionEvents = tokenEvents.filter(e => (e.iteration || 1) > 1 && REVIEW_PHASES.has(e.phase));
+    if (revisionEvents.length === 0) {
+      lines.push('_No revision waste in this sprint._', '');
+    } else {
+      const byTask = {};
+      for (const e of revisionEvents) {
+        const tid = e.taskId || 'no-task';
+        if (!byTask[tid]) byTask[tid] = { iterations: new Set(), inputTokens: 0, outputTokens: 0, estimatedCostUSD: 0 };
+        const g = byTask[tid];
+        g.iterations.add(e.iteration);
+        g.inputTokens     += e.inputTokens     || 0;
+        g.outputTokens    += e.outputTokens    || 0;
+        g.estimatedCostUSD+= e.estimatedCostUSD || 0;
+      }
+      const rows = [['Task', 'Revision Iterations', 'Input Tokens', 'Output Tokens', 'Est. Cost USD']];
+      for (const [tid, g] of Object.entries(byTask).sort(([a], [b]) => a.localeCompare(b))) {
+        rows.push([
+          tid,
+          g.iterations.size,
+          fmtTokens(g.inputTokens),
+          fmtTokens(g.outputTokens),
+          fmtCost(g.estimatedCostUSD),
+        ]);
+      }
+      lines.push(padTable(rows), '');
+    }
+  }
+
+  // --- Section 4: Model split ---
+  lines.push('## Model Split', '');
+  {
+    const byModel = {};
+    for (const e of tokenEvents) {
+      const model = e.model || '(unknown)';
+      if (!byModel[model]) byModel[model] = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0 };
+      const g = byModel[model];
+      g.inputTokens     += e.inputTokens     || 0;
+      g.outputTokens    += e.outputTokens    || 0;
+      g.cacheReadTokens += e.cacheReadTokens  || 0;
+      g.cacheWriteTokens+= e.cacheWriteTokens || 0;
+      g.estimatedCostUSD+= e.estimatedCostUSD || 0;
+    }
+    const rows = [['Model', 'Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD']];
+    for (const [model, g] of Object.entries(byModel).sort(([a], [b]) => a.localeCompare(b))) {
+      rows.push([
+        model,
+        fmtTokens(g.inputTokens),
+        fmtTokens(g.outputTokens),
+        fmtTokens(g.cacheReadTokens),
+        fmtTokens(g.cacheWriteTokens),
+        fmtCost(g.estimatedCostUSD),
+      ]);
+    }
+    lines.push(padTable(rows), '');
+  }
+
+  // --- Section 5: Ingestion Quality ---
+  lines.push(buildIngestionQuality(orphanSidecars || [], huskPrimaries || [], noTaskEvents, unmappedModels, totalEvents, tokenSourceCounts), '');
+
+  return lines.join('\n') + '\n';
+}
+
+module.exports = { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex, resolveTaskDir, isBugId, mergeSidecarEvents, buildIngestionQuality, buildCostReport };
 
 // --- CLI ---
 if (require.main === module) {
@@ -523,18 +895,6 @@ if (SPRINT_ARG && targetSprints.length === 0) {
   writeFile(path.join(featRoot, 'INDEX.md'), featLines.join('\n') + '\n');
 }
 
-// --- Load events per sprint ---
-function loadSprintEvents(sprintId) {
-  return _getStore().listEvents(sprintId).map(ev => {
-    // Backfill attribution from filename when absent in JSON
-    // Note: store.listEvents returns objects, but we might need the filename if it's missing
-    // However, the FSImpl.listEvents just maps _readJson, which loses the filename.
-    // To maintain the a-priori filename-based backfill, we need the filename.
-    // Let's check if the store facade can provide it or if we should modify it.
-    return ev;
-  }).filter(Boolean);
-}
-
 // --- Generate Sprint INDEX.md and Task INDEX.md ---
 function availableDocsIn(dir, knownDocs) {
   if (!fs.existsSync(dir)) return [];
@@ -593,7 +953,7 @@ for (const bug of allBugs) {
   // the bug's INDEX.md so the information survives the purge.
   let costTotals;
   if (PURGE_EVENTS && SPRINT_ARG && SPRINT_ARG === bug.bugId) {
-    const events = loadSprintEvents(bug.bugId);
+    const { events } = loadSprintEvents(bug.bugId);
     const tokenEvents = events.filter(e => e.inputTokens !== undefined);
     if (tokenEvents.length > 0) {
       const totals = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0, sources: new Set() };
@@ -621,13 +981,10 @@ for (const bug of allBugs) {
 }
 
 // --- Generate COST_REPORT.md per sprint ---
-const REVIEW_PHASES = new Set(['review', 'review-plan', 'review-code', 'review-implementation']);
 let costReportsWritten = 0;
 
 for (const sprint of targetSprints) {
-  const events = loadSprintEvents(sprint.sprintId);
-  // Only events that have at least inputTokens present
-  const tokenEvents = events.filter(e => e.inputTokens !== undefined);
+  const { events, orphanSidecars, huskPrimaries } = loadSprintEvents(sprint.sprintId);
 
   let sprintDirName;
   if (sprint.path) {
@@ -640,142 +997,9 @@ for (const sprint of targetSprints) {
     );
   }
   const reportPath = path.join(engRoot, 'sprints', sprintDirName, 'COST_REPORT.md');
+  const reportContent = buildCostReport(sprint, events, orphanSidecars, huskPrimaries);
 
-  const lines = [
-    GENERATED,
-    '',
-    `# Cost Report — ${sprint.sprintId}`,
-    '',
-    `> Generated: ${new Date().toISOString().slice(0, 10)}`,
-    `> Sprint: ${sprint.title || sprint.sprintId}`,
-    '',
-  ];
-
-  if (tokenEvents.length === 0) {
-    lines.push('_No token data available for this sprint._', '');
-    writeFile(reportPath, lines.join('\n') + '\n');
-    costReportsWritten++;
-    continue;
-  }
-
-  // --- Section 1: Per-task totals ---
-  lines.push('## Per-Task Totals', '');
-  {
-    const byTask = {};
-    for (const e of tokenEvents) {
-      const tid = e.taskId || '(unknown)';
-      if (!byTask[tid]) byTask[tid] = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0, sources: new Set() };
-      const g = byTask[tid];
-      g.inputTokens     += e.inputTokens     || 0;
-      g.outputTokens    += e.outputTokens    || 0;
-      g.cacheReadTokens += e.cacheReadTokens  || 0;
-      g.cacheWriteTokens+= e.cacheWriteTokens || 0;
-      g.estimatedCostUSD+= e.estimatedCostUSD || 0;
-      g.sources.add(e.tokenSource);
-    }
-    const rows = [['Task', 'Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD', 'Source']];
-    for (const [tid, g] of Object.entries(byTask).sort(([a], [b]) => a.localeCompare(b))) {
-      rows.push([
-        tid,
-        fmtTokens(g.inputTokens),
-        fmtTokens(g.outputTokens),
-        fmtTokens(g.cacheReadTokens),
-        fmtTokens(g.cacheWriteTokens),
-        fmtCost(g.estimatedCostUSD),
-        sourceLabel(g.sources),
-      ]);
-    }
-    lines.push(padTable(rows), '');
-  }
-
-  // --- Section 2: Per-role breakdown ---
-  lines.push('## Per-Role Breakdown', '');
-  {
-    const byRole = {};
-    for (const e of tokenEvents) {
-      const role = e.role || '(unknown)';
-      if (!byRole[role]) byRole[role] = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0 };
-      const g = byRole[role];
-      g.inputTokens     += e.inputTokens     || 0;
-      g.outputTokens    += e.outputTokens    || 0;
-      g.cacheReadTokens += e.cacheReadTokens  || 0;
-      g.cacheWriteTokens+= e.cacheWriteTokens || 0;
-      g.estimatedCostUSD+= e.estimatedCostUSD || 0;
-    }
-    const rows = [['Role', 'Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD']];
-    for (const [role, g] of Object.entries(byRole).sort(([a], [b]) => a.localeCompare(b))) {
-      rows.push([
-        role,
-        fmtTokens(g.inputTokens),
-        fmtTokens(g.outputTokens),
-        fmtTokens(g.cacheReadTokens),
-        fmtTokens(g.cacheWriteTokens),
-        fmtCost(g.estimatedCostUSD),
-      ]);
-    }
-    lines.push(padTable(rows), '');
-  }
-
-  // --- Section 3: Revision waste ---
-  lines.push('## Revision Waste', '');
-  {
-    const revisionEvents = tokenEvents.filter(e => (e.iteration || 1) > 1 && REVIEW_PHASES.has(e.phase));
-    if (revisionEvents.length === 0) {
-      lines.push('_No revision waste in this sprint._', '');
-    } else {
-      const byTask = {};
-      for (const e of revisionEvents) {
-        const tid = e.taskId || '(unknown)';
-        if (!byTask[tid]) byTask[tid] = { iterations: new Set(), inputTokens: 0, outputTokens: 0, estimatedCostUSD: 0 };
-        const g = byTask[tid];
-        g.iterations.add(e.iteration);
-        g.inputTokens     += e.inputTokens     || 0;
-        g.outputTokens    += e.outputTokens    || 0;
-        g.estimatedCostUSD+= e.estimatedCostUSD || 0;
-      }
-      const rows = [['Task', 'Revision Iterations', 'Input Tokens', 'Output Tokens', 'Est. Cost USD']];
-      for (const [tid, g] of Object.entries(byTask).sort(([a], [b]) => a.localeCompare(b))) {
-        rows.push([
-          tid,
-          g.iterations.size,
-          fmtTokens(g.inputTokens),
-          fmtTokens(g.outputTokens),
-          fmtCost(g.estimatedCostUSD),
-        ]);
-      }
-      lines.push(padTable(rows), '');
-    }
-  }
-
-  // --- Section 4: Model split ---
-  lines.push('## Model Split', '');
-  {
-    const byModel = {};
-    for (const e of tokenEvents) {
-      const model = e.model || '(unknown)';
-      if (!byModel[model]) byModel[model] = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0 };
-      const g = byModel[model];
-      g.inputTokens     += e.inputTokens     || 0;
-      g.outputTokens    += e.outputTokens    || 0;
-      g.cacheReadTokens += e.cacheReadTokens  || 0;
-      g.cacheWriteTokens+= e.cacheWriteTokens || 0;
-      g.estimatedCostUSD+= e.estimatedCostUSD || 0;
-    }
-    const rows = [['Model', 'Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD']];
-    for (const [model, g] of Object.entries(byModel).sort(([a], [b]) => a.localeCompare(b))) {
-      rows.push([
-        model,
-        fmtTokens(g.inputTokens),
-        fmtTokens(g.outputTokens),
-        fmtTokens(g.cacheReadTokens),
-        fmtTokens(g.cacheWriteTokens),
-        fmtCost(g.estimatedCostUSD),
-      ]);
-    }
-    lines.push(padTable(rows), '');
-  }
-
-  writeFile(reportPath, lines.join('\n') + '\n');
+  writeFile(reportPath, reportContent);
   costReportsWritten++;
 }
 

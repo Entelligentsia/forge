@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex, resolveTaskDir, isBugId } = require('../collate.cjs');
+const { statusBadge, padTable, fmtTokens, fmtCost, sourceLabel, GENERATED, buildSprintIndex, buildTaskIndex, buildBugIndex, resolveTaskDir, isBugId, mergeSidecarEvents, buildIngestionQuality, buildCostReport } = require('../collate.cjs');
 
 describe('collate.cjs — statusBadge', () => {
   test('completed returns badge with status name', () => {
@@ -495,5 +495,341 @@ describe('collate.cjs — buildBugIndex with cost aggregation', () => {
     assert.ok(result.includes('Cache Write'), 'should include Cache Write column');
     assert.ok(result.includes('Est. Cost USD'), 'should include Est. Cost USD column');
     assert.ok(result.includes('Source'), 'should include Source column');
+  });
+});
+
+// ============================================================
+// New tests for FORGE-S13-T12 — sidecar merge, IQ section
+// ============================================================
+
+describe('collate.cjs — mergeSidecarEvents', () => {
+  const primaryA = {
+    eventId: 'evt-001',
+    taskId: 'TST-S01-T01',
+    sprintId: 'TST-S01',
+    role: 'engineer',
+    phase: 'implement',
+    model: 'claude-sonnet-4-6',
+  };
+  const primaryB = {
+    eventId: 'evt-002',
+    taskId: 'TST-S01-T02',
+    sprintId: 'TST-S01',
+    role: 'engineer',
+    phase: 'implement',
+    model: 'claude-haiku-3-5',
+  };
+  const sidecarA = {
+    eventId: 'evt-001',
+    inputTokens: 10000,
+    outputTokens: 2000,
+    cacheReadTokens: 5000,
+    cacheWriteTokens: 1000,
+    estimatedCostUSD: 0.05,
+  };
+  const orphanSidecar = {
+    eventId: 'evt-orphan',
+    inputTokens: 3000,
+    outputTokens: 500,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    estimatedCostUSD: 0.01,
+  };
+
+  test('merges sidecar token fields onto matching primary by eventId', () => {
+    const result = mergeSidecarEvents([primaryA, primaryB], [sidecarA]);
+    assert.ok(result.events, 'result should have events array');
+    const merged = result.events.find(e => e.eventId === 'evt-001');
+    assert.ok(merged, 'evt-001 should be in events');
+    assert.equal(merged.inputTokens, 10000, 'inputTokens should be merged from sidecar');
+    assert.equal(merged.outputTokens, 2000, 'outputTokens should be merged from sidecar');
+    assert.equal(merged.cacheReadTokens, 5000, 'cacheReadTokens should be merged from sidecar');
+    assert.equal(merged.cacheWriteTokens, 1000, 'cacheWriteTokens should be merged from sidecar');
+  });
+
+  test('unmatched primary (no sidecar) becomes a husk — listed in huskPrimaries', () => {
+    const result = mergeSidecarEvents([primaryA, primaryB], [sidecarA]);
+    assert.ok(result.huskPrimaries, 'result should have huskPrimaries array');
+    const husk = result.huskPrimaries.find(e => e.eventId === 'evt-002');
+    assert.ok(husk, 'evt-002 (no sidecar) should be in huskPrimaries');
+  });
+
+  test('orphan sidecar (no matching primary) is listed in orphanSidecars', () => {
+    const result = mergeSidecarEvents([primaryA], [sidecarA, orphanSidecar]);
+    assert.ok(result.orphanSidecars, 'result should have orphanSidecars array');
+    const orphan = result.orphanSidecars.find(e => e.eventId === 'evt-orphan');
+    assert.ok(orphan, 'evt-orphan should be in orphanSidecars');
+  });
+
+  test('orphan sidecar does NOT appear in events array', () => {
+    const result = mergeSidecarEvents([primaryA], [sidecarA, orphanSidecar]);
+    const inEvents = result.events.find(e => e.eventId === 'evt-orphan');
+    assert.equal(inEvents, undefined, 'orphan sidecar should not be in events');
+  });
+
+  test('merged primary retains original non-token fields', () => {
+    const result = mergeSidecarEvents([primaryA], [sidecarA]);
+    const merged = result.events.find(e => e.eventId === 'evt-001');
+    assert.equal(merged.taskId, 'TST-S01-T01', 'taskId should be preserved');
+    assert.equal(merged.role, 'engineer', 'role should be preserved');
+    assert.equal(merged.model, 'claude-sonnet-4-6', 'model should be preserved');
+  });
+
+  test('merged primary is included in events (not in huskPrimaries)', () => {
+    const result = mergeSidecarEvents([primaryA], [sidecarA]);
+    const inHusk = result.huskPrimaries.find(e => e.eventId === 'evt-001');
+    assert.equal(inHusk, undefined, 'merged primary should NOT be in huskPrimaries');
+    const inEvents = result.events.find(e => e.eventId === 'evt-001');
+    assert.ok(inEvents, 'merged primary should be in events');
+  });
+
+  test('no sidecars: all primaries become husks', () => {
+    const result = mergeSidecarEvents([primaryA, primaryB], []);
+    assert.equal(result.events.length, 2, 'all primaries appear in events');
+    assert.equal(result.huskPrimaries.length, 2, 'all primaries are husks with no sidecars');
+    assert.equal(result.orphanSidecars.length, 0, 'no orphans with no sidecars');
+  });
+
+  test('no primaries: all sidecars become orphans', () => {
+    const result = mergeSidecarEvents([], [sidecarA, orphanSidecar]);
+    assert.equal(result.events.length, 0, 'no events with no primaries');
+    assert.equal(result.orphanSidecars.length, 2, 'all sidecars are orphans with no primaries');
+    assert.equal(result.huskPrimaries.length, 0, 'no husks with no primaries');
+  });
+
+  test('recomputes estimatedCostUSD when all four counts are present and model is known', () => {
+    const primary = {
+      eventId: 'evt-recompute',
+      taskId: 'TST-S01-T01',
+      model: 'claude-sonnet-4-6',
+    };
+    const sidecar = {
+      eventId: 'evt-recompute',
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      estimatedCostUSD: 999.99, // fabricated — should be overwritten
+    };
+    const result = mergeSidecarEvents([primary], [sidecar]);
+    const merged = result.events.find(e => e.eventId === 'evt-recompute');
+    assert.ok(merged, 'merged event should exist');
+    // sonnet-4-6: input $3/MTok + output $15/MTok = $18 for 1M each
+    assert.ok(Math.abs(merged.estimatedCostUSD - 18.0) < 0.01, `cost should be ~18.00, got ${merged.estimatedCostUSD}`);
+  });
+
+  test('canonicalizes model name on primary event (fragmented name → canonical)', () => {
+    const primary = {
+      eventId: 'evt-canon',
+      taskId: 'TST-S01-T01',
+      model: 'claude-sonnet-4-6-1m', // non-canonical variant
+    };
+    const sidecar = {
+      eventId: 'evt-canon',
+      inputTokens: 1000,
+      outputTokens: 500,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      estimatedCostUSD: 0.01,
+    };
+    const result = mergeSidecarEvents([primary], [sidecar]);
+    const merged = result.events.find(e => e.eventId === 'evt-canon');
+    assert.ok(merged, 'merged event should exist');
+    assert.equal(merged.model, 'claude-sonnet-4-6', 'model should be canonicalized');
+  });
+});
+
+describe('collate.cjs — buildIngestionQuality', () => {
+  const orphans = [
+    { eventId: 'orphan-1', inputTokens: 100, outputTokens: 50, cacheReadTokens: 0, cacheWriteTokens: 0 },
+  ];
+  const husks = [
+    { eventId: 'husk-1', taskId: 'TST-S01-T01' },
+    { eventId: 'husk-2', taskId: 'TST-S01-T02' },
+  ];
+  const noTaskEvents = [
+    { eventId: 'notask-1' },
+  ];
+  const unmappedModels = ['some-mystery-model-7-8'];
+
+  test('renders Ingestion Quality section heading', () => {
+    const result = buildIngestionQuality(orphans, husks, noTaskEvents, unmappedModels);
+    assert.ok(result.includes('Ingestion Quality'), 'should include Ingestion Quality heading');
+  });
+
+  test('shows orphan sidecar count', () => {
+    const result = buildIngestionQuality(orphans, husks, noTaskEvents, unmappedModels);
+    assert.ok(result.includes('1'), 'should show orphan count');
+    assert.ok(result.includes('orphan') || result.includes('Orphan'), 'should mention orphan(s)');
+  });
+
+  test('shows husk primary count', () => {
+    const result = buildIngestionQuality(orphans, husks, noTaskEvents, unmappedModels);
+    assert.ok(result.includes('2'), 'should show husk count');
+    assert.ok(result.includes('husk') || result.includes('Husk') || result.includes('no token'), 'should mention husks or no-token primaries');
+  });
+
+  test('shows no-task event count', () => {
+    const result = buildIngestionQuality(orphans, husks, noTaskEvents, unmappedModels);
+    assert.ok(result.includes('no-task') || result.includes('no task') || result.includes('No task'), 'should mention no-task events');
+  });
+
+  test('shows unmapped model names', () => {
+    const result = buildIngestionQuality(orphans, husks, noTaskEvents, unmappedModels);
+    assert.ok(result.includes('some-mystery-model-7-8'), 'should show the raw unmapped model string');
+  });
+
+  test('renders cleanly with all-zero counts', () => {
+    const result = buildIngestionQuality([], [], [], []);
+    assert.ok(result.includes('Ingestion Quality'), 'should still render section heading with no issues');
+  });
+
+  test('renders total events count and token-with-data detail', () => {
+    // 5 total events, 2 husks → 3 with token data
+    const husks2 = [{ eventId: 'husk-1' }, { eventId: 'husk-2' }];
+    const tsc = { reported: 2, estimated: 1, missing: 2 };
+    const result = buildIngestionQuality([], husks2, [], [], 5, tsc);
+    assert.ok(result.includes('Total events'), 'should include Total events row label');
+    assert.ok(result.includes('5'), 'should show total event count of 5');
+    assert.ok(result.includes('3 with token data'), 'should show derived token-data count (total - husks)');
+  });
+
+  test('renders tokenSource breakdown with all three sources', () => {
+    const tsc = { reported: 10, estimated: 3, missing: 2 };
+    const result = buildIngestionQuality([], [], [], [], 15, tsc);
+    assert.ok(result.includes('Token source breakdown'), 'should include Token source breakdown row label');
+    assert.ok(result.includes('reported: 10'), 'should show reported count');
+    assert.ok(result.includes('estimated: 3'), 'should show estimated count');
+    assert.ok(result.includes('missing: 2'), 'should show missing count');
+  });
+
+  test('renders total events and tokenSource rows even when no other issues (no-task scenario)', () => {
+    // Simulate a clean run with total/tsc provided but no orphans/husks/unmapped
+    const tsc = { reported: 7, estimated: 0, missing: 1 };
+    const result = buildIngestionQuality([], [], [], [], 8, tsc);
+    assert.ok(result.includes('Total events'), 'should include Total events row');
+    assert.ok(result.includes('Token source breakdown'), 'should include Token source breakdown row');
+    // The "all clean" short-circuit must NOT fire when totalEvents/tsc are provided
+    assert.ok(!result.includes('All events attributed cleanly'), 'should not show clean short-circuit message when metrics are present');
+  });
+});
+
+describe('collate.cjs — buildCostReport', () => {
+  const sprint = { sprintId: 'TST-S01', title: 'Test Sprint' };
+
+  // Two events with token data (merged primaries)
+  const eventT1 = {
+    eventId: 'evt-t1',
+    taskId: 'TST-S01-T01',
+    role: 'engineer',
+    phase: 'implement',
+    model: 'claude-sonnet-4-6',
+    inputTokens: 100_000,
+    outputTokens: 20_000,
+    cacheReadTokens: 50_000,
+    cacheWriteTokens: 5_000,
+    estimatedCostUSD: 0.50,
+    tokenSource: 'reported',
+  };
+  const eventT2 = {
+    eventId: 'evt-t2',
+    taskId: 'TST-S01-T02',
+    role: 'reviewer',
+    phase: 'review-code',
+    model: 'claude-haiku-3-5',
+    inputTokens: 30_000,
+    outputTokens: 5_000,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    estimatedCostUSD: 0.05,
+    tokenSource: 'reported',
+  };
+
+  // Event missing taskId
+  const eventNoTask = {
+    eventId: 'evt-notask',
+    role: 'engineer',
+    phase: 'implement',
+    model: 'claude-haiku-3-5',
+    inputTokens: 5_000,
+    outputTokens: 1_000,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    estimatedCostUSD: 0.01,
+  };
+
+  const orphans = [];
+  const husks = [{ eventId: 'evt-husk', taskId: 'TST-S01-T03' }];
+
+  test('includes GENERATED marker', () => {
+    const result = buildCostReport(sprint, [eventT1, eventT2], orphans, husks);
+    assert.ok(result.includes('GENERATED'), 'should include GENERATED marker');
+  });
+
+  test('includes Per-Task Totals section', () => {
+    const result = buildCostReport(sprint, [eventT1, eventT2], orphans, husks);
+    assert.ok(result.includes('Per-Task Totals'), 'should include Per-Task Totals section');
+    assert.ok(result.includes('TST-S01-T01'), 'should include first task ID');
+    assert.ok(result.includes('TST-S01-T02'), 'should include second task ID');
+  });
+
+  test('does NOT contain (unknown) task identifier row when all events have taskId', () => {
+    const result = buildCostReport(sprint, [eventT1, eventT2], orphans, husks);
+    // Check no row has (unknown) as first column (task identifier)
+    const lines = result.split('\n');
+    const taskRows = lines.filter(l => l.startsWith('| ') && !l.startsWith('| Task') && !l.startsWith('| ---')
+      && !l.startsWith('| Role') && !l.startsWith('| Model') && !l.startsWith('| Metric'));
+    const hasUnknownTask = taskRows.some(l => {
+      const firstCol = l.split('|')[1];
+      return firstCol && firstCol.trim() === '(unknown)';
+    });
+    assert.ok(!hasUnknownTask, 'should NOT have (unknown) as a task identifier');
+  });
+
+  test('contains no-task row when events with missing taskId are present', () => {
+    const result = buildCostReport(sprint, [eventT1, eventNoTask], orphans, husks);
+    assert.ok(result.includes('no-task'), 'should contain no-task row for events without taskId');
+    // (unknown) should NOT appear as a task identifier (first column).
+    // It may still appear in the Source column as a sourceLabel value, which is acceptable.
+    const lines = result.split('\n');
+    const taskRows = lines.filter(l => l.startsWith('| ') && !l.startsWith('| Task') && !l.startsWith('| ---'));
+    const hasUnknownTask = taskRows.some(l => {
+      // Extract the first column (Task column)
+      const firstCol = l.split('|')[1];
+      return firstCol && firstCol.trim() === '(unknown)';
+    });
+    assert.ok(!hasUnknownTask, 'should NOT have (unknown) as a task identifier — events without taskId should use no-task');
+  });
+
+  test('includes Per-Role Breakdown section', () => {
+    const result = buildCostReport(sprint, [eventT1, eventT2], orphans, husks);
+    assert.ok(result.includes('Per-Role Breakdown'), 'should include Per-Role Breakdown section');
+    assert.ok(result.includes('engineer'), 'should include engineer role');
+    assert.ok(result.includes('reviewer'), 'should include reviewer role');
+  });
+
+  test('includes Model Split section with canonical model names', () => {
+    const result = buildCostReport(sprint, [eventT1, eventT2], orphans, husks);
+    assert.ok(result.includes('Model Split'), 'should include Model Split section');
+    assert.ok(result.includes('claude-sonnet-4-6'), 'should include canonical sonnet name');
+    assert.ok(result.includes('claude-haiku-3-5'), 'should include canonical haiku name');
+  });
+
+  test('includes Ingestion Quality section', () => {
+    const result = buildCostReport(sprint, [eventT1, eventT2], orphans, husks);
+    assert.ok(result.includes('Ingestion Quality'), 'should include Ingestion Quality section');
+  });
+
+  test('is idempotent: running twice on same input produces identical output (body)', () => {
+    const result1 = buildCostReport(sprint, [eventT1, eventT2], orphans, husks);
+    const result2 = buildCostReport(sprint, [eventT1, eventT2], orphans, husks);
+    // Strip the Generated: date line to avoid timestamp false-positives
+    const stripGenerated = s => s.replace(/^> Generated: .+$/m, '> Generated: <date>');
+    assert.equal(stripGenerated(result1), stripGenerated(result2), 'report should be idempotent');
+  });
+
+  test('handles no token events gracefully', () => {
+    const result = buildCostReport(sprint, [], [], []);
+    assert.ok(result.includes('No token data'), 'should handle no token events');
   });
 });
