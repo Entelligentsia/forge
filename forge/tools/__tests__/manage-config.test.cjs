@@ -332,4 +332,113 @@ describe('manage-config.cjs', () => {
     });
   });
 
+  // ── FR-010: resolve-forge-root subcommand ────────────────────────────────
+
+  describe('CLI resolve-forge-root (FR-010)', () => {
+    const { spawnSync } = require('child_process');
+
+    function makeTmpProject(config) {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-resolve-test-'));
+      fs.mkdirSync(path.join(dir, '.forge'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, '.forge', 'config.json'),
+        JSON.stringify(config, null, 2) + '\n',
+        'utf8'
+      );
+      return dir;
+    }
+
+    test('resolves to CLAUDE_PLUGIN_ROOT when env var is set and directory exists', () => {
+      const tmp = makeTmpProject({ paths: { forgeRef: '0.40.2', forgeRoot: '/tmp/deprecated' } });
+      // Create a mock plugin directory with plugin.json
+      const pluginDir = path.join(tmp, 'mock-plugin');
+      const pluginJsonDir = path.join(pluginDir, '.claude-plugin');
+      fs.mkdirSync(pluginJsonDir, { recursive: true });
+      fs.writeFileSync(path.join(pluginJsonDir, 'plugin.json'), JSON.stringify({ version: '0.40.2' }), 'utf8');
+
+      try {
+        const result = spawnSync(
+          process.execPath,
+          [path.join(__dirname, '..', 'manage-config.cjs'), 'resolve-forge-root'],
+          { cwd: tmp, encoding: 'utf8', env: { ...process.env, CLAUDE_PLUGIN_ROOT: pluginDir } }
+        );
+        assert.strictEqual(result.status, 0, `resolve-forge-root must exit 0. stderr: ${result.stderr}`);
+        assert.strictEqual(result.stdout.trim(), pluginDir, 'should resolve to CLAUDE_PLUGIN_ROOT');
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    test('falls back to forgeRoot when CLAUDE_PLUGIN_ROOT is not set and forgeRef has no cache match', () => {
+      const forgeRoot = '/tmp/some/fallback/path';
+      const tmp = makeTmpProject({ paths: { forgeRoot } });
+      try {
+        const result = spawnSync(
+          process.execPath,
+          [path.join(__dirname, '..', 'manage-config.cjs'), 'resolve-forge-root'],
+          { cwd: tmp, encoding: 'utf8', env: { ...process.env, CLAUDE_PLUGIN_ROOT: '' } }
+        );
+        assert.strictEqual(result.status, 0, `resolve-forge-root must exit 0. stderr: ${result.stderr}`);
+        assert.strictEqual(result.stdout.trim(), forgeRoot, 'should fall back to forgeRoot');
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    test('exits 1 when neither CLAUDE_PLUGIN_ROOT nor forgeRoot is available', () => {
+      const tmp = makeTmpProject({ paths: {} });
+      try {
+        const result = spawnSync(
+          process.execPath,
+          [path.join(__dirname, '..', 'manage-config.cjs'), 'resolve-forge-root'],
+          { cwd: tmp, encoding: 'utf8', env: { ...process.env, CLAUDE_PLUGIN_ROOT: '' } }
+        );
+        assert.strictEqual(result.status, 1, 'should exit 1 when no resolution path exists');
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    test('resolves forgeRef from cache directory when CLAUDE_PLUGIN_ROOT is not set', () => {
+      const forgeRoot = '/tmp/deprecated/path';
+      const version = '0.40.2';
+      const tmp = makeTmpProject({ paths: { forgeRef: version, forgeRoot } });
+
+      // Create a mock cache directory with plugin.json
+      const homeDir = os.homedir();
+      const cacheDir = path.join(homeDir, '.claude', 'plugins', 'cache', 'forge', 'forge', version);
+      const pluginJsonDir = path.join(cacheDir, '.claude-plugin');
+      const pluginJsonPath = path.join(pluginJsonDir, 'plugin.json');
+      let createdCache = false;
+
+      try {
+        // Only create if it doesn't exist (avoid clobbering real installs)
+        if (!fs.existsSync(pluginJsonPath)) {
+          fs.mkdirSync(pluginJsonDir, { recursive: true });
+          fs.writeFileSync(pluginJsonPath, JSON.stringify({ version }), 'utf8');
+          createdCache = true;
+        }
+
+        const result = spawnSync(
+          process.execPath,
+          [path.join(__dirname, '..', 'manage-config.cjs'), 'resolve-forge-root'],
+          { cwd: tmp, encoding: 'utf8', env: { ...process.env, CLAUDE_PLUGIN_ROOT: '' } }
+        );
+        assert.strictEqual(result.status, 0, `resolve-forge-root must exit 0. stderr: ${result.stderr}`);
+        assert.ok(result.stdout.trim().includes(version), `output should contain version ${version}: got "${result.stdout.trim()}"`);
+      } finally {
+        // Clean up test-created cache entries
+        if (createdCache) {
+          try {
+            fs.rmSync(path.join(pluginJsonDir, 'plugin.json'), { force: true });
+            // Try to remove empty dirs but don't fail if they have other contents
+            try { fs.rmdirSync(pluginJsonDir); } catch {}
+            try { fs.rmdirSync(cacheDir); } catch {}
+          } catch {}
+        }
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+  });
+
 });

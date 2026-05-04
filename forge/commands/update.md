@@ -118,6 +118,32 @@ strips ANSI in `NO_COLOR` / non-tty / `--plain` contexts.
 
 ---
 
+## Resume Detection (FR-002)
+
+Before Step 1, check whether a previous update left the project in a Pending
+state. Read `.forge/update-check-cache.json` and check the `updateStatus` field.
+
+If `updateStatus === "pending"`:
+
+1. Print the pending state:
+   ```
+   △ Previous update is incomplete — pending migration(s): {pendingMigrations}
+     Reason: {pendingReason}
+
+     Run /forge:migrate to complete the pending migration, then re-run
+     /forge:update to verify.
+   ```
+
+2. Do NOT proceed to Step 1 (remote version check) or Steps 2A, 2B, 3 — these
+   were completed in the previous run. The project already has the correct
+   plugin version installed; only the migration chain remains.
+
+3. Exit. The user runs `/forge:migrate` to complete, then re-runs `/forge:update`.
+
+If `updateStatus !== "pending"` (or field absent): proceed normally with Step 1.
+
+---
+
 ## Step 1 — Check for updates
 
 ```sh
@@ -450,6 +476,15 @@ node "$FORGE_ROOT/tools/banners.cjs" --phase 4 7 "Apply migrations" forge \
 node "$FORGE_ROOT/tools/manage-config.cjs" set paths.forgeRoot "$FORGE_ROOT"
 ```
 
+**Write `paths.forgeRef` (FR-010):** Also write the installed plugin version
+as `paths.forgeRef` to config. This makes the config portable across machines —
+`forgeRef` is a version string rather than an absolute path:
+
+```sh
+LOCAL_VERSION=$(node -e "console.log(require('$FORGE_ROOT/.claude-plugin/plugin.json').version)")
+node "$FORGE_ROOT/tools/manage-config.cjs" set paths.forgeRef "$LOCAL_VERSION"
+```
+
 Determine the baseline version:
 - Use `migratedFrom` from `CACHE_FILE` (set in Step 1)
 - Or the `--from <version>` argument if provided
@@ -524,6 +559,46 @@ filenames. All other targets are independent and could run in parallel, but
 are executed sequentially here to keep the output readable.
 
 Only execute targets that appear in the aggregated result — skip absent ones.
+
+### Subagent probe (FR-009)
+
+Before offering the regeneration confirmation prompt, probe whether subagent
+dispatch will succeed in this session.
+
+**Probe step:** Attempt to invoke a lightweight read-only command via the Skill
+tool: call `skill: "forge:health"` with no arguments. This is a read-only
+operation that checks knowledge base currency — it cannot modify any state and
+is safe to invoke as a probe.
+
+**Success determination:** If the Skill tool call returns without error (exit 0
+or a normal response), the probe succeeds. Note that subagent dispatch is
+available.
+
+**Failure determination:** If the Skill tool call is unavailable (tool not
+found), returns a permission error, or returns any unexpected error, the probe
+fails. Note that subagent dispatch is not available in this session.
+
+If the probe fails:
+- Warn explicitly: "Subagent dispatch is not available in this session.
+  Regeneration will run inline (in the current session)."
+- If the A/B/C regeneration choice is offered (Step 2A), mark option A
+  (regenerate now) as "will fall back to inline execution" or remove it
+  entirely if option B (defer to fresh session) is safer.
+
+**Mid-orchestration failure handling:** If a regeneration sub-step dispatches
+via Agent tool and the agent fails mid-execution:
+- Do NOT silently fall back to inline execution.
+- Re-prompt the user with the failure details and three explicit options:
+  - **(a) Retry:** Re-attempt the failed step using the Agent tool.
+  - **(b) Defer:** Skip remaining steps. Mark the update as Pending with a
+    reason noting the subagent failure. The user can complete remaining steps
+    in a fresh session.
+  - **(c) Skip:** Skip the failed step (with warning that some generated
+    artifacts may be missing), continue with remaining steps inline.
+
+**Success report flagging:** In the Step 6 summary, include a line:
+`Subagent isolation: {used | bypassed (inline)}` to make it clear which mode
+was used.
 
 ### Confirm and regenerate
 
@@ -616,15 +691,42 @@ from the migration path, or Step 4 was entered with `baseline == LOCAL_VERSION`)
    ```sh
    node -e "const crypto=require('crypto'),fs=require('fs'); const lines=fs.readFileSync('${KB_PATH}/MASTER_INDEX.md','utf8').split('\n').filter(l=>l.trim()&&!l.trim().startsWith('<!--')); console.log(crypto.createHash('sha256').update(lines.join('\n')).digest('hex'))"
    ```
-4. List done sprint IDs from `.forge/store/sprints/`:
+4. List done sprint IDs from `.forge/store/sprints/` using union-merge
+   (FR-003: cumulative provenance — `sprintsCovered` must never shrink):
    ```sh
    node -e "const fs=require('fs'),p='.forge/store/sprints'; try{const files=fs.readdirSync(p).filter(f=>f.endsWith('.json')); const done=files.map(f=>JSON.parse(fs.readFileSync(p+'/'+f,'utf8'))).filter(s=>['done','retrospective-done'].includes(s.status)).map(s=>s.sprintId); console.log(JSON.stringify(done));}catch(e){console.log('[]')}"
    ```
 5. Today's ISO date: `date -u +"%Y-%m-%d"`
-6. Merge into config:
+6. **Union-merge `sprintsCovered`** (FR-003): read the existing
+   `calibrationBaseline.sprintsCovered` from config, compute the union with
+   the current done sprint IDs:
    ```sh
-   node -e "const fs=require('fs'); const cfg=JSON.parse(fs.readFileSync('.forge/config.json','utf8')); cfg.calibrationBaseline={lastCalibrated:'<date>',version:'<ver>',masterIndexHash:'<hash>',sprintsCovered:<array>}; fs.writeFileSync('.forge/config.json',JSON.stringify(cfg,null,2)+'\n')"
+   node -e "
+   const fs = require('fs');
+   const cfg = JSON.parse(fs.readFileSync('.forge/config.json','utf8'));
+   const existing = new Set(cfg.calibrationBaseline ? cfg.calibrationBaseline.sprintsCovered || [] : []);
+   const current = new Set(<computed done sprint IDs from step 4>);
+   const merged = [...new Set([...existing, ...current])];
+   const cfg2 = JSON.parse(fs.readFileSync('.forge/config.json','utf8'));
+   cfg2.calibrationBaseline = {
+     lastCalibrated: '<date>',
+     version: '<ver>',
+     masterIndexHash: '<hash>',
+     sprintsCovered: merged
+   };
+   fs.writeFileSync('.forge/config.json', JSON.stringify(cfg2, null, 2) + '\n');
+   "
    ```
+   If the existing `sprintsCovered` array was shrunk in a prior version (i.e. the
+   existing array is shorter than a heuristic would suggest), perform a **backfill
+   scan** before the union-merge. Broaden the scan to include sprints with these
+   terminal and historical status values: `done`, `retrospective-done`, `completed`,
+   `partially-completed`, and `abandoned`. These statuses cover: (a) the current
+   canonical terminal statuses (`done`, `retrospective-done`); (b) `completed`,
+   which was the pre-v0.40 status for what became `retrospective-done`;
+   (c) `partially-completed` and `abandoned`, which represent sprints whose outcomes
+   may still have been included in a prior calibration baseline. Present the
+   recovered array for user confirmation before writing.
 
 Emit: `〇 calibrationBaseline refreshed — version <ver>, hash <first-8-chars-of-hash>...`
 
@@ -661,6 +763,95 @@ node "$FORGE_ROOT/tools/build-context-pack.cjs" \
 - Exit 1: warn (non-fatal — architecture directory may not yet exist for new projects)
 
 Full Step 4 post-migration sequence: regenerate → structure check → calibrationBaseline refresh → pack rebuild.
+
+### Migration completion gate (FR-002)
+
+After the post-migration pack rebuild, evaluate the migration chain against the
+ADR-S14-01 decision criteria to determine the update outcome:
+
+**Low-risk classification** (all of these must be true for the step):
+- `breaking: false` or `breaking` field absent
+- No `manual` items (or all `manual` items resolved by model-alias auto-suppression)
+- No net-new `.forge/` files requiring user-provided data
+- No changes to `calibrationBaseline` semantics
+
+Concretely, a low-risk step is one where the only actions are: schema-only
+changes (`/forge:update-tools` for schemas), file-copy from base-pack
+(templates, workflows, personas), or config-key additions with deterministic
+defaults.
+
+**User-affecting classification** (any of these triggers Pending for the
+entire chain):
+- `breaking: true`
+- `manual` items present after auto-suppression
+- Net-new `.forge/` files requiring user-provided data (e.g.
+  `project-context.json`)
+- Changes to `calibrationBaseline` semantics (e.g. `sprintsCovered` reduction)
+
+#### Auto-invoke deterministic path (ADR-S14-01 D6)
+
+If all migration steps are low-risk, auto-invoke the deterministic migration
+path inline within Step 4, after regeneration targets and `check-structure.cjs`
+pass:
+
+1. Check whether the migration chain includes any net-new `.forge/` files not
+   covered by the `regenerate` targets. If none, skip to the normal
+   post-migration sequence (calibrationBaseline refresh, pack rebuild) — the
+   auto-invoke is a no-op.
+
+2. If net-new files exist and the migration is low-risk, execute the
+   deterministic migration path:
+   - **Structural migration (Step 0 of `migrate.md`):** run
+     `check-structure.cjs` to detect whether `structure-versions.json` is
+     absent (indicating a pre-T05 install). If absent, read and follow
+     `$FORGE_ROOT/meta/workflows/meta-migrate.md` Phase 0 through Phase 1
+     (extraction) and Phase 2 (confirmation), then Phase 3 (write) — but ONLY
+     the deterministic file-copy operations (archive, substitute, register).
+     **Do NOT execute the interactive interview (Phase 1 extraction that
+     requires user input, or Phase 2 confirmation).** The auto-invoke path
+     only performs operations that can be completed without any user prompts.
+   - **Deterministic file copies from base-pack:** if
+     `structure-versions.json` already exists (post-T05 install), the
+     deterministic path is simply running any remaining `/forge:regenerate`
+     targets that were not already applied in the main Step 4 regeneration
+     sequence.
+
+3. If the deterministic migration path completes successfully, proceed to the
+   normal Step 4 post-migration sequence (calibrationBaseline refresh, pack
+   rebuild).
+
+4. **Fallback to Pending:** If the deterministic migration path fails at any
+   point (e.g. `check-structure.cjs` reports missing files after auto-invoke,
+   a tool exits non-zero, or an unexpected requirement for user input is
+   detected), immediately fall back to the Pending state:
+   - Do NOT bump `calibrationBaseline.version`.
+   - Write `updateStatus: "pending"`, `pendingReason: "Auto-invoke failed:
+     {error description}"`, and `pendingMigrations: [list]` to
+     `.forge/update-check-cache.json`.
+   - Print: "Update Pending — auto-invoke failed. Run `/forge:migrate` to
+     complete" with the failure details.
+   - Exit without proceeding to Steps 5-7.
+
+**Key invariant (from ADR-S14-01 D6):** The auto-invoke never prompts the user
+for migration decisions. If any migration step needs user input, the entire
+chain is classified as user-affecting and enters Pending.
+
+#### User-affecting path — Pending state
+
+If any step is user-affecting (and the chain was NOT auto-invoked), enter the
+**Pending** state:
+- Do NOT bump `calibrationBaseline.version`.
+- Write `updateStatus: "pending"`, `pendingReason`, and `pendingMigrations` to
+  `.forge/update-check-cache.json`.
+- Print: "Update Pending — run `/forge:migrate` to complete" with the list of
+  pending migrations and next steps.
+- Exit without proceeding to Steps 5-7.
+
+#### Update Complete path
+
+On the "Update Complete" path (all migrations applied,
+`check-structure.cjs` passes): set `updateStatus: "complete"`,
+`pendingReason: null`, `pendingMigrations: []` in the cache file.
 
 ### Iron Laws for Step 4
 
@@ -1078,14 +1269,15 @@ node "$FORGE_ROOT/tools/banners.cjs" --phase 6 7 "Record state" drift \
   "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
 ```
 
-> **Note:** `paths.forgeRoot` was already written at the start of Step 4. Step 6
-> does not repeat that write — it records migration state only.
+> **Note:** `paths.forgeRoot` and `paths.forgeRef` were already written at the start
+> of Step 4. Step 6 does not repeat those writes — it records migration state only.
 
 **Write `.forge/update-check-cache.json`** to record the completed migration.
 Read the existing file if present, update `migratedFrom`, `localVersion`,
-`distribution`, and `forgeRoot`, then write it back. Use the Write or Edit
-tool — do not run a shell command for this step. The `.forge/` directory always
-exists at this point (it was checked earlier), so no `mkdir -p` is needed.
+`distribution`, `forgeRoot`, `forgeRef`, `updateStatus`, `pendingReason`, and
+`pendingMigrations`, then write it back. Use the Write or Edit tool — do not run
+a shell command for this step. The `.forge/` directory always exists at this
+point (it was checked earlier), so no `mkdir -p` is needed.
 
 If the file does not exist, create it with:
 ```json
@@ -1093,9 +1285,17 @@ If the file does not exist, create it with:
   "migratedFrom": "<LOCAL_VERSION>",
   "localVersion": "<LOCAL_VERSION>",
   "distribution": "<DISTRIBUTION>",
-  "forgeRoot": "<FORGE_ROOT>"
+  "forgeRoot": "<FORGE_ROOT>",
+  "forgeRef": "<LOCAL_VERSION>",
+  "updateStatus": "complete",
+  "pendingReason": null,
+  "pendingMigrations": []
 }
 ```
+
+On the Update Complete path, `updateStatus` is `"complete"`, `pendingReason` is
+`null`, and `pendingMigrations` is `[]`. On the Pending path (Step 4), the
+fields are set differently — see the migration completion gate section.
 
 Print the final summary:
 
@@ -1121,6 +1321,8 @@ Print the final summary:
    • Run /forge:health to verify knowledge base currency
    • Generated workflows and tools are ready to use
    {if files missing:}• Run /forge:add-pipeline to create missing command file(s){end if}
+
+  Subagent isolation: {used | bypassed (inline)}
 ```
 
 **Fast-mode promotion hint.** After printing the summary, read

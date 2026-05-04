@@ -8,10 +8,12 @@
 //        manage-config pipeline add <name> --description <text> --phases <json>
 //        manage-config pipeline get <name>
 //        manage-config pipeline remove <name>
+//        manage-config resolve-forge-root
 //        manage-config set <key.path> <json-value>
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { findProjectRoot } = require('./lib/project-root.cjs');
 
 const _projectRoot = findProjectRoot();
@@ -127,6 +129,7 @@ if (!subcmd) {
     '  pipeline get <name>                                Print a pipeline in full',
     '  pipeline remove <name>',
     '  pipeline backfill-models                           Backfill model fields from role defaults',
+    '  resolve-forge-root                                 Resolve Forge plugin root path',
     '  set <key.path> <json-value>                        Set an arbitrary value',
   ].join('\n'));
   process.exit(2);
@@ -271,6 +274,65 @@ if (subcmd === 'set') {
   writeConfig(config, detectIndent(raw));
   console.log(`Set ${keyPath}.`);
   process.exit(0);
+}
+
+// FR-010: resolve-forge-root — resolve the Forge plugin root path using
+// three-tier priority: (1) CLAUDE_PLUGIN_ROOT env var, (2) cache/marketplace
+// scan by forgeRef, (3) paths.forgeRoot fallback.
+if (subcmd === 'resolve-forge-root') {
+  // Priority 1: CLAUDE_PLUGIN_ROOT env var (if set and directory exists)
+  const envRoot = process.env.CLAUDE_PLUGIN_ROOT;
+  if (envRoot && envRoot.length > 0) {
+    try {
+      // Verify the directory exists and contains a valid plugin.json
+      const pluginJsonPath = path.join(envRoot, '.claude-plugin', 'plugin.json');
+      if (fs.existsSync(pluginJsonPath)) {
+        console.log(envRoot);
+        process.exit(0);
+      }
+      // Directory exists but no plugin.json — still use it if the directory itself exists
+      if (fs.existsSync(envRoot)) {
+        console.log(envRoot);
+        process.exit(0);
+      }
+    } catch { /* fall through to next priority */ }
+  }
+
+  const { config } = readConfig();
+  const forgeRef = getByPath(config, 'paths.forgeRef');
+  const forgeRoot = getByPath(config, 'paths.forgeRoot');
+
+  // Priority 2: Scan cache/marketplace directories by forgeRef
+  if (forgeRef && typeof forgeRef === 'string') {
+    const homeDir = os.homedir();
+    const candidates = [
+      path.join(homeDir, '.claude', 'plugins', 'cache', 'forge', 'forge', forgeRef),
+      path.join(homeDir, '.claude', 'plugins', 'marketplaces', 'skillforge', 'forge', 'forge', forgeRef),
+    ];
+    for (const candidate of candidates) {
+      try {
+        const pluginJsonPath = path.join(candidate, '.claude-plugin', 'plugin.json');
+        if (fs.existsSync(pluginJsonPath)) {
+          // Validate that the plugin.json version matches forgeRef
+          const manifest = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
+          if (manifest.version === forgeRef) {
+            console.log(candidate);
+            process.exit(0);
+          }
+        }
+      } catch { /* try next candidate */ }
+    }
+  }
+
+  // Priority 3: Fallback to paths.forgeRoot (deprecated but still read)
+  if (forgeRoot && typeof forgeRoot === 'string') {
+    console.log(forgeRoot);
+    process.exit(0);
+  }
+
+  // No resolution possible
+  console.error('× Cannot resolve Forge plugin root: no CLAUDE_PLUGIN_ROOT env var, no forgeRef cache match, and no forgeRoot in config.');
+  process.exit(1);
 }
 
 console.error(`Unknown subcommand: ${subcmd}`);

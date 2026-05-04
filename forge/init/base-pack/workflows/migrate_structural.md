@@ -20,7 +20,7 @@ deps:
 - `.forge/structure-versions.json` is absent OR `--structural` was passed.
 - The Forge plugin root is resolvable:
   ```sh
-  FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
+  export FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
   ```
 
 ---
@@ -250,6 +250,7 @@ Write `.forge/project-context.json` with the synthesised content.
 
 Validate via the store tool:
 ```sh
+export FORGE_ROOT
 node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run
 ```
 
@@ -259,6 +260,7 @@ NOT remove the sentinel — the user can fix the issue and re-run.
 #### Step 3c — Substitute (T03)
 
 ```sh
+export FORGE_ROOT
 node "$FORGE_ROOT/tools/substitute-placeholders.cjs" \
   --forge-root "$FORGE_ROOT" \
   --base-pack  "$FORGE_ROOT/init/base-pack" \
@@ -277,6 +279,7 @@ user. Do NOT remove the sentinel (preserves ability to re-run after fixing).
 #### Step 3d — Register snapshot (T05)
 
 ```sh
+export FORGE_ROOT
 node "$FORGE_ROOT/tools/manage-versions.cjs" init
 ```
 
@@ -321,6 +324,7 @@ rm .forge/archive/pre-migration/.migration-in-progress
 **Verification (CLI-accessible only — do NOT invoke `/forge:health` here):**
 
 ```sh
+export FORGE_ROOT
 # 1. Validate the store
 node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run
 
@@ -348,6 +352,7 @@ Read that file and extract the `sprintId` field. If no sprint files exist, use
 `"migration"` as the `sprintId` placeholder.
 
 ```sh
+export FORGE_ROOT
 MIGRATION_END=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 node "$FORGE_ROOT/tools/store-cli.cjs" emit "{projectSprintId}" '{
   "eventId": "migration-'"$(date -u +%Y%m%dT%H%M%SZ)"'",

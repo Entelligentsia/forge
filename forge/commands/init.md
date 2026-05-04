@@ -133,7 +133,7 @@ Follow it exactly. It defines 4 phases:
 1. **Collect** — 5 parallel discovery prompts, KB folder prompt, `config.json`
 2. **Discover** — KB doc fan-out + inline `project-context.json` construction
 3. **Materialize** — `substitute-placeholders.cjs` + `build-overlay.cjs` smoke test
-4. **Register** — tools, versioning, manifest, cache, store seed, Tomoshibi
+4. **Register** — tools, versioning, manifest, cache, store seed, Tomoshibi, `.gitignore` update (unconditional), CLAUDE.md KB-link offer
 
 The current working directory is the target project. All generated artifacts go into
 `.forge/`, the configured KB folder (default: `engineering/`), and `.claude/commands/`

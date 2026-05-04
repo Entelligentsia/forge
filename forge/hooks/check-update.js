@@ -220,20 +220,36 @@ if (hasForge && fs.existsSync(projectCacheFile)) {
   try { projectCache = JSON.parse(fs.readFileSync(projectCacheFile, 'utf8')); } catch { projectCache = null; }
 }
 
-// --- Distribution + forgeRoot sync (always runs before update-check logic) ---
-// Refreshes paths.forgeRoot in config.json and the distribution/forgeRoot fields
-// in the project cache. Handles distribution switches transparently — the user
-// gets a clear message and all path references are corrected before any command runs.
+// FR-010: Backfill forgeRef from localVersion if missing in existing cache.
+if (projectCache && !projectCache.forgeRef && projectCache.localVersion) {
+  projectCache.forgeRef = projectCache.localVersion;
+}
+
+// --- Distribution + forgeRoot/forgeRef sync (always runs before update-check logic) ---
+// Refreshes paths.forgeRoot and paths.forgeRef in config.json and the distribution/
+// forgeRoot/forgeRef fields in the project cache. Handles distribution switches
+// transparently — the user gets a clear message and all path references are
+// corrected before any command runs.
 let distributionSwitchMsg = '';
 if (hasForge && pluginRoot !== '.') {
-  // Keep paths.forgeRoot in .forge/config.json in sync with the active plugin root.
-  // Generated workflows read this to invoke tools without needing CLAUDE_PLUGIN_ROOT.
+  // Keep paths.forgeRoot and paths.forgeRef in .forge/config.json in sync.
+  // Generated workflows read forgeRoot to invoke tools without needing CLAUDE_PLUGIN_ROOT.
+  // forgeRef is the version-based portable field (FR-010).
   try {
     const configPath = path.join(forgeDir, 'config.json');
     const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     if (!cfg.paths) cfg.paths = {};
+    let configChanged = false;
     if (cfg.paths.forgeRoot !== pluginRoot) {
       cfg.paths.forgeRoot = pluginRoot;
+      configChanged = true;
+    }
+    // FR-010: Write forgeRef from the local plugin version.
+    if (!cfg.paths.forgeRef || cfg.paths.forgeRef !== local) {
+      cfg.paths.forgeRef = local;
+      configChanged = true;
+    }
+    if (configChanged) {
       fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2) + '\n');
     }
   } catch { /* non-fatal */ }
@@ -254,15 +270,27 @@ if (hasForge && pluginRoot !== '.') {
         ` paths.forgeRoot updated. Run /forge:update to verify migration state.`;
     }
 
-    // Sync distribution + forgeRoot into the project cache whenever they drift.
+    // Sync distribution + forgeRoot + forgeRef into the project cache whenever they drift.
+    // FR-002: Preserve updateStatus, pendingReason, pendingMigrations if present.
     if (storedRoot !== pluginRoot || storedDist !== currentDistribution) {
       try {
-        const updated = { ...projectCache, distribution: currentDistribution, forgeRoot: pluginRoot };
+        const updated = { ...projectCache, distribution: currentDistribution, forgeRoot: pluginRoot, forgeRef: local };
         fs.writeFileSync(projectCacheFile, JSON.stringify(updated, null, 2) + '\n');
         projectCache = updated; // keep in-memory copy consistent
       } catch { /* non-fatal */ }
     }
   }
+}
+
+// FR-002: Surface pending-state message to the user if update is incomplete.
+let pendingStateMsg = '';
+if (hasForge && projectCache && projectCache.updateStatus === 'pending') {
+  const pendingMigrations = Array.isArray(projectCache.pendingMigrations)
+    ? projectCache.pendingMigrations.join(', ')
+    : '(unknown)';
+  pendingStateMsg =
+    `Forge update is incomplete — pending migration(s): ${pendingMigrations}.` +
+    ` Run /forge:update to continue or /forge:migrate to complete.`;
 }
 
 const elapsed = pluginCache ? now - (pluginCache.lastCheck || 0) : Infinity;
@@ -285,12 +313,15 @@ if (elapsed < checkInterval) {
   let postInstallMsg = '';
   if (hasForge && projectCache && projectCache.localVersion && projectCache.localVersion !== local) {
     // Record the pre-install version as baseline, update localVersion.
+    // FR-010: Include forgeRef. FR-002: updateStatus/pendingReason/pendingMigrations
+    // are preserved via spread.
     const updated = {
       ...projectCache,
       migratedFrom: projectCache.localVersion,
       localVersion: local,
       distribution: currentDistribution,
       forgeRoot: pluginRoot,
+      forgeRef: local,
     };
     try { fs.writeFileSync(projectCacheFile, JSON.stringify(updated, null, 2) + '\n'); } catch { /* non-fatal */ }
     // Reset plugin cache lastCheck so we fetch a fresh remote version next session.
@@ -301,8 +332,10 @@ if (elapsed < checkInterval) {
     }
   }
   const baseMsg = distributionSwitchMsg || postInstallMsg || buildUpdateMsg((pluginCache && pluginCache.remoteVersion) || '', local);
+  // FR-002: Append pending-state message if present.
   const updateMsg = baseMsg ? multiPluginMsg + baseMsg : baseMsg;
-  emit(forgeContext, updateMsg);
+  const pendingMsg = pendingStateMsg ? ' ' + pendingStateMsg : '';
+  emit(forgeContext, (updateMsg + pendingMsg).trim());
 } else {
   // Plugin cache expired or missing — fetch fresh remote version.
   fetchRemoteVersion((remoteVersion) => {
@@ -310,26 +343,33 @@ if (elapsed < checkInterval) {
       // Update plugin-level throttle cache.
       try { fs.writeFileSync(pluginCacheFile, JSON.stringify({ lastCheck: now, remoteVersion }, null, 2) + '\n'); } catch { /* non-fatal */ }
       // Seed project-level cache on first run if not yet present.
+      // FR-010: Include forgeRef alongside forgeRoot.
       if (hasForge && !projectCache) {
         try {
           fs.writeFileSync(projectCacheFile, JSON.stringify({
             migratedFrom: local, localVersion: local,
             distribution: currentDistribution, forgeRoot: pluginRoot,
+            forgeRef: local,
+            updateStatus: 'complete', pendingReason: null, pendingMigrations: [],
           }, null, 2) + '\n');
         } catch { /* non-fatal */ }
       } else if (hasForge && projectCache && !projectCache.localVersion) {
-        // Backfill localVersion (and distribution/forgeRoot) if missing.
+        // Backfill localVersion (and distribution/forgeRoot/forgeRef) if missing.
+        // FR-002: Preserve updateStatus/pendingReason/pendingMigrations via spread.
         try {
           fs.writeFileSync(projectCacheFile, JSON.stringify({
             ...projectCache, localVersion: local,
             distribution: currentDistribution, forgeRoot: pluginRoot,
+            forgeRef: local,
           }, null, 2) + '\n');
         } catch { /* non-fatal */ }
       }
     }
     const baseMsg = distributionSwitchMsg || buildUpdateMsg(remoteVersion, local);
+    // FR-002: Append pending-state message if present.
     const updateMsg = baseMsg ? multiPluginMsg + baseMsg : baseMsg;
-    emit(forgeContext, updateMsg);
+    const pendingMsg = pendingStateMsg ? ' ' + pendingStateMsg : '';
+    emit(forgeContext, (updateMsg + pendingMsg).trim());
   });
 }
 }

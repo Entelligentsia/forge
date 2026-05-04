@@ -105,7 +105,8 @@ If the user declines, exit without changes.
 
 For each affected record, apply the migration via the store custodian:
 
-```
+```sh
+export FORGE_ROOT
 node "$FORGE_ROOT/tools/store-cli.cjs" write <entity> '{updated-json}'
 ```
 
@@ -127,6 +128,7 @@ Do not modify any field that was not part of the agreed mapping. Do not add or r
 Run:
 
 ```sh
+export FORGE_ROOT
 node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run
 ```
 
