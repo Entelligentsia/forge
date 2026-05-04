@@ -36,6 +36,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { getCommandsSubdir } = require('./lib/paths.cjs');
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -76,10 +77,10 @@ const RUNTIME_PASSTHROUGH_KEYS = new Set([
 
 /**
  * Maps a base-pack subdirectory name to an output directory path relative to
- * the project root.
+ * the project root. The 'commands' entry is computed dynamically from the
+ * project prefix via getCommandsSubdir() — see walkBasePack.
  */
 const SUBDIR_OUTPUT_MAP = {
-  commands:  path.join('.claude', 'commands', 'forge'),
   personas:  path.join('.forge', 'personas'),
   skills:    path.join('.forge', 'skills'),
   workflows: path.join('.forge', 'workflows'),
@@ -331,6 +332,10 @@ function renderDeploymentTable(envs) {
 function walkBasePack(basePack, map, outRoot, dryRun, io) {
   const warn = (io && io.warn) || ((msg) => process.stderr.write(msg + '\n'));
 
+  // Extract prefix from substitution map for commands path computation
+  const prefix = map.get('PREFIX') || '';
+  const commandsSubdir = prefix ? getCommandsSubdir(prefix) : 'forge';
+
   // Sorted readdir for deterministic idempotent output (Advisory Note 7)
   const topEntries = fs.readdirSync(basePack).sort();
   for (const subdir of topEntries) {
@@ -338,20 +343,31 @@ function walkBasePack(basePack, map, outRoot, dryRun, io) {
     const stat = fs.statSync(subdirPath);
     if (!stat.isDirectory()) continue;
 
-    const relOutputDir = SUBDIR_OUTPUT_MAP[subdir];
+    let relOutputDir;
+    if (subdir === 'commands') {
+      relOutputDir = path.join('.claude', 'commands', commandsSubdir);
+    } else {
+      relOutputDir = SUBDIR_OUTPUT_MAP[subdir];
+    }
     if (!relOutputDir) {
       warn(`substitute-placeholders: unknown base-pack subdir "${subdir}" — skipping`);
       continue;
     }
 
-    walkDir(subdirPath, subdirPath, relOutputDir, outRoot, map, dryRun, warn);
+    walkDir(subdirPath, relOutputDir, outRoot, map, dryRun, warn);
   }
 }
 
 /**
  * Recursively walk a directory, substituting and writing each file.
+ *
+ * FR-004 fix: uses `entry` (bare filename from readdirSync) instead of
+ * `path.relative(baseDir, srcPath)` which caused double-nesting when
+ * recursing into subdirectories like _fragments/. The output directory
+ * is already tracked via `relOutputDir` (updated on each recursive
+ * descent), so using just the filename is sufficient.
  */
-function walkDir(baseDir, currentDir, relOutputDir, outRoot, map, dryRun, warn) {
+function walkDir(currentDir, relOutputDir, outRoot, map, dryRun, warn) {
   const entries = fs.readdirSync(currentDir).sort();
   for (const entry of entries) {
     const srcPath = path.join(currentDir, entry);
@@ -359,13 +375,13 @@ function walkDir(baseDir, currentDir, relOutputDir, outRoot, map, dryRun, warn) 
 
     if (stat.isDirectory()) {
       const childRelOutputDir = path.join(relOutputDir, entry);
-      walkDir(baseDir, srcPath, childRelOutputDir, outRoot, map, dryRun, warn);
+      walkDir(srcPath, childRelOutputDir, outRoot, map, dryRun, warn);
       continue;
     }
 
     if (!stat.isFile()) continue;
 
-    const relFile = path.relative(baseDir, srcPath);
+    const relFile = entry;
     const outPath = path.resolve(outRoot, relOutputDir, relFile);
 
     // Path traversal defence: outPath must be inside outRoot

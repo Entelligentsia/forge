@@ -86,7 +86,8 @@ const TEMPLATE_MAP = [
   ['meta-sprint-manifest.md',     'SPRINT_MANIFEST_TEMPLATE.md'],
   ['meta-sprint-requirements.md', 'SPRINT_REQUIREMENTS_TEMPLATE.md'],
   ['meta-task-prompt.md',         'TASK_PROMPT_TEMPLATE.md'],
-  [null,                          'CUSTOM_COMMAND_TEMPLATE.md'],  // one-shot init artifact
+  [null,                          'COST_REPORT_TEMPLATE.md'],       // base-pack-sourced, no meta source
+  [null,                          'PLAN_SUMMARY_TEMPLATE.json'],    // base-pack-sourced, no meta source
 ];
 
 // 5. Commands — from generate-commands.md explicit list
@@ -94,6 +95,7 @@ const COMMAND_NAMES = [
   'sprint-intake.md', 'plan.md', 'review-plan.md', 'implement.md',
   'review-code.md', 'fix-bug.md', 'sprint-plan.md', 'run-task.md',
   'run-sprint.md', 'collate.md', 'retrospective.md', 'approve.md', 'commit.md',
+  'enhance.md', 'quiz-agent.md', 'validate.md',
 ];
 
 // ── parseMetaDeps ─────────────────────────────────────────────────────────────

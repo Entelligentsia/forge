@@ -5,7 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { checkNamespaces } = require('../check-structure.cjs');
+const { checkNamespaces, validateManifest } = require('../check-structure.cjs');
+const { getCommandsSubdir } = require('../lib/paths.cjs');
 
 // Helper: create a temp directory structure, return cleanup function
 function createTempProject(structure) {
@@ -319,5 +320,155 @@ describe('checkNamespaces', () => {
     assert.equal(result.total, 1);
     assert.equal(result.present, 1);
     assert.equal(result.missing.length, 0);
+  });
+
+  test('FR-006: uses getCommandsSubdir for prefixed commands path resolution', () => {
+    const manifest = {
+      namespaces: {
+        commands: {
+          logicalKey: 'commands',
+          dir: '.claude/commands',
+          prefixed: true,
+          files: ['plan.md'],
+        },
+      },
+    };
+
+    // Use prefix 'MYCORP' — getCommandsSubdir('MYCORP') returns 'mycorp'
+    const structure = {
+      '.claude/commands/mycorp/plan.md': '---\neffort: high\n---\n',
+      '.forge/config.json': JSON.stringify({ project: { prefix: 'MYCORP' }, paths: {} }),
+    };
+
+    tmpDir = createTempProject(structure);
+    const result = checkNamespaces(manifest, tmpDir, { strict: false });
+
+    assert.equal(result.total, 1);
+    assert.equal(result.present, 1);
+    assert.equal(result.missing.length, 0);
+  });
+
+  test('FR-006: legacy forge/ path accepted with deprecation warning', () => {
+    const manifest = {
+      namespaces: {
+        commands: {
+          logicalKey: 'commands',
+          dir: '.claude/commands',
+          prefixed: true,
+          files: ['plan.md'],
+        },
+      },
+    };
+
+    // Files at old .claude/commands/forge/ path with prefix FORGE
+    const structure = {
+      '.claude/commands/forge/plan.md': '---\neffort: high\n---\n',
+      '.forge/config.json': JSON.stringify({ project: { prefix: 'FORGE' }, paths: {} }),
+    };
+
+    tmpDir = createTempProject(structure);
+    const result = checkNamespaces(manifest, tmpDir, { strict: false });
+
+    // Since prefix is FORGE and getCommandsSubdir('FORGE') returns 'forge',
+    // the legacy path IS the correct path — this should work
+    assert.equal(result.total, 1);
+    assert.equal(result.present, 1);
+    assert.equal(result.missing.length, 0);
+  });
+});
+
+// ── FR-007-7e: validateManifest ────────────────────────────────────────────────
+
+describe('validateManifest', () => {
+  let tmpDir;
+
+  afterEach(() => {
+    if (tmpDir) {
+      removeDir(tmpDir);
+      tmpDir = null;
+    }
+  });
+
+  test('detects files in manifest but absent from base-pack', () => {
+    tmpDir = createTempProject({
+      'init/base-pack/workflows/plan_task.md': '# plan',
+      'init/base-pack/workflows/implement_plan.md': '# implement',
+    });
+
+    const manifest = {
+      namespaces: {
+        workflows: {
+          logicalKey: 'workflows',
+          dir: '.forge/workflows',
+          files: ['plan_task.md', 'implement_plan.md', 'missing_workflow.md'],
+        },
+      },
+    };
+
+    const result = validateManifest(manifest, tmpDir);
+    assert.equal(result.manifestOnly.length, 1);
+    assert.equal(result.manifestOnly[0].filename, 'missing_workflow.md');
+    assert.equal(result.basePackOnly.length, 0);
+  });
+
+  test('detects files in base-pack but absent from manifest', () => {
+    tmpDir = createTempProject({
+      'init/base-pack/workflows/plan_task.md': '# plan',
+      'init/base-pack/workflows/extra_workflow.md': '# extra',
+    });
+
+    const manifest = {
+      namespaces: {
+        workflows: {
+          logicalKey: 'workflows',
+          dir: '.forge/workflows',
+          files: ['plan_task.md'],
+        },
+      },
+    };
+
+    const result = validateManifest(manifest, tmpDir);
+    assert.equal(result.manifestOnly.length, 0);
+    assert.equal(result.basePackOnly.length, 1);
+    assert.equal(result.basePackOnly[0].filename, 'extra_workflow.md');
+  });
+
+  test('returns empty arrays when manifest and base-pack are in sync', () => {
+    tmpDir = createTempProject({
+      'init/base-pack/workflows/plan_task.md': '# plan',
+      'init/base-pack/workflows/implement_plan.md': '# implement',
+    });
+
+    const manifest = {
+      namespaces: {
+        workflows: {
+          logicalKey: 'workflows',
+          dir: '.forge/workflows',
+          files: ['plan_task.md', 'implement_plan.md'],
+        },
+      },
+    };
+
+    const result = validateManifest(manifest, tmpDir);
+    assert.equal(result.manifestOnly.length, 0);
+    assert.equal(result.basePackOnly.length, 0);
+  });
+
+  test('skips schemas namespace (not base-pack-sourced)', () => {
+    tmpDir = createTempProject({});
+
+    const manifest = {
+      namespaces: {
+        schemas: {
+          logicalKey: 'schemas',
+          dir: '.forge/schemas',
+          files: ['some-file.schema.json'],
+        },
+      },
+    };
+
+    const result = validateManifest(manifest, tmpDir);
+    assert.equal(result.manifestOnly.length, 0);
+    assert.equal(result.basePackOnly.length, 0);
   });
 });

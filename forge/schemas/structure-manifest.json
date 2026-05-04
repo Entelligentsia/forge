@@ -1,6 +1,6 @@
 {
-  "version": "0.40.0",
-  "generatedAt": "2026-05-02T03:07:40.208Z",
+  "version": "0.40.1",
+  "generatedAt": "2026-05-04T11:35:52.303Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -58,8 +58,9 @@
       "dir": ".forge/templates",
       "files": [
         "CODE_REVIEW_TEMPLATE.md",
-        "CUSTOM_COMMAND_TEMPLATE.md",
+        "COST_REPORT_TEMPLATE.md",
         "PLAN_REVIEW_TEMPLATE.md",
+        "PLAN_SUMMARY_TEMPLATE.json",
         "PLAN_TEMPLATE.md",
         "PROGRESS_TEMPLATE.md",
         "RETROSPECTIVE_TEMPLATE.md",
@@ -76,16 +77,19 @@
         "approve.md",
         "collate.md",
         "commit.md",
+        "enhance.md",
         "fix-bug.md",
         "implement.md",
         "plan.md",
+        "quiz-agent.md",
         "retrospective.md",
         "review-code.md",
         "review-plan.md",
         "run-sprint.md",
         "run-task.md",
         "sprint-intake.md",
-        "sprint-plan.md"
+        "sprint-plan.md",
+        "validate.md"
       ]
     },
     "fragments": {

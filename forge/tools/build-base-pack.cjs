@@ -642,6 +642,7 @@ function buildBasePack({ forgeRoot, outRoot }) {
     ['meta-commit.md',                   'commit_task.md'],
     ['meta-fix-bug.md',                  'fix_bug.md'],
     ['meta-implement.md',                'implement_plan.md'],
+    ['meta-migrate.md',                  'migrate_structural.md'],
     ['meta-orchestrate.md',              'orchestrate_task.md'],
     ['meta-plan-task.md',                'plan_task.md'],
     ['meta-retrospective.md',            'sprint_retrospective.md'],
@@ -761,11 +762,12 @@ function buildBasePack({ forgeRoot, outRoot }) {
     'skills/architect-skills.md', 'skills/bug-fixer-skills.md', 'skills/collator-skills.md',
     'skills/engineer-skills.md', 'skills/generic-skills.md', 'skills/librarian-skills.md',
     'skills/qa-engineer-skills.md', 'skills/store-custodian-skills.md', 'skills/supervisor-skills.md',
-    // Workflows (18)
+    // Workflows (19)
     'workflows/architect_approve.md', 'workflows/architect_review_sprint_completion.md',
     'workflows/architect_sprint_intake.md', 'workflows/architect_sprint_plan.md',
     'workflows/collator_agent.md', 'workflows/commit_task.md', 'workflows/fix_bug.md',
-    'workflows/implement_plan.md', 'workflows/orchestrate_task.md', 'workflows/plan_task.md',
+    'workflows/implement_plan.md', 'workflows/migrate_structural.md',
+    'workflows/orchestrate_task.md', 'workflows/plan_task.md',
     'workflows/quiz_agent.md', 'workflows/review_code.md', 'workflows/review_plan.md',
     'workflows/run_sprint.md', 'workflows/sprint_retrospective.md',
     'workflows/update_implementation.md', 'workflows/update_plan.md', 'workflows/validate_task.md',

@@ -584,7 +584,7 @@ describe('CLI smoke test', () => {
         '--base-pack', basePack,
         '--config', configFile,
         '--out', path.join(dir, 'out'),
-      ], { encoding: 'utf8' });
+      ], { encoding: 'utf8', cwd: dir });
 
       assert.equal(result.status, 1);
     } finally {
@@ -617,6 +617,111 @@ describe('CLI smoke test', () => {
       assert.equal(result.status, 0, `Dry run failed: ${result.stderr}`);
       // outDir must NOT have been created
       assert.ok(!fs.existsSync(outDir), 'outDir should not be created in dry-run mode');
+    } finally {
+      rmrf(dir);
+    }
+  });
+});
+
+// ── Test Group 11: FR-004 — _fragments ghost nesting regression ────────────────
+//
+// Verify that walking a base-pack containing a _fragments/ subdirectory
+// under workflows/ produces output at .forge/workflows/_fragments/ (correct)
+// and NOT at .forge/workflows/_fragments/_fragments/ (ghost nest).
+
+describe('FR-004: _fragments ghost nesting', () => {
+  test('fragment files appear at .forge/workflows/_fragments/ with NO ghost-nested _fragments/_fragments/', () => {
+    const dir = tmpDir();
+    try {
+      const basePack = path.join(dir, 'base-pack');
+      // Create workflows with a _fragments/ subdirectory
+      writeFile(path.join(basePack, 'workflows', 'plan_task.md'), '---\nid: plan\n---\n# {{PROJECT_NAME}} Plan\n');
+      writeFile(path.join(basePack, 'workflows', '_fragments', 'progress-reporting.md'), '# Progress Reporting\n{{PROJECT_NAME}}\n');
+      writeFile(path.join(basePack, 'workflows', '_fragments', 'finalize.md'), '# Finalize\n');
+      writeFile(path.join(basePack, 'workflows', '_fragments', 'context-injection.md'), '# Context Injection\n');
+      writeFile(path.join(basePack, 'workflows', '_fragments', 'event-emission-schema.md'), '# Event Emission\n');
+
+      const configFile = path.join(dir, 'config.json');
+      fs.writeFileSync(configFile, JSON.stringify({
+        project: { name: 'GhostTest', prefix: 'GT' },
+        commands: { test: 'npm test', lint: 'npm run lint' },
+        paths: { engineering: 'engineering' },
+      }), 'utf8');
+
+      const outDir = path.join(dir, 'out');
+      const result = spawnSync(process.execPath, [
+        SCRIPT_PATH,
+        '--base-pack', basePack,
+        '--config', configFile,
+        '--out', outDir,
+      ], { encoding: 'utf8' });
+
+      assert.equal(result.status, 0, `CLI exited ${result.status}: ${result.stderr}`);
+
+      // Correct path: .forge/workflows/_fragments/ must contain all 4 fragment files
+      const fragDir = path.join(outDir, '.forge', 'workflows', '_fragments');
+      assert.ok(fs.existsSync(fragDir), `_fragments dir must exist at ${fragDir}`);
+      const fragFiles = fs.readdirSync(fragDir).filter(f => f.endsWith('.md'));
+      assert.equal(fragFiles.length, 4, `expected 4 fragment files, got ${fragFiles.length}: ${fragFiles.join(', ')}`);
+
+      // Verify each fragment file exists at the correct path
+      for (const fname of ['progress-reporting.md', 'finalize.md', 'context-injection.md', 'event-emission-schema.md']) {
+        assert.ok(fs.existsSync(path.join(fragDir, fname)), `fragment file must exist: ${fname}`);
+      }
+
+      // Ghost-nest check: .forge/workflows/_fragments/_fragments/ must NOT exist
+      const ghostDir = path.join(fragDir, '_fragments');
+      assert.ok(!fs.existsSync(ghostDir), `ghost-nested _fragments/_fragments/ directory must NOT exist, but it does at ${ghostDir}`);
+
+      // Verify substitution was applied in fragment content
+      const progressContent = fs.readFileSync(path.join(fragDir, 'progress-reporting.md'), 'utf8');
+      assert.ok(progressContent.includes('GhostTest'), `fragment content must have PROJECT_NAME substituted, got: ${progressContent}`);
+    } finally {
+      rmrf(dir);
+    }
+  });
+});
+
+// ── Test Group 12: FR-006 — Commands path uses prefix-derived subdir ────────────
+//
+// Verify that the commands output directory is .claude/commands/{prefix-lowercased}/
+// NOT the hardcoded .claude/commands/forge/
+
+describe('FR-006: commands path uses prefix-derived subdir', () => {
+  test('commands output directory uses {prefix-lowercased}/, not hardcoded forge/', () => {
+    const dir = tmpDir();
+    try {
+      const basePack = path.join(dir, 'base-pack');
+      writeFile(path.join(basePack, 'commands', 'plan.md'), '---\ndescription: plan\n---\n# /{{PREFIX}}:plan\n');
+
+      const configFile = path.join(dir, 'config.json');
+      fs.writeFileSync(configFile, JSON.stringify({
+        project: { name: 'AcmeCorp', prefix: 'ACME' },
+        commands: { test: 'npm test', lint: 'npm run lint' },
+        paths: { engineering: 'engineering' },
+      }), 'utf8');
+
+      const outDir = path.join(dir, 'out');
+      const result = spawnSync(process.execPath, [
+        SCRIPT_PATH,
+        '--base-pack', basePack,
+        '--config', configFile,
+        '--out', outDir,
+      ], { encoding: 'utf8' });
+
+      assert.equal(result.status, 0, `CLI exited ${result.status}: ${result.stderr}`);
+
+      // Correct path: .claude/commands/acme/plan.md must exist
+      const correctPath = path.join(outDir, '.claude', 'commands', 'acme', 'plan.md');
+      assert.ok(fs.existsSync(correctPath), `command file must exist at ${correctPath}`);
+
+      // Wrong path: .claude/commands/forge/ must NOT exist
+      const wrongDir = path.join(outDir, '.claude', 'commands', 'forge');
+      assert.ok(!fs.existsSync(wrongDir), `hardcoded 'forge/' directory must NOT exist, but found at ${wrongDir}`);
+
+      // Verify substitution was applied
+      const content = fs.readFileSync(correctPath, 'utf8');
+      assert.ok(content.includes('ACME'), `command content must have PREFIX substituted, got: ${content}`);
     } finally {
       rmrf(dir);
     }

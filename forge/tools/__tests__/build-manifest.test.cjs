@@ -55,15 +55,32 @@ describe('build-manifest.cjs — mapping tables', () => {
     }
   });
 
-  test('TEMPLATE_MAP has 9 entries, one has null source (CUSTOM_COMMAND_TEMPLATE)', () => {
-    assert.equal(TEMPLATE_MAP.length, 9);
+  test('TEMPLATE_MAP has 10 entries (8 meta + 2 null), no CUSTOM_COMMAND_TEMPLATE', () => {
+    assert.equal(TEMPLATE_MAP.length, 10);
     const nullEntries = TEMPLATE_MAP.filter(([src]) => src === null);
-    assert.equal(nullEntries.length, 1, 'exactly one null source entry');
-    assert.equal(nullEntries[0][1], 'CUSTOM_COMMAND_TEMPLATE.md');
+    assert.equal(nullEntries.length, 2, 'exactly two null source entries');
+    // CUSTOM_COMMAND_TEMPLATE.md must NOT be present
+    const customCmdEntry = TEMPLATE_MAP.find(([, out]) => out === 'CUSTOM_COMMAND_TEMPLATE.md');
+    assert.equal(customCmdEntry, undefined, 'CUSTOM_COMMAND_TEMPLATE.md must be removed from TEMPLATE_MAP');
   });
 
-  test('COMMAND_NAMES has 13 entries', () => {
-    assert.equal(COMMAND_NAMES.length, 13);
+  test('TEMPLATE_MAP includes COST_REPORT_TEMPLATE.md with null source', () => {
+    const entry = TEMPLATE_MAP.find(([, out]) => out === 'COST_REPORT_TEMPLATE.md');
+    assert.ok(entry, 'COST_REPORT_TEMPLATE.md must be in TEMPLATE_MAP');
+    assert.equal(entry[0], null, 'COST_REPORT_TEMPLATE.md must have null source');
+  });
+
+  test('TEMPLATE_MAP includes PLAN_SUMMARY_TEMPLATE.json with null source', () => {
+    const entry = TEMPLATE_MAP.find(([, out]) => out === 'PLAN_SUMMARY_TEMPLATE.json');
+    assert.ok(entry, 'PLAN_SUMMARY_TEMPLATE.json must be in TEMPLATE_MAP');
+    assert.equal(entry[0], null, 'PLAN_SUMMARY_TEMPLATE.json must have null source');
+  });
+
+  test('COMMAND_NAMES has 16 entries (including enhance.md, quiz-agent.md, validate.md)', () => {
+    assert.equal(COMMAND_NAMES.length, 16);
+    assert.ok(COMMAND_NAMES.includes('enhance.md'), 'COMMAND_NAMES must include enhance.md');
+    assert.ok(COMMAND_NAMES.includes('quiz-agent.md'), 'COMMAND_NAMES must include quiz-agent.md');
+    assert.ok(COMMAND_NAMES.includes('validate.md'), 'COMMAND_NAMES must include validate.md');
   });
 
   test('commands namespace in generated structure-manifest.json has prefixed: true', () => {

@@ -537,11 +537,11 @@ describe('buildBasePack: validates all expected output files exist', () => {
     assert.equal(files.length, 9, `expected 9 skill files, got ${files.length}: ${files.join(', ')}`);
   });
 
-  test('all 18 workflow files + 4 fragments created', () => {
+  test('all 19 workflow files + 4 fragments created', () => {
     mod = mod || require(SCRIPT_PATH);
     const wfDir = path.join(outDir, 'workflows');
     const files = fs.readdirSync(wfDir).filter(f => f.endsWith('.md'));
-    assert.equal(files.length, 18, `expected 18 workflow files, got ${files.length}: ${files.join(', ')}`);
+    assert.equal(files.length, 19, `expected 19 workflow files, got ${files.length}: ${files.join(', ')}`);
     const fragDir = path.join(outDir, 'workflows', '_fragments');
     const frags = fs.readdirSync(fragDir).filter(f => f.endsWith('.md'));
     assert.equal(frags.length, 4, `expected 4 fragment files, got ${frags.length}`);
@@ -559,5 +559,13 @@ describe('buildBasePack: validates all expected output files exist', () => {
     const cmdDir = path.join(outDir, 'commands');
     const files = fs.readdirSync(cmdDir).filter(f => f.endsWith('.md'));
     assert.equal(files.length, 16, `expected 16 command files, got ${files.length}: ${files.join(', ')}`);
+  });
+
+  // FR-007-7a: migrate_structural.md must be in base-pack output
+  test('FR-007-7a: migrate_structural.md present in workflow output after build', () => {
+    mod = mod || require(SCRIPT_PATH);
+    const wfDir = path.join(outDir, 'workflows');
+    assert.ok(fs.existsSync(path.join(wfDir, 'migrate_structural.md')),
+      'migrate_structural.md must exist in workflows output');
   });
 });

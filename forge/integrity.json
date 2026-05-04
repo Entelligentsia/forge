@@ -1,6 +1,6 @@
 {
   "version": "0.40.1",
-  "generated": "2026-05-02",
+  "generated": "2026-05-04",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
     "commands/add-pipeline.md": "402c1deb6f19ad99561b48548ad89e3e1f625b827dce633eb84317556c0a1a4a",
@@ -23,7 +23,7 @@
     "commands/update.md": "7335754d81a8553c398ea5666d6b9a91af08b9ced9c3e56dea7ab9fac01593b8",
     "agents/store-query-validator.md": "f4c3573edcf6e28809515705362df611806a805c5269404fb17e31433cf3a81c",
     "agents/tomoshibi.md": "0112604af0856235d7f028683dbfa3f4af63355cb2dd79d26592e983a6ecec8b",
-    "hooks/check-update.js": "ccc6350198782dbbe68d858c9c82dffaef5fa0763e639706501c118ad5a25d38",
+    "hooks/check-update.js": "da948a5ed26581cce9aa9e65360fe6a6da60cb75001624ba6bbb5e8a243dc618",
     "hooks/forge-permissions.js": "d72fe4a7f010d363798680fa6afeb004f8747e2479ebdf653bc2200c9be073dc",
     "hooks/triage-error.js": "b1e9c1c9a9f3e4868fff295f2caf87a2a72a817ee767af35f6334c88e45e16d4",
     "hooks/validate-write.js": "bf17f740ae43d85a7f4b18bc08e2628534c3698ec5202cb51ebd3f0792375f24",
