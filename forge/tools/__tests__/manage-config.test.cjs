@@ -1,6 +1,9 @@
 'use strict';
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 const {
   getByPath,
   setByPath,
@@ -262,6 +265,70 @@ describe('manage-config.cjs', () => {
       const obj = {};
       setByPath(obj, 'a.b', 2);
       assert.deepEqual(obj, { a: { b: 2 } });
+    });
+  });
+
+  // ── FR-005: set creates minimal config when absent ──────────────────────
+
+  describe('CLI set — auto-create config (FR-005)', () => {
+    const { spawnSync } = require('child_process');
+
+    function makeTmpProject() {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-config-test-'));
+      // Create .forge/ directory but NO config.json
+      fs.mkdirSync(path.join(dir, '.forge'), { recursive: true });
+      return dir;
+    }
+
+    test('set creates minimal {} config.json when absent, then sets key', () => {
+      const tmp = makeTmpProject();
+      try {
+        const configPath = path.join(tmp, '.forge', 'config.json');
+        // Verify config.json does NOT exist
+        assert.ok(!fs.existsSync(configPath), 'config.json must not exist before test');
+
+        const result = spawnSync(
+          process.execPath,
+          [path.join(__dirname, '..', 'manage-config.cjs'), 'set', 'paths.kbRoot', '"engineering"'],
+          { cwd: tmp, encoding: 'utf8' }
+        );
+        assert.strictEqual(result.status, 0, `set must exit 0. stderr: ${result.stderr}`);
+        assert.ok(fs.existsSync(configPath), 'config.json must exist after set');
+
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        assert.strictEqual(config.paths.kbRoot, 'engineering', 'kbRoot must be set');
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    test('subsequent set calls update value without resetting other fields', () => {
+      const tmp = makeTmpProject();
+      try {
+        const configPath = path.join(tmp, '.forge', 'config.json');
+
+        // First set: create config with paths.kbRoot
+        let result = spawnSync(
+          process.execPath,
+          [path.join(__dirname, '..', 'manage-config.cjs'), 'set', 'paths.kbRoot', '"engineering"'],
+          { cwd: tmp, encoding: 'utf8' }
+        );
+        assert.strictEqual(result.status, 0, `first set must exit 0. stderr: ${result.stderr}`);
+
+        // Second set: add paths.engineering
+        result = spawnSync(
+          process.execPath,
+          [path.join(__dirname, '..', 'manage-config.cjs'), 'set', 'paths.engineering', '"eng"'],
+          { cwd: tmp, encoding: 'utf8' }
+        );
+        assert.strictEqual(result.status, 0, `second set must exit 0. stderr: ${result.stderr}`);
+
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        assert.strictEqual(config.paths.kbRoot, 'engineering', 'first key must still be present');
+        assert.strictEqual(config.paths.engineering, 'eng', 'second key must be set');
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
     });
   });
 

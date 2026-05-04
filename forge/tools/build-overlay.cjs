@@ -88,6 +88,8 @@ function derivePrefix(config) {
 function buildTaskOverlay(taskId, config) {
   const taskPath = path.join(config.storeRoot, 'tasks', `${taskId}.json`);
   if (!fs.existsSync(taskPath)) {
+    // FR-015: Exit 1 for "task not found" per CLI convention (non-zero = error).
+    // This is intentional — the caller must know the task ID was invalid.
     throw new Error(`Task not found: ${taskId} (looked at ${taskPath})`);
   }
 

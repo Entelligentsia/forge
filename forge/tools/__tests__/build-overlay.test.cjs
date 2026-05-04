@@ -306,6 +306,7 @@ describe('build-overlay.cjs — --format md', () => {
 });
 
 describe('build-overlay.cjs — error handling', () => {
+  // FR-015: "task not found" exits 1 per CLI convention (non-zero = error).
   test('exits non-zero for unknown task', () => {
     const tmpDir = makeOverlayFixture({ withTask: false });
     try {

@@ -237,6 +237,22 @@ describe('computeSourceHash', () => {
       /not found|does not exist|ENOENT/i,
     );
   });
+
+  // FR-012: hash must be content-based (not mtime-based).
+  // A touch that changes only mtime must produce an identical hash.
+  test('hash survives mtime change on identical content (FR-012)', async () => {
+    const { archDir } = setupFixture();
+    const before = computeSourceHash(archDir);
+
+    // Read and re-write the same content to force an mtime change
+    const stackFile = path.join(archDir, 'stack.md');
+    const content = fs.readFileSync(stackFile, 'utf8');
+    await new Promise(r => setTimeout(r, 1100));
+    fs.writeFileSync(stackFile, content, 'utf8');
+
+    const after = computeSourceHash(archDir);
+    assert.equal(after, before, 'hash must be identical when only mtime changes, not content (FR-012)');
+  });
 });
 
 // ── writeContextPack ─────────────────────────────────────────────────────────

@@ -202,6 +202,23 @@ describe('source_hash', () => {
     const after = computeSourceHash({ personaDir, skillDir });
     assert.notEqual(before, after);
   });
+
+  // FR-012: hash must be content-based (not mtime-based).
+  // A touch that changes only mtime must produce an identical hash.
+  test('hash is identical before and after touch (mtime change) on unchanged content', async () => {
+    const { personaDir, skillDir } = setupFixture();
+    const before = computeSourceHash({ personaDir, skillDir });
+
+    // Read and re-write the same content to force an mtime change
+    const engineerFile = path.join(personaDir, 'meta-engineer.md');
+    const content = fs.readFileSync(engineerFile, 'utf8');
+    // Wait to ensure filesystem mtime changes (1s resolution on many systems)
+    await new Promise(r => setTimeout(r, 1100));
+    fs.writeFileSync(engineerFile, content, 'utf8');
+
+    const after = computeSourceHash({ personaDir, skillDir });
+    assert.equal(after, before, 'hash must be identical when only mtime changes, not content (FR-012)');
+  });
 });
 
 // ── writePack (atomic) ───────────────────────────────────────────────────────

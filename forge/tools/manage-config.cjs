@@ -255,6 +255,15 @@ if (subcmd === 'set') {
   const keyPath = args[0];
   const valueStr = args[1];
   if (!keyPath || valueStr === undefined) { console.error('Usage: manage-config set <key.path> <json-value>'); process.exit(2); }
+  // FR-005: If config.json does not exist, create a minimal {} config before reading.
+  // This allows `set` to work on fresh projects that haven't run /forge:init yet.
+  if (!fs.existsSync(CONFIG_PATH)) {
+    const configDir = path.dirname(CONFIG_PATH);
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    fs.writeFileSync(CONFIG_PATH, '{}\n', 'utf8');
+  }
   let value;
   try { value = JSON.parse(valueStr); } catch { value = valueStr; }
   const { config, raw } = readConfig();

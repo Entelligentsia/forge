@@ -159,9 +159,14 @@ function buildPack({ personaDir, skillDir }) {
 function computeSourceHash({ personaDir, skillDir }) {
   const files = [...listMarkdown(personaDir), ...listMarkdown(skillDir)].sort();
   const hash = crypto.createHash('sha256');
+  // FR-012: Content-based hashing for reproducibility.
+  // Old mtime-based hash was non-deterministic across runs after git checkout.
+  // New pattern: filePath\0 + fileContents + \0 — null-byte separators prevent
+  // concatenation ambiguity and make the hash a pure function of content.
   for (const f of files) {
-    const stat = fs.statSync(f);
-    hash.update(`${f}\0${stat.mtimeMs}\0${stat.size}\0`);
+    hash.update(`${f}\0`);
+    hash.update(fs.readFileSync(f));
+    hash.update('\0');
   }
   return `sha256:${hash.digest('hex')}`;
 }

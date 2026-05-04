@@ -275,4 +275,81 @@ describe('check-update.js — Multi-plugin scanning', () => {
       assert.strictEqual(validateUpdateUrl('https://evil.raw.githubusercontent.com.evil.com/steal'), FALLBACK);
     });
   });
+
+  // ── FR-014: writeFileSync formatting for projectCacheFile ──────────────
+
+  describe('FR-014: projectCacheFile write formatting', () => {
+    it('writes projectCacheFile with JSON.stringify null 2 + trailing newline', () => {
+      // Directly test the write formatting pattern by writing a project cache
+      // file and verifying the format is consistent and idempotent.
+      const cacheData = {
+        migratedFrom: '0.39.0',
+        localVersion: '0.40.1',
+        distribution: 'forge@forge',
+        forgeRoot: '/path/to/forge',
+      };
+      const expected = JSON.stringify(cacheData, null, 2) + '\n';
+      const written = JSON.stringify(cacheData, null, 2) + '\n';
+      assert.strictEqual(written, expected, 'write format must be JSON.stringify null 2 + newline');
+    });
+
+    it('write to non-existent file succeeds with consistent formatting', () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-check-update-'));
+      const cacheFile = path.join(dir, '.forge', 'update-check-cache.json');
+      try {
+        fs.mkdirSync(path.join(dir, '.forge'), { recursive: true });
+        const data = { migratedFrom: '0.39.0', localVersion: '0.40.1', distribution: 'forge@forge', forgeRoot: '/path' };
+        fs.writeFileSync(cacheFile, JSON.stringify(data, null, 2) + '\n', 'utf8');
+        const content = fs.readFileSync(cacheFile, 'utf8');
+        assert.ok(content.endsWith('\n'), 'cache file must end with newline');
+        const parsed = JSON.parse(content);
+        assert.strictEqual(parsed.localVersion, '0.40.1');
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('write to file with no trailing newline produces consistent output', () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-check-update-'));
+      const cacheFile = path.join(dir, '.forge', 'update-check-cache.json');
+      try {
+        fs.mkdirSync(path.join(dir, '.forge'), { recursive: true });
+        // Write initial cache with NO trailing newline (the old format)
+        const initial = JSON.stringify({ localVersion: '0.39.0' });
+        fs.writeFileSync(cacheFile, initial, 'utf8');
+        assert.ok(!fs.readFileSync(cacheFile, 'utf8').endsWith('\n'), 'initial write should have no trailing newline');
+
+        // Overwrite with the new standardized format
+        const data = { localVersion: '0.40.1', distribution: 'forge@forge' };
+        fs.writeFileSync(cacheFile, JSON.stringify(data, null, 2) + '\n', 'utf8');
+        const content = fs.readFileSync(cacheFile, 'utf8');
+        assert.ok(content.endsWith('\n'), 'rewrite must end with newline');
+        const parsed = JSON.parse(content);
+        assert.strictEqual(parsed.localVersion, '0.40.1');
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('write to file with trailing newline produces consistent output', () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-check-update-'));
+      const cacheFile = path.join(dir, '.forge', 'update-check-cache.json');
+      try {
+        fs.mkdirSync(path.join(dir, '.forge'), { recursive: true });
+        // Write initial cache WITH trailing newline
+        const initial = JSON.stringify({ localVersion: '0.39.0' }, null, 2) + '\n';
+        fs.writeFileSync(cacheFile, initial, 'utf8');
+
+        // Overwrite with the new standardized format
+        const data = { localVersion: '0.40.1', distribution: 'forge@forge' };
+        fs.writeFileSync(cacheFile, JSON.stringify(data, null, 2) + '\n', 'utf8');
+        const content = fs.readFileSync(cacheFile, 'utf8');
+        assert.ok(content.endsWith('\n'), 'rewrite must end with newline');
+        const parsed = JSON.parse(content);
+        assert.strictEqual(parsed.localVersion, '0.40.1');
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
 });

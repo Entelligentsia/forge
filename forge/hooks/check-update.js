@@ -258,7 +258,7 @@ if (hasForge && pluginRoot !== '.') {
     if (storedRoot !== pluginRoot || storedDist !== currentDistribution) {
       try {
         const updated = { ...projectCache, distribution: currentDistribution, forgeRoot: pluginRoot };
-        fs.writeFileSync(projectCacheFile, JSON.stringify(updated));
+        fs.writeFileSync(projectCacheFile, JSON.stringify(updated, null, 2) + '\n');
         projectCache = updated; // keep in-memory copy consistent
       } catch { /* non-fatal */ }
     }
@@ -292,9 +292,9 @@ if (elapsed < checkInterval) {
       distribution: currentDistribution,
       forgeRoot: pluginRoot,
     };
-    try { fs.writeFileSync(projectCacheFile, JSON.stringify(updated)); } catch { /* non-fatal */ }
+    try { fs.writeFileSync(projectCacheFile, JSON.stringify(updated, null, 2) + '\n'); } catch { /* non-fatal */ }
     // Reset plugin cache lastCheck so we fetch a fresh remote version next session.
-    try { fs.writeFileSync(pluginCacheFile, JSON.stringify({ ...pluginCache, lastCheck: 0 })); } catch { /* non-fatal */ }
+    try { fs.writeFileSync(pluginCacheFile, JSON.stringify({ ...pluginCache, lastCheck: 0 }, null, 2) + '\n'); } catch { /* non-fatal */ }
     // Suppress post-install message when a distribution switch message already covers the event.
     if (!distributionSwitchMsg) {
       postInstallMsg = `Forge was updated to ${local} (was ${projectCache.localVersion}). Run /forge:update to review changes and update.`;
@@ -308,14 +308,14 @@ if (elapsed < checkInterval) {
   fetchRemoteVersion((remoteVersion) => {
     if (remoteVersion) {
       // Update plugin-level throttle cache.
-      try { fs.writeFileSync(pluginCacheFile, JSON.stringify({ lastCheck: now, remoteVersion })); } catch { /* non-fatal */ }
+      try { fs.writeFileSync(pluginCacheFile, JSON.stringify({ lastCheck: now, remoteVersion }, null, 2) + '\n'); } catch { /* non-fatal */ }
       // Seed project-level cache on first run if not yet present.
       if (hasForge && !projectCache) {
         try {
           fs.writeFileSync(projectCacheFile, JSON.stringify({
             migratedFrom: local, localVersion: local,
             distribution: currentDistribution, forgeRoot: pluginRoot,
-          }));
+          }, null, 2) + '\n');
         } catch { /* non-fatal */ }
       } else if (hasForge && projectCache && !projectCache.localVersion) {
         // Backfill localVersion (and distribution/forgeRoot) if missing.
@@ -323,7 +323,7 @@ if (elapsed < checkInterval) {
           fs.writeFileSync(projectCacheFile, JSON.stringify({
             ...projectCache, localVersion: local,
             distribution: currentDistribution, forgeRoot: pluginRoot,
-          }));
+          }, null, 2) + '\n');
         } catch { /* non-fatal */ }
       }
     }

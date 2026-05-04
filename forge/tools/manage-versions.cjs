@@ -29,6 +29,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { resolveForgeRoot } = require('./lib/forge-root.cjs');
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -92,14 +93,10 @@ function writeStructureVersions(projectRoot, data) {
 
 /**
  * Resolve forge root from env or __dirname fallback.
+ * Delegates to the shared forge-root.cjs helper (FR-001).
  * @param {string} [envForgeRoot] - value of FORGE_ROOT env var
  * @returns {string}
  */
-function resolveForgeRoot(envForgeRoot) {
-  if (envForgeRoot) return envForgeRoot;
-  // __dirname = forge/forge/tools → forge root is ../../ from here
-  return path.join(__dirname, '..', '..');
-}
 
 /**
  * Read the plugin version from FORGE_ROOT/.claude-plugin/plugin.json.
@@ -218,14 +215,15 @@ function addSnapshot(projectRoot, source, enhancedElements, dryRun) {
 }
 
 /**
- * Initialise structure-versions.json with snapshot 0 (base-pack).
+ * Initialise structure-versions.json with snapshot 0.
  * Idempotent: if the file already exists, exits cleanly without overwriting.
  *
  * @param {string} projectRoot - path to the project root (where .forge/ lives)
  * @param {string} forgeRoot   - path to the forge plugin root
  * @param {boolean} [dryRun]   - when true, log intent but perform no I/O
+ * @param {string} [source]    - source label for snapshot 0 (default: 'base-pack')
  */
-function initStructureVersions(projectRoot, forgeRoot, dryRun) {
+function initStructureVersions(projectRoot, forgeRoot, dryRun, source) {
   const filePath = versionsPath(projectRoot);
 
   // Idempotency: if the file already exists, do nothing.
@@ -234,6 +232,7 @@ function initStructureVersions(projectRoot, forgeRoot, dryRun) {
     return;
   }
 
+  const effectiveSource = source || 'base-pack';
   const basePackVersion = readPluginVersion(forgeRoot);
   const overlayToolVersion = readOverlayToolVersion(forgeRoot);
 
@@ -245,7 +244,7 @@ function initStructureVersions(projectRoot, forgeRoot, dryRun) {
       {
         index: 0,
         createdAt: new Date().toISOString(),
-        source: 'base-pack',
+        source: effectiveSource,
         enhancedElements: [],
         archivePath: null
       }
@@ -259,7 +258,7 @@ function initStructureVersions(projectRoot, forgeRoot, dryRun) {
   }
 
   writeStructureVersions(projectRoot, doc);
-  console.log(`ノ structure-versions.json written (snapshot 0, source: base-pack, plugin: v${basePackVersion})`);
+  console.log(`ノ structure-versions.json written (snapshot 0, source: ${effectiveSource}, plugin: v${basePackVersion})`);
 }
 
 // ---------------------------------------------------------------------------
@@ -298,7 +297,9 @@ if (require.main === module) {
   try {
     switch (subcommand) {
       case 'init': {
-        initStructureVersions(projectRoot, forgeRoot, DRY_RUN);
+        const sourceIdx = args.indexOf('--source');
+        const initSource = sourceIdx !== -1 ? args[sourceIdx + 1] : undefined;
+        initStructureVersions(projectRoot, forgeRoot, DRY_RUN, initSource);
         break;
       }
 
