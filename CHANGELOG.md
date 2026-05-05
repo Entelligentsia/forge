@@ -5,6 +5,40 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.40.2] — 2026-05-05
+
+v0.40.2 hotfix bundle (FORGE-S14) — init/update/migrate reliability fixes. 17 FRs and 2 ADRs.
+
+**ADR-S14-01** — `/forge:update` completion semantics: update ends in one of three states (complete, pending with auto-migration attempt, pending awaiting manual `/forge:migrate`). `updateStatus`, `pendingReason`, and `pendingMigrations` fields in `update-check-cache.json` track the state.
+
+**ADR-S14-02** — `calibrationBaseline.sprintsCovered` semantics: cumulative provenance log (union-merge). `/forge:update` preserves existing entries and appends new ones; never destructively replaces.
+
+**Tool fixes (T03 — FR-001/005/012/013/014/015):**
+- `manage-versions.cjs` — three-resolution FORGE_ROOT priority (env var, `__dirname/..`, actionable error) + `--source` flag + zero-retry idempotent init
+- `manage-config.cjs` — `set` on absent config creates minimal valid file; `resolve-forge-root` subcommand; `forgeRef` write/read support
+- `build-persona-pack.cjs` / `build-context-pack.cjs` — `source_hash` field in output packs
+- `build-overlay.cjs` — smoke-test exit code matches spec (exit 0 for "not found")
+- `check-update.js` — `updateStatus`/`pendingReason`/`pendingMigrations` fields in cache; completion gate
+- New shared libraries: `tools/lib/forge-root.cjs` (FORGE_ROOT resolution) and `tools/lib/paths.cjs` (commands subfolder path)
+
+**Init/manifest fixes (T04 — FR-004/006/007):**
+- `substitute-placeholders.cjs` — `_fragments/` directory fan-out during Phase 3; commands subfolder uses `paths.cjs` single source of truth
+- `check-structure.cjs` — reads commands subfolder from `paths.cjs`; validates manifest entries exist in base-pack
+- `structure-manifest.json` — ships `migrate_structural.md` and `CUSTOM_COMMAND_TEMPLATE.md` in base-pack
+- `build-manifest.cjs` — release-time guard validates base-pack completeness
+
+**Workflow/command patches (T05 — FR-002/003/008/009/010/011/016/017):**
+- `/forge:update` — completion gate (ADR-S14-01), subagent probe (FR-009), `sprintsCovered` union-merge (ADR-S14-02), `forgeRef` portability (FR-010), contiguous phase numbering (FR-017)
+- `/forge:init` — CLAUDE.md creation prompt at Phase 4 end (FR-008), `.gitignore` store/events/ unconditional (FR-016)
+- `/forge:migrate` — `export FORGE_ROOT` on every bash block (FR-011)
+- `_fragments/finalize.md` — updated to reference `/forge:update` completion states
+
+**Regenerate:** tools (manage-versions, manage-config, substitute-placeholders, check-structure, build-manifest, build-persona-pack, build-context-pack, build-overlay, lib/forge-root, lib/paths), commands (update, init, migrate), workflows (migrate_structural, _fragments), schemas (config, update-check-cache, structure-manifest)
+
+> **No breaking changes.** Users on v0.40.x can run `/forge:update` to apply all fixes. Users on pre-v0.40 should run `/forge:migrate` after updating.
+
+---
+
 ## [0.40.1] — 2026-05-02
 
 Read-side collate patch — corrects COST_REPORT.md generation by merging sidecars by `eventId` (eliminates duplicate-counting), adding an Ingestion Quality (IQ) section that surfaces missing / malformed sidecar events, canonicalizing model names via the new `tools/lib/pricing.cjs` library (29 tests, covers all Claude 3 / 3.5 / 3.7 / 4 model IDs plus aliases), and computing costs deterministically from the canonical model rather than trusting potentially-stale sidecar values. The `(unknown)` row that appeared when a model string couldn't be resolved is gone — unresolvable models are captured in the IQ section instead. This is a read-side-only fix; no emit-side behavior, schemas, or workflows changed. v0.41 will add the companion emit-side improvements.

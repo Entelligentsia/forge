@@ -1,4 +1,31 @@
 {
+  "0.40.1": {
+    "version": "0.40.2",
+    "date": "2026-05-05",
+    "notes": "v0.40.2 hotfix bundle (FORGE-S14). Fixes: manage-versions/manage-config FORGE_ROOT resolution (FR-001, FR-005); substitute-placeholders _fragments nesting and commands path SoT (FR-004, FR-006); structure-manifest missing entries and check-structure alignment (FR-006, FR-007); build-persona-pack/build-context-pack source_hash (FR-012); manage-versions --source flag (FR-013); update-check-cache idempotent write (FR-014); build-overlay exit code (FR-015); /forge:update completion semantics and subagent probe (FR-002, FR-009, ADR-S14-01); sprintsCovered union-merge preservation (FR-003, ADR-S14-02); init CLAUDE.md creation (FR-008); forgeRef portability (FR-010); migrate export FORGE_ROOT (FR-011); .gitignore store/events/ unconditional (FR-016); /forge:update phase numbering (FR-017). New shared libraries: forge-root.cjs, paths.cjs. No breaking changes.",
+    "regenerate": [
+      "tools:manage-versions",
+      "tools:manage-config",
+      "tools:substitute-placeholders",
+      "tools:check-structure",
+      "tools:build-manifest",
+      "tools:build-persona-pack",
+      "tools:build-context-pack",
+      "tools:build-overlay",
+      "tools:lib/forge-root",
+      "tools:lib/paths",
+      "commands:update",
+      "commands:init",
+      "commands:migrate",
+      "workflows:migrate_structural",
+      "workflows:_fragments",
+      "schemas:config",
+      "schemas:update-check-cache",
+      "schemas:structure-manifest"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.40.0": {
     "version": "0.40.1",
     "date": "2026-05-02",
