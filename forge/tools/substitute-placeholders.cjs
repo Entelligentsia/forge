@@ -8,15 +8,24 @@
  * a base-pack directory, replaces {{KEY}} placeholders, and writes materialised
  * output to the appropriate output directories.
  *
- * Output path mapping:
+ * Output path mapping (--target claude-code, default):
  *   base-pack/commands/  → <outRoot>/.claude/commands/forge/
  *   base-pack/personas/  → <outRoot>/.forge/personas/
  *   base-pack/skills/    → <outRoot>/.forge/skills/
  *   base-pack/workflows/ → <outRoot>/.forge/workflows/
  *   base-pack/templates/ → <outRoot>/.forge/templates/
  *
+ * Output path mapping (--target pi):
+ *   base-pack/personas/  → <outRoot>/personas/
+ *   base-pack/skills/    → <outRoot>/skills/
+ *   base-pack/workflows/ → <outRoot>/workflows/  (including _fragments/)
+ *   base-pack/templates/ → <outRoot>/templates/
+ *   base-pack/commands/  → SKIPPED (pi commands are registered programmatically)
+ *
  * CLI:
  *   node substitute-placeholders.cjs
+ *     [--target <claude-code|pi>]   (default: claude-code)
+ *     [--src <path>]                (base-pack source dir for --target pi)
  *     [--forge-root <path>]
  *     [--base-pack <path>]
  *     [--config <path>]
@@ -30,6 +39,8 @@
  *   applySubstitutions(text, map)
  *   extractFrontmatter(content)
  *   substituteFile(content, map)
+ *   walkBasePackPi(src, outRoot, dryRun, io)
+ *   PI_TARGET_SUBDIRS
  *   REQUIRED_KEYS
  *   RUNTIME_PASSTHROUGH_KEYS
  */
@@ -86,6 +97,15 @@ const SUBDIR_OUTPUT_MAP = {
   workflows: path.join('.forge', 'workflows'),
   templates: path.join('.forge', 'templates'),
 };
+
+/**
+ * Subdirectories included when --target pi is used.
+ * 'commands' is explicitly excluded — pi commands are registered
+ * programmatically in TypeScript, not via .md files.
+ *
+ * Exported for unit tests (Test Group 15).
+ */
+const PI_TARGET_SUBDIRS = new Set(['workflows', 'personas', 'skills', 'templates']);
 
 // ── Frontmatter extraction ───────────────────────────────────────────────────
 
@@ -401,6 +421,44 @@ function walkDir(currentDir, relOutputDir, outRoot, map, dryRun, warn) {
   }
 }
 
+// ── Pi target walker ─────────────────────────────────────────────────────────
+
+/**
+ * Walk the base-pack directory and write files to outRoot for --target pi.
+ *
+ * Shares ~80% of walkBasePack logic; differs only in output-path mapping:
+ *   - Output is flat (e.g., `workflows/` not `.forge/workflows/`)
+ *   - Only PI_TARGET_SUBDIRS are included; all others are silently skipped
+ *   - Substitution map is always new Map() — all {{KEY}} tokens preserved
+ *   - Path-traversal defence (same outPath.startsWith(safeOutRoot) check as walkBasePack)
+ *
+ * @param {string} src      — absolute path to base-pack source directory
+ * @param {string} outRoot  — absolute output root
+ * @param {boolean} dryRun  — if true, perform no writes
+ * @param {{ warn: function }} io — pluggable stderr for warnings
+ */
+function walkBasePackPi(src, outRoot, dryRun, io) {
+  const warn = (io && io.warn) || ((msg) => process.stderr.write(msg + '\n'));
+
+  // Empty substitution map — all {{KEY}} tokens preserved (pass-through)
+  const emptyMap = new Map();
+
+  const topEntries = fs.readdirSync(src).sort();
+  for (const subdir of topEntries) {
+    const subdirPath = path.join(src, subdir);
+    const stat = fs.statSync(subdirPath);
+    if (!stat.isDirectory()) continue;
+
+    if (!PI_TARGET_SUBDIRS.has(subdir)) {
+      // Expected skips (e.g., commands/) are debug-level; no user-facing warning
+      continue;
+    }
+
+    // Flat layout: output directly to outRoot/<subdir>/... (no .forge/ wrapper)
+    walkDir(subdirPath, subdir, outRoot, emptyMap, dryRun, warn);
+  }
+}
+
 // ── CLI entry point ───────────────────────────────────────────────────────────
 
 if (require.main === module) {
@@ -409,6 +467,50 @@ if (require.main === module) {
     const args = parseCliArgs(argv);
 
     const dryRun = args.dryRun || false;
+    const target = args.target || 'claude-code';
+
+    // Validate target
+    const VALID_TARGETS = new Set(['claude-code', 'pi']);
+    if (!VALID_TARGETS.has(target)) {
+      process.stderr.write(
+        `substitute-placeholders: unknown --target "${target}". Valid targets: claude-code, pi\n`
+      );
+      process.exit(1);
+    }
+
+    // Resolve output root
+    const outRoot = args.out || process.cwd();
+
+    if (target === 'pi') {
+      // ── --target pi dispatch ──────────────────────────────────────────────
+
+      // Warn if --config, --context, or --rules were passed (they are ignored)
+      if (args.config || args.context || args.rules) {
+        process.stderr.write(
+          'Warning: --config and --context are ignored when --target pi\n'
+        );
+      }
+
+      // Resolve --src (default: <forgeRoot>/init/base-pack)
+      const forgeRoot = args.forgeRoot || resolveForgeRoot();
+      const src = args.src || path.join(forgeRoot, 'init', 'base-pack');
+      if (!fs.existsSync(src)) {
+        process.stderr.write(`substitute-placeholders: --src path not found at ${src}\n`);
+        process.exit(1);
+      }
+
+      // Walk pi base-pack (pass-through, no substitution)
+      walkBasePackPi(src, outRoot, dryRun, null);
+
+      if (dryRun) {
+        process.stdout.write('substitute-placeholders: dry run complete (no files written)\n');
+      } else {
+        process.stdout.write('substitute-placeholders: pi layout complete\n');
+      }
+      process.exit(0);
+    }
+
+    // ── --target claude-code dispatch (default) ───────────────────────────────
 
     // Resolve forge root
     const forgeRoot = args.forgeRoot || resolveForgeRoot();
@@ -452,9 +554,6 @@ if (require.main === module) {
       rules = JSON.parse(fs.readFileSync(rulesPath, 'utf8'));
     }
 
-    // Resolve output root
-    const outRoot = args.out || process.cwd();
-
     // Build substitution map — exits 1 if required keys are missing
     let map;
     try {
@@ -486,6 +585,8 @@ function parseCliArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--dry-run') { args.dryRun = true; continue; }
+    if (a === '--target' && argv[i + 1]) { args.target = argv[++i]; continue; }
+    if (a === '--src' && argv[i + 1]) { args.src = argv[++i]; continue; }
     if (a === '--forge-root' && argv[i + 1]) { args.forgeRoot = argv[++i]; continue; }
     if (a === '--base-pack' && argv[i + 1]) { args.basePack = argv[++i]; continue; }
     if (a === '--config' && argv[i + 1]) { args.config = argv[++i]; continue; }
@@ -517,6 +618,8 @@ module.exports = {
   applySubstitutions,
   extractFrontmatter,
   substituteFile,
+  walkBasePackPi,        // NEW — layout-reshape walker for --target pi
+  PI_TARGET_SUBDIRS,     // NEW — exported constant for tests
   REQUIRED_KEYS,
   RUNTIME_PASSTHROUGH_KEYS,
 };

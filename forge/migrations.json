@@ -1,4 +1,14 @@
 {
+  "0.40.2": {
+    "version": "0.40.3",
+    "date": "2026-05-08",
+    "notes": "Add --target pi mode to substitute-placeholders.cjs (FORGE-S16-T01). New walkBasePackPi() function and PI_TARGET_SUBDIRS constant enable forge-cli T02 build pipeline to produce flat pi-shaped output trees from init/base-pack/ with {{KEY}} tokens preserved for downstream resolution. No user-side action required.",
+    "regenerate": [
+      "tools:substitute-placeholders"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.40.1": {
     "version": "0.40.2",
     "date": "2026-05-05",
