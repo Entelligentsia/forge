@@ -125,6 +125,16 @@ function validateRecord(record, schema, opts) {
     }
   }
 
+  // Append a hint when validation fails so the LLM/user knows where to look
+  // for a canonical sample. The opts.entity hint is set by callers that know
+  // which entity they're validating (store-cli.cjs cmdWrite, cmdValidate).
+  if (errors.length > 0 && opts.entity) {
+    errors.push(
+      `(hint: run 'node store-cli.cjs template ${opts.entity}' for a canonical sample, ` +
+      `or 'node store-cli.cjs describe ${opts.entity}' for the raw JSON Schema)`
+    );
+  }
+
   return errors;
 }
 

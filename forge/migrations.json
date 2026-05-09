@@ -1,4 +1,15 @@
 {
+  "0.40.3": {
+    "version": "0.41.0",
+    "date": "2026-05-09",
+    "notes": "Add store-cli describe/template subcommands and validate.js error hint (FORGE-BUG-029-friction). describe <entity> prints raw JSON Schema; template <entity> prints canonical sample with required fields populated. validateRecord errors now include a hint pointing to template/describe when entity is known. Reduces write→reject→retry friction on weak/non-Anthropic models. No breaking changes.",
+    "regenerate": [
+      "tools:store-cli",
+      "tools:lib:validate"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.40.2": {
     "version": "0.40.3",
     "date": "2026-05-08",

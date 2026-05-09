@@ -413,6 +413,8 @@ Commands:
   validate <entity> '<json>'                  Validate against schema without writing
   set-summary <taskId> <phase> <jsonFile>     Set a phase summary on a task record
   set-bug-summary <bugId> <phase> <jsonFile>  Set a phase summary on a bug record
+  describe <entity>                           Print the JSON Schema for an entity
+  template <entity>                           Print a canonical sample record (required fields populated)
 
 Entities: sprint, task, bug, event, feature
 Phases (summaries): plan, review_plan, implementation, code_review, validation
@@ -462,7 +464,7 @@ function cmdWrite() {
     _normalizeBugTimestamps(data);
   }
 
-  const errors = validateRecord(data, schemas[entity]);
+  const errors = validateRecord(data, schemas[entity], { entity });
   if (errors.length > 0) {
     for (const e of errors) console.error(e);
     process.exit(1);
@@ -987,7 +989,7 @@ function cmdValidate() {
     process.exit(1);
   }
 
-  const errors = validateRecord(data, schemas[entity]);
+  const errors = validateRecord(data, schemas[entity], { entity });
   if (errors.length > 0) {
     for (const e of errors) console.error(e);
     process.exit(1);
@@ -1077,6 +1079,105 @@ function cmdSetBugSummary() {
 }
 
 // ---------------------------------------------------------------------------
+// describe / template — schema introspection helpers (FORGE-BUG-029-friction)
+//
+// Reduce write→reject→retry friction. `describe <entity>` returns the raw
+// JSON Schema; `template <entity>` walks the schema and returns a canonical
+// sample record with required fields populated.
+// ---------------------------------------------------------------------------
+
+const VALID_ENTITY_DESCRIBE = new Set(['sprint', 'task', 'bug', 'event', 'feature']);
+
+function cmdDescribe() {
+  const entity = args[1];
+  if (!entity) {
+    console.error('Usage: store-cli.cjs describe <entity>');
+    console.error(`Entities: ${Array.from(VALID_ENTITY_DESCRIBE).join(', ')}`);
+    process.exit(1);
+  }
+  if (!VALID_ENTITY_DESCRIBE.has(entity)) {
+    console.error(`Unknown entity: ${entity}`);
+    console.error(`Entities: ${Array.from(VALID_ENTITY_DESCRIBE).join(', ')}`);
+    process.exit(1);
+  }
+  const schema = _getSchemas()[entity];
+  if (!schema) {
+    console.error(`Schema not found for entity: ${entity}`);
+    process.exit(1);
+  }
+  console.log(JSON.stringify(schema, null, 2));
+}
+
+// Field-name → placeholder ID heuristics. Covers the common shapes without
+// inventing schema-specific knowledge in the generator itself.
+function _idPlaceholder(entity, fieldName) {
+  if (fieldName === 'sprintId')   return 'PROJECT-S01';
+  if (fieldName === 'taskId')     return 'PROJECT-S01-T01';
+  if (fieldName === 'bugId')      return 'PROJECT-BUG-001';
+  if (fieldName === 'feature_id' || fieldName === 'featureId') return 'PROJECT-F01';
+  if (fieldName === 'eventId')    return '20260101T000000000Z_PROJECT-S01-T01_phase_start';
+  if (entity === 'feature' && fieldName === 'id') return 'PROJECT-F01';
+  return `<${fieldName}>`;
+}
+
+function _generateSample(schema, entity) {
+  const sample = {};
+  const required = schema.required || [];
+  const properties = schema.properties || {};
+  for (const field of required) {
+    const def = properties[field] || {};
+    sample[field] = _generateValue(def, field, entity);
+  }
+  return sample;
+}
+
+function _generateValue(def, fieldName, entity) {
+  // Resolve type — handle union (array of types) by picking the first non-null.
+  let t = def.type;
+  if (Array.isArray(t)) t = t.find((x) => x !== 'null') || t[0];
+
+  if (def.enum && Array.isArray(def.enum) && def.enum.length > 0) {
+    return def.enum[0];
+  }
+  if (t === 'string') {
+    if (def.format === 'date-time') return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+    if (/Id$|^id$/.test(fieldName) || fieldName === 'feature_id' || fieldName === 'eventId') {
+      return _idPlaceholder(entity, fieldName);
+    }
+    if (fieldName === 'title')       return 'Sample title';
+    if (fieldName === 'description') return 'Sample description';
+    if (fieldName === 'path')        return `engineering/sprints/PROJECT-S01/${fieldName}-sample.md`;
+    return `<${fieldName}>`;
+  }
+  if (t === 'integer' || t === 'number') return 0;
+  if (t === 'boolean') return false;
+  if (t === 'array') return [];
+  if (t === 'object') return {};
+  return null;
+}
+
+function cmdTemplate() {
+  const entity = args[1];
+  if (!entity) {
+    console.error('Usage: store-cli.cjs template <entity>');
+    console.error(`Entities: ${Array.from(VALID_ENTITY_DESCRIBE).join(', ')}`);
+    process.exit(1);
+  }
+  if (!VALID_ENTITY_DESCRIBE.has(entity)) {
+    console.error(`Unknown entity: ${entity}`);
+    console.error(`Entities: ${Array.from(VALID_ENTITY_DESCRIBE).join(', ')}`);
+    process.exit(1);
+  }
+  const schema = _getSchemas()[entity];
+  if (!schema) {
+    console.error(`Schema not found for entity: ${entity}`);
+    process.exit(1);
+  }
+  const sample = _generateSample(schema, entity);
+  console.log(JSON.stringify(sample, null, 2));
+}
+
+// ---------------------------------------------------------------------------
 // Command dispatch
 // ---------------------------------------------------------------------------
 
@@ -1096,6 +1197,8 @@ switch (command) {
   case 'progress-clear':       cmdProgressClear(); break;
   case 'set-summary':          cmdSetSummary(); break;
   case 'set-bug-summary':      cmdSetBugSummary(); break;
+  case 'describe':             cmdDescribe(); break;
+  case 'template':             cmdTemplate(); break;
   case 'query':
   case 'nlp':
   case 'schema': {
