@@ -5,6 +5,27 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.43.0] — 2026-05-10
+
+**FORGE-S20 Sprint A — Friction emit channel + schema extension.**
+
+T00 (FORGE-S20-T00) lands the writer side of the friction channel: `event.schema.json` gains `type:"friction"` enum with conditional required `{workflow, persona, issue}` via a JSON-Schema `allOf if/then` block; `validate-store.cjs` gains a minimal `allOf if/then required` interpreter; five meta-workflows (`meta-implement.md`, `meta-fix-bug.md`, `meta-validate.md`, `meta-plan-task.md`, `meta-orchestrate.md`) now carry an explicit Friction Emit section describing trigger conditions and the canonical flat-payload `node "$FORGE_ROOT/tools/store-cli.cjs" emit` shape. Shared fragment: `forge/meta/workflows/_fragments/friction-emit.md`.
+
+T01 (FORGE-S20-T01) narrows the optional slots reserved by T00:
+- `subkind` is constrained to a frozen enum `(skill_unused | skill_failed | skill_missing | skill_stale | skill_redundant)` plus a reserved `^x_[a-z_]+$` experimental namespace (no migration required for `x_*`), encoded as a single combined regex pattern.
+- `evidence` is shaped into a closed object: `{ trajectory_excerpt: string, tool_errors: string[], retrieval_score: number ∈ [0,1], skillId: string }`.
+- `validate-store.cjs` gains a minimal `pattern` interpreter on string fields.
+
+Unblocks Plan 08 Phase B (dynamic skill curation): `/forge:enhance --phase 2` reader has been waiting for typed writers since S13-T08.
+
+**Non-breaking:** events without `type` continue to validate exactly as before. T00-shaped friction events without `subkind`/`evidence` remain valid because those slots are not in the friction `allOf` then-required block.
+
+**Regenerate:** `events:friction-emit` `events:friction-subkind` `workflows:implement,fix-bug,validate,plan-task,orchestrate` `tools:store-cli` `tools:validate-store` `schemas:event`
+
+**Marketplace:** `skillforge/.claude-plugin/marketplace.json` `ref` advances from `v0.42.0` → `v0.43.0` (only after forge-cli v0.5.0 is published and post-publish verified).
+
+---
+
 ## [0.42.0] — 2026-05-10
 
 Release-routine catch-up. Single tag promotes v0.40.3 + v0.41.0 cumulatively to skillforge marketplace; v0.41.0 was never tagged separately. Bump-only — no new code beyond what already shipped on `main`.
