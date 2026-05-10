@@ -1,4 +1,12 @@
 {
+  "0.41.0": {
+    "version": "0.42.0",
+    "date": "2026-05-10",
+    "notes": "Release-routine catch-up bump. No code changes. Promotes v0.40.3 (substitute-placeholders --target pi) and v0.41.0 (store-cli describe/template + validate hint) cumulatively to skillforge marketplace under a single tag. Users on v0.40+ → /forge:update is non-breaking. Users on <v0.40 still need the v0.40.0 manual migration path (run /forge:update then /forge:migrate per v0.40.0 entry).",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.40.3": {
     "version": "0.41.0",
     "date": "2026-05-09",

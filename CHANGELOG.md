@@ -5,6 +5,23 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.42.0] — 2026-05-10
+
+Release-routine catch-up. Single tag promotes v0.40.3 + v0.41.0 cumulatively to skillforge marketplace; v0.41.0 was never tagged separately. Bump-only — no new code beyond what already shipped on `main`.
+
+**Cumulative content (since v0.40.2 marketplace pin):**
+
+- **v0.40.3** (2026-05-08, FORGE-S16-T01) — `tools/substitute-placeholders.cjs` gains `--target pi` mode for forge-cli base-pack production. New `walkBasePackPi()` + `PI_TARGET_SUBDIRS` constant produce flat pi-shaped output trees from `init/base-pack/` with `{{KEY}}` tokens preserved. No user-side action required.
+- **v0.41.0** (2026-05-09, FORGE-BUG-029-friction) — `tools/store-cli.cjs` adds `describe <entity>` and `template <entity>` subcommands; `lib/validate.js` errors now include a hint pointing at `template`/`describe` when the entity is known. Reduces write→reject→retry friction on weak/non-Anthropic models. No breaking changes.
+
+**Migration path:**
+- Users on v0.40.x → `/forge:update` is non-breaking.
+- Users on <v0.40 → still must follow the v0.40.0 manual migration (run `/forge:update` then `/forge:migrate`; pre-migration `.forge/` is archived).
+
+**Marketplace:** `skillforge/.claude-plugin/marketplace.json` `ref` advances from `v0.40.2` → `v0.42.0`.
+
+---
+
 ## [0.40.2] — 2026-05-05
 
 v0.40.2 hotfix bundle (FORGE-S14) — init/update/migrate reliability fixes. 17 FRs and 2 ADRs.
