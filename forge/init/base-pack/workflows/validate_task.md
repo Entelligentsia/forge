@@ -72,3 +72,6 @@ deps:
      ```
    - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
+
+## Friction Emit
+Emit `type:friction` `{workflow:validate, persona:qa-engineer, issue}` per `_fragments/friction-emit.md`.

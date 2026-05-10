@@ -55,8 +55,8 @@ The Supervisor performs a final validation of the implementation against the acc
      - If Approved: confirm the task is validated
 
 4. Finalize:
-   - Update task status via `/forge:store update-status task {taskId} status review-approved` (if Approved) or `/forge:store update-status task {taskId} status code-revision-required` (if Revision Required)
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status review-approved` (if Approved) or `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status code-revision-required` (if Revision Required)
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 
 5. Emit Summary Sidecar:

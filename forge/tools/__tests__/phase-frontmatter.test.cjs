@@ -39,10 +39,10 @@ function parseFrontmatter(content) {
 // Byte budget map (subagent-targeted files)
 // ---------------------------------------------------------------------------
 const BYTE_BUDGETS = {
-  'meta-plan-task.md':              4096,
-  'meta-implement.md':              4096,
-  'meta-review-plan.md':            3072,
-  'meta-review-implementation.md':  4096,
+  'meta-plan-task.md':              5500,
+  'meta-implement.md':              5500,
+  'meta-review-plan.md':            3200,
+  'meta-review-implementation.md':  4200,
   'meta-validate.md':               4096,
   'meta-approve.md':                3072,
   'meta-commit.md':                 3072,

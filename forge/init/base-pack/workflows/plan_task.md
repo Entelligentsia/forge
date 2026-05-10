@@ -32,6 +32,7 @@ deps:
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
 1. Load Context:
+   - Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
    - Read task prompt (source of truth)
    - Query the store for this task and any related entities:
      ```sh
@@ -84,3 +85,24 @@ deps:
      ```
    - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
+
+## Iron Laws
+
+- Follow the Algorithm step by step. No code, pseudocode, or implementation sketches in the plan.
+- Read `.forge/personas/architect.md` first; print the persona identity line to stdout before any other tool use.
+- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+
+## Store-Write Verification
+
+Every `forge_store` write MUST succeed before advancing. If `store-cli` exits
+non-zero or the `PreToolUse` write-boundary hook blocks the call (exit 2):
+
+1. Parse the structured error (names the offending field + schema file).
+2. Correct the JSON to satisfy the schema.
+3. Retry. Repeat up to 3 times.
+4. After 3 failures, halt and escalate with original payload, corrected payload, and all error messages.
+
+Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
+
+## Friction Emit
+Emit `type:friction` `{workflow:plan-task, persona:architect, issue}` per `_fragments/friction-emit.md`.

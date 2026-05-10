@@ -47,7 +47,7 @@ Regenerate markdown views from the JSON store. This is a deterministic operation
    - On exit 1 (architecture directory absent), skip silently.
 
 4. Finalize:
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
    - Invoke Tomoshibi via Skill tool to refresh KB and workflow links in agent
      instruction files:
@@ -65,5 +65,5 @@ Regenerate markdown views from the JSON store. This is a deterministic operation
 - **Token Reporting:** The generated workflow MUST mandate the following before returning:
   1. Run `/cost` to retrieve session token usage.
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+  3. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

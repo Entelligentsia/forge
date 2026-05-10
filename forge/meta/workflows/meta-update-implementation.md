@@ -44,8 +44,8 @@ Update the implementation of a task based on a "Revision Required" verdict from 
    - Update PROGRESS.md with a summary of the revisions
 
 4. Finalize:
-   - Update task status via `/forge:store update-status task {taskId} status implemented`
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status implemented`
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 ```
 

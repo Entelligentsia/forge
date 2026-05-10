@@ -6,7 +6,7 @@ Before returning, every subagent MUST:
 2. Parse the output for five fields: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
    - If `/cost` succeeds, add `"tokenSource": "reported"` to the sidecar JSON.
    - If `/cost` fails or is unavailable, set all token fields to `null` and add `"tokenSource": "missing"`.
-3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar` with format:
+3. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar` with format:
    ```json
    {
      "eventId": "<eventId passed by orchestrator>",

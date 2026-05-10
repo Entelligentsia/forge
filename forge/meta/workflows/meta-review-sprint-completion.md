@@ -38,8 +38,8 @@ Verify that all tasks in a sprint have been completed, committed, and validated 
      - If Approved: confirm sprint is ready for retrospective
 
 4. Finalize:
-   - Update sprint status via `/forge:store update-status sprint {sprintId} status completed`
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Update sprint status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status completed`
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 ```
 
@@ -52,5 +52,5 @@ Verify that all tasks in a sprint have been completed, committed, and validated 
 - **Token Reporting:** The generated workflow MUST mandate the following before returning:
   1. Run `/cost` to retrieve session token usage.
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+  3. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

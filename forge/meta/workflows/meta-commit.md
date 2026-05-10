@@ -51,10 +51,10 @@ Seal a completed and approved task by committing its artifacts to the VCS and up
    - Co-author with "Claude Opus 4.6 <noreply@anthropic.com>"
 
 4. Store Finalization:
-   - Update task status via `/forge:store update-status task {taskId} status committed`
+   - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status committed`
 
 5. Finalize:
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 ```
 

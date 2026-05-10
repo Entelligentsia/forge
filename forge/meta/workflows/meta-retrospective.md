@@ -38,13 +38,13 @@ Close a sprint by reviewing learnings, updating the knowledge base, and improvin
 
 4. Finalize:
    - Write SPRINT_RETROSPECTIVE.md
-   - Update sprint status via `/forge:store update-status sprint {sprintId} status retrospective-done`
+   - Update sprint status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status retrospective-done`
    - Run `node "$FORGE_ROOT/tools/collate.cjs" {sprintId} --purge-events`
      This single deterministic step: generates COST_REPORT.md from all
      accumulated events, then deletes `.forge/store/events/{sprintId}/`.
      COST_REPORT.md is the durable record; the raw event files are not
      retained after retrospective close.
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
      (tombstone — written after the purge; the only event in the directory
      going forward)
    - Execute Token Reporting (see Generation Instructions)
@@ -60,5 +60,5 @@ Close a sprint by reviewing learnings, updating the knowledge base, and improvin
 - **Token Reporting:** The generated workflow MUST mandate the following before returning:
   1. Run `/cost` to retrieve session token usage.
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+  3. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

@@ -3,7 +3,7 @@
 <!-- Canonical required/optional event field table for orchestrator workflows.
      Referenced by meta-orchestrate.md and meta-fix-bug.md. -->
 
-Every phase emits a structured event via `/forge:store emit {sprintId} '{event-json}'`.
+Every phase emits a structured event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`.
 
 **Required fields** (defined in `.forge/schemas/event.schema.json`):
 

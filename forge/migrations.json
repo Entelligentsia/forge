@@ -1,4 +1,15 @@
 {
+  "0.43.1": {
+    "version": "0.43.2",
+    "date": "2026-05-10",
+    "notes": "Pack-06 materialization-marker regression fix. Adds Iron Laws + Store-Write Verification sections (plus persona-load step and forge_store token) to meta-plan-task.md and meta-implement.md so generated plan_task.md and implement_plan.md carry the four markers required by forge-cli /forge:plan and /forge:implement kickoff shims. Without these markers, every fresh init produced workflows that hard-failed on dispatch with `× workflow regression: Store-Write Verification not found` (and three siblings: Iron Laws, forge_store, persona file path). Root cause: forge-cli FORGE-S20-T04/T05/T06 added kickoff-shim materialization preconditions but never updated the corresponding meta sources or base-pack regen. Side-effect: bumps base-pack byte budget for plan_task.md/implement_plan.md from 4096→5120 (per-file overrides) and meta-plan-task/meta-implement from 4096→5500 to fit the marker blocks. Pairs with forge-cli v0.5.6.",
+    "regenerate": [
+      "workflows:plan_task",
+      "workflows:implement_plan"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.43.0": {
     "version": "0.43.1",
     "date": "2026-05-10",

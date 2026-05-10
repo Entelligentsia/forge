@@ -32,6 +32,7 @@ deps:
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
 1. Load Context:
+   - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
    - Read the approved PLAN.md
    - Read business domain docs relevant to the task
 
@@ -78,3 +79,25 @@ deps:
      ```
    - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
+
+## Iron Laws
+
+- Follow the Algorithm step by step. Execute the approved PLAN.md exactly; do not invent scope or skip steps without updating the plan first.
+- Read `.forge/personas/engineer.md` first; print the persona identity line to stdout before any other tool use.
+- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+- Run the full test suite before declaring the task implemented. Silent continuation past test failures is never acceptable.
+
+## Store-Write Verification
+
+Every `forge_store` write MUST succeed before advancing. If `store-cli` exits
+non-zero or the `PreToolUse` write-boundary hook blocks the call (exit 2):
+
+1. Parse the structured error (names the offending field + schema file).
+2. Correct the JSON to satisfy the schema.
+3. Retry. Repeat up to 3 times.
+4. After 3 failures, halt and escalate with original payload, corrected payload, and all error messages.
+
+Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
+
+## Friction Emit
+Emit `type:friction` `{workflow:implement, persona:engineer, issue}` per `_fragments/friction-emit.md`.

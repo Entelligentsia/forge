@@ -37,6 +37,7 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
 1. Load Context:
+   - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
    - Read the approved PLAN.md
    - Read business domain docs relevant to the task
 
@@ -61,8 +62,8 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
    - Tag updates: `<!-- Discovered during {TASK_ID} — {date} -->`
 
 6. Finalize:
-   - Update task status via `/forge:store update-status task {taskId} status implemented`
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status implemented`
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 
 7. Emit Summary Sidecar:
@@ -84,12 +85,32 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
    - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 
+## Iron Laws
+
+- Follow the Algorithm step by step. Execute the approved PLAN.md exactly; do not invent scope or skip steps without updating the plan first.
+- Read `.forge/personas/engineer.md` first; print the persona identity line to stdout before any other tool use.
+- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+- Run the full test suite before declaring the task implemented. Silent continuation past test failures is never acceptable.
+
+## Store-Write Verification
+
+Every `forge_store` write MUST succeed before advancing. If `store-cli` exits
+non-zero or the `PreToolUse` write-boundary hook blocks the call (exit 2):
+
+1. Parse the structured error (names the offending field + schema file).
+2. Correct the JSON to satisfy the schema.
+3. Retry. Repeat up to 3 times.
+4. After 3 failures, halt and escalate with original payload, corrected payload, and all error messages.
+
+Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
+
 ## Friction Emit
 Emit `type:friction` `{workflow:implement, persona:engineer, issue}` per `_fragments/friction-emit.md`.
 
 ## Generation Instructions
 
-- **Workflow Structure:** The generated `implement_plan.md` must follow the strict "Algorithm" block format.
+- **Workflow Structure:** Strict "Algorithm" block format.
+- **Markers (required by `/forge:implement` kickoff shim):** Generated workflow MUST include the "Iron Laws" section, the "Store-Write Verification" section, the literal `forge_store` token, and the `engineer.md` persona path. Missing any → kickoff shim refuses to dispatch.
 - **Context Isolation:** Forbid inline execution of complex logic; use the `Agent` tool for sub-tasks.
 - **Project Specifics:**
   - Replace {SYNTAX_CHECK}, {TEST_COMMAND}, and {BUILD_COMMAND} with actual project commands.

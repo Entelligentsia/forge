@@ -37,6 +37,7 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
 1. Load Context:
+   - Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
    - Read task prompt (source of truth)
    - Query the store for this task and any related entities:
      ```sh
@@ -67,8 +68,8 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
    - If new patterns were discovered, update architecture or business domain docs
 
 5. Finalize:
-   - Update task status via `/forge:store update-status task {taskId} status planned`
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status planned`
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 
 6. Emit Summary Sidecar:
@@ -90,13 +91,32 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
    - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 
+## Iron Laws
+
+- Follow the Algorithm step by step. No code, pseudocode, or implementation sketches in the plan.
+- Read `.forge/personas/architect.md` first; print the persona identity line to stdout before any other tool use.
+- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+
+## Store-Write Verification
+
+Every `forge_store` write MUST succeed before advancing. If `store-cli` exits
+non-zero or the `PreToolUse` write-boundary hook blocks the call (exit 2):
+
+1. Parse the structured error (names the offending field + schema file).
+2. Correct the JSON to satisfy the schema.
+3. Retry. Repeat up to 3 times.
+4. After 3 failures, halt and escalate with original payload, corrected payload, and all error messages.
+
+Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
+
 ## Friction Emit
 Emit `type:friction` `{workflow:plan-task, persona:architect, issue}` per `_fragments/friction-emit.md`.
 
 ## Generation Instructions
 
-- **Workflow Structure:** The generated `plan_task.md` must follow the strict "Algorithm" block format.
-- **Context Isolation:** The generated workflow must explicitly forbid inline execution. All complex sub-tasks must be delegated via the `Agent` tool.
+- **Workflow Structure:** Strict "Algorithm" block format.
+- **Markers (required by `/forge:plan` kickoff shim):** Generated workflow MUST include the "Iron Laws" section, the "Store-Write Verification" section, the literal `forge_store` token, and the `architect.md` persona path. Missing any → kickoff shim refuses to dispatch.
+- **Context Isolation:** Forbid inline execution. Delegate complex sub-tasks via the `Agent` tool.
 - **Project Specifics:**
   - Replace architecture/domain doc placeholders with actual project file paths.
   - Embed the project's specific PLAN template path.

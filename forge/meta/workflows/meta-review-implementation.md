@@ -62,8 +62,8 @@ YOU MUST evaluate the code against the approved PLAN.md and the original task pr
    - Update stack-checklist.md if new patterns or pitfalls were discovered
 
 5. Finalize:
-   - Update task status via `/forge:store update-status task {taskId} status review-approved` (if Approved) or `/forge:store update-status task {taskId} status code-revision-required` (if Revision Required)
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status review-approved` (if Approved) or `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status code-revision-required` (if Revision Required)
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 
 6. Emit Summary Sidecar:

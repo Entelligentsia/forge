@@ -41,8 +41,8 @@ Capture sprint requirements via a structured interview and document them for pla
    - Ensure all deliverables are measurable and testable
 
 4. Finalize:
-   - Update sprint status via `/forge:store update-status sprint {sprintId} status planning`
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Update sprint status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status planning`
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 ```
 
@@ -62,6 +62,6 @@ Capture sprint requirements via a structured interview and document them for pla
      - Set token fields to `null`: `"inputTokens": null, "outputTokens": null, "estimatedCostUSD": null`.
      - Add `"source": "missing"` to sidecar JSON.
      - Log: "Token data unavailable (/cost failed). Backfill later via estimate-usage.cjs."
-  4. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar`.
+  4. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar`.
   5. **NEVER skip sidecar write.** Always emit (reported or placeholder with nulls).
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

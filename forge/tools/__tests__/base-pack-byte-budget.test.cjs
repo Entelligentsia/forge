@@ -37,15 +37,23 @@ const FORBIDDEN_STRINGS = [
 ];
 
 const BYTE_BUDGET = 4096;
+// Per-file budget overrides for phase workflows that legitimately need more space
+// (e.g. carry the kickoff-shim materialization markers — Iron Laws +
+// Store-Write Verification — required by forge-cli /forge:plan and /forge:implement).
+const BYTE_BUDGET_OVERRIDES = {
+  'plan_task.md':      5120,
+  'implement_plan.md': 5120,
+};
 
 describe('base-pack-byte-budget — phase files within byte budget', () => {
   for (const file of PHASE_FILES) {
-    it(`${file} ≤ ${BYTE_BUDGET} bytes`, () => {
+    const budget = BYTE_BUDGET_OVERRIDES[file] ?? BYTE_BUDGET;
+    it(`${file} ≤ ${budget} bytes`, () => {
       const filePath = path.join(BASE_PACK, file);
       const size = fs.statSync(filePath).size;
       assert.ok(
-        size <= BYTE_BUDGET,
-        `${file} is ${size} bytes, exceeds ${BYTE_BUDGET}B budget`
+        size <= budget,
+        `${file} is ${size} bytes, exceeds ${budget}B budget`
       );
     });
   }

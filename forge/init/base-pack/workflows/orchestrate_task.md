@@ -848,3 +848,45 @@ is a violation of the Iron Laws.
 > See `_fragments/event-emission-schema.md` for the full required/optional field reference.
 
 Every phase emits via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`. Required fields: `eventId`, `taskId`, `sprintId`, `role`, `action`, `phase`, `iteration`, `startTimestamp`, `endTimestamp`, `durationMinutes`, `model`. Optional: `verdict`, `notes`, token fields.
+## Friction Emit
+
+When the Orchestrator detects skill friction during orchestrate-task — a referenced skill is unused, fails on invocation, is missing from the registry, has gone stale relative to current architecture, or is redundant with another skill — emit a `friction` event so `/forge:enhance --phase 2` can act on the signal. This is the writer side of the channel whose reader landed in S13-T08; the reader is empty without these emits.
+
+**Trigger conditions** (set `issue` to the matching token):
+
+| Token              | When to emit                                                                     |
+|--------------------|----------------------------------------------------------------------------------|
+| `skill_unused`     | A skill listed in the persona's skill block was loaded but never consulted.      |
+| `skill_failed`     | A skill was consulted but its guidance produced an error or required correction. |
+| `skill_missing`    | The workflow needed guidance the available skills did not cover.                 |
+| `skill_stale`      | A skill's guidance contradicts current architecture / supersedes its own advice. |
+| `skill_redundant`  | Two skills provided overlapping or conflicting guidance for the same decision.   |
+
+**Emit shape** (flat payload — same shape stabilized by BUG-029; all event fields top-level, no nesting):
+
+```sh
+node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{
+  "eventId":         "{ISO}_{taskId}_orchestrator_friction",
+  "taskId":          "{taskId}",
+  "sprintId":        "{sprintId}",
+  "role":            "orchestrator",
+  "action":          "friction_observed",
+  "phase":           "orchestrate",
+  "iteration":       1,
+  "startTimestamp":  "{ISO}",
+  "endTimestamp":    "{ISO}",
+  "durationMinutes": 0,
+  "model":           "{resolved-model}",
+  "type":            "friction",
+  "workflow":        "orchestrate",
+  "persona":         "orchestrator",
+  "issue":           "skill_unused | skill_failed | skill_missing | skill_stale | skill_redundant",
+  "subkind":         "{optional — T01 will narrow the enum}",
+  "evidence":        { "skill_id": "...", "note": "..." },
+  "notes":           "<one-line human description>"
+}'
+```
+
+The schema enforces `{workflow, persona, issue}` as required when `type === "friction"`. `subkind` and `evidence` slots are reserved for T01 to formalize. Emit one event per distinct friction signal — do not coalesce.
+
+The generated `orchestrate_task.md` MUST carry this section verbatim — `/forge:enhance --phase 2` greps for it.

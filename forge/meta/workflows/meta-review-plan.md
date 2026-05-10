@@ -52,8 +52,8 @@ YOU MUST evaluate the plan against what the task actually requires, not against 
      - If Approved: provide any advisory notes
 
 4. Finalize:
-   - Update task status via `/forge:store update-status task {taskId} status review-approved` (if Approved) or `/forge:store update-status task {taskId} status plan-revision-required` (if Revision Required)
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status review-approved` (if Approved) or `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status plan-revision-required` (if Revision Required)
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see `_fragments/finalize.md`)
 
 5. Emit Summary Sidecar:
