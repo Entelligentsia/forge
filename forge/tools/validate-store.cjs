@@ -151,6 +151,50 @@ function validateRecord(record, schema) {
     }
   }
 
+  // Conditional required via JSON-Schema `allOf` with `if/then/required`.
+  // FORGE-S20-T00 — minimal interpreter: each clause may carry an `if` whose
+  // `properties.<field>.const` must equal `record[field]`, AND every field in
+  // `if.required` must be present on the record. When the clause matches,
+  // every name in `then.required` becomes an additional required field.
+  // No other JSON-Schema constructs are honored — this is intentional; the
+  // store schemas are thin and we don't want to drag in a full validator.
+  if (Array.isArray(schema.allOf)) {
+    for (const clause of schema.allOf) {
+      if (!clause || typeof clause !== 'object' || !clause.if || !clause.then) continue;
+      const condProps = (clause.if.properties && typeof clause.if.properties === 'object')
+        ? clause.if.properties
+        : {};
+      const condRequired = Array.isArray(clause.if.required) ? clause.if.required : [];
+
+      // All `if.required` fields must be present on the record.
+      const allReqPresent = condRequired.every((f) => record[f] !== undefined && record[f] !== null && record[f] !== '');
+      if (!allReqPresent) continue;
+
+      // Every const predicate in `if.properties` must match the record.
+      let condMatches = true;
+      for (const [field, pred] of Object.entries(condProps)) {
+        if (pred && Object.prototype.hasOwnProperty.call(pred, 'const')) {
+          if (record[field] !== pred.const) { condMatches = false; break; }
+        }
+      }
+      if (!condMatches) continue;
+
+      // Clause fired — enforce `then.required`.
+      const thenRequired = Array.isArray(clause.then.required) ? clause.then.required : [];
+      for (const field of thenRequired) {
+        if (record[field] === undefined || record[field] === null || record[field] === '') {
+          errors.push({
+            category: 'missing-required',
+            field,
+            message: `missing required field: "${field}"`,
+            value:    record[field],
+            expected: null,
+          });
+        }
+      }
+    }
+  }
+
   return errors;
 }
 

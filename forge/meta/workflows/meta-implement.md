@@ -84,6 +84,9 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
    - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 
+## Friction Emit
+Emit `type:friction` `{workflow:implement, persona:engineer, issue}` per `_fragments/friction-emit.md`.
+
 ## Generation Instructions
 
 - **Workflow Structure:** The generated `implement_plan.md` must follow the strict "Algorithm" block format.

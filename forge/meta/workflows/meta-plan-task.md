@@ -90,6 +90,9 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
    - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 
+## Friction Emit
+Emit `type:friction` `{workflow:plan-task, persona:architect, issue}` per `_fragments/friction-emit.md`.
+
 ## Generation Instructions
 
 - **Workflow Structure:** The generated `plan_task.md` must follow the strict "Algorithm" block format.
