@@ -139,6 +139,33 @@ function validateRecord(record, schema) {
     if (def.minimum !== undefined && typeof val === 'number' && val < def.minimum) {
       errors.push({ category: 'minimum-violation', field, message: `field "${field}": value ${val} is below minimum ${def.minimum}`, value: val, expected: String(def.minimum) });
     }
+    // FORGE-S20-T01 — minimal `pattern` interpreter for string fields. Strictly
+    // additive: schemas without `pattern` see no behavior change. Used by the
+    // friction `subkind` slot to encode "frozen enum OR ^x_[a-z_]+$" as a
+    // single combined regex (neither validator supports `anyOf`).
+    if (def.pattern && typeof val === 'string') {
+      let re;
+      try { re = new RegExp(def.pattern); }
+      catch (_) {
+        errors.push({
+          category: 'pattern-invalid',
+          field,
+          message:  `field "${field}": schema pattern "${def.pattern}" is not a valid regex`,
+          value:    String(val),
+          expected: String(def.pattern),
+        });
+        re = null;
+      }
+      if (re && !re.test(val)) {
+        errors.push({
+          category: 'pattern-mismatch',
+          field,
+          message:  `field "${field}": value "${val}" does not match pattern ${def.pattern}`,
+          value:    String(val),
+          expected: String(def.pattern),
+        });
+      }
+    }
   }
 
   // Check for undeclared fields when additionalProperties is false

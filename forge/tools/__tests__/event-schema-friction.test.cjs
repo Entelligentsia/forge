@@ -97,3 +97,103 @@ describe('event.schema.json — friction event type', () => {
   });
 
 });
+
+// FORGE-S20-T01 — Friction subkind enum + evidence block.
+//
+// Iron Law 2: written BEFORE the schema/validator changes that narrow the
+// `subkind` slot to a combined enum-or-x_pattern regex and shape `evidence`
+// into a typed object. The combined pattern is:
+//
+//   ^(skill_unused|skill_failed|skill_missing|skill_stale|skill_redundant|x_[a-z_]+)$
+//
+// validate-store.cjs is extended in the same task to honor the `pattern`
+// keyword on string fields — these tests exercise that interpreter.
+describe('event.schema.json — friction subkind + evidence (T01)', () => {
+
+  function frictionEvent(overrides = {}) {
+    return baseEvent({
+      type:     'friction',
+      workflow: 'implement',
+      persona:  'engineer',
+      issue:    'skill_unused',
+      ...overrides,
+    });
+  }
+
+  for (const subkind of [
+    'skill_unused',
+    'skill_failed',
+    'skill_missing',
+    'skill_stale',
+    'skill_redundant',
+  ]) {
+    test(`subkind "${subkind}" (frozen enum) is accepted`, () => {
+      const ev = frictionEvent({ subkind });
+      const errors = validateRecord(ev, eventSchema);
+      assert.deepEqual(errors, [],
+        `expected no errors for subkind=${subkind}, got: ${JSON.stringify(errors, null, 2)}`);
+    });
+  }
+
+  test('subkind in reserved x_* namespace is accepted', () => {
+    const ev = frictionEvent({ subkind: 'x_experimental_kind' });
+    const errors = validateRecord(ev, eventSchema);
+    assert.deepEqual(errors, [],
+      `expected no errors for x_experimental_kind, got: ${JSON.stringify(errors, null, 2)}`);
+  });
+
+  test('subkind "x_BAD" (uppercase violates [a-z_]+) is rejected', () => {
+    const ev = frictionEvent({ subkind: 'x_BAD' });
+    const errors = validateRecord(ev, eventSchema);
+    const patternErrs = errors.filter(
+      (e) => e.category === 'pattern-mismatch' && e.field === 'subkind',
+    );
+    assert.equal(patternErrs.length, 1,
+      `expected one pattern-mismatch on subkind, got: ${JSON.stringify(errors)}`);
+  });
+
+  test('subkind "X_foo" (uppercase prefix) is rejected', () => {
+    const ev = frictionEvent({ subkind: 'X_foo' });
+    const errors = validateRecord(ev, eventSchema);
+    const patternErrs = errors.filter(
+      (e) => e.category === 'pattern-mismatch' && e.field === 'subkind',
+    );
+    assert.equal(patternErrs.length, 1,
+      `expected one pattern-mismatch on subkind, got: ${JSON.stringify(errors)}`);
+  });
+
+  test('subkind "unknown_kind" (not in enum, no x_ prefix) is rejected', () => {
+    const ev = frictionEvent({ subkind: 'unknown_kind' });
+    const errors = validateRecord(ev, eventSchema);
+    const patternErrs = errors.filter(
+      (e) => e.category === 'pattern-mismatch' && e.field === 'subkind',
+    );
+    assert.equal(patternErrs.length, 1,
+      `expected one pattern-mismatch on subkind, got: ${JSON.stringify(errors)}`);
+  });
+
+  test('friction event with full evidence object is accepted', () => {
+    const ev = frictionEvent({
+      subkind: 'skill_failed',
+      evidence: {
+        trajectory_excerpt: 'persona invoked skill X, error returned',
+        tool_errors:        ['skill X exited 1', 'retry timed out'],
+        retrieval_score:    0.42,
+        skillId:            'engineer-skill-template-render',
+      },
+    });
+    const errors = validateRecord(ev, eventSchema);
+    assert.deepEqual(errors, [],
+      `expected no errors for full evidence, got: ${JSON.stringify(errors, null, 2)}`);
+  });
+
+  test('T00-shaped friction event without subkind/evidence still validates', () => {
+    // No regression: T01 narrows the optional slots but does NOT add them
+    // to the friction allOf then-required block.
+    const ev = frictionEvent();
+    const errors = validateRecord(ev, eventSchema);
+    assert.deepEqual(errors, [],
+      `expected no errors for T00-shape friction event, got: ${JSON.stringify(errors, null, 2)}`);
+  });
+
+});

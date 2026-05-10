@@ -3,9 +3,10 @@
      meta-plan-task.md, and meta-orchestrate.md. /forge:enhance --phase 2
      greps generated workflows for `## Friction Emit` to discover the channel.
 
-     T00 lands the writer side of the friction channel; T01 will narrow the
-     `subkind` enum and shape `evidence`. Until T01 ships, treat both as
-     opt-in slots.
+     T00 landed the writer side of the friction channel; T01 narrowed the
+     `subkind` enum + reserved `^x_[a-z_]+$` namespace, and shaped the
+     `evidence` block. Both slots remain optional on the friction allOf
+     contract — populate them when the diagnostic data is available.
 -->
 
 # Friction Emit (Fragment)
@@ -36,8 +37,10 @@ findings into a single event.
 
 Flat payload — every field at the top level, no nesting (same shape
 stabilized by BUG-029). The schema enforces `{workflow, persona, issue}` as
-required when `type === "friction"`. `subkind` and `evidence` slots are
-optional now and will be narrowed by T01.
+required when `type === "friction"`. `subkind` is constrained to the frozen
+enum below or `^x_[a-z_]+$`; `evidence` is a closed object with
+`trajectory_excerpt`, `tool_errors`, `retrieval_score` (0..1), `skillId`.
+Both slots remain optional — emit when the diagnostic data is available.
 
 ```sh
 node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{
@@ -56,8 +59,8 @@ node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{
   "workflow":        "{workflow-key}",
   "persona":         "{persona-noun}",
   "issue":           "skill_unused | skill_failed | skill_missing | skill_stale | skill_redundant",
-  "subkind":         "{optional — T01 will narrow the enum}",
-  "evidence":        { "skill_id": "...", "note": "..." },
+  "subkind":         "{optional — frozen enum: skill_unused|skill_failed|skill_missing|skill_stale|skill_redundant, or ^x_[a-z_]+$ experimental}",
+  "evidence":        { "trajectory_excerpt": "...", "tool_errors": ["..."], "retrieval_score": 0.0, "skillId": "..." },
   "notes":           "<one-line human description>"
 }'
 ```
