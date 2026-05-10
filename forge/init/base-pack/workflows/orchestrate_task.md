@@ -108,7 +108,7 @@ Each phase subagent is responsible for reporting its own token usage via a sidec
 1. Run `/cost` to retrieve token usage for the session.
 2. Parse the output for the five fields:
    `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-3. Write the usage sidecar via `/forge:store emit {sprintId} '{sidecar-json}' --sidecar` with the exact format:
+3. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar` with the exact format:
    ```json
    {
      "inputTokens": <integer>,
@@ -378,7 +378,7 @@ for each task in dependency_sorted(tasks):
       append_progress(progress_log_path, f"❌ Gate failed for {phase.role}: {preflight_result.stderr}")
       emit_event(task, phase, action="gate_failed", notes=preflight_result.stderr)
       # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
-      run_bash(f'/forge:store update-status task {task_id} status escalated')
+      run_bash(f'node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {task_id} status escalated')
       emit_event(task, phase, eventId=event_id, iteration=iteration,
                  action="escalated", verdict="escalated",
                  notes=f"gate_failed: {preflight_result.stderr}")
@@ -390,7 +390,7 @@ for each task in dependency_sorted(tasks):
       # Misconfiguration (unknown phase, malformed gates block). Fail loud.
       print(f"  ⚠ {task_id}  {phase.role}  — gate misconfigured\n{preflight_result.stderr}")
       # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
-      run_bash(f'/forge:store update-status task {task_id} status escalated')
+      run_bash(f'node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {task_id} status escalated')
       emit_event(task, phase, eventId=event_id, iteration=iteration,
                  action="escalated", verdict="escalated",
                  notes=f"gate_misconfigured: {preflight_result.stderr}")
@@ -502,7 +502,7 @@ for each task in dependency_sorted(tasks):
           emit_event(task, phase, action="subagent_escalated",
                      notes=f"second failure: {subagent_failure_reason(result)}")
           # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
-          run_bash(f'/forge:store update-status task {task_id} status escalated')
+          run_bash(f'node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {task_id} status escalated')
           emit_event(task, phase, eventId=event_id, iteration=iteration,
                      action="escalated", verdict="escalated",
                      notes=f"subagent failed after retry: {subagent_failure_reason(result)}")
@@ -515,7 +515,7 @@ for each task in dependency_sorted(tasks):
         emit_event(task, phase, action="subagent_escalated",
                    notes=f"second failure: {subagent_failure_reason(result)}")
         # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
-        run_bash(f'/forge:store update-status task {task_id} status escalated')
+        run_bash(f'node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {task_id} status escalated')
         emit_event(task, phase, eventId=event_id, iteration=iteration,
                    action="escalated", verdict="escalated",
                    notes=f"subagent failed after retry: {subagent_failure_reason(result)}")
@@ -524,7 +524,7 @@ for each task in dependency_sorted(tasks):
         break
 
     # --- Sidecar merge: merge token usage written by subagent via custodian ---
-    # The subagent wrote the sidecar via /forge:store emit {sprintId} '{sidecar-json}' --sidecar
+    # The subagent wrote the sidecar via node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar
     # Merge the sidecar into the canonical event and delete the sidecar file
     FORGE_ROOT = resolve_forge_root()
     run: node "$FORGE_ROOT/tools/store-cli.cjs" merge-sidecar {sprint_id} {event_id}
@@ -558,7 +558,7 @@ for each task in dependency_sorted(tasks):
       emit_event(task, phase, action="verdict_malformed",
                  notes=f"parse-verdict exit={verdict_result.exit_code}")
       # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
-      run_bash(f'/forge:store update-status task {task_id} status escalated')
+      run_bash(f'node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {task_id} status escalated')
       emit_event(task, phase, eventId=event_id, iteration=iteration,
                  action="escalated", verdict="escalated",
                  notes="verdict_malformed: review artifact missing or verdict line unparseable")
@@ -580,7 +580,7 @@ for each task in dependency_sorted(tasks):
 
       if iteration_counts[phase.command] >= phase.maxIterations: # default 3
         # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
-        run_bash(f'/forge:store update-status task {task_id} status escalated')
+        run_bash(f'node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {task_id} status escalated')
         emit_event(task, phase, eventId=event_id, iteration=iteration,
                    action="escalated", verdict="escalated",
                    notes="max iterations reached")
@@ -706,7 +706,7 @@ as approved or revision; halt the loop and escalate via `verdict_malformed`.
 
 When escalating to the human:
 
-1. Update task status via `/forge:store update-status task {taskId} status escalated`
+1. Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status escalated`
 2. Emit a final event with `verdict: "escalated"` and `notes` explaining the reason
 3. Output a clear message:
    ```
@@ -847,4 +847,4 @@ is a violation of the Iron Laws.
 <!-- See _fragments/event-emission-schema.md for canonical field table -->
 > See `_fragments/event-emission-schema.md` for the full required/optional field reference.
 
-Every phase emits via `/forge:store emit {sprintId} '{event-json}'`. Required fields: `eventId`, `taskId`, `sprintId`, `role`, `action`, `phase`, `iteration`, `startTimestamp`, `endTimestamp`, `durationMinutes`, `model`. Optional: `verdict`, `notes`, token fields.
+Every phase emits via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`. Required fields: `eventId`, `taskId`, `sprintId`, `role`, `action`, `phase`, `iteration`, `startTimestamp`, `endTimestamp`, `durationMinutes`, `model`. Optional: `verdict`, `notes`, token fields.

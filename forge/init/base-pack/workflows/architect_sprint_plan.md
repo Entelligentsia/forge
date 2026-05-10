@@ -45,11 +45,11 @@ deps:
 
 4. Documentation:
    - Write SPRINT_PLAN.md to `engineering/sprints/{sprintId}/SPRINT_PLAN.md`
-   - Create each task via `/forge:store write task '{task-json}'`.
+   - Create each task via `node "$FORGE_ROOT/tools/store-cli.cjs" write task '{task-json}'`.
      If the command exits non-zero or the PreToolUse hook blocks the write:
      parse the error, correct the JSON, and retry (see Store-Write Verification).
      Do not proceed to the next task until this write succeeds.
-   - Update the sprint record with all new task IDs via `/forge:store write sprint '{updated-sprint-json}'` (the sprint JSON must include the complete `taskIds` array with all newly created task IDs).
+   - Update the sprint record with all new task IDs via `node "$FORGE_ROOT/tools/store-cli.cjs" write sprint '{updated-sprint-json}'` (the sprint JSON must include the complete `taskIds` array with all newly created task IDs).
      If the command exits non-zero or the PreToolUse hook blocks the write:
      parse the error, correct the JSON, and retry (see Store-Write Verification).
      Do not proceed until this write succeeds.
@@ -57,12 +57,12 @@ deps:
      * Folder: `engineering/sprints/{sprintId}/{taskId}/`
      * File: `TASK_PROMPT.md` — populate from `.forge/templates/TASK_PROMPT_TEMPLATE.md`
        filling in title, objective, acceptance criteria, entities, DSL/CLI changes, and operational impact
-   - Update sprint status via `/forge:store update-status sprint {sprintId} status active`.
+   - Update sprint status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status active`.
      If the command exits non-zero, parse the error and retry
      (see Store-Write Verification). Do not proceed until this write succeeds.
 
 5. Finalize:
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`.
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`.
      If the command exits non-zero or the PreToolUse hook blocks the write:
      parse the error, correct the JSON, and retry (see Store-Write Verification).
      Do not proceed until this write succeeds.

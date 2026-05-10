@@ -42,7 +42,7 @@ deps:
    - On exit 1 (architecture directory absent), skip silently.
 
 4. Finalize:
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see `_fragments/finalize.md`)
    - Invoke Tomoshibi via Skill tool to refresh KB and workflow links in agent
      instruction files:

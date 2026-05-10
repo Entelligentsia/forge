@@ -33,13 +33,13 @@ deps:
 
 4. Finalize:
    - Write SPRINT_RETROSPECTIVE.md
-   - Update sprint status via `/forge:store update-status sprint {sprintId} status retrospective-done`
+   - Update sprint status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status retrospective-done`
    - Run `node "$FORGE_ROOT/tools/collate.cjs" {sprintId} --purge-events`
      This single deterministic step: generates COST_REPORT.md from all
      accumulated events, then deletes `.forge/store/events/{sprintId}/`.
      COST_REPORT.md is the durable record; the raw event files are not
      retained after retrospective close.
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
      (tombstone — written after the purge; the only event in the directory
      going forward)
    - Execute Token Reporting (see `_fragments/finalize.md`)

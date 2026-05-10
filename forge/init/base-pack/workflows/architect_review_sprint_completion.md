@@ -33,7 +33,7 @@ deps:
      - If Approved: confirm sprint is ready for retrospective
 
 4. Finalize:
-   - Update sprint status via `/forge:store update-status sprint {sprintId} status completed`
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Update sprint status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status completed`
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see `_fragments/finalize.md`)
 ```

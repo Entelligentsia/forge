@@ -5,6 +5,24 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.43.1] — 2026-05-10
+
+**Direct-exec contract patch — workflow store-CLI form unification.**
+
+Every `/forge:store ...` slash-command reference in `init/base-pack/workflows/*.md` (and `_fragments/*.md`) replaced with the canonical `node "$FORGE_ROOT/tools/store-cli.cjs" ...` direct-cjs form already used by `meta/workflows/*.md`. Pairs with `@entelligentsia/forgecli@0.5.1`, which adds a bin fast-path that exec's `.tools/store-cli.cjs` directly when users (or models) shell `forge store ...`.
+
+Why: cartographer testbench observed haiku-4-5 burning 26-220s per `bash forge store ...` invocation — each shell-out cold-started a fresh pi/agent loop because `forge` had no `store` subcommand. Models took the workflow text as license to bash-shell the colloquial form. Fix: unify workflow text to the deterministic direct-cjs form, and have forge-cli's bin route that form to a fast-path.
+
+### Changed
+
+- All 18 base-pack workflow files (commands/, fragments/) rewritten from `\`/forge:store ...\`` to `\`node "$FORGE_ROOT/tools/store-cli.cjs" ...\``. Mechanical sed replacement; semantics unchanged. Bumped `integrity.json` and `structure-manifest.json` accordingly.
+
+### Migration
+
+Non-breaking. Users on v0.43.0 → run `/forge:update`; no manual steps required. Existing `.forge/workflows/*.md` continue to work because forge-cli's bin fast-path interprets `forge store ...` shell-outs as direct cjs exec.
+
+---
+
 ## [0.43.0] — 2026-05-10
 
 **FORGE-S20 Sprint A — Friction emit channel + schema extension.**

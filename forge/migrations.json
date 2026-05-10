@@ -1,4 +1,14 @@
 {
+  "0.43.0": {
+    "version": "0.43.1",
+    "date": "2026-05-10",
+    "notes": "Direct-exec contract patch. Replaces all `/forge:store ...` slash-command references in init/base-pack/workflows/*.md (and _fragments/) with the canonical `node \"$FORGE_ROOT/tools/store-cli.cjs\" ...` direct-cjs form already used by meta/workflows/*.md. Pairs with forge-cli v0.5.1 (system-prompt tool-discipline block, kickoff-prompt rewrites, and bin fast-path for `forge {store|collate|validate-store|store-query} ...`). Root cause: cartographer testbench observed haiku-4-5 burning 26-220s per `bash forge store ...` shell-out — each invocation spawned a fresh pi/agent loop. Fix: prescriptive system prompt + canonical workflow text + bin fast-path. Existing `/forge:store` materialized workflows remain functional under the bin fast-path; no manual migration required for projects on v0.43.0.",
+    "regenerate": [
+      "workflows:base-pack-store-cli-form"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.42.0": {
     "version": "0.43.0",
     "date": "2026-05-10",

@@ -39,7 +39,7 @@ deps:
    - Update the "Operational Impact" or "Testing Strategy" if the revision changed them
 
 4. Finalize:
-   - Update task status via `/forge:store update-status task {taskId} status planned`
-   - Emit the complete event via `/forge:store emit {sprintId} '{event-json}'`
+   - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status planned`
+   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see `_fragments/finalize.md`)
 ```
