@@ -1,4 +1,14 @@
 {
+  "0.43.2": {
+    "version": "0.43.3",
+    "date": "2026-05-10",
+    "notes": "Adds workflows/enhance.md to base-pack (FORGE-S20-T04 sprint-completion gap fix). meta-enhance.md now generates init/base-pack/workflows/enhance.md via the standard transformWorkflow path; build-base-pack expects 20 workflow files (was 19); enhance.md ships with Iron Laws + Store-Write Verification + forge_store + engineer.md markers required by the forge-cli /forge:enhance kickoff shim. Without this file, /forge:enhance hard-failed every fresh init with `× forge:enhance — workflow not found at .forge/workflows/enhance.md`. enhance.md is orchestrator-only audience and exempt from the 4KB phase-file byte budget. Pairs with forge-cli v0.5.7.",
+    "regenerate": [
+      "workflows:enhance"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.43.1": {
     "version": "0.43.2",
     "date": "2026-05-10",

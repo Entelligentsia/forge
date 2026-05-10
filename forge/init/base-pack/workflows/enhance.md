@@ -13,7 +13,7 @@ deps:
   config_fields: [paths.engineering, paths.forgeRoot]
 ---
 
-# Meta-Workflow: Enhancement Agent
+# Enhancement Agent
 
 ## Iron Laws
 
@@ -32,18 +32,6 @@ non-zero or the `PreToolUse` write-boundary hook blocks the call (exit 2):
 3. Retry. Repeat up to 3 times. After 3 failures, halt and escalate.
 
 Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
-
-## Purpose
-
-Autonomously improve the installed `.forge/` structural elements by:
-- **Phase 1** (auto-apply, post-init): Fill any `{{KEY}}` placeholders left unsubstituted during init.
-- **Phase 2** (propose-diffs, post-sprint): Scan sprint artifacts and friction events; propose persona/skill enrichments for user review.
-- **Phase 3** (drift detection, on-demand): Compare full codebase state against structural-element knowledge; propose targeted patches.
-
-This workflow is `audience: orchestrator-only` — it reads store events and proposes writes to
-`.forge/` structural elements. It must run with full tool access. It is never delegated to a
-subagent.
-
 ## Note on `.forge/enhancement-proposals/` directory
 
 Phases 2 and 3 write proposal artifacts to `.forge/enhancement-proposals/`. This directory is

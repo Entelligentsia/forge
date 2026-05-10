@@ -640,6 +640,7 @@ function buildBasePack({ forgeRoot, outRoot }) {
     ['meta-approve.md',                  'architect_approve.md'],
     ['meta-collate.md',                  'collator_agent.md'],
     ['meta-commit.md',                   'commit_task.md'],
+    ['meta-enhance.md',                  'enhance.md'],
     ['meta-fix-bug.md',                  'fix_bug.md'],
     ['meta-implement.md',                'implement_plan.md'],
     ['meta-migrate.md',                  'migrate_structural.md'],
@@ -765,7 +766,8 @@ function buildBasePack({ forgeRoot, outRoot }) {
     // Workflows (19)
     'workflows/architect_approve.md', 'workflows/architect_review_sprint_completion.md',
     'workflows/architect_sprint_intake.md', 'workflows/architect_sprint_plan.md',
-    'workflows/collator_agent.md', 'workflows/commit_task.md', 'workflows/fix_bug.md',
+    'workflows/collator_agent.md', 'workflows/commit_task.md', 'workflows/enhance.md',
+    'workflows/fix_bug.md',
     'workflows/implement_plan.md', 'workflows/migrate_structural.md',
     'workflows/orchestrate_task.md', 'workflows/plan_task.md',
     'workflows/quiz_agent.md', 'workflows/review_code.md', 'workflows/review_plan.md',
