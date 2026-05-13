@@ -66,7 +66,8 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
 3. Commit:
    - Create a commit with a message following project conventions
    - Include task ID in the commit message
-   - Co-author with "Claude Opus 4.6 <noreply@anthropic.com>"
+   - Append a `Co-authored-by:` trailer crediting the AI assistant that actually ran the session. Resolve the identity from the host runtime: on Claude Code use `Co-authored-by: Claude <noreply@anthropic.com>`; on pi / Ollama / any other runtime use `Co-authored-by: {modelId} <noreply@{provider}.ai>` derived from the session's `provider` and `modelId` (e.g. `Co-authored-by: glm-5.1:cloud <noreply@ollama.ai>`); if neither is resolvable, omit the trailer rather than guess. Do NOT hardcode `Claude Opus 4.6 <noreply@anthropic.com>` — that literal is rejected as a regression of forge#82 (commits authored under the wrong model).
+   - Let git's configured `user.name` / `user.email` own the commit author; never pass `--author` to override it.
 
 4. Store Finalization:
    - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status committed`
