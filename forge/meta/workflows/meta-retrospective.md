@@ -58,7 +58,9 @@ Close a sprint by reviewing learnings, updating the knowledge base, and improvin
 - **Project Specifics:**
   - Reference project's cost reporting templates.
 - **Token Reporting:** The generated workflow MUST mandate the following before returning:
-  1. Run `/cost` to retrieve session token usage.
+  1. Probe session token usage: invoke `/cost` if the host runtime supports it
+     (Claude Code only); on any other runtime treat as unavailable and proceed.
+     Do NOT shell out to a `cost-cli.cjs` — there is no such tool.
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
   3. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

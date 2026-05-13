@@ -28,10 +28,11 @@ Capture sprint requirements via a structured interview and document them for pla
    - Paths in subsequent steps resolve against this cwd.
 
 1. Pre-flight Gate Check:
-   - Run `/cost` to verify token reporting available (Claude Code runtime only;
-     on other runtimes this is a no-op and the estimate path is used).
-   - If `/cost` succeeds → note for later (will use reported data)
-   - If `/cost` fails or unavailable → note for later (will use estimates)
+   - Probe token reporting: if the host runtime exposes a `/cost` slash command
+     (Claude Code), invoke it; on any other runtime treat as unavailable and
+     proceed. Do NOT search for or invent a `cost-cli.cjs` — there is no such tool.
+   - If the probe succeeds → note for later (will use reported data)
+   - If the probe fails or is unavailable → note for later (will use estimates)
 
 2. Load Context:
    - Read `engineering/MASTER_INDEX.md` (relative to cwd)
@@ -61,14 +62,16 @@ Capture sprint requirements via a structured interview and document them for pla
 - **Project Specifics:**
   - Reference project-specific requirement templates.
 - **Token Reporting:** The generated workflow MUST mandate the following before returning:
-  1. Run `/cost` to retrieve session token usage.
-  2. If `/cost` succeeds:
+  1. Probe session token usage: invoke `/cost` if the host runtime supports it
+     (Claude Code only); on any other runtime treat as unavailable. Do NOT
+     shell out to a `cost-cli.cjs` — there is no such tool.
+  2. If the probe succeeds:
      - Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
      - Add `"source": "reported"` to sidecar JSON.
-  3. If `/cost` fails or unavailable:
+  3. If the probe fails or is unavailable:
      - Set token fields to `null`: `"inputTokens": null, "outputTokens": null, "estimatedCostUSD": null`.
      - Add `"source": "missing"` to sidecar JSON.
-     - Log: "Token data unavailable (/cost failed). Backfill later via estimate-usage.cjs."
+     - Log: "Token data unavailable (cost probe failed). Backfill later via estimate-usage.cjs."
   4. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar`.
   5. **NEVER skip sidecar write.** Always emit (reported or placeholder with nulls).
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

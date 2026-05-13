@@ -2,10 +2,12 @@
 
 Before returning, every subagent MUST:
 
-1. Run `/cost` to retrieve session token usage.
+1. Probe session token usage: invoke `/cost` if the host runtime supports it
+   (Claude Code only); on any other runtime treat as unavailable. Do NOT shell
+   out to a `cost-cli.cjs` — there is no such tool.
 2. Parse the output for five fields: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-   - If `/cost` succeeds, add `"tokenSource": "reported"` to the sidecar JSON.
-   - If `/cost` fails or is unavailable, set all token fields to `null` and add `"tokenSource": "missing"`.
+   - If the probe succeeds, add `"tokenSource": "reported"` to the sidecar JSON.
+   - If the probe fails or is unavailable, set all token fields to `null` and add `"tokenSource": "missing"`.
 3. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar` with format:
    ```json
    {
