@@ -146,7 +146,7 @@ const PHASE_SUMMARY_SCHEMA = {
 
 const TASK_TRANSITIONS = {
   draft:                 ['planned', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
-  planned:               ['plan-approved', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
+  planned:               ['plan-approved', 'implemented', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
   'plan-approved':       ['implementing', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
   implementing:          ['implemented', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
   implemented:           ['review-approved', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],

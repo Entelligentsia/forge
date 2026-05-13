@@ -85,6 +85,10 @@ describe('store-cli.cjs — isLegalTransition', () => {
     assert.equal(isLegalTransition('task', 'status', 'draft', 'planned'), true);
   });
 
+  test('planned -> implemented is legal for tasks (workflows emit this directly)', () => {
+    assert.equal(isLegalTransition('task', 'status', 'planned', 'implemented'), true);
+  });
+
   test('terminal state committed cannot transition out', () => {
     assert.equal(isLegalTransition('task', 'status', 'committed', 'implementing'), false);
   });
