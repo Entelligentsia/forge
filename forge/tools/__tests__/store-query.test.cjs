@@ -510,6 +510,41 @@ describe('store-query.cjs CLI — subprocess', () => {
     const out = JSON.parse(r.stdout);
     assert.ok(Array.isArray(out.traversalTrace));
   });
+
+  test('query --task-suffix T01 returns task across sprints in one call', () => {
+    writeJson(path.join(storeDir, 'sprints'), 'S02.json', { sprintId: 'S02', title: 'Beta sprint', status: 'active' });
+    writeJson(path.join(storeDir, 'tasks'), 'WI-S02-T01.json', { taskId: 'WI-S02-T01', sprintId: 'S02', title: 'Other task', status: 'planned' });
+    writeJson(path.join(storeDir, 'tasks'), 'WI-S02-T02.json', { taskId: 'WI-S02-T02', sprintId: 'S02', title: 'Skip me', status: 'planned' });
+    const r = run(['query', '--task-suffix', 'T01']);
+    assert.equal(r.status, 0, r.stderr);
+    const out = JSON.parse(r.stdout);
+    const ids = out.results.map(x => x.id).sort();
+    assert.deepEqual(ids, ['WI-S01-T01', 'WI-S02-T01']);
+  });
+
+  test('query --task-suffix is case-insensitive', () => {
+    const r = run(['query', '--task-suffix', 't01']);
+    assert.equal(r.status, 0, r.stderr);
+    const out = JSON.parse(r.stdout);
+    assert.ok(out.results.some(x => x.id === 'WI-S01-T01'));
+  });
+
+  test('query --sprint-suffix S01 returns matching sprint(s)', () => {
+    writeJson(path.join(storeDir, 'sprints'), 'S02.json', { sprintId: 'S02', title: 'Beta sprint', status: 'active' });
+    const r = run(['query', '--sprint-suffix', 'S01']);
+    assert.equal(r.status, 0, r.stderr);
+    const out = JSON.parse(r.stdout);
+    const ids = out.results.map(x => x.id);
+    assert.ok(ids.includes('S01'));
+    assert.ok(!ids.includes('S02'));
+  });
+
+  test('query --task-suffix with no matches returns empty results', () => {
+    const r = run(['query', '--task-suffix', 'T99']);
+    assert.equal(r.status, 0, r.stderr);
+    const out = JSON.parse(r.stdout);
+    assert.deepEqual(out.results, []);
+  });
 });
 
 // ── store-cli.cjs dispatch integration ───────────────────────────────────────

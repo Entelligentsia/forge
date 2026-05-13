@@ -38,6 +38,8 @@ function parseArgs(argv) {
       case '--with-feature':      args.withFeature     = true; break;
       case '--no-excerpts':       args.noExcerpts      = true; break;
       case '--list-sprints':      args.listSprints     = true; break;
+      case '--task-suffix':       args.taskSuffix      = argv[++i]; break;
+      case '--sprint-suffix':     args.sprintSuffix    = argv[++i]; break;
       case '--help': case '-h':   args.help = true; break;
       default:
         if (!a.startsWith('-')) intentWords.push(a);
@@ -63,6 +65,8 @@ Query options:
   --bug <id>              Get bug details
   --feature <id>          Get feature + related tasks
   --list-sprints          List all sprints
+  --task-suffix <Tnn>     Match tasks whose id ends with -Tnn (case-insensitive)
+  --sprint-suffix <Snn>   Match sprints whose id ends with -Snn or equals Snn
   --status <status>       Filter by status
   --keyword <term>        Search entity titles
   --type <entity>         Limit --keyword to sprints|tasks|bugs|features
@@ -73,6 +77,42 @@ Query options:
   --no-excerpts           Omit INDEX.md excerpts
   --mode strict|nlp|off   Engine mode (default: nlp for intent, strict for flags)
 `);
+}
+
+// ── Suffix-match query path ───────────────────────────────────────────────────
+
+function cmdSuffixMatch(args, store, cfg) {
+  const trace = [];
+  const results = [];
+  const relatedFiles = [];
+  const includeExcerpts = !args.noExcerpts;
+
+  if (args.taskSuffix) {
+    const suffix = String(args.taskSuffix).toUpperCase();
+    const tasks = store.listTasks().filter(t => {
+      const id = String(t.taskId || '').toUpperCase();
+      return id === suffix || id.endsWith(`-${suffix}`);
+    });
+    trace.push(`task-suffix "${suffix}": ${tasks.length} match(es)`);
+    for (const t of tasks) results.push(buildResult(t, 'task', store, includeExcerpts));
+  }
+
+  if (args.sprintSuffix) {
+    const suffix = String(args.sprintSuffix).toUpperCase();
+    const sprints = store.listSprints().filter(s => {
+      const id = String(s.sprintId || '').toUpperCase();
+      return id === suffix || id.endsWith(`-${suffix}`);
+    });
+    trace.push(`sprint-suffix "${suffix}": ${sprints.length} match(es)`);
+    for (const s of sprints) results.push(buildResult(s, 'sprint', store, includeExcerpts));
+  }
+
+  for (const r of results) {
+    if (r.fileRefs?.md) relatedFiles.push(r.fileRefs.md);
+    if (r.fileRefs?.json) relatedFiles.push(r.fileRefs.json);
+  }
+
+  return { query: args._raw, path: 'suffix', traversalTrace: trace, results, relatedFileRefs: [...new Set(relatedFiles)], config: { store: cfg.storePathRel, engineering: cfg.kbPath || 'engineering' } };
 }
 
 // ── Exact-args query path ─────────────────────────────────────────────────────
@@ -274,6 +314,7 @@ function main() {
       const mode = args.mode || 'auto';
       const hasExactFlags = args.sprint || args.task || args.bug || args.feature || args.listSprints;
       const hasKeyword = !!args.keyword;
+      const hasSuffix = !!(args.taskSuffix || args.sprintSuffix);
 
       if (mode === 'strict' || mode === 'off') {
         if (args.intent && !hasExactFlags && !hasKeyword) {
@@ -282,7 +323,9 @@ function main() {
         }
       }
 
-      if (hasExactFlags) {
+      if (hasSuffix) {
+        result = cmdSuffixMatch(args, store, cfg);
+      } else if (hasExactFlags) {
         result = cmdQueryExact(args, store, cfg);
       } else if (hasKeyword) {
         result = cmdKeywordSearch(args, store, cfg);
