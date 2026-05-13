@@ -69,7 +69,7 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
      - `plan-approved`  → `implementing` → `implemented` (supervisor-review path)
      - Out-of-band escapes (any state): `plan-revision-required`, `code-revision-required`, `blocked`, `escalated`, `abandoned`
    - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status implemented`
-   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
+   - Emit the complete event (canonical shape — required fields: `eventId, taskId, sprintId, role, action, phase, iteration, startTimestamp, endTimestamp, durationMinutes, model`; see `_fragments/event-emission-schema.md`. Do NOT invent `{type:"complete", verdict, timestamp}` — that shape is rejected. Run `node "$FORGE_ROOT/tools/store-cli.cjs" describe event` if unsure) via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 
 7. Emit Summary Sidecar:

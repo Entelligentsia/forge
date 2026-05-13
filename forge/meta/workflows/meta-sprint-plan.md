@@ -69,7 +69,7 @@ Break sprint requirements into a set of estimated tasks with a dependency graph.
      (see Store-Write Verification). Do not proceed until this write succeeds.
 
 5. Finalize:
-   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`.
+   - Emit the complete event (canonical shape — required fields: `eventId, taskId, sprintId, role, action, phase, iteration, startTimestamp, endTimestamp, durationMinutes, model`; see `_fragments/event-emission-schema.md`. Do NOT invent `{type:"complete", verdict, timestamp}` — that shape is rejected. Run `node "$FORGE_ROOT/tools/store-cli.cjs" describe event` if unsure) via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`.
      If the command exits non-zero or the PreToolUse hook blocks the write:
      parse the error, correct the JSON, and retry (see Store-Write Verification).
      Do not proceed until this write succeeds.

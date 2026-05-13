@@ -593,6 +593,61 @@ describe('store-cli.cjs — set-summary CLI subprocess tests', () => {
   });
 });
 
+describe('store-cli.cjs — update-status --force is operator-gated (forge#87)', () => {
+  // The FSM safety net must not be reachable by an LLM that hit a wall. --force
+  // bypasses isLegalTransition, so it requires FORGE_ALLOW_FORCE=1 in the env.
+  test('--force without FORGE_ALLOW_FORCE exits non-zero and does not write', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', { ...MINIMAL_TASK, status: 'planned' });
+      const env = { ...process.env };
+      delete env.FORGE_ALLOW_FORCE;
+      const result = spawnSync(process.execPath,
+        [STORE_CLI, 'update-status', 'task', 'T01', 'status', 'review-approved', '--force'],
+        { cwd: tmpDir, encoding: 'utf8', env });
+      assert.notEqual(result.status, 0, `expected non-zero exit; stderr: ${result.stderr}`);
+      assert.match(result.stderr, /FORGE_ALLOW_FORCE/,
+        `stderr should mention the env var; got: ${result.stderr}`);
+      const task = readTaskFile(tmpDir, 'T01');
+      assert.equal(task.status, 'planned', 'illegal transition must not be persisted');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('--force with FORGE_ALLOW_FORCE=1 bypasses transition check (with warning)', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', { ...MINIMAL_TASK, status: 'planned' });
+      const result = spawnSync(process.execPath,
+        [STORE_CLI, 'update-status', 'task', 'T01', 'status', 'review-approved', '--force'],
+        { cwd: tmpDir, encoding: 'utf8', env: { ...process.env, FORGE_ALLOW_FORCE: '1' } });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stderr, /WARN.*--force/,
+        `expected --force bypass warning; got: ${result.stderr}`);
+      assert.equal(readTaskFile(tmpDir, 'T01').status, 'review-approved');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('legal transition without --force still works (env unset)', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', { ...MINIMAL_TASK, status: 'implemented' });
+      const env = { ...process.env };
+      delete env.FORGE_ALLOW_FORCE;
+      const result = spawnSync(process.execPath,
+        [STORE_CLI, 'update-status', 'task', 'T01', 'status', 'review-approved'],
+        { cwd: tmpDir, encoding: 'utf8', env });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(readTaskFile(tmpDir, 'T01').status, 'review-approved');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('store-cli.cjs — schema conformance for summaries field', () => {
   test('PHASE_SUMMARY_SCHEMA validates a minimal valid summary', () => {
     const minimal = { objective: 'test', written_at: '2026-04-19T10:00:00Z' };

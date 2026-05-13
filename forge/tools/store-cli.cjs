@@ -421,7 +421,9 @@ Phases (summaries): plan, review_plan, implementation, code_review, validation
 
 Flags:
   --dry-run    Validate and preview without writing (applies to all write commands)
-  --force      Bypass transition check on update-status (emits warning)
+  --force      Bypass transition check on update-status. Operator-gated: requires
+               FORGE_ALLOW_FORCE=1 in the environment. Subagents MUST NOT use this;
+               surface the illegal transition to the orchestrator instead.
   --json       Output raw JSON on read (no pretty-print)
   --sidecar    Write as sidecar file on emit (ephemeral _-prefixed)
 
@@ -595,6 +597,14 @@ function cmdUpdateStatus() {
   const currentValue = record[field];
   if (currentValue === undefined) {
     console.error(`Field "${field}" not found on ${entity} ${id}`);
+    process.exit(1);
+  }
+
+  // --force is operator-gated: it bypasses the FSM safety net, so it must
+  // not be reachable by a subagent that simply hit a wall. Require the
+  // operator to opt in via FORGE_ALLOW_FORCE=1 (forge#87).
+  if (force && process.env.FORGE_ALLOW_FORCE !== '1') {
+    console.error('--force is operator-gated: re-run with FORGE_ALLOW_FORCE=1 in the environment to bypass the FSM. Subagents must not invoke --force; surface the illegal transition to the orchestrator instead.');
     process.exit(1);
   }
 

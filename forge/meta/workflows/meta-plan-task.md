@@ -73,7 +73,7 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
      - `draft` → `planned` (this workflow's only legal target)
      - Out-of-band escapes (any state): `plan-revision-required`, `code-revision-required`, `blocked`, `escalated`, `abandoned`
    - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status planned`
-   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
+   - Emit the complete event (canonical shape — required fields: `eventId, taskId, sprintId, role, action, phase, iteration, startTimestamp, endTimestamp, durationMinutes, model`; see `_fragments/event-emission-schema.md`. Do NOT invent `{type:"complete", verdict, timestamp}` — that shape is rejected. Run `node "$FORGE_ROOT/tools/store-cli.cjs" describe event` if unsure) via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see Generation Instructions)
 
 6. Emit Summary Sidecar:
