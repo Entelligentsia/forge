@@ -21,6 +21,24 @@ deps:
 ---
 
 # Validate Task
+## Iron Laws
+
+- Validate against the acceptance criteria as written; do not soften, expand, or reinterpret them. The validator's job is to catch what the implementer optimistically considered "done".
+- Read `.forge/personas/qa-engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+
+## Store-Write Verification
+
+Every `forge_store` write MUST succeed before advancing. If `store-cli` exits
+non-zero or the `PreToolUse` write-boundary hook blocks the call (exit 2):
+
+1. Parse the structured error (names the offending field + schema file).
+2. Correct the JSON to satisfy the schema.
+3. Retry. Repeat up to 3 times.
+4. After 3 failures, halt and escalate with original payload, corrected payload, and all error messages.
+
+Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
+
 ## Algorithm
 
 ```

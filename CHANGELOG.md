@@ -5,6 +5,189 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.43.10] — 2026-05-13
+
+**Verdict-source refactor — preflight gates read the store, not markdown.**
+
+`parse-verdict.cjs` is gone. The `after <phase> = approved` predicate in `preflight-gate.cjs` previously regex-parsed a literal `**Verdict:**` line from review markdown files (PLAN_REVIEW.md, CODE_REVIEW.md, VALIDATION_REPORT.md, ARCHITECT_APPROVAL.md). The structured signal was already present one `store.getTask(id)` call away — `set-summary` writes `task.summaries.<canonical>.verdict ∈ {approved, revision, n/a}` validated against `PHASE_SUMMARY_SCHEMA`, and the approve phase transitions `task.status` to `"approved"`. The markdown layer was both fragile (smaller models invent equivalent prose) and redundant.
+
+**New module.** `forge/tools/read-verdict.cjs` centralises:
+
+- `PHASE_VERDICT_SOURCE` map: `review-plan → review_plan`, `review-code → code_review`, `validate → validation`, `approve → STATUS_SOURCE` (sentinel).
+- `readVerdict({ record, phase })` returns `{ verdict, source, key }` for diagnostic error messages.
+- CLI shim: `read-verdict.cjs --phase X --task Y`.
+
+**Three bug classes collapsed into one fix.**
+
+- [forge#91](https://github.com/Entelligentsia/forge/issues/91) — architect wrote `## Approval Status: ✅ APPROVED` instead of `**Verdict:**`. Now reads `task.status`.
+- [forge-cli#11](https://github.com/Entelligentsia/forge-cli/issues/11) — `review-code → code_review` (reversed words). Now centrally mapped.
+- The underscore-swap defensive fallback dance in run-task.ts — still works, no longer needed.
+
+**Removed.** `forge/tools/parse-verdict.cjs` + its test. `preflight()`'s `verdictSources` parameter. `resolveVerdictSources` helper. Markdown read of review files.
+
+**meta-approve.md** updated to clarify the `**Verdict:**` markdown line is a human breadcrumb only; the load-bearing source is `task.status`.
+
+**Byte-budget lint** asserting presence of `**Verdict:**` in base-pack workflows is retained but documented as advisory — useful for generated workflow readability, not gating.
+
+**Tests.** 1166 (was 1172): −10 (parse-verdict suite deleted) +11 (read-verdict suite added) +2 (approve via task.status; revision-in-store) −5 (verdictSources-shaped fixtures collapsed into one happy-path). Live testbench HLO-S01-T01 commit preflight: EXIT=0.
+
+---
+
+## [0.43.9] — 2026-05-13
+
+**meta-approve.md — canonical Verdict-line contract.**
+
+`parse-verdict.cjs` (consumed by the commit-phase preflight gate) recognizes only the literal `**Verdict:** [Approved | Revision Required]` line. The review-plan / review-code / validate meta workflows already document this; `meta-approve.md` did not. Architect personas (especially smaller models) wrote `## Approval Status: ✅ APPROVED` — semantically equivalent, but not parseable.
+
+**Live trigger.** `/forge:run-task HLO-S01-T01` phase 8 (commit):
+
+```
+× preflight gate failed for phase commit (exit 1); halting.
+Gate failed for phase "commit":
+  - predecessor review for "approve" has no parseable **Verdict:** line
+    (.../HLO-S01-T01/ARCHITECT_APPROVAL.md)
+```
+
+**Fix.** `meta-approve.md` Step 3 (Sign Off) now mandates the canonical `**Verdict:**` line and notes that downstream gates parse this exact form. Added Generation Instruction `Verdict Detection` mirroring meta-review-plan / meta-review-implementation / meta-validate.
+
+**Structural lint.** `base-pack-byte-budget.test.cjs` gains a new describe block asserting every verdict-emitting phase file (`review_plan.md`, `review_code.md`, `validate_task.md`, `architect_approve.md`) contains the literal `**Verdict:**` token. A future drop-through fails the build, not the smoke test.
+
+---
+
+## [0.43.8] — 2026-05-13
+
+**preflight-gate.cjs — gate-less phases pass through instead of escalating.**
+
+Some run-task pipeline phases are gate-less by design — `writeback` (collator deterministic regen) has no predecessor verdict to check. Previously `preflight-gate.cjs` exited 2 (misconfiguration) when no workflow declared the phase OR when the located workflow lacked a `gates phase=<role>` fence. Live regression at phase 7 of `/forge:run-task HLO-S01-T01`:
+
+```
+× forge:run-task — preflight gate escalated for phase writeback (exit 2);
+  manual intervention required.
+```
+
+Exit 2 is now reserved for real misconfiguration (bad CLI args, parse errors). Both gate-less paths (`no workflow declares phase` and `workflow exists but declares no gate block`) exit 0 with an informational stderr note:
+
+```
+preflight-gate: no preflight gates defined for phase "writeback" — skipping
+```
+
+`forge:run-task`'s preflight check sees exit 0 and advances to dispatch normally.
+
+**Regression test.** One existing test that asserted `exit 2 when no workflow file contains the requested phase` flipped to assert `exit 0` (with the writeback example baked in). Added a sibling test: workflow declares the phase via frontmatter but has no gates fence → also exit 0.
+
+---
+
+## [0.43.7] — 2026-05-13
+
+**Kickoff-shim materialization markers — third (final) wave + structural lint.**
+
+The kickoff-shim materialization markers (Iron Laws, Store-Write Verification, `forge_store` token, `.forge/personas/<name>.md`) were already added to plan/implement (0.43.2) and review-plan/review-code (0.43.5). This release fixes the remaining six subagent-targeted meta workflows that the run-task pipeline traverses:
+
+- `meta-validate.md`
+- `meta-approve.md`
+- `meta-collate.md`
+- `meta-commit.md`
+- `meta-update-plan.md`
+- `meta-update-implementation.md`
+
+**Live trigger.** Phase 5 (validate) of `/forge:run-task HLO-S01-T01` hard-failed:
+
+```
+× workflow regression: Store-Write Verification not found in
+  /home/boni/src/forge-testbench/hello/.forge/workflows/validate_task.md
+× workflow regression: Iron Laws not found in …
+× workflow regression: forge_store not found in …
+```
+
+Same root cause as 0.43.2 / 0.43.5: meta workflows missing the four anchor markers that forge-cli's `runForgeSubagent` kickoff shim checks for. Three waves of one-phase-at-a-time discovery is the cost of not having a structural assertion.
+
+**Regression lint.** `forge/tools/__tests__/base-pack-byte-budget.test.cjs` gains a new describe block — `phase files carry kickoff-shim markers` — that iterates every `PHASE_FILES` entry and asserts presence of all four markers. A future wave-four drop-through fails the build, not the smoke test.
+
+**Byte-budget bumps.** Per-file budgets bumped to fit the marker blocks:
+
+- `meta-validate.md`: 4096 → 5120
+- `meta-approve.md`: 3072 → 4096
+- `meta-commit.md`: 3072 → 4096
+
+Base-pack workflow byte budgets unchanged.
+
+---
+
+## [0.43.6] — 2026-05-13
+
+**preflight-gate.cjs — artifact directory resolution + filename fallback.**
+
+Two compounding defects in `forge/tools/preflight-gate.cjs` surfaced live during `/forge:run-task HLO-S01-T01` phase 3 (implement). Pipeline hard-failed:
+
+```
+× forge:run-task — preflight gate failed for phase implement (exit 1); halting.
+Gate failed for phase "implement":
+  - cannot read predecessor review for "review-plan" at
+    .../HLO-S01-T01/TASK_PROMPT.md/PLAN_REVIEW.md: ENOTDIR
+```
+
+Root causes:
+
+1. `resolveTaskArtifactDir` Pass 1 required `entry.startsWith(taskId + '-')` — rejecting directories named exactly `<taskId>` (modern convention, no slug). Pass 2's `<sprintId>-` prefix didn't help when taskId already embeds sprintId (e.g. `HLO-S01-T01` against sprintId `S01`). Returned `null`.
+2. The fallback then set `taskArtifactPath = taskRecord.path`. But `taskRecord.path` is the **primary source file** (e.g. `TASK_PROMPT.md`), not a directory. Predecessor-review resolution then appended `PLAN_REVIEW.md` to the file path → bogus `.../TASK_PROMPT.md/PLAN_REVIEW.md` → ENOTDIR on every `after <phase>` gate.
+
+### Changed
+
+- `forge/tools/preflight-gate.cjs:resolveTaskArtifactDir` Pass 1: now matches `entry === taskId || entry.startsWith(taskId + '-')`. Exact-match acceptance preserves backward compat with legacy `-<slug>` naming.
+- `forge/tools/preflight-gate.cjs` `taskArtifactPath` fallback: when `taskRecord.path` has a file extension, dirname() it.
+- `forge/tools/__tests__/preflight-gate.test.cjs`: new regression test for the testbench naming pattern (sprint dir `S01`, artifact dir `HLO-S01-T01`).
+
+### Migration
+
+Non-breaking. `regenerate: ["tools:preflight-gate"]`. Bundled forge-cli payloads pick up the fix on next package rebuild; standalone plugin users re-run `/forge:update`.
+
+---
+
+## [0.43.5] — 2026-05-13
+
+**Pack-06 marker regression fix — second wave (review-plan + review-code).**
+
+Adds Iron Laws + Store-Write Verification sections (plus `.forge/personas/supervisor.md` persona-load step and `forge_store` token) to `meta-review-plan.md` and `meta-review-implementation.md` so generated `review_plan.md` and `review_code.md` carry the four markers required by forge-cli's per-phase kickoff shim. Without these markers, every fresh init since 0.43.2 shipped review workflows that hard-failed phase 2 (and phase 4) of `/forge:run-task` with `× workflow regression: Store-Write Verification not found ...`.
+
+Surfaced via forge-cli dogfooding of `/forge:run-task HLO-S01-T01` on 2026-05-13: phase 1 (plan) completed with warnings; phase 2 (review-plan) hard-rejected immediately on the four-marker check. See forge#85.
+
+Root cause: migration 0.43.1 → 0.43.2 ("Pack-06 materialization-marker regression fix") patched `meta-plan-task.md` and `meta-implement.md` to add the markers, but the symmetric review metas were missed.
+
+### Changed
+
+- `forge/meta/workflows/meta-review-plan.md`: "Iron Law" (singular philosophy block) restructured to "Iron Laws" (plural bullets) including `.forge/personas/supervisor.md` and `forge_store` references; new `## Store-Write Verification` section.
+- `forge/meta/workflows/meta-review-implementation.md`: same pattern.
+- `forge/tools/__tests__/base-pack-byte-budget.test.cjs`: per-file overrides for `review_plan.md` and `review_code.md` (4096→5120) to fit the marker blocks.
+- `forge/tools/__tests__/phase-frontmatter.test.cjs`: budgets bumped for `meta-review-plan.md` (3200→4500) and `meta-review-implementation.md` (4200→5500).
+
+### Migration
+
+Non-breaking. `regenerate: ["workflows:review_plan", "workflows:review_code"]`. Existing installs re-running `/forge:update` will re-materialize the two review workflows from the new metas.
+
+---
+
+## [0.43.4] — 2026-05-13
+
+**meta-sprint-intake.md — Project Orientation block for non-Claude runtime portability.**
+
+Inserts a step 0 "Project Orientation" into `meta-sprint-intake.md` that tells the subagent its cwd is the project root and points it at `.forge/config.json` (+ `forge_config` MCP) for config and `engineering/` for knowledge. Philosophy: orientation, not enforcement — we give the model the project context it needs so its work stays focused, we do not restrict its tools. Existing steps renumbered 0→1, 1→2, …, 4→5.
+
+Why: forge-cli dogfooding on the pi runtime with `glm-5.1:cloud` (ollama provider) produced a transcript where the subagent — without project context — (a) issued `cd /home/user/project && cat .forge/config.json` with a hallucinated placeholder path, then (b) ran `find / -name "config.json" -path "*/.forge/*"` and wandered into five unrelated sibling project roots (`savesquad`, `Carelytics/*`, `walkinto.in`) before the user aborted. Claude Code's implicit cwd knowledge masks this; pi/openai-completions surfaces it. The fix gives the subagent the orientation it was missing. See forge#83.
+
+### Changed
+
+- `forge/meta/workflows/meta-sprint-intake.md`: new step 0 "Project Orientation"; existing 0→1, 1→2, …, 4→5; `MASTER_INDEX.md` reference now explicit `engineering/MASTER_INDEX.md` and `SPRINT_REQUIREMENTS.md` now explicit `engineering/sprints/<SPRINT_ID>/SPRINT_REQUIREMENTS.md`.
+
+### Added
+
+- `forge/tools/__tests__/meta-sprint-intake-cwd-anchor.test.cjs`: regression guard with three assertions (cwd is project root; `.forge/config.json` + `forge_config` MCP referenced; `engineering/` referenced as the knowledge root).
+
+### Migration
+
+Non-breaking. `regenerate: ["workflows:sprint_intake"]`. Existing installs re-running `/forge:update` will re-materialize `sprint_intake.md` from the new meta.
+
+---
+
 ## [0.43.1] — 2026-05-10
 
 **Direct-exec contract patch — workflow store-CLI form unification.**

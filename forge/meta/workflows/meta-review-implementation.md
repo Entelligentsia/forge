@@ -26,9 +26,23 @@ deps:
 
 The Supervisor reviews the Engineer's implementation for correctness, quality, and compliance with the approved plan.
 
-## Iron Law
+## Iron Laws
 
-YOU MUST evaluate the code against the approved PLAN.md and the original task prompt. Do not accept "it works" as a substitute for "it is correct and maintainable."
+- Evaluate the code against the approved PLAN.md and the original task prompt. Do not accept "it works" as a substitute for "it is correct and maintainable."
+- Read `.forge/personas/supervisor.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+
+## Store-Write Verification
+
+Every `forge_store` write MUST succeed before advancing. If `store-cli` exits
+non-zero or the `PreToolUse` write-boundary hook blocks the call (exit 2):
+
+1. Parse the structured error (names the offending field + schema file).
+2. Correct the JSON to satisfy the schema.
+3. Retry. Repeat up to 3 times.
+4. After 3 failures, halt and escalate with original payload, corrected payload, and all error messages.
+
+Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
 
 ## Algorithm
 
@@ -88,6 +102,7 @@ YOU MUST evaluate the code against the approved PLAN.md and the original task pr
 ## Generation Instructions
 
 - **Workflow Structure:** The generated `review_implementation.md` must follow the strict "Algorithm" block format.
+- **Markers (required by `/forge:run-task` kickoff shim):** Generated workflow MUST include the "Iron Laws" section, the "Store-Write Verification" section, the literal `forge_store` token, and the `.forge/personas/supervisor.md` persona path. Missing any → kickoff shim refuses to dispatch.
 - **Verdict Detection:** The generated workflow MUST enforce the strict `**Verdict:** [Approved | Revision Required]` format.
 - **Context Isolation:** Forbid inline execution of complex code review logic; use the `Agent` tool for sub-tasks.
 - **Project Specifics:**

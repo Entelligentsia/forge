@@ -21,6 +21,24 @@ deps:
 ---
 
 # Approve Task
+## Iron Laws
+
+- Approve only when the implementation is consistent with the project's architecture and the deployment posture is understood. Architectural sign-off is not a rubber stamp — it is the last point at which cross-cutting concerns can be caught cheaply.
+- Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+
+## Store-Write Verification
+
+Every `forge_store` write MUST succeed before advancing. If `store-cli` exits
+non-zero or the `PreToolUse` write-boundary hook blocks the call (exit 2):
+
+1. Parse the structured error (names the offending field + schema file).
+2. Correct the JSON to satisfy the schema.
+3. Retry. Repeat up to 3 times.
+4. After 3 failures, halt and escalate with original payload, corrected payload, and all error messages.
+
+Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
+
 ## Algorithm
 
 ```
@@ -43,10 +61,15 @@ deps:
    - Assess operational impact (deployment changes, migrations)
 
 3. Sign Off:
-   - Write ARCHITECT_APPROVAL.md with:
-     - Approval status
+   - Write ARCHITECT_APPROVAL.md containing:
+     - A canonical verdict line for human readers, on its own line, in this exact form:
+       ```
+       **Verdict:** [Approved | Revision Required]
+       ```
+     - Approval status rationale
      - Deployment notes
      - Follow-up items for future sprints
+   - The downstream commit-phase preflight gate does NOT read this markdown; it reads `task.status === "approved"` set in step 4. The `**Verdict:**` line is a human breadcrumb only.
 
 4. Finalize:
    - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status approved`

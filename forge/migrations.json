@@ -1,4 +1,74 @@
 {
+  "0.43.9": {
+    "version": "0.43.10",
+    "date": "2026-05-13",
+    "notes": "Verdict-source refactor: preflight-gate `after <phase>` predicates now read structured verdicts from store.task.summaries.<canonical>.verdict (and task.status for approve), not regex-parse markdown. New module forge/tools/read-verdict.cjs centralises the phase.role → canonical-summary-key mapping (mirrors VALID_SUMMARY_PHASES) and the approve-via-status sentinel. Eliminates three classes of recurring bugs: (a) forge#91 (approve phase markdown-vs-store mismatch), (b) forge-cli#11 (review-code → code_review key reversal), (c) the underscore-swap defensive fallback dance in run-task.ts (still present, now redundant). Removed: forge/tools/parse-verdict.cjs and its test (no consumers remaining). preflight()'s `verdictSources` parameter and the `resolveVerdictSources` helper are gone — `after` reads live from state.task / state.bug directly. The `**Verdict:**` line in review markdown is now a human breadcrumb only; the byte-budget lint asserting its presence is retained but documented as advisory. meta-approve.md updated to clarify the markdown line is not load-bearing. Live testbench HLO-S01-T01 commit preflight: EXIT=0 via the new store path. +11 read-verdict unit tests, +2 preflight tests (approve via status; revision in store).",
+    "regenerate": ["tools:preflight-gate", "tools:read-verdict", "workflows:architect_approve"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.43.8": {
+    "version": "0.43.9",
+    "date": "2026-05-13",
+    "notes": "meta-approve.md now instructs the architect persona to emit the canonical `**Verdict:** [Approved | Revision Required]` line, matching the contract review-plan / review-code / validate meta workflows already document. The commit-phase preflight gate parses this exact line via parse-verdict.cjs; alternative phrasings (e.g. `Approval Status: APPROVED`) yield null and fail with `predecessor review for \"approve\" has no parseable **Verdict:** line`. Live regression on testbench HLO-S01-T01 phase 8 (commit). +1 Generation Instruction `Verdict Detection`, +4 structural lint tests in base-pack-byte-budget.test.cjs that assert every verdict-emitting phase file (review_plan, review_code, validate_task, architect_approve) contains the literal `**Verdict:**` token.",
+    "regenerate": ["workflows:architect_approve"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.43.7": {
+    "version": "0.43.8",
+    "date": "2026-05-13",
+    "notes": "preflight-gate.cjs: gate-less phases now pass through (exit 0) instead of escalating (exit 2). Some run-task phases are intentionally gate-less by design — writeback (collator regen) has no predecessor verdict to check. The previous semantic conflated `phase not declared in any workflow` and `workflow declares no gate block for phase` with `misconfiguration` (exit 2), causing live regression at phase 7 (writeback) of /forge:run-task HLO-S01-T01: `× preflight gate escalated for phase writeback (exit 2); manual intervention required`. Both `no workflow declares phase` and `no gate block for declared phase` now exit 0 with an informational stderr note. Exit 2 stays reserved for real argument / parse errors (unchanged). +1 regression test (sibling case: workflow exists, no gate block).",
+    "regenerate": ["tools:preflight-gate"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.43.6": {
+    "version": "0.43.7",
+    "date": "2026-05-13",
+    "notes": "Pack-06 materialization-marker regression fix, third (final) wave + structural lint. Adds Iron Laws + Store-Write Verification sections (plus persona-load step and `forge_store` token) to the remaining six meta workflows that subagent-target the run-task / fix-bug pipeline: meta-validate.md, meta-approve.md, meta-collate.md, meta-commit.md, meta-update-plan.md, meta-update-implementation.md. Live testbench surfaced the gap at phase 5 (validate) of /forge:run-task: kickoff shim hard-failed with `× workflow regression: Store-Write Verification not found in validate_task.md`. Three waves (0.43.2 plan/implement, 0.43.5 review-plan/review-code, 0.43.6 validate/approve/collate/commit/update-plan/update-impl) is the cost of discovering one phase at a time. Encoded a regression lint in base-pack-byte-budget.test.cjs (`phase files carry kickoff-shim markers`) that asserts all four markers across every PHASE_FILE — future drop-throughs fail the build, not the smoke test. Also bumped per-file byte budgets for meta-validate.md (4096→5120), meta-approve.md / meta-commit.md (3072→4096). See forge#? (this entry's GH issue).",
+    "regenerate": [
+      "workflows:validate_task",
+      "workflows:architect_approve",
+      "workflows:collator_agent",
+      "workflows:commit_task",
+      "workflows:update_plan",
+      "workflows:update_implementation"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.43.5": {
+    "version": "0.43.6",
+    "date": "2026-05-13",
+    "notes": "preflight-gate.cjs artifact-dir resolution fix. Two compounding bugs surfaced when a sprint dir contained an artifact directory named exactly `<taskId>` (no `-<slug>` suffix — modern convention). (1) resolveTaskArtifactDir Pass 1 required `entry.startsWith(taskId + '-')`, rejecting exact-match entries. Pass 2's `<sprintId>-` prefix matcher also didn't apply when taskId already embeds sprintId (e.g. taskId=`HLO-S01-T01`, sprintId=`S01`). resolveTaskArtifactDir returned null. (2) The fallback then set `taskArtifactPath = taskRecord.path` directly — but `taskRecord.path` is the primary source FILE (e.g. `TASK_PROMPT.md`), not a directory. Predecessor-review resolution then appended `PLAN_REVIEW.md` to the file path, producing bogus paths like `.../TASK_PROMPT.md/PLAN_REVIEW.md` (ENOTDIR), failing every `after <phase>` gate. Fix: Pass 1 now also accepts `entry === taskId`; fallback dirname()s task.path when it has a file extension. Live testbench regression: phase 3 (implement) of `/forge:run-task HLO-S01-T01` was hard-failing preflight. After patch, EXIT=0. See forge#?.",
+    "regenerate": [
+      "tools:preflight-gate"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.43.4": {
+    "version": "0.43.5",
+    "date": "2026-05-13",
+    "notes": "Pack-06 materialization-marker regression fix, second wave. Adds Iron Laws + Store-Write Verification sections (plus `.forge/personas/supervisor.md` persona-load step and `forge_store` tokens) to meta-review-plan.md and meta-review-implementation.md so generated review_plan.md and review_code.md carry the four markers required by forge-cli /forge:run-task's per-phase kickoff shim. Without these markers, every fresh init since 0.43.2 has shipped review-plan / review-code workflows that hard-fail phase 2 (and phase 4) of /forge:run-task with `× workflow regression: Store-Write Verification not found ...`. Root cause: 0.43.2 patched meta-plan-task.md and meta-implement.md, but the symmetric review metas were missed. Side-effect: per-file byte budgets bumped for review_plan.md / review_code.md (4096→5120) and meta-review-plan.md / meta-review-implementation.md (3200/4200→4500/5500) to fit the marker blocks. See forge#85.",
+    "regenerate": [
+      "workflows:review_plan",
+      "workflows:review_code"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.43.3": {
+    "version": "0.43.4",
+    "date": "2026-05-13",
+    "notes": "meta-sprint-intake.md gains a step 0 Project Orientation block that tells the subagent its cwd is the project root and points it at `.forge/config.json` (+ `forge_config` MCP) for config and `engineering/` for knowledge. Philosophy: orientation, not enforcement. Surfaced via forge-cli dogfooding (glm-5.1:cloud on pi/ollama runtime) where a model without that context hallucinated `cd /home/user/project` and ran `find / -name config.json` across five sibling project roots before the user aborted (see forge#83). Regression test `meta-sprint-intake-cwd-anchor.test.cjs` asserts the orientation text remains.",
+    "regenerate": [
+      "workflows:sprint_intake"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.43.2": {
     "version": "0.43.3",
     "date": "2026-05-10",

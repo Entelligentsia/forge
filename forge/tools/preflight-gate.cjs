@@ -10,9 +10,9 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { parseVerdict } = require('./parse-verdict.cjs');
+const { readVerdict } = require('./read-verdict.cjs');
 
-function preflight({ phase, gates, state = {}, substitutions = {}, verdictSources = {} }) {
+function preflight({ phase, gates, state = {}, substitutions = {} }) {
   const spec = gates && gates[phase];
   if (!spec) {
     return { ok: false, missing: [`no gate definition registered for phase "${phase}" (unknown phase or missing gates block)`] };
@@ -50,22 +50,24 @@ function preflight({ phase, gates, state = {}, substitutions = {}, verdictSource
     }
   }
 
+  // `after <phase> = approved` predicates read structured verdicts from the
+  // store record (task.summaries.<canonical>.verdict, or task.status for the
+  // approve phase). The markdown `**Verdict:**` line in review artifacts is
+  // a human breadcrumb and no longer load-bearing.
+  const record = state.task || state.bug || null;
   for (const after of spec.after || []) {
-    const src = verdictSources[after.phase];
-    if (!src) {
-      missing.push(`predecessor verdict source not provided for phase "${after.phase}"`);
+    if (!record) {
+      missing.push(`predecessor verdict unreadable for phase "${after.phase}": no task/bug record in state`);
       continue;
     }
-    let contents;
-    try {
-      contents = fs.readFileSync(src, 'utf8');
-    } catch (err) {
-      missing.push(`cannot read predecessor review for "${after.phase}" at ${src}: ${err.code || err.message}`);
-      continue;
-    }
-    const verdict = parseVerdict(contents);
+    const { verdict, source, key } = readVerdict({ record, phase: after.phase });
     if (verdict === null) {
-      missing.push(`predecessor review for "${after.phase}" has no parseable **Verdict:** line (${src})`);
+      const where = key ? `${source}["${key}"]` : source;
+      missing.push(
+        `predecessor verdict missing for phase "${after.phase}" ` +
+        `(expected in ${where}). Subagent likely failed to call set-summary ` +
+        `(or, for approve, did not transition task.status to "approved").`
+      );
     } else if (verdict !== after.verdict) {
       missing.push(`predecessor "${after.phase}" verdict is "${verdict}", expected "${after.verdict}"`);
     }
@@ -110,36 +112,56 @@ function describePredicate(pred) {
   return `${pred.field} ${pred.op} ${pred.value}`;
 }
 
-// Canonical review artifact filenames per phase. Centralised here so the
-// orchestrator, manual commands, and tests all agree on where a given phase's
-// verdict lives.
-const VERDICT_ARTIFACTS = {
-  'review-plan': 'PLAN_REVIEW.md',
-  'review-code': 'CODE_REVIEW.md',
-  'validate':    'VALIDATION_REPORT.md',
-  'approve':     'ARCHITECT_APPROVAL.md',
-};
-
-module.exports = { preflight };
+module.exports = { preflight, resolveTaskArtifactDir };
 
 // CLI shim: `node preflight-gate.cjs --phase <name> --task <taskId> [--bug <bugId>] [--workflow <name>]`
 // exit codes: 0 ok, 1 gate(s) failed, 2 invalid args / missing definitions
 // Scan the sprint directory for a subdirectory matching the task ID prefix.
 // Returns the directory name (e.g. "FORGE-S12-T06-model-discovery") or null.
-function resolveTaskArtifactDir(taskRecord, engineeringRoot) {
+// Scan the sprint directory for a subdirectory matching the task.
+//
+// Two patterns supported (in order of preference, to avoid false positives):
+//   1. <taskId>-<slug>           — canonical (taskId already contains sprint prefix,
+//                                  e.g., "FORGE-S21-T02-...").
+//   2. <sprintId>-<taskId>-<slug>  — projects using bare task IDs (e.g., "T-C1-1")
+//                                  whose sprint-scoped dir names carry the sprint
+//                                  prefix explicitly (e.g., "S003-T-C1-1-...").
+//
+// Returns the directory name or null.
+function resolveTaskArtifactDir(taskRecord, engineeringRoot, cwd) {
   if (!taskRecord || !taskRecord.sprintId || !taskRecord.taskId) return null;
-  const sprintDir = path.resolve(process.cwd(), engineeringRoot, 'sprints', taskRecord.sprintId);
+  const base = cwd || process.cwd();
+  const sprintDir = path.resolve(base, engineeringRoot, 'sprints', taskRecord.sprintId);
+  let entries;
   try {
-    const entries = fs.readdirSync(sprintDir);
-    for (const entry of entries) {
-      try {
-        if (fs.statSync(path.join(sprintDir, entry)).isDirectory() &&
-            entry.startsWith(taskRecord.taskId + '-')) {
-          return entry;
-        }
-      } catch (_) { /* skip unreadable entries */ }
+    entries = fs.readdirSync(sprintDir);
+  } catch (_) {
+    return null;
+  }
+  const taskId = taskRecord.taskId;
+  const isDir = (entry) => {
+    try {
+      return fs.statSync(path.join(sprintDir, entry)).isDirectory();
+    } catch (_) {
+      return false;
     }
-  } catch (_) { /* sprint directory not found */ }
+  };
+  // Pass 1: canonical match — accept exact `<taskId>` (modern convention,
+  // no slug) or `<taskId>-<slug>` (legacy convention).
+  for (const entry of entries) {
+    if (!isDir(entry)) continue;
+    if (entry === taskId || entry.startsWith(taskId + '-')) return entry;
+  }
+  // Pass 2: sprint-prefixed match. Restrict to dirs that look like
+  // "<sprintId>-<taskId>(-<slug>)?" to avoid matching unrelated names that
+  // happen to contain the task ID as a substring.
+  const sprintPrefix = taskRecord.sprintId + '-';
+  for (const entry of entries) {
+    if (!isDir(entry)) continue;
+    if (!entry.startsWith(sprintPrefix)) continue;
+    const rest = entry.slice(sprintPrefix.length);
+    if (rest === taskId || rest.startsWith(taskId + '-')) return entry;
+  }
   return null;
 }
 
@@ -179,17 +201,17 @@ if (require.main === module) {
     return parts[parts.length - 1] || '';
   }
   const taskArtifactDir = resolveTaskArtifactDir(taskRecord, engineeringRoot);
-  const taskDir = taskArtifactDir
-    || (taskRecord && taskRecord.path ? lastSegment(taskRecord.path) : args.task);
-  const bugDir = bugRecord && bugRecord.path ? lastSegment(bugRecord.path) : args.bug;
-
-  // Compute the full artifact directory path for verdict source resolution.
-  let taskArtifactPath = null;
-  if (taskArtifactDir && taskRecord && taskRecord.sprintId) {
-    taskArtifactPath = path.join(engineeringRoot, 'sprints', taskRecord.sprintId, taskArtifactDir);
-  } else if (taskRecord && taskRecord.path) {
-    taskArtifactPath = taskRecord.path;
+  // Fallback: if task.path points to a file (e.g., TASK_PROMPT.md) we want
+  // the *directory* segment, not the filename. Without this, a project that
+  // stores task.path as the prompt file would propagate "TASK_PROMPT.md" as
+  // the {task} substitution, yielding bogus gate paths like ".../TASK_PROMPT.md/PLAN.md".
+  function dirSegment(p) {
+    const s = String(p || '');
+    return /\.[a-zA-Z0-9]+$/.test(s) ? lastSegment(path.dirname(s)) : lastSegment(s);
   }
+  const taskDir = taskArtifactDir
+    || (taskRecord && taskRecord.path ? dirSegment(taskRecord.path) : args.task);
+  const bugDir = bugRecord && bugRecord.path ? dirSegment(bugRecord.path) : args.bug;
 
   const substitutions = {
     engineering: engineeringRoot,
@@ -202,8 +224,13 @@ if (require.main === module) {
   // can skip workflows whose gate block references keys not present in subs.
   const workflowMd = loadWorkflowMarkdown(args.phase, args.workflow, substitutions);
   if (!workflowMd) {
-    process.stderr.write(`preflight-gate: could not locate workflow file defining phase "${args.phase}"\n`);
-    process.exit(2);
+    // Some phases are gate-less by design (e.g. writeback/collator — a
+    // deterministic regen with no predecessor verdict to check). Treat
+    // "no workflow declares this phase" as a no-op pass-through rather
+    // than a misconfiguration. Exit 2 stays reserved for real arg / parse
+    // errors. Note on stderr so operators can see the skip.
+    process.stderr.write(`preflight-gate: no preflight gates defined for phase "${args.phase}" — skipping\n`);
+    process.exit(0);
   }
   let gates;
   try {
@@ -213,13 +240,13 @@ if (require.main === module) {
     process.exit(2);
   }
   if (!gates[args.phase]) {
-    process.stderr.write(`preflight-gate: no gates block for phase "${args.phase}"\n`);
-    process.exit(2);
+    // Workflow exists but declares no gate block for this phase — same
+    // semantic as "no workflow" above: phase is gate-less, pass through.
+    process.stderr.write(`preflight-gate: no gates block for phase "${args.phase}" — skipping\n`);
+    process.exit(0);
   }
 
-  const verdictSources = resolveVerdictSources(gates[args.phase].after || [], taskArtifactPath, bugRecord);
-
-  const result = preflight({ phase: args.phase, gates, state, substitutions, verdictSources });
+  const result = preflight({ phase: args.phase, gates, state, substitutions });
   if (result.ok) process.exit(0);
   process.stderr.write(`Gate failed for phase "${args.phase}":\n`);
   for (const m of result.missing) process.stderr.write(`  - ${m}\n`);
@@ -337,14 +364,3 @@ function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function resolveVerdictSources(afterList, taskArtifactPath, bugRecord) {
-  const sources = {};
-  const base = taskArtifactPath || (bugRecord ? bugRecord.path : null);
-  if (!base) return sources;
-  for (const entry of afterList) {
-    const filename = VERDICT_ARTIFACTS[entry.phase];
-    if (!filename) continue; // unknown predecessor phase — preflight will flag it via missing-source
-    sources[entry.phase] = path.resolve(process.cwd(), base, filename);
-  }
-  return sources;
-}

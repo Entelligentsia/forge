@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { preflight } = require('../preflight-gate.cjs');
+const { preflight, resolveTaskArtifactDir } = require('../preflight-gate.cjs');
 const { parseGates } = require('../parse-gates.cjs');
 
 function tmpdir() {
@@ -16,8 +16,6 @@ describe('preflight-gate.cjs :: preflight()', () => {
     const dir = tmpdir();
     const planPath = path.join(dir, 'PLAN.md');
     fs.writeFileSync(planPath, 'x'.repeat(300));
-    const reviewPath = path.join(dir, 'PLAN_REVIEW.md');
-    fs.writeFileSync(reviewPath, '**Verdict:** Approved\n');
 
     const workflowMd = [
       '```gates phase=implement',
@@ -28,12 +26,18 @@ describe('preflight-gate.cjs :: preflight()', () => {
     ].join('\n');
     const gates = parseGates(workflowMd);
 
+    // Predecessor verdict now lives in the structured store record
+    // (summaries.<canonical>.verdict), not in a markdown file.
     const result = preflight({
       phase: 'implement',
       gates,
-      state: { task: { status: 'plan-approved' } },
+      state: {
+        task: {
+          status: 'plan-approved',
+          summaries: { review_plan: { verdict: 'approved' } },
+        },
+      },
       substitutions: {},
-      verdictSources: { 'review-plan': reviewPath },
     });
     assert.equal(result.ok, true);
     assert.deepEqual(result.missing, []);
@@ -128,11 +132,7 @@ describe('preflight-gate.cjs :: preflight()', () => {
     assert.equal(result.ok, true);
   });
 
-  test('predecessor verdict not approved → blocks', () => {
-    const dir = tmpdir();
-    const reviewPath = path.join(dir, 'REVIEW.md');
-    fs.writeFileSync(reviewPath, '**Verdict:** Revision Required\n');
-
+  test('predecessor verdict not approved (revision) → blocks', () => {
     const workflowMd = [
       '```gates phase=implement',
       'after review-plan = approved',
@@ -142,15 +142,18 @@ describe('preflight-gate.cjs :: preflight()', () => {
     const result = preflight({
       phase: 'implement',
       gates,
-      state: {},
+      state: {
+        task: {
+          summaries: { review_plan: { verdict: 'revision' } },
+        },
+      },
       substitutions: {},
-      verdictSources: { 'review-plan': reviewPath },
     });
     assert.equal(result.ok, false);
-    assert.ok(result.missing.some((m) => /review-plan/.test(m)));
+    assert.ok(result.missing.some((m) => /review-plan.*verdict is "revision"/.test(m)));
   });
 
-  test('predecessor verdict file missing → blocks', () => {
+  test('predecessor verdict missing from store → blocks', () => {
     const workflowMd = [
       '```gates phase=implement',
       'after review-plan = approved',
@@ -160,11 +163,48 @@ describe('preflight-gate.cjs :: preflight()', () => {
     const result = preflight({
       phase: 'implement',
       gates,
-      state: {},
+      state: { task: { status: 'planned', summaries: {} } },
       substitutions: {},
-      verdictSources: { 'review-plan': '/nonexistent/REVIEW.md' },
     });
     assert.equal(result.ok, false);
+    assert.ok(result.missing.some((m) => /predecessor verdict missing.*review-plan/.test(m)));
+  });
+
+  test('approve phase: verdict read from task.status, not summaries', () => {
+    // Regression: previously commit-phase preflight regex-parsed
+    // ARCHITECT_APPROVAL.md for `**Verdict:**`, failing when the architect
+    // wrote `## Approval Status: ✅ APPROVED` instead. Now the source of
+    // truth is task.status === "approved" (set by approve workflow).
+    const workflowMd = [
+      '```gates phase=commit',
+      'after approve = approved',
+      '```',
+    ].join('\n');
+    const gates = parseGates(workflowMd);
+    const result = preflight({
+      phase: 'commit',
+      gates,
+      state: { task: { status: 'approved', summaries: {} } },
+      substitutions: {},
+    });
+    assert.equal(result.ok, true, `expected ok, got: ${JSON.stringify(result.missing)}`);
+  });
+
+  test('approve phase: task.status !== approved → blocks commit', () => {
+    const workflowMd = [
+      '```gates phase=commit',
+      'after approve = approved',
+      '```',
+    ].join('\n');
+    const gates = parseGates(workflowMd);
+    const result = preflight({
+      phase: 'commit',
+      gates,
+      state: { task: { status: 'implemented', summaries: {} } },
+      substitutions: {},
+    });
+    assert.equal(result.ok, false);
+    assert.ok(result.missing.some((m) => /verdict missing.*approve/.test(m)));
   });
 
   test('unknown phase returns ok: false with explanatory missing entry', () => {
@@ -220,7 +260,12 @@ describe('preflight-gate.cjs :: preflight()', () => {
     assert.notEqual(r.status, 2, `Expected phase to be found, got: ${r.stderr}`);
   });
 
-  test('CLI shim exits 2 when no workflow file contains the requested phase', () => {
+  test('CLI shim exits 0 (no-op) when phase is gate-less (no workflow declares it)', () => {
+    // Some pipeline phases are intentionally gate-less (writeback/collator
+    // is a deterministic regen with no predecessor verdict). Live regression
+    // from /forge:run-task HLO-S01-T01 phase 7 (writeback): preflight-gate
+    // exited 2, escalating the chain. Exit 2 must be reserved for real
+    // misconfiguration (bad args, parse errors), not for "phase not declared".
     const { spawnSync } = require('node:child_process');
     const tool = path.resolve(__dirname, '..', 'preflight-gate.cjs');
 
@@ -237,12 +282,42 @@ describe('preflight-gate.cjs :: preflight()', () => {
 
     const r = spawnSync(
       process.execPath,
-      [tool, '--phase', 'plan', '--task', 'T1'],
+      [tool, '--phase', 'writeback', '--task', 'T1'],
       { encoding: 'utf8', cwd: dir },
     );
 
-    assert.equal(r.status, 2);
-    assert.match(r.stderr, /could not locate/);
+    assert.equal(r.status, 0, `expected exit 0 (skip), got ${r.status}: ${r.stderr}`);
+    assert.match(r.stderr, /no preflight gates defined|skipping/);
+  });
+
+  test('CLI shim exits 0 (no-op) when workflow exists but declares no gate block for phase', () => {
+    // Sibling case: workflow file IS loaded (e.g. by phase frontmatter match)
+    // but contains no `gates phase=<role>` fence. Same semantic — gate-less
+    // phase passes through.
+    const { spawnSync } = require('node:child_process');
+    const tool = path.resolve(__dirname, '..', 'preflight-gate.cjs');
+
+    const dir = tmpdir();
+    const workflowsDir = path.join(dir, '.forge', 'workflows');
+    fs.mkdirSync(workflowsDir, { recursive: true });
+    // Frontmatter declares phase: writeback but no gates fence anywhere.
+    fs.writeFileSync(path.join(workflowsDir, 'collator_agent.md'), [
+      '---',
+      'phase: writeback',
+      '---',
+      '',
+      '# Collator',
+      '',
+      'Deterministic regen. No gates needed.',
+    ].join('\n'));
+
+    const r = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'writeback', '--task', 'T1'],
+      { encoding: 'utf8', cwd: dir },
+    );
+
+    assert.equal(r.status, 0, `expected exit 0 (skip), got ${r.status}: ${r.stderr}`);
   });
 
   test('multiple failures are all reported, not just the first', () => {
@@ -400,13 +475,18 @@ describe('preflight-gate.cjs :: preflight()', () => {
       paths: { engineering: 'engineering', store: '.forge/store' },
     }));
 
-    // Task record with source-file path (the bug trigger)
+    // Task record with source-file path (the bug trigger). After the
+    // verdict-source refactor (0.43.10), `after review-plan = approved`
+    // reads structured summaries from the task record, not from markdown.
     fs.writeFileSync(path.join(configDir, 'store', 'tasks', 'FORGE-S12-T06.json'), JSON.stringify({
       taskId: 'FORGE-S12-T06',
       sprintId: 'FORGE-S12',
       title: 'Deterministic model discovery',
       status: 'plan-approved',
       path: 'forge/tools/store-cli.cjs',
+      summaries: {
+        review_plan: { verdict: 'approved' },
+      },
     }));
 
     // Sprint record
@@ -439,5 +519,138 @@ describe('preflight-gate.cjs :: preflight()', () => {
     // causing artifact-not-found and wrong verdict source path.
     // After the fix, {task} resolves to "FORGE-S12-T06-model-discovery" (correct).
     assert.equal(r.status, 0, `Expected exit 0 (all gates pass), got ${r.status}. stderr: ${r.stderr}`);
+  });
+});
+
+describe('preflight-gate.cjs :: resolveTaskArtifactDir()', () => {
+  function makeSprintTree(t) {
+    // Returns the tmpdir; t is an object specifying dirs to create.
+    // Shape: { engineering: 'engineering', sprintId, dirs: ['name1', 'name2', ...] }
+    const root = tmpdir();
+    const sprintDir = path.join(root, t.engineering || 'engineering', 'sprints', t.sprintId);
+    fs.mkdirSync(sprintDir, { recursive: true });
+    for (const name of t.dirs) fs.mkdirSync(path.join(sprintDir, name), { recursive: true });
+    return root;
+  }
+
+  test('canonical: dir named "<taskId>-<slug>" matches (regression)', () => {
+    const root = makeSprintTree({
+      sprintId: 'FORGE-S21',
+      dirs: ['FORGE-S21-T02-run-task-handler', 'README.md'],
+    });
+    const got = resolveTaskArtifactDir(
+      { sprintId: 'FORGE-S21', taskId: 'FORGE-S21-T02' },
+      'engineering',
+      root,
+    );
+    assert.equal(got, 'FORGE-S21-T02-run-task-handler');
+  });
+
+  test('sprint-prefixed: dir named "<sprintId>-<taskId>-<slug>" matches (forge-bug fix)', () => {
+    // Emberglow-style naming: bare taskId "T-C1-1", dir "S003-T-C1-1-...".
+    // Pre-fix this returned null and the caller fell back to lastSegment(task.path),
+    // producing the bogus path .../S003/TASK_PROMPT.md/PLAN.md.
+    const root = makeSprintTree({
+      sprintId: 'S003',
+      dirs: ['S003-T-C1-1-register-login-as-a-public-unauthenticat', 'S003-T-C1-2-other'],
+    });
+    const got = resolveTaskArtifactDir(
+      { sprintId: 'S003', taskId: 'T-C1-1' },
+      'engineering',
+      root,
+    );
+    assert.equal(got, 'S003-T-C1-1-register-login-as-a-public-unauthenticat');
+  });
+
+  test('sprint-prefixed: rejects unrelated dir that merely contains taskId as substring', () => {
+    // "S003-T-C1-11-x" contains "T-C1-1" as a prefix but is a different task.
+    // The matcher must NOT return it for taskId "T-C1-1".
+    const root = makeSprintTree({
+      sprintId: 'S003',
+      dirs: ['S003-T-C1-11-something', 'S003-T-C1-1-real-target'],
+    });
+    const got = resolveTaskArtifactDir(
+      { sprintId: 'S003', taskId: 'T-C1-1' },
+      'engineering',
+      root,
+    );
+    assert.equal(got, 'S003-T-C1-1-real-target');
+  });
+
+  test('sprint-prefixed: matches when dir is exactly "<sprintId>-<taskId>" (no slug)', () => {
+    const root = makeSprintTree({
+      sprintId: 'S003',
+      dirs: ['S003-T-C1-1'],
+    });
+    const got = resolveTaskArtifactDir(
+      { sprintId: 'S003', taskId: 'T-C1-1' },
+      'engineering',
+      root,
+    );
+    assert.equal(got, 'S003-T-C1-1');
+  });
+
+  test('canonical match preferred over sprint-prefixed when both exist', () => {
+    // Pathological store where both naming conventions coexist. Canonical wins.
+    const root = makeSprintTree({
+      sprintId: 'S003',
+      dirs: ['T-C1-1-canonical', 'S003-T-C1-1-sprint-prefixed'],
+    });
+    const got = resolveTaskArtifactDir(
+      { sprintId: 'S003', taskId: 'T-C1-1' },
+      'engineering',
+      root,
+    );
+    assert.equal(got, 'T-C1-1-canonical');
+  });
+
+  test('returns null when no directory matches', () => {
+    const root = makeSprintTree({
+      sprintId: 'S003',
+      dirs: ['unrelated-dir', 'another'],
+    });
+    const got = resolveTaskArtifactDir(
+      { sprintId: 'S003', taskId: 'T-C1-1' },
+      'engineering',
+      root,
+    );
+    assert.equal(got, null);
+  });
+
+  test('returns null when sprint dir is missing entirely', () => {
+    const root = tmpdir();
+    const got = resolveTaskArtifactDir(
+      { sprintId: 'S999', taskId: 'T-X-1' },
+      'engineering',
+      root,
+    );
+    assert.equal(got, null);
+  });
+
+  test('returns null on missing taskRecord fields', () => {
+    const root = tmpdir();
+    assert.equal(resolveTaskArtifactDir(null, 'engineering', root), null);
+    assert.equal(resolveTaskArtifactDir({ taskId: 'X' }, 'engineering', root), null);
+    assert.equal(resolveTaskArtifactDir({ sprintId: 'S' }, 'engineering', root), null);
+  });
+
+  // Regression for testbench-observed bug: sprint dir contains a directory
+  // whose name is exactly `<taskId>` (no slug), e.g. `HLO-S01-T01`. Pre-fix,
+  // Pass 1's `startsWith(taskId + '-')` rejected exact matches and Pass 2's
+  // `sprintId + '-'` prefix didn't match either (sprintId is "S01", taskId
+  // is "HLO-S01-T01"). resolveTaskArtifactDir returned null; the caller
+  // then fell back to taskRecord.path (the TASK_PROMPT.md file) and built
+  // bogus paths like `.../TASK_PROMPT.md/PLAN_REVIEW.md` (ENOTDIR).
+  test('Pass 1 also accepts exact "<taskId>" (no slug) — testbench naming', () => {
+    const root = makeSprintTree({
+      sprintId: 'S01',
+      dirs: ['HLO-S01-T01', 'SPRINT_PLAN.md'],
+    });
+    const got = resolveTaskArtifactDir(
+      { sprintId: 'S01', taskId: 'HLO-S01-T01' },
+      'engineering',
+      root,
+    );
+    assert.equal(got, 'HLO-S01-T01');
   });
 });

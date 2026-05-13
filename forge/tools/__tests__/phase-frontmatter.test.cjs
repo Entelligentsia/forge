@@ -41,11 +41,11 @@ function parseFrontmatter(content) {
 const BYTE_BUDGETS = {
   'meta-plan-task.md':              5500,
   'meta-implement.md':              5500,
-  'meta-review-plan.md':            3200,
-  'meta-review-implementation.md':  4200,
-  'meta-validate.md':               4096,
-  'meta-approve.md':                3072,
-  'meta-commit.md':                 3072,
+  'meta-review-plan.md':            4500,
+  'meta-review-implementation.md':  5500,
+  'meta-validate.md':               5120,
+  'meta-approve.md':                4096,
+  'meta-commit.md':                 4096,
   'meta-update-plan.md':            3072,
   'meta-update-implementation.md':  3072,
 };
