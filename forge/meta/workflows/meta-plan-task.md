@@ -38,6 +38,7 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
    - Exit 0 → continue.
 1. Load Context:
    - Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+   - store-cli verbs: `read` | `list` | `write` | `emit` | `update-status` | `set-summary` | `describe` | `nlp` | `query` | `delete` — there is no `get`/`set`/`find`. See `_fragments/store-cli-verbs.md` for full notes; run `--help` before improvising.
    - Read task prompt (source of truth)
    - Query the store for this task and any related entities:
      ```sh

@@ -38,6 +38,7 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
    - Exit 0 → continue.
 1. Load Context:
    - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+   - store-cli verbs: `read` | `list` | `write` | `emit` | `update-status` | `set-summary` | `describe` | `nlp` | `query` | `delete` — there is no `get`/`set`/`find`. See `_fragments/store-cli-verbs.md` for full notes; run `--help` before improvising.
    - Read the approved PLAN.md
    - Read business domain docs relevant to the task
 
