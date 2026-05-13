@@ -1,4 +1,23 @@
 {
+  "0.43.10": {
+    "version": "0.43.11",
+    "date": "2026-05-13",
+    "notes": "HLO-S01 friction-fix sweep — batched migration covering 10 fixes surfaced by the 2026-05-13 dogfood run on /home/boni/src/forge-testbench/hello/ (umbrella forge#93). All non-breaking; each verified by the replay-friction harness (engineering/runbooks/hlo-s01/ in forge-engineering). Fixes: (a) #78/#76 meta-review-plan: `review-approved` → `plan-approved` so the review→plan-approved status flip matches the FSM; (b) #80 widen `event.type` enum to cover task-implemented, plan-complete, review-passed and the rest of the emitted set; (c) #79 task FSM permits `planned → implemented` (was illegal, breaking run-task phase 4 writeback); (d) #96 inline FSM transition table into plan_task / review_plan / implement_plan workflow prose so subagents read state machine inline, not from a sibling fragment; (e) #95 embed store-cli verb cheat-sheet into all run-task / fix-bug phase workflows via new shared `_fragments/store-cli-verbs.md` — eliminates `forge_store` invocation hallucinations; (f) #84 replace `/cost` slash-command pre-flight in implement/validate/update-implementation with a runtime-conditional probe ({{RUNTIME_COST_CMD}}) — fixes hard-fail when /cost is unavailable in the runtime; (g) #94 surface resolved `commands.test` (placeholder substitution) in workflow bodies, not just frontmatter — subagents now see the actual test command; (h) #87 gate `--force` behind `FORGE_ALLOW_FORCE` env in store-cli AND inline canonical event-shape into every workflow emit line (was two-bug pair: LLM-bypass + event mismatch); (i) #82 commit_task no longer hardcodes 'Claude' as Co-author — uses runtime principal; (j) forge-cli#5 forge-tools piece — native `--task-suffix` / `--sprint-suffix` flags on store-cli short-form resolution. Row 8 (forge#86 kickoff-shim markers in review_plan/review_code) was already covered by the 0.43.5 wave-2 migration — no new sub-target needed. forge#7 deferred (SKIPPED: needs live FORGE_DEBUG capture). Also bumped per-file byte budgets in phase-frontmatter.test.cjs across all nine subagent-targeted meta-workflow files (e.g. meta-plan-task 5500→6912, meta-implement 5500→7168, meta-update-plan 3072→3584) — same precedent as the 0.43.6 wave: legitimate friction-fix growth from #95 cheat-sheet + #96 FSM table + #87 event-shape + #84 cost probe + #94 commands.test inlined across phases. Budgets sized to current bytes + ~10% headroom, 512B-aligned.",
+    "regenerate": [
+      "workflows:plan_task",
+      "workflows:review_plan",
+      "workflows:implement_plan",
+      "workflows:validate_task",
+      "workflows:update_implementation",
+      "workflows:commit_task",
+      "schemas:events",
+      "tools:store-cli",
+      "fragments:store-cli-verbs",
+      "tools:integrity"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.43.9": {
     "version": "0.43.10",
     "date": "2026-05-13",
