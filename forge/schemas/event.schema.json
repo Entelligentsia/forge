@@ -28,7 +28,23 @@
     "estimatedCostUSD":   { "type": "number",  "minimum": 0 },
     "tokenSource":        { "type": "string",  "enum": ["reported", "estimated"] },
 
-    "type":     { "type": "string", "enum": ["friction"] },
+    "type":     {
+      "type": "string",
+      "enum": [
+        "friction",
+        "task-planned",
+        "plan-complete",
+        "plan-approved",
+        "task-implemented",
+        "review-passed",
+        "review-failed",
+        "task-approved",
+        "task-validated",
+        "task-committed",
+        "sprint-complete",
+        "bug-fixed"
+      ]
+    },
     "workflow": { "type": "string" },
     "persona":  { "type": "string" },
     "issue":    { "type": "string" },
