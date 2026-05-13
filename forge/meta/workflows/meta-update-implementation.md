@@ -58,7 +58,7 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
 
 3. Implementation:
    - Apply the necessary fixes/changes
-   - Verify the changes using the project's test suite
+   - Verify the changes using the **resolved test command** from `commands.test` in `.forge/config.json` (i.e. `` `${commands.test}` ``, e.g. `.venv/bin/python -m pytest`). Template placeholder: {{TEST_COMMAND}}. Do NOT invoke bare `python` / `python3` — the project interpreter is rarely on `$PATH`.
    - Update PROGRESS.md with a summary of the revisions
 
 4. Finalize:

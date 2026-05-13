@@ -49,7 +49,8 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
 
 3. Verification:
    - Run syntax verification: {SYNTAX_CHECK}
-   - Run test suite: {TEST_COMMAND}
+   - Run test suite using the **resolved test command** from `commands.test` in `.forge/config.json` (i.e. `` `${commands.test}` ``, e.g. `.venv/bin/python -m pytest`, `npm test`, `cargo test`). Do NOT invoke bare `python` / `python3` / `pytest` — the project interpreter is rarely on `$PATH`; using the resolved command avoids `python: command not found` and `No module named pytest`.
+   - Template placeholder: {{TEST_COMMAND}} (resolved at materialize time from `commands.test`).
    - Run build if frontend assets modified: {BUILD_COMMAND}
 
 4. Documentation:

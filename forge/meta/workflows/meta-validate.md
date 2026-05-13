@@ -65,6 +65,7 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
    - Execute the "Acceptance Criteria" checklist from the plan
    - Verify that all technical constraints (e.g., performance, security) are met
    - Check for any regressions in related functionality
+   - When re-running the test suite, use the **resolved test command** from `commands.test` in `.forge/config.json` (i.e. `` `${commands.test}` ``, e.g. `.venv/bin/python -m pytest`). Template placeholder: {{TEST_COMMAND}}. Do NOT invoke bare `python` / `python3` — the project interpreter is rarely on `$PATH`.
 
 3. Verdict:
    - Write VALIDATION_REPORT.md using the format:
