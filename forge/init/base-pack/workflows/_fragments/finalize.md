@@ -1,25 +1,13 @@
-## Finalize: Token Reporting and Sidecar Emission
+## Finalize: Subagent Closure
 
 Before returning, every subagent MUST:
 
-1. Probe session token usage: invoke `/cost` if the host runtime supports it
-   (Claude Code only); on any other runtime treat as unavailable. Do NOT shell
-   out to a `cost-cli.cjs` — there is no such tool.
-2. Parse the output for five fields: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-   - If the probe succeeds, add `"tokenSource": "reported"` to the sidecar JSON.
-   - If the probe fails or is unavailable, set all token fields to `null` and add `"tokenSource": "missing"`.
-3. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar` with format:
-   ```json
-   {
-     "eventId": "<eventId passed by orchestrator>",
-     "inputTokens": <integer or null>,
-     "outputTokens": <integer or null>,
-     "cacheReadTokens": <integer or null>,
-     "cacheWriteTokens": <integer or null>,
-     "estimatedCostUSD": <number or null>,
-     "tokenSource": "reported" | "missing"
-   }
-   ```
-4. **NEVER skip sidecar write.** Always emit (with reported data or with nulls).
+1. Write any phase-specific summary the workflow body requires (e.g. PLAN.md, CODE_REVIEW.md).
+2. Confirm `task.status` reflects the phase outcome (via `store-cli update-status` if applicable).
+3. Return cleanly.
 
-The `eventId` is passed by the orchestrator in the subagent prompt. If unavailable, derive from context.
+**Subagents MUST NOT write token-usage sidecars.** Token telemetry is owned by the orchestrator, which captures provider-reported usage from the runtime as the subagent runs and emits the canonical event (with `provider`, `model`, `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `tokenSource: "reported"`) on the subagent's behalf.
+
+If the runtime does not surface usage (rare), the orchestrator emits the event **without** the token fields — never with placeholder zeros or a `"missing"` marker. Honest absence beats misleading presence.
+
+The `eventId` is passed by the orchestrator in the subagent prompt and is used only for non-token writes (e.g. `set-summary`, `update-status` history).

@@ -90,6 +90,19 @@ function _getSchemas() {
       } catch (_) {}
     }
 
+    // 4. Fall back to forge-cli bundled payload layout, where build-payload.cjs
+    //    writes plugin schemas to `.schemas/` (dot-prefixed). Without this lookup,
+    //    bundled `forgecli` installs silently degrade to the minimal fallback at
+    //    the bottom and stop enforcing schema constraints at runtime.
+    if (!schema) {
+      const bundledPath = path.join(__dirname, '..', '.schemas', schemaFile);
+      try {
+        if (fs.existsSync(bundledPath)) {
+          schema = JSON.parse(fs.readFileSync(bundledPath, 'utf8'));
+        }
+      } catch (_) {}
+    }
+
     if (schema) {
       schemas[type] = schema;
     } else {
@@ -264,7 +277,21 @@ function discoverModel() {
   return 'unknown';
 }
 
-module.exports = { isLegalTransition, validateRecord, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, ENTITY_TYPES, MINIMAL_REQUIRED, NULLABLE_FIELDS, VALID_SUMMARY_PHASES, PHASE_SUMMARY_SCHEMA, _isDateOnly, _dateOnlyToISO, _normalizeBugTimestamps, discoverModel };
+// discoverProvider() — runtime provider resolution. Mirrors discoverModel.
+// The orchestrator (forge-cli) is expected to set FORGE_PROVIDER explicitly
+// when spawning a subagent. Falls back to "unknown" when no signal is available.
+function discoverProvider() {
+  const candidates = [
+    process.env.FORGE_PROVIDER,
+    process.env.CLAUDE_CODE_PROVIDER,
+  ];
+  for (const val of candidates) {
+    if (val && val.trim()) return val.trim();
+  }
+  return 'unknown';
+}
+
+module.exports = { isLegalTransition, validateRecord, TRANSITION_MAP, TERMINAL_STATES, FAILED_STATES, ENTITY_TYPES, MINIMAL_REQUIRED, NULLABLE_FIELDS, VALID_SUMMARY_PHASES, PHASE_SUMMARY_SCHEMA, _isDateOnly, _dateOnlyToISO, _normalizeBugTimestamps, discoverModel, discoverProvider };
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -353,22 +380,21 @@ function listEntities(entity, filter) {
 // Canonical event schema token fields
 const CANONICAL_TOKEN_FIELDS = [
   'inputTokens', 'outputTokens', 'cacheReadTokens', 'cacheWriteTokens',
-  'estimatedCostUSD', 'model', 'durationMinutes', 'startTimestamp', 'endTimestamp',
+  'model', 'provider', 'durationMinutes', 'startTimestamp', 'endTimestamp',
   'tokenSource'
 ];
 
 // Accepted sidecar fields (includes aliases)
 const SIDECAR_ACCEPTED_FIELDS = new Set([
   'inputTokens', 'outputTokens', 'cacheReadTokens', 'cacheWriteTokens',
-  'estimatedCostUSD', 'model', 'cost', 'durationMinutes',
+  'model', 'provider', 'durationMinutes',
   'startTimestamp', 'endTimestamp', 'cacheCreationTokens',
   'tokenSource'
 ]);
 
 // Alias mapping for sidecar → canonical event
 const SIDECAR_ALIASES = {
-  'cacheCreationTokens': 'cacheWriteTokens',
-  'cost': 'estimatedCostUSD'
+  'cacheCreationTokens': 'cacheWriteTokens'
 };
 
 function resolveSidecarDir(sprintId) {
@@ -712,6 +738,12 @@ function cmdEmit() {
       data.model = discoverModel();
     }
 
+    // Same for provider — required by event schema. Orchestrators set
+    // FORGE_PROVIDER explicitly; fall back to "unknown" rather than guess.
+    if (!data.provider || !data.provider.trim()) {
+      data.provider = discoverProvider();
+    }
+
     // Validate as event entity
     const errors = validateRecord(data, schemas.event);
     if (errors.length > 0) {
@@ -810,9 +842,9 @@ function cmdRecordUsage() {
     console.error('    --output-tokens <n>         Output token count');
     console.error('    --cache-read-tokens <n>     Cache read token count');
     console.error('    --cache-write-tokens <n>    Cache write token count');
-    console.error('    --estimated-cost-usd <n>     Estimated cost in USD');
     console.error('    --token-source <src>         reported | estimated');
     console.error('    --model <model>             Model identifier');
+    console.error('    --provider <name>           Provider name (e.g. anthropic, zai, openai)');
     console.error('    --duration-minutes <n>      Duration in minutes');
     process.exit(1);
   }
@@ -831,14 +863,17 @@ function cmdRecordUsage() {
       sidecar.cacheReadTokens = parseInt(flagArgs[++i], 10);
     } else if (arg === '--cache-write-tokens' && flagArgs[i + 1]) {
       sidecar.cacheWriteTokens = parseInt(flagArgs[++i], 10);
-    } else if (arg === '--estimated-cost-usd' && flagArgs[i + 1]) {
-      sidecar.estimatedCostUSD = parseFloat(flagArgs[++i]);
     } else if (arg === '--token-source' && flagArgs[i + 1]) {
       sidecar.tokenSource = flagArgs[++i];
     } else if (arg === '--model' && flagArgs[i + 1]) {
       sidecar.model = flagArgs[++i];
+    } else if (arg === '--provider' && flagArgs[i + 1]) {
+      sidecar.provider = flagArgs[++i];
     } else if (arg === '--duration-minutes' && flagArgs[i + 1]) {
       sidecar.durationMinutes = parseFloat(flagArgs[++i]);
+    } else if (arg === '--estimated-cost-usd') {
+      console.error('Error: --estimated-cost-usd is no longer accepted. Cost is derived at collate time from lib/pricing.cjs using authoritative per-model pricing.');
+      process.exit(1);
     }
   }
 

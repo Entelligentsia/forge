@@ -36,6 +36,7 @@ function baseEvent(overrides = {}) {
     endTimestamp:    '2026-05-10T12:01:00Z',
     durationMinutes: 1,
     model:           'claude-opus-4-7',
+    provider:        'anthropic',
     ...overrides,
   };
 }

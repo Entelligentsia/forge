@@ -312,9 +312,9 @@ function mergeSidecarEvents(primaryEvents, sidecars) {
       if (sidecar.outputTokens     !== undefined) merged.outputTokens     = sidecar.outputTokens;
       if (sidecar.cacheReadTokens  !== undefined) merged.cacheReadTokens  = sidecar.cacheReadTokens;
       if (sidecar.cacheWriteTokens !== undefined) merged.cacheWriteTokens = sidecar.cacheWriteTokens;
-      if (sidecar.estimatedCostUSD !== undefined) merged.estimatedCostUSD = sidecar.estimatedCostUSD;
       if (sidecar.tokenSource      !== undefined) merged.tokenSource      = sidecar.tokenSource;
       if (sidecar.model && !merged.model) merged.model = sidecar.model;
+      if (sidecar.provider && !merged.provider) merged.provider = sidecar.provider;
     }
 
     // Recompute cost when all four counts are present and model is known
@@ -393,7 +393,7 @@ function loadSprintEvents(sprintId) {
  * @param {object[]} noTaskEvents        - token events with no taskId
  * @param {string[]} unmappedModels      - raw model strings that did not canonicalize
  * @param {number}   totalEvents         - total primary events loaded (with and without token data)
- * @param {{reported: number, estimated: number, missing: number}} tokenSourceCounts - tokenSource tallies
+ * @param {{reported: number, estimated: number}} tokenSourceCounts - tokenSource tallies. Token-less events appear in huskPrimaries, not here.
  */
 function buildIngestionQuality(orphanSidecars, huskPrimaries, noTaskEvents, unmappedModels, totalEvents, tokenSourceCounts) {
   const lines = ['## Ingestion Quality', ''];
@@ -420,12 +420,12 @@ function buildIngestionQuality(orphanSidecars, huskPrimaries, noTaskEvents, unma
     rows.push(['Total events', String(total), `${withTokenData} with token data`]);
   }
 
-  // Token source breakdown — always rendered when tokenSourceCounts is provided
+  // Token source breakdown — always rendered when tokenSourceCounts is provided.
+  // No "missing" bucket — token-less events surface as husks instead.
   if (tsc !== null) {
     const reported  = tsc.reported  || 0;
     const estimated = tsc.estimated || 0;
-    const missing   = tsc.missing   || 0;
-    rows.push(['Token source breakdown', String(reported + estimated + missing), `reported: ${reported}, estimated: ${estimated}, missing: ${missing}`]);
+    rows.push(['Token source breakdown', String(reported + estimated), `reported: ${reported}, estimated: ${estimated}`]);
   }
 
   if (orphanCount > 0) {
@@ -478,13 +478,14 @@ function buildCostReport(sprint, events, orphanSidecars, huskPrimaries) {
     '',
   ];
 
-  // Tally total events and tokenSource counts over all primary events (including husks)
+  // Tally total events and tokenSource counts. Only events that actually carry
+  // tokenSource contribute to the breakdown — token-less events are counted as
+  // husks, not as a "missing" bucket.
   const totalEvents = events.length;
-  const tokenSourceCounts = { reported: 0, estimated: 0, missing: 0 };
+  const tokenSourceCounts = { reported: 0, estimated: 0 };
   for (const e of events) {
     if (e.tokenSource === 'reported') tokenSourceCounts.reported++;
     else if (e.tokenSource === 'estimated') tokenSourceCounts.estimated++;
-    else tokenSourceCounts.missing++;
   }
 
   if (tokenEvents.length === 0) {

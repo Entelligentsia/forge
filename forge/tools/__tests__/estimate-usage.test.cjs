@@ -5,10 +5,8 @@ const {
   lookupByModel,
   estimateTokens,
   TOKENS_PER_MINUTE,
-  PRICE_PER_1M,
   PHASE_SPLIT,
   DEFAULT_TOKENS_PER_MINUTE,
-  DEFAULT_PRICE_PER_1M,
 } = require('../estimate-usage.cjs');
 
 describe('estimate-usage.cjs', () => {
@@ -47,7 +45,7 @@ describe('estimate-usage.cjs', () => {
       assert.equal(result.value.tokenSource, 'estimated');
       assert.ok(result.value.inputTokens > 0, 'should have inputTokens');
       assert.ok(result.value.outputTokens > 0, 'should have outputTokens');
-      assert.ok(result.value.estimatedCostUSD > 0, 'should have estimatedCostUSD');
+      assert.equal(result.value.estimatedCostUSD, undefined, 'estimatedCostUSD must NOT be persisted — cost is derived at collate time from pricing.cjs');
     });
 
     test('returns { ok: false, code: E_ZERO_DURATION } when durationMinutes is 0', () => {
@@ -98,26 +96,19 @@ describe('estimate-usage.cjs', () => {
       assert.ok(result.value.inputTokens > result.value.outputTokens, 'implement should favor input');
     });
 
-    test('computes cost correctly', () => {
+    test('returns only token counts and tokenSource — no cost field', () => {
       const event = { eventId: 'E-008', durationMinutes: 1, model: 'claude-sonnet-4', phase: 'plan' };
       const result = estimateTokens(event);
       assert.equal(result.ok, true, `expected ok:true, got ok:${result.ok}`);
-      // plan split: 50/50, sonnet-4: 4500 tok/min, $3/1M
-      const expectedTotal = 4500;
-      const expectedCost = ((expectedTotal) / 1_000_000 * 3.00).toFixed(6);
-      assert.ok(Math.abs(result.value.estimatedCostUSD - parseFloat(expectedCost)) < 0.001);
+      const keys = Object.keys(result.value).sort();
+      assert.deepEqual(keys, ['inputTokens', 'outputTokens', 'tokenSource'],
+        'estimateTokens must return only inputTokens, outputTokens, tokenSource');
     });
   });
 
   describe('heuristic tables', () => {
     test('TOKENS_PER_MINUTE has all model entries', () => {
       assert.ok(Object.keys(TOKENS_PER_MINUTE).length >= 7, 'should have at least 7 model entries');
-    });
-
-    test('PRICE_PER_1M has matching model entries', () => {
-      for (const model of Object.keys(TOKENS_PER_MINUTE)) {
-        assert.ok(PRICE_PER_1M[model], `PRICE_PER_1M should have entry for ${model}`);
-      }
     });
 
     test('PHASE_SPLIT values sum to approximately 1.0', () => {

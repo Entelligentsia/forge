@@ -2,10 +2,11 @@
 'use strict';
 
 // Forge tool: estimate-usage
-// Back-fill token usage estimates on event records that lack self-reported token data.
-// Uses durationMinutes and model heuristics to compute inputTokens, outputTokens,
-// and estimatedCostUSD. Writes results back to event JSON files without overwriting
-// records that already carry self-reported data.
+// Back-fill token-count estimates on event records that lack self-reported token data.
+// Uses durationMinutes and model heuristics to compute inputTokens + outputTokens.
+// Writes results back to event JSON files without overwriting records that already
+// carry self-reported data. Cost is NOT persisted — it is derived at collate time
+// from lib/pricing.cjs using authoritative per-model pricing.
 //
 // Usage:
 //   estimate-usage --event <path>         Process a single event file
@@ -34,21 +35,6 @@ const TOKENS_PER_MINUTE = {
   'claude-haiku-3-5':  8000,
 };
 const DEFAULT_TOKENS_PER_MINUTE = 4000;
-
-// PRICE_PER_1M — USD cost per 1M tokens.
-// NOTE: This uses a single price for both input and output as a simplification.
-// TODO: Replace with separate input/output pricing tiers when COST_REPORT (T05)
-// is implemented. Prices sourced from Anthropic pricing page (approximate).
-const PRICE_PER_1M = {
-  'claude-opus-4':     15.00,
-  'claude-sonnet-4':    3.00,
-  'claude-haiku-4':     0.80,
-  'claude-opus-3-7':   15.00,
-  'claude-sonnet-3-7':  3.00,
-  'claude-sonnet-3-5':  3.00,
-  'claude-haiku-3-5':   0.80,
-};
-const DEFAULT_PRICE_PER_1M = 3.00;
 
 // PHASE_SPLIT — input/output token fraction by phase.
 // Implementation phases are heavier on input (reading context);
@@ -94,17 +80,13 @@ function estimateTokens(event) {
   }
 
   const tokensPerMin = lookupByModel(TOKENS_PER_MINUTE, DEFAULT_TOKENS_PER_MINUTE, model);
-  const pricePerMillion = lookupByModel(PRICE_PER_1M, DEFAULT_PRICE_PER_1M, model);
   const split = PHASE_SPLIT[phase] || DEFAULT_PHASE_SPLIT;
 
   const totalTokens = Math.round(duration * tokensPerMin);
   const inputTokens = Math.round(totalTokens * split.input);
   const outputTokens = Math.round(totalTokens * split.output);
-  const estimatedCostUSD = parseFloat(
-    ((inputTokens + outputTokens) / 1_000_000 * pricePerMillion).toFixed(6)
-  );
 
-  return resultOk({ inputTokens, outputTokens, estimatedCostUSD, tokenSource: 'estimated' });
+  return resultOk({ inputTokens, outputTokens, tokenSource: 'estimated' });
 }
 
 function processEvent(event, dryRun) {
@@ -132,7 +114,7 @@ function processEvent(event, dryRun) {
 
   if (dryRun) {
     console.log(`  [dry-run] would update event: ${event.eventId}`);
-    console.log(`    inputTokens=${estimates.inputTokens}, outputTokens=${estimates.outputTokens}, estimatedCostUSD=${estimates.estimatedCostUSD}`);
+    console.log(`    inputTokens=${estimates.inputTokens}, outputTokens=${estimates.outputTokens}`);
     return 'updated';
   }
 
@@ -143,7 +125,7 @@ function processEvent(event, dryRun) {
     return 'error';
   }
 
-  console.log(`  updated: ${event.eventId} (inputTokens=${estimates.inputTokens}, outputTokens=${estimates.outputTokens}, estimatedCostUSD=${estimates.estimatedCostUSD})`);
+  console.log(`  updated: ${event.eventId} (inputTokens=${estimates.inputTokens}, outputTokens=${estimates.outputTokens})`);
   return 'updated';
 }
 
@@ -156,10 +138,8 @@ if (typeof module !== 'undefined' && module.exports) {
     lookupByModel,
     estimateTokens,
     TOKENS_PER_MINUTE,
-    PRICE_PER_1M,
     PHASE_SPLIT,
     DEFAULT_TOKENS_PER_MINUTE,
-    DEFAULT_PRICE_PER_1M,
     DEFAULT_PHASE_SPLIT,
   };
 }

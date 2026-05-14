@@ -5,6 +5,35 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.43.13] — 2026-05-14
+
+**Telemetry contract fix (Slice 1) — orchestrator owns token capture, subagents stop self-probing.**
+
+The previous capture pipeline asked every subagent to invoke `/cost` and write a `tokenSource: "missing"` placeholder when the probe failed — which it always did, because the pi runtime has no `/cost` probe, and the schema enum is `[reported, estimated]`. Every HLO-S01-T04 phase logged 8 `schema_drift` errors and the dataset captured nothing usable.
+
+**Schema changes.**
+
+- `event.schema.json` and `event-sidecar.schema.json` add `provider` (required on the canonical event, optional on the sidecar). Same model is priced differently across providers (Anthropic direct vs Bedrock vs Vertex; ZAI cloud vs self-host); cost is unattributable without it.
+- Both schemas drop `estimatedCostUSD` entirely. Cost is derived at collate time from `(provider, model, tokens)` via `tools/lib/pricing.cjs`. Persisting cost on records makes the dataset lie when pricing changes.
+- `tokenSource` enum stays `[reported, estimated]`. The "missing" case is dead: if no telemetry is available, the event is emitted without token fields. Honest absence beats placeholder zeros.
+
+**Workflow changes.**
+
+- `meta/workflows/_fragments/finalize.md` (and its base-pack mirror) no longer instruct subagents to probe or write sidecars. New rule: subagents MUST NOT write token sidecars; the orchestrator emits the canonical event with provider-reported usage on their behalf.
+- Slice 2 (the forge-cli runtime emit site) will wire the orchestrator side — out of scope here. With this slice landed, sidecar writes from subagents stop producing schema_drift errors.
+
+**Tool changes.**
+
+- `store-cli.cjs` — `record-usage` accepts `--provider`; `--estimated-cost-usd` is explicitly rejected with a pointer to `lib/pricing.cjs`. New `discoverProvider()` helper mirrors `discoverModel()`: reads `FORGE_PROVIDER` / `CLAUDE_CODE_PROVIDER`, falls back to `"unknown"`. `emit` auto-populates `provider` the same way it auto-populates `model`.
+- `estimate-usage.cjs` — removed the `PRICE_PER_1M` heuristic table and `DEFAULT_PRICE_PER_1M`. The estimator now returns `{inputTokens, outputTokens, tokenSource: "estimated"}` only. Pricing lives in `lib/pricing.cjs` exclusively.
+- `collate.cjs` — dropped the `missing` bucket from `tokenSourceCounts`. Token-less events surface as husks in the Ingestion Quality section (where they already were), not as a separate bucket.
+
+**Compatibility note.** Existing event records that lack `provider` or carry `estimatedCostUSD` will fail strict validation. The migration entry lists this as a manual step — a one-shot `backfill-provider.cjs` will ship as a follow-up. For dogfooding here in `forge-engineering`, the affected events under `.forge/store/events/` either have no tokens (and won't be re-validated) or pre-date this contract.
+
+Tests: 1173 pass (1 pre-existing `FRAGMENT_MAP has 4 entries` failure on `main`, unrelated to this slice — that's a separate stale-allowlist test left over from the 0.43.11 fragment-count change).
+
+---
+
 ## [0.43.10] — 2026-05-13
 
 **Verdict-source refactor — preflight gates read the store, not markdown.**

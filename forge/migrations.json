@@ -1,4 +1,23 @@
 {
+  "0.43.12": {
+    "version": "0.43.13",
+    "date": "2026-05-14",
+    "notes": "Telemetry contract fix (Slice 1) — refactors the token-usage capture pipeline from a subagent self-probe (which never worked: pi runtime has no `/cost` probe, and the workflow's `tokenSource: \"missing\"` writes were rejected by the schema enum [reported, estimated] causing 8 schema_drift errors per HLO-S01-T04 run) to an orchestrator-owned model. Three changes: (1) event.schema.json adds `provider` as a required field — same model is priced differently across providers (Anthropic direct vs Bedrock vs Vertex; ZAI cloud vs self-host) and cost is unattributable without it; auto-populated via new discoverProvider() helper from FORGE_PROVIDER / CLAUDE_CODE_PROVIDER env vars, falling back to \"unknown\" rather than guessing. (2) Dropped `estimatedCostUSD` from event + event-sidecar schemas entirely — cost is derived at collate time from (provider, model, tokens) via tools/lib/pricing.cjs, keeping the dataset truthful when pricing changes. (3) Rewrote meta/workflows/_fragments/finalize.md AND init/base-pack/workflows/_fragments/finalize.md to delete the broken `/cost` probe + `\"missing\"` write instructions; new rule: subagents MUST NOT write token sidecars; orchestrator owns telemetry and emits the canonical event with provider-reported usage. If runtime doesn't surface usage, fields are omitted (honest absence beats placeholder zeros). collate.cjs drops the `missing` bucket from tokenSourceCounts — token-less events surface as husks instead. Tool changes: store-cli.cjs (CANONICAL_TOKEN_FIELDS + SIDECAR_ACCEPTED_FIELDS adjusted, --provider flag added on record-usage, --estimated-cost-usd flag explicitly rejected with helpful error, discoverProvider() exported); estimate-usage.cjs (removed PRICE_PER_1M heuristic table + DEFAULT_PRICE_PER_1M — returns only inputTokens/outputTokens/tokenSource); collate.cjs (cost recomputed via pricing.cjs is now the only source). Slice 2 (forge-cli runtime emit site) will wire the orchestrator emit path that consumes this contract — out of scope here. Tests: 1173 pass, 1 pre-existing FRAGMENT_MAP failure unrelated to this slice. No `.forge/` or `engineering/` edits.",
+    "regenerate": [
+      "schemas:events",
+      "schemas:event-sidecar",
+      "fragments:finalize",
+      "tools:store-cli",
+      "tools:estimate-usage",
+      "tools:collate",
+      "tools:integrity"
+    ],
+    "breaking": false,
+    "manual": [
+      "Existing event records on disk that lack `provider` will fail strict validation. On re-running collate or any read path that validates events, stamp legacy records with `provider: \"unknown\"` — a one-shot backfill helper will ship in a follow-up patch. New events emitted by `store-cli emit` auto-populate `provider` via FORGE_PROVIDER env var or fall back to \"unknown\".",
+      "`estimatedCostUSD` is no longer accepted on event or event-sidecar records. Existing records on disk that carry the field will fail strict validation; collate's recomputation path (lib/pricing.cjs) is now authoritative."
+    ]
+  },
   "0.43.11": {
     "version": "0.43.12",
     "date": "2026-05-14",

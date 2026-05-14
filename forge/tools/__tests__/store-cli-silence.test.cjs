@@ -48,7 +48,7 @@ const MINIMAL_EVENT = {
   iteration: 1,
   startTimestamp: '2026-05-01T10:00:00.000Z',
   endTimestamp: '2026-05-01T10:05:00.000Z',
-  durationMinutes: 5, model: 'claude-sonnet-4-6',
+  durationMinutes: 5, model: 'claude-sonnet-4-6', provider: 'anthropic',
 };
 
 // ---------------------------------------------------------------------------

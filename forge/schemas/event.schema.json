@@ -5,7 +5,7 @@
   "type": "object",
   "required": [
     "eventId", "taskId", "sprintId", "role", "action",
-    "phase", "iteration", "startTimestamp", "endTimestamp", "durationMinutes", "model"
+    "phase", "iteration", "startTimestamp", "endTimestamp", "durationMinutes", "model", "provider"
   ],
   "properties": {
     "eventId":         { "type": "string" },
@@ -19,13 +19,13 @@
     "endTimestamp":    { "type": "string", "format": "date-time" },
     "durationMinutes": { "type": "number", "minimum": 0 },
     "model":           { "type": "string" },
+    "provider":        { "type": "string", "maxLength": 60 },
     "verdict":            { "type": "string" },
     "notes":              { "type": "string" },
     "inputTokens":        { "type": "integer", "minimum": 0 },
     "outputTokens":       { "type": "integer", "minimum": 0 },
     "cacheReadTokens":    { "type": "integer", "minimum": 0 },
     "cacheWriteTokens":   { "type": "integer", "minimum": 0 },
-    "estimatedCostUSD":   { "type": "number",  "minimum": 0 },
     "tokenSource":        { "type": "string",  "enum": ["reported", "estimated"] },
 
     "type":     {

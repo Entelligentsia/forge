@@ -687,29 +687,29 @@ describe('collate.cjs — buildIngestionQuality', () => {
   test('renders total events count and token-with-data detail', () => {
     // 5 total events, 2 husks → 3 with token data
     const husks2 = [{ eventId: 'husk-1' }, { eventId: 'husk-2' }];
-    const tsc = { reported: 2, estimated: 1, missing: 2 };
+    const tsc = { reported: 2, estimated: 1 };
     const result = buildIngestionQuality([], husks2, [], [], 5, tsc);
     assert.ok(result.includes('Total events'), 'should include Total events row label');
     assert.ok(result.includes('5'), 'should show total event count of 5');
     assert.ok(result.includes('3 with token data'), 'should show derived token-data count (total - husks)');
   });
 
-  test('renders tokenSource breakdown with all three sources', () => {
-    const tsc = { reported: 10, estimated: 3, missing: 2 };
-    const result = buildIngestionQuality([], [], [], [], 15, tsc);
+  test('renders tokenSource breakdown without missing bucket', () => {
+    const tsc = { reported: 10, estimated: 3 };
+    const result = buildIngestionQuality([], [], [], [], 13, tsc);
     assert.ok(result.includes('Token source breakdown'), 'should include Token source breakdown row label');
     assert.ok(result.includes('reported: 10'), 'should show reported count');
     assert.ok(result.includes('estimated: 3'), 'should show estimated count');
-    assert.ok(result.includes('missing: 2'), 'should show missing count');
+    assert.ok(!result.includes('missing:'), 'must NOT render a missing-bucket row — tokens are either reported, estimated, or omitted entirely');
   });
 
-  test('renders total events and tokenSource rows even when no other issues (no-task scenario)', () => {
-    // Simulate a clean run with total/tsc provided but no orphans/husks/unmapped
-    const tsc = { reported: 7, estimated: 0, missing: 1 };
-    const result = buildIngestionQuality([], [], [], [], 8, tsc);
-    assert.ok(result.includes('Total events'), 'should include Total events row');
+  test('events without tokens are surfaced as husks, not as missing-bucket entries', () => {
+    // Token-less events appear in the husks list; tokenSource counts only sum reported+estimated
+    const tsc = { reported: 7, estimated: 0 };
+    const husks3 = [{ eventId: 'h1' }];
+    const result = buildIngestionQuality([], husks3, [], [], 8, tsc);
     assert.ok(result.includes('Token source breakdown'), 'should include Token source breakdown row');
-    // The "all clean" short-circuit must NOT fire when totalEvents/tsc are provided
+    assert.ok(result.includes('Primary events with no token data (husks)'), 'token-less events surface as husks');
     assert.ok(!result.includes('All events attributed cleanly'), 'should not show clean short-circuit message when metrics are present');
   });
 });

@@ -38,9 +38,13 @@ describe('build-manifest.cjs — mapping tables', () => {
     assert.equal(WORKFLOW_MAP.length, 19);
   });
 
-  test('FRAGMENT_MAP has 4 entries, each is a [source, output] tuple', () => {
+  test('FRAGMENT_MAP enumerates every meta fragment, each as a [source, output] tuple', () => {
     assert.ok(Array.isArray(FRAGMENT_MAP), 'FRAGMENT_MAP must be exported');
-    assert.equal(FRAGMENT_MAP.length, 4);
+    const fragmentsDir = path.join(__dirname, '..', '..', 'meta', 'workflows', '_fragments');
+    const expected = fs.readdirSync(fragmentsDir).filter((f) => f.endsWith('.md')).sort();
+    const actual = FRAGMENT_MAP.map(([src]) => src).sort();
+    assert.deepEqual(actual, expected,
+      'FRAGMENT_MAP must mirror meta/workflows/_fragments/*.md exactly (dynamic enumeration since 0.43.12)');
     for (const entry of FRAGMENT_MAP) {
       assert.equal(entry.length, 2);
       assert.equal(typeof entry[0], 'string');

@@ -1155,7 +1155,7 @@ describe('store-cli.cjs — record-usage subcommand', () => {
         '--output-tokens', '500',
         '--cache-read-tokens', '200',
         '--cache-write-tokens', '100',
-        '--estimated-cost-usd', '0.05',
+        '--provider', 'anthropic',
         '--token-source', 'reported',
       ], { cwd: tmpDir, encoding: 'utf8' });
       assert.equal(r.status, 0, `stderr: ${r.stderr}`);
@@ -1169,7 +1169,8 @@ describe('store-cli.cjs — record-usage subcommand', () => {
       assert.equal(sidecar.outputTokens, 500);
       assert.equal(sidecar.cacheReadTokens, 200);
       assert.equal(sidecar.cacheWriteTokens, 100);
-      assert.equal(sidecar.estimatedCostUSD, 0.05);
+      assert.equal(sidecar.provider, 'anthropic');
+      assert.equal(sidecar.estimatedCostUSD, undefined, 'estimatedCostUSD must NOT be persisted — derived at collate time');
       assert.equal(sidecar.tokenSource, 'reported');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -1226,14 +1227,28 @@ describe('store-cli.cjs — record-usage subcommand', () => {
     }
   });
 
-  test('record-usage rejects negative estimated-cost-usd', () => {
+  test('record-usage rejects --estimated-cost-usd (field removed from schema)', () => {
     const tmpDir = makeUsageStore();
     try {
       const r = spawnSync(process.execPath, [
         STORE_CLI, 'record-usage', 'S1', 'E-005',
-        '--estimated-cost-usd', '-0.01',
+        '--estimated-cost-usd', '0.05',
       ], { cwd: tmpDir, encoding: 'utf8' });
-      assert.notEqual(r.status, 0, 'should exit non-zero for negative cost');
+      assert.notEqual(r.status, 0, 'should exit non-zero — flag has been removed');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('emit --sidecar rejects estimatedCostUSD field', () => {
+    const tmpDir = makeUsageStore();
+    try {
+      const r = spawnSync(process.execPath, [
+        STORE_CLI, 'emit', 'S1',
+        JSON.stringify({ eventId: 'E-006', estimatedCostUSD: 0.05 }),
+        '--sidecar',
+      ], { cwd: tmpDir, encoding: 'utf8' });
+      assert.notEqual(r.status, 0, 'should reject estimatedCostUSD field');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -1569,5 +1584,67 @@ describe('store-cli.cjs — record-usage auto-populates model via discoverModel'
         fs.rmSync(tmpDir, { recursive: true, force: true });
       }
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// .schemas/ fallback — exercised by forge-cli bundled-payload layout
+// ---------------------------------------------------------------------------
+describe('store-cli — bundled-payload .schemas/ fallback', () => {
+  // Simulate the forge-cli bundled layout: copy store-cli.cjs into a fake
+  // `tools/` dir whose sibling is `.schemas/`. Force the production-mode
+  // lookup chain by removing the in-tree and project paths.
+  test('store-cli resolves schemas from sibling .schemas/ when no schemas/ exists', () => {
+    const stageRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-bundled-'));
+    const fakeTools = path.join(stageRoot, 'tools');
+    const fakeSchemasDot = path.join(stageRoot, '.schemas');
+    fs.mkdirSync(fakeTools, { recursive: true });
+    fs.mkdirSync(fakeSchemasDot, { recursive: true });
+
+    // Stage everything store-cli needs at runtime
+    const realToolsDir = path.dirname(STORE_CLI);
+    for (const f of ['store-cli.cjs', 'store.cjs']) {
+      fs.copyFileSync(path.join(realToolsDir, f), path.join(fakeTools, f));
+    }
+    fs.cpSync(path.join(realToolsDir, 'lib'), path.join(fakeTools, 'lib'), { recursive: true });
+
+    // Copy the real event-sidecar.schema.json (with tokenSource enum [reported, estimated])
+    // ONLY into .schemas/ — not into a sibling schemas/ — so the .schemas/ fallback
+    // is the only way to find it.
+    const srcSchemaDir = path.join(__dirname, '..', '..', 'schemas');
+    fs.copyFileSync(
+      path.join(srcSchemaDir, 'event-sidecar.schema.json'),
+      path.join(fakeSchemasDot, 'event-sidecar.schema.json')
+    );
+
+    const projDir = path.join(stageRoot, 'project');
+    fs.mkdirSync(path.join(projDir, '.forge', 'store', 'events', 'S1'), { recursive: true });
+    fs.writeFileSync(
+      path.join(projDir, '.forge', 'config.json'),
+      JSON.stringify({ paths: { store: '.forge/store' } })
+    );
+
+    try {
+      // Run from a CWD where neither project schemas nor in-tree schemas exist.
+      // The bundled-payload .schemas/ fallback is the only viable lookup.
+      const r = spawnSync('node', [
+        path.join(fakeTools, 'store-cli.cjs'),
+        'emit', 'S1',
+        JSON.stringify({ eventId: 'EVT-FB', tokenSource: 'missing' }),
+        '--sidecar',
+      ], { cwd: projDir, encoding: 'utf8' });
+
+      assert.notEqual(r.status, 0,
+        `should reject tokenSource:"missing" via real schema enum, got exit 0. stderr: ${r.stderr}`);
+      assert.match(r.stderr, /tokenSource: value "missing" not in/,
+        `error must reference tokenSource enum validation — proves event-sidecar.schema.json was loaded from .schemas/. stderr: ${r.stderr}`);
+      // Schemas not staged in .schemas/ (sprint, task, bug, event, ...) will still
+      // trigger the minimal fallback warning at startup — that is expected here
+      // because we only seeded event-sidecar.schema.json for this test.
+      assert.ok(!r.stderr.includes('event-sidecar.schema.json not found'),
+        `the staged schema must NOT fall back — found warning in stderr: ${r.stderr}`);
+    } finally {
+      fs.rmSync(stageRoot, { recursive: true, force: true });
+    }
   });
 });
