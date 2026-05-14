@@ -1,29 +1,73 @@
 # Fragment: Event Emission Schema
 
-<!-- Canonical required/optional event field table for orchestrator workflows.
-     Referenced by meta-orchestrate.md and meta-fix-bug.md. -->
+<!-- Canonical contract: subagents write judgement-only SUMMARY files; the
+     orchestrator stitches runtime telemetry + judgement into the canonical
+     event and emits it. Referenced by meta-orchestrate.md and meta-fix-bug.md.
 
-Every phase emits a structured event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`.
+     PLAN-11 / SLICE-2 (2026-05-14): the LLM no longer hand-builds event JSON.
+     Runtime facts (model, provider, eventId, timestamps, iteration, tokens)
+     are owned by the orchestrator, never the subagent. The subagent only
+     produces judgement and lets the orchestrator complete the record. -->
 
-**Required fields** (defined in `.forge/schemas/event.schema.json`):
+## Who writes what
 
-| Field | Value |
-|-------|-------|
-| `eventId` | `{ISO_TIMESTAMP}_{TASK_ID}_{role}_{action}` e.g. `20260415T141523000Z_ACME-S02-T03_implement_plan-task` |
-| `taskId` | Task ID from the task manifest |
-| `sprintId` | Sprint ID from the task manifest |
-| `role` | Pipeline phase role (e.g. `plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`) |
-| `action` | Slash command invoked in namespaced form (e.g. `/forge:implement`, `/forge:review-plan`) |
-| `phase` | Pipeline phase name (e.g. `plan`, `review-plan`, `implement`, `review-code`, `approve`, `commit`) |
-| `iteration` | 1-based iteration count for this phase |
-| `startTimestamp` | ISO 8601 timestamp recorded **before** spawning the phase subagent |
-| `endTimestamp` | ISO 8601 timestamp recorded **after** the subagent returns |
-| `durationMinutes` | Decimal minutes elapsed between start and end |
-| `model` | Resolved model identifier (e.g. `claude-sonnet-4-6`). Read from `CLAUDE_CODE_SUBAGENT_MODEL` on single-cluster runtimes, or `ANTHROPIC_DEFAULT_{TIER}_MODEL` on tiered clusters. |
+| Actor              | Owns (writes)                                                                                   | Never touches |
+|--------------------|-------------------------------------------------------------------------------------------------|---------------|
+| **Subagent (LLM)** | judgement fields: `verdict`, `notes`, `findings`, `objective`, `type`                           | `eventId`, `model`, `provider`, `startTimestamp`, `endTimestamp`, `durationMinutes`, `iteration`, `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `tokenSource` |
+| **Orchestrator**   | everything else — composes the canonical event from runtime telemetry + the subagent's SUMMARY  | the judgement fields themselves (copies them through unchanged) |
 
-**Optional fields** (merged from sidecar when present):
-`verdict`, `notes`, `inputTokens`, `outputTokens`, `cacheReadTokens`,
-`cacheWriteTokens`, `estimatedCostUSD`.
+The LLM is the wrong actor for runtime facts: it has no privileged access to
+the model/provider it ran under, the wall clock at spawn time, or the token
+counts reported by the runtime stream. Every LLM guess at these fields is
+wrong by construction.
 
-Use only the field names above — no aliases (`agent`, `status`, `timestamp`, `details`).
-When in doubt, read `.forge/schemas/event.schema.json` directly.
+## What the subagent does
+
+After completing its phase, the subagent writes one file:
+
+```
+.forge/cache/{PHASE}-SUMMARY.json
+```
+
+Examples: `PLAN-SUMMARY.json`, `REVIEW-PLAN-SUMMARY.json`,
+`IMPLEMENT-SUMMARY.json`, `REVIEW-CODE-SUMMARY.json`, `COMMIT-SUMMARY.json`.
+
+The SUMMARY contains judgement only. Required keys are phase-specific
+(see `forge/schemas/phase-summary.schema.json` for the exact shape per
+phase) but typically include `verdict`, `notes`, and any `findings`
+the phase produces. The subagent **must not** include runtime fields —
+adding `model`, `provider`, timestamps, or token counts to the SUMMARY is
+ignored at best and rejected at worst.
+
+The subagent **does not** call `store-cli emit` for phase events. That
+shell-out is reserved for the orchestrator.
+
+## What the orchestrator does
+
+After the subagent returns, the orchestrator constructs the event from:
+
+1. **Runtime telemetry** captured during the subagent run:
+   `model`, `provider`, token usage (`inputTokens`, `outputTokens`,
+   `cacheReadTokens`, `cacheWriteTokens`, `tokenSource: "reported"`).
+2. **Known task context** the orchestrator already tracks for run-task:
+   `taskId`, `sprintId`, `phase`, `iteration`.
+3. **Bracketed wall times** the orchestrator records around the subagent
+   call: `startTimestamp`, `endTimestamp`, `durationMinutes`.
+4. **Judgement blob** read from `{PHASE}-SUMMARY.json`: `verdict`, `notes`,
+   `findings`, etc.
+
+The orchestrator then emits via:
+
+```
+node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{complete-event-json}'
+```
+
+## Why no example record here
+
+This fragment intentionally contains **no hardcoded example model strings,
+provider names, or timestamps**. Such examples were the historical source of
+LLM hallucination — subagents would copy the example verbatim ("the model
+is claude-sonnet-4-6 because the workflow says so") even when running on a
+completely different runtime. The schema lives at
+`.forge/schemas/event.schema.json`; consult it directly when verifying a
+field set.

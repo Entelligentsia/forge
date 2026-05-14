@@ -5,6 +5,36 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.43.14] — 2026-05-14
+
+**Telemetry contract Slice 2 — orchestrator-emits-everything.**
+
+Slice 1 (v0.43.13) made `provider` required and moved cost out of the schema. But subagents were still hand-building 14-field event JSON containing runtime facts — and hallucinating them. The HLO-S01-T05 evidence: events recorded `provider: "anthropic"` and `model: "claude-sonnet-4-20250514"` while the subagent transcript showed it actually ran on `glm-5.1:cloud`. The LLM is the wrong actor for runtime facts; every guess will be wrong by construction. Slice 2 makes runtime attribution the orchestrator's responsibility end-to-end.
+
+**Workflow / fragment changes.**
+
+- `meta/workflows/_fragments/event-emission-schema.md` (and base-pack mirror) rewritten. Replaces "build a 14-field event JSON" with "write `{PHASE}-SUMMARY.json`; the orchestrator emits the event". **Removes ALL hardcoded example model strings** — the source of pattern-copy hallucination.
+- `meta/workflows/_fragments/friction-emit.md` (and base-pack mirror) rewritten around the new `friction-emit.cjs` tool. Subagents record judgement only; the orchestrator drains the file at phase-end and stamps runtime attribution.
+- Phase meta workflows (`meta-plan-task`, `meta-review-plan`, `meta-implement`, `meta-validate`, `meta-commit`) and their base-pack mirrors (`plan_task`, `review_plan`, `implement_plan`, `validate_task`, `commit_task`) drop the `Emit the complete event ... via store-cli emit` line and the `Execute Token Reporting` step. Subagents now only write SUMMARY and return.
+- `meta-orchestrate.md` + base-pack `orchestrate_task.md` Event Emission and Friction Emit sections rewritten to describe the new contract: orchestrator captures runtime telemetry (model, provider, usage), brackets wall times, reads SUMMARY judgement, composes the canonical event, and emits it. Orchestrator-experienced friction emits inline (`persona: "orchestrator"`).
+
+**Tool changes.**
+
+- New `forge/tools/friction-emit.cjs` — judgement-only CLI: `--workflow --persona --issue [--subkind --evidence]`. Refuses any runtime-attribution flag (`--model`, `--provider`, `--eventId`, timestamps, tokens) with a clear error. Appends one record per call to `.forge/cache/FRICTION-{workflow}.jsonl`. Test-first per Iron Law 2 (20 tests).
+- New `forge/tools/backfill-provider.cjs` — one-shot migration helper for the 0.43.13 manual[] item. Walks `.forge/store/events/**/*.json`, stamps `provider: "unknown"` on any event missing the field, skips sidecars. Test-first per Iron Law 2 (7 tests).
+
+**Runtime emit site.**
+
+The matching forge-cli change (`run-task.ts` composes and emits the canonical event after each subagent returns; drains FRICTION-{phase}.jsonl) ships in forge-cli v0.6.5.
+
+**Migration.**
+
+The 0.43.13 manual[] note promised a backfill helper for legacy events missing `provider`. It now ships: `node $FORGE_ROOT/tools/backfill-provider.cjs`. Run once after upgrade.
+
+**Tests.** 1202 pass.
+
+---
+
 ## [0.43.13] — 2026-05-14
 
 **Telemetry contract fix (Slice 1) — orchestrator owns token capture, subagents stop self-probing.**

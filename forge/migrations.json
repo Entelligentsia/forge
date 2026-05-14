@@ -1,4 +1,26 @@
 {
+  "0.43.13": {
+    "version": "0.43.14",
+    "date": "2026-05-14",
+    "notes": "Telemetry contract Slice 2 — orchestrator-emits-everything. Slice 1 (v0.43.13) added `provider` as required and moved cost out of the schema, but subagents were still hand-building 14-field event JSON containing runtime facts (model, provider, eventId, timestamps, iteration) and hallucinating them (HLO-S01-T05 evidence: events carried `provider:\"anthropic\"`/`model:\"claude-sonnet-4-20250514\"` while the subagent actually ran on `glm-5.1:cloud`). Slice 2 makes runtime attribution the orchestrator's responsibility end-to-end. Plugin-side changes: (1) workflow fragments `_fragments/event-emission-schema.md` and `_fragments/friction-emit.md` rewritten in both meta/ and init/base-pack/ — replace 'build a 14-field event JSON' instructions with 'write {PHASE}-SUMMARY.json; the orchestrator emits the event'. ALL hardcoded example model strings removed (the source of pattern-copy hallucination). (2) Phase meta workflows (meta-plan-task, meta-review-plan, meta-implement, meta-validate, meta-commit) and their base-pack mirrors (plan_task, review_plan, implement_plan, validate_task, commit_task) drop the `Emit the complete event ... via store-cli emit` line and the `Execute Token Reporting` step — subagents now only write SUMMARY and return. (3) meta-orchestrate.md + base-pack/orchestrate_task.md Event Emission and Friction Emit sections rewritten: orchestrator owns emission; friction is recorded by subagents via the new `friction-emit.cjs` tool which appends judgement-only records to `.forge/cache/FRICTION-{workflow}.jsonl`, drained and stamped with runtime attribution by the orchestrator. (4) New tool `forge/forge/tools/friction-emit.cjs` — judgement-only CLI that refuses any runtime-attribution flag (--model, --provider, --eventId, timestamps, tokens). (5) New tool `forge/forge/tools/backfill-provider.cjs` — one-shot helper for the 0.43.13 manual[] item (stamps provider:\"unknown\" on legacy events missing the field; sidecars skipped). Both tools shipped test-first per Iron Law 2. Slice 2 runtime emit site lives in forge-cli (run-task.ts) — see forge-cli v0.6.5 changelog. Tests: 1202 pass.",
+    "regenerate": [
+      "fragments:event-emission-schema",
+      "fragments:friction-emit",
+      "workflows:plan_task",
+      "workflows:review_plan",
+      "workflows:implement_plan",
+      "workflows:validate_task",
+      "workflows:commit_task",
+      "workflows:orchestrate_task",
+      "tools:friction-emit",
+      "tools:backfill-provider",
+      "tools:integrity"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run `node $FORGE_ROOT/tools/backfill-provider.cjs` once on existing installs to stamp `provider:\"unknown\"` on legacy events missing the field — this is the helper promised in 0.43.13 manual[]. After backfill, all event reads should validate cleanly."
+    ]
+  },
   "0.43.12": {
     "version": "0.43.13",
     "date": "2026-05-14",
