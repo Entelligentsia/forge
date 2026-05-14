@@ -1,4 +1,24 @@
 {
+  "0.43.14": {
+    "version": "0.43.15",
+    "date": "2026-05-14",
+    "notes": "Slice-2 fragment-sweep completion. v0.43.14 introduced the orchestrator-emits-everything contract and surgically rewrote the five phase workflows (plan/review-plan/implement/validate/commit) plus their meta sources, but 16 other workflows — every other base-pack workflow body — still carried the pre-Slice-2 'Emit the complete event ... via store-cli emit' instruction and 'Execute Token Reporting' step in their Finalize blocks. Any subagent reading those workflows would faithfully reproduce the exact hallucination class Slice 2 was built to kill (LLM-fabricated model/provider strings). This patch removes those two lines from every remaining workflow — meta sources (meta-approve, meta-update-implementation, meta-review-implementation, meta-review-sprint-completion, meta-sprint-intake, meta-sprint-plan, meta-collate, meta-update-plan, meta-fix-bug, meta-retrospective) and base-pack mirrors (architect_sprint_plan, sprint_retrospective, architect_approve, collator_agent, architect_review_sprint_completion, fix_bug, update_implementation, architect_sprint_intake, update_plan, review_code). Replaced with the canonical 'Do NOT emit a phase event yourself; the orchestrator (or kickoff handler) owns event emission' directive. Also swept the friction-emit code block in meta-fix-bug.md and base-pack/fix_bug.md to point at friction-emit.cjs (matches the pattern shipped for meta-orchestrate in v0.43.14). For workflows that are kickoff-only standalones today (sprint-intake, sprint-plan, collate, retrospective, review-sprint-completion), removing the hardcoded emit means honest-absence of event coverage until the corresponding forge-cli kickoff handlers learn to emit on the LLM's behalf — a follow-up item. Tests: 1202 pass.",
+    "regenerate": [
+      "workflows:fix_bug",
+      "workflows:update_plan",
+      "workflows:update_implementation",
+      "workflows:review_code",
+      "workflows:architect_approve",
+      "workflows:architect_sprint_intake",
+      "workflows:architect_sprint_plan",
+      "workflows:architect_review_sprint_completion",
+      "workflows:sprint_retrospective",
+      "workflows:collator_agent",
+      "tools:integrity"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.43.13": {
     "version": "0.43.14",
     "date": "2026-05-14",

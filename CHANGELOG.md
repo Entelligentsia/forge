@@ -5,6 +5,42 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.43.15] — 2026-05-14
+
+**Slice-2 fragment-sweep completion.**
+
+v0.43.14 introduced the orchestrator-emits-everything contract and surgically rewrote the five phase workflows on the run-task chain (plan / review-plan / implement / validate / commit) plus their meta sources. But 16 other workflow bodies — every remaining base-pack workflow — still carried the pre-Slice-2 `Emit the complete event ... via store-cli emit` directive and the `Execute Token Reporting` step in their Finalize blocks. Any subagent reading those workflows (fix-bug, sprint-intake, sprint-plan, collate, retrospective, review-sprint-completion, approve, update-plan, update-implementation, review-code) would faithfully reproduce the exact hallucination class Slice 2 was built to kill.
+
+This patch closes the gap.
+
+### Workflows swept
+
+Meta sources (10): `meta-approve`, `meta-update-implementation`, `meta-review-implementation`, `meta-review-sprint-completion`, `meta-sprint-intake`, `meta-sprint-plan`, `meta-collate`, `meta-update-plan`, `meta-fix-bug`, `meta-retrospective`.
+
+Base-pack mirrors (10): `architect_sprint_plan`, `sprint_retrospective`, `architect_approve`, `collator_agent`, `architect_review_sprint_completion`, `fix_bug`, `update_implementation`, `architect_sprint_intake`, `update_plan`, `review_code`.
+
+In each:
+- "Emit the complete event …" bullet → "Do NOT emit a phase event yourself. The orchestrator (or kickoff handler) owns event emission …"
+- "Execute Token Reporting" bullet removed (both `(see Generation Instructions)` and `(see _fragments/finalize.md)` variants).
+
+Additionally:
+- `meta-fix-bug.md` + `base-pack/fix_bug.md` friction-emit code block → friction-emit.cjs reference (matches the pattern shipped for `meta-orchestrate.md` in v0.43.14).
+
+### Honest absence vs continued hallucination
+
+For workflows that are kickoff-only standalones today (sprint-intake, sprint-plan, collate, retrospective, review-sprint-completion), removing the hardcoded emit means events for those operations are not produced until the corresponding forge-cli kickoff handlers learn to emit on the LLM's behalf. That follow-up is filed; in the meantime, no event is strictly better than a hallucinated one.
+
+### Tests
+
+1202 pass.
+
+### Not in this patch
+
+- forge-cli kickoff handler emit wiring (separate concern).
+- T03/T07 native handler implementation (separate sprint task work).
+
+---
+
 ## [0.43.14] — 2026-05-14
 
 **Telemetry contract Slice 2 — orchestrator-emits-everything.**

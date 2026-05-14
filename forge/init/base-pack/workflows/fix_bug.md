@@ -78,7 +78,6 @@ deps:
    - If set-bug-summary exits non-zero, fix the JSON and retry before proceeding.
 
 6. Finalize:
-   - Execute Token Reporting (see `_fragments/finalize.md`) — do this
      first so the sidecar is written before the event directory is purged
    - Summarise accumulated cost data into the bug artifact:
      read all events from `.forge/store/events/{bugId}/`, aggregate
@@ -102,7 +101,7 @@ deps:
      with the missing artifacts listed on stderr.
      If exit 2 (misconfiguration), escalate immediately.
    - Update bug status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status bug {bugId} status fixed`
-   - Emit the complete event (canonical shape — required fields: `eventId, taskId, sprintId, role, action, phase, iteration, startTimestamp, endTimestamp, durationMinutes, model`; see `_fragments/event-emission-schema.md`. Do NOT invent `{type:"complete", verdict, timestamp}` — that shape is rejected. Run `node "$FORGE_ROOT/tools/store-cli.cjs" describe event` if unsure) via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {bugId} '{event-json}'`
+   - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
      (tombstone — written after the purge; the only event that will remain)
 ```
 ## Announcement Algorithm
@@ -290,32 +289,7 @@ When the Bug Fixer detects skill friction during fix-bug — a referenced skill 
 | `skill_stale`      | A skill's guidance contradicts current architecture / supersedes its own advice. |
 | `skill_redundant`  | Two skills provided overlapping or conflicting guidance for the same decision.   |
 
-**Emit shape** (flat payload — same shape stabilized by BUG-029; all event fields top-level, no nesting):
-
-```sh
-node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{
-  "eventId":         "{ISO}_{bugId}_bug-fixer_friction",
-  "taskId":          "{bugId}",
-  "sprintId":        "{sprintId}",
-  "role":            "bug-fixer",
-  "action":          "friction_observed",
-  "phase":           "fix-bug",
-  "iteration":       1,
-  "startTimestamp":  "{ISO}",
-  "endTimestamp":    "{ISO}",
-  "durationMinutes": 0,
-  "model":           "{resolved-model}",
-  "type":            "friction",
-  "workflow":        "fix-bug",
-  "persona":         "bug-fixer",
-  "issue":           "skill_unused | skill_failed | skill_missing | skill_stale | skill_redundant",
-  "subkind":         "{optional — T01 will narrow the enum}",
-  "evidence":        { "skill_id": "...", "note": "..." },
-  "notes":           "<one-line human description>"
-}'
-```
-
-The schema enforces `{workflow, persona, issue}` as required when `type === "friction"`. `subkind` and `evidence` slots are reserved for T01 to formalize. Emit one event per distinct friction signal — do not coalesce.
+**Recording friction (subagent side):** call `node "$FORGE_ROOT/tools/friction-emit.cjs` `--workflow {workflow} --persona {persona-noun} --issue {token} [--subkind {token}] [--evidence '{...}']`. The tool appends one judgement-only record to `.forge/cache/FRICTION-{workflow}.jsonl`. The orchestrator drains the file at phase-end, stamps runtime attribution (model, provider, usage, wall times, eventId) onto each record, and emits the events via `store-cli emit` as event type `"friction"`. The schema enforces `{workflow, persona, issue}` as required when `type === "friction"`; `subkind` is the frozen enum `skill_unused|skill_failed|skill_missing|skill_stale|skill_redundant` or experimental `^x_[a-z_]+$`. Emit one record per distinct friction signal — do not coalesce.
 
 ## Progress Reporting
 
