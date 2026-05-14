@@ -33,6 +33,7 @@ deps:
    - Exit 0 → continue.
 1. Load Context:
    - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+   - store-cli verbs: `read` | `list` | `write` | `emit` | `update-status` | `set-summary` | `describe` | `nlp` | `query` | `delete` — there is no `get`/`set`/`find`. See `_fragments/store-cli-verbs.md` for full notes; run `--help` before improvising.
    - Read the approved PLAN.md
    - Read business domain docs relevant to the task
 
@@ -43,7 +44,8 @@ deps:
 
 3. Verification:
    - Run syntax verification: {SYNTAX_CHECK}
-   - Run test suite: {TEST_COMMAND}
+   - Run test suite using the **resolved test command** from `commands.test` in `.forge/config.json` (i.e. `` `${commands.test}` ``, e.g. `.venv/bin/python -m pytest`, `npm test`, `cargo test`). Do NOT invoke bare `python` / `python3` / `pytest` — the project interpreter is rarely on `$PATH`; using the resolved command avoids `python: command not found` and `No module named pytest`.
+   - Template placeholder: {{TEST_COMMAND}} (resolved at materialize time from `commands.test`).
    - Run build if frontend assets modified: {BUILD_COMMAND}
 
 4. Documentation:
@@ -57,8 +59,12 @@ deps:
    - Tag updates: `<!-- Discovered during {TASK_ID} — {date} -->`
 
 6. Finalize:
+   - Transitions: task FSM legal predecessors are `planned`, `plan-approved`, or `implementing`; target is `implemented`.
+     - `planned`        → `implemented` (workflow-prose path — direct)
+     - `plan-approved`  → `implementing` → `implemented` (supervisor-review path)
+     - Out-of-band escapes (any state): `plan-revision-required`, `code-revision-required`, `blocked`, `escalated`, `abandoned`
    - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status implemented`
-   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
+   - Emit the complete event (canonical shape — required fields: `eventId, taskId, sprintId, role, action, phase, iteration, startTimestamp, endTimestamp, durationMinutes, model`; see `_fragments/event-emission-schema.md`. Do NOT invent `{type:"complete", verdict, timestamp}` — that shape is rejected. Run `node "$FORGE_ROOT/tools/store-cli.cjs" describe event` if unsure) via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see `_fragments/finalize.md`)
 
 7. Emit Summary Sidecar:

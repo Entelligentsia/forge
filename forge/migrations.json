@@ -1,4 +1,18 @@
 {
+  "0.43.11": {
+    "version": "0.43.12",
+    "date": "2026-05-14",
+    "notes": "build-base-pack.cjs + build-manifest.cjs allowlist bug — fragments added to meta/workflows/_fragments/ after the allowlists were last edited never reached init/base-pack/workflows/_fragments/, so the user-facing bundle silently dropped them. Discovered while debugging HLO-S01-T03 plan-phase friction in the testbench: store-cli verb fumble (#95) and event-shape iteration (#87) persisted after /forge:regenerate because store-cli-verbs.md and friction-emit.md were missing from the regenerated `.forge/workflows/_fragments/` even though the workflow body referenced them. Fix: both build-base-pack.cjs (fragment copy loop + expected-files validator) and build-manifest.cjs (FRAGMENT_MAP) now enumerate fragments dynamically from `meta/workflows/_fragments/*.md` instead of from hardcoded lists. Added parity assertion in build-base-pack.test.cjs that base-pack `_fragments/` must equal meta `_fragments/` exactly. Also bumped base-pack-byte-budget overrides for plan_task.md (5120→5632), implement_plan.md (5120→5888), validate_task.md (4096→4608) to absorb the now-included fragment references. Discovered blind spot: the replay-friction harness validates meta-source, not base-pack output — #95 PASSed in HLO-S01 without ever generating the user-facing fragment. Manifest fragment count 4 → 6 (store-cli-verbs.md + friction-emit.md now shipped).",
+    "regenerate": [
+      "tools:build-base-pack",
+      "tools:build-manifest",
+      "fragments:store-cli-verbs",
+      "fragments:friction-emit",
+      "tools:integrity"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.43.10": {
     "version": "0.43.11",
     "date": "2026-05-13",

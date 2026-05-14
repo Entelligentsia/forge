@@ -41,10 +41,11 @@ const BYTE_BUDGET = 4096;
 // (e.g. carry the kickoff-shim materialization markers — Iron Laws +
 // Store-Write Verification — required by forge-cli /forge:plan and /forge:implement).
 const BYTE_BUDGET_OVERRIDES = {
-  'plan_task.md':      5120,
-  'implement_plan.md': 5120,
+  'plan_task.md':      5632,
+  'implement_plan.md': 5888,
   'review_plan.md':    5120,
   'review_code.md':    5120,
+  'validate_task.md':  4608,
 };
 
 describe('base-pack-byte-budget — phase files within byte budget', () => {

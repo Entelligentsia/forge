@@ -105,7 +105,9 @@ Each phase subagent is responsible for reporting its own token usage via a sidec
 
 **Before returning, every subagent MUST:**
 
-1. Run `/cost` to retrieve token usage for the session.
+1. Probe token usage for the session: invoke `/cost` if the host runtime
+   supports it (Claude Code only); on any other runtime treat as unavailable.
+   Do NOT shell out to a `cost-cli.cjs` — there is no such tool.
 2. Parse the output for the five fields:
    `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
 3. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar` with the exact format:

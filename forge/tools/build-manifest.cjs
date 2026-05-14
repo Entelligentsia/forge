@@ -72,6 +72,8 @@ const FRAGMENT_MAP = [
   ['progress-reporting.md',   'progress-reporting.md'],
   ['event-emission-schema.md','event-emission-schema.md'],
   ['finalize.md',             'finalize.md'],
+  ['store-cli-verbs.md',      'store-cli-verbs.md'],
+  ['friction-emit.md',        'friction-emit.md'],
 ];
 
 // 5. Templates — explicit mapping

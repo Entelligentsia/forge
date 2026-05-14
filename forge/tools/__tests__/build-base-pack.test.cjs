@@ -537,14 +537,23 @@ describe('buildBasePack: validates all expected output files exist', () => {
     assert.equal(files.length, 9, `expected 9 skill files, got ${files.length}: ${files.join(', ')}`);
   });
 
-  test('all 20 workflow files + 4 fragments created', () => {
+  test('all 20 workflow files created; fragments mirror meta/workflows/_fragments/', () => {
     mod = mod || require(SCRIPT_PATH);
     const wfDir = path.join(outDir, 'workflows');
     const files = fs.readdirSync(wfDir).filter(f => f.endsWith('.md'));
     assert.equal(files.length, 20, `expected 20 workflow files, got ${files.length}: ${files.join(', ')}`);
+
+    // Fragments must achieve parity with meta source — no hardcoded allowlist.
+    // Previously the base-pack omitted store-cli-verbs.md and friction-emit.md
+    // because they were added to meta after the allowlist was last edited.
+    const metaFragDir = path.join(FORGE_DIR, 'meta', 'workflows', '_fragments');
+    const metaFrags = fs.readdirSync(metaFragDir).filter(f => f.endsWith('.md')).sort();
     const fragDir = path.join(outDir, 'workflows', '_fragments');
-    const frags = fs.readdirSync(fragDir).filter(f => f.endsWith('.md'));
-    assert.equal(frags.length, 4, `expected 4 fragment files, got ${frags.length}`);
+    const outFrags = fs.readdirSync(fragDir).filter(f => f.endsWith('.md')).sort();
+    assert.deepEqual(outFrags, metaFrags,
+      `base-pack fragments must match meta/workflows/_fragments/ exactly. ` +
+      `Missing in base-pack: ${metaFrags.filter(f => !outFrags.includes(f)).join(', ') || '(none)'}. ` +
+      `Extra in base-pack: ${outFrags.filter(f => !metaFrags.includes(f)).join(', ') || '(none)'}.`);
   });
 
   test('all 10 template files created in output/templates/', () => {

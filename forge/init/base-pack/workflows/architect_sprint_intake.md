@@ -23,10 +23,11 @@ deps:
    - Paths in subsequent steps resolve against this cwd.
 
 1. Pre-flight Gate Check:
-   - Run `/cost` to verify token reporting available (Claude Code runtime only;
-     on other runtimes this is a no-op and the estimate path is used).
-   - If `/cost` succeeds → note for later (will use reported data)
-   - If `/cost` fails or unavailable → note for later (will use estimates)
+   - Probe token reporting: if the host runtime exposes a `/cost` slash command
+     (Claude Code), invoke it; on any other runtime treat as unavailable and
+     proceed. Do NOT search for or invent a `cost-cli.cjs` — there is no such tool.
+   - If the probe succeeds → note for later (will use reported data)
+   - If the probe fails or is unavailable → note for later (will use estimates)
 
 2. Load Context:
    - Read `engineering/MASTER_INDEX.md` (relative to cwd)
@@ -44,6 +45,6 @@ deps:
 
 5. Finalize:
    - Update sprint status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status planning`
-   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
+   - Emit the complete event (canonical shape — required fields: `eventId, taskId, sprintId, role, action, phase, iteration, startTimestamp, endTimestamp, durationMinutes, model`; see `_fragments/event-emission-schema.md`. Do NOT invent `{type:"complete", verdict, timestamp}` — that shape is rejected. Run `node "$FORGE_ROOT/tools/store-cli.cjs" describe event` if unsure) via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
    - Execute Token Reporting (see `_fragments/finalize.md`)
 ```

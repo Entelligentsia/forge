@@ -677,17 +677,18 @@ function buildBasePack({ forgeRoot, outRoot }) {
 
   // ── 3a. Workflow Fragments ────────────────────────────────────────────────────
   //
-  // All 4 fragment files: copy verbatim from meta/workflows/_fragments/
+  // Copy every fragment from meta/workflows/_fragments/ verbatim. The list is
+  // read dynamically rather than hardcoded — a hardcoded allowlist previously
+  // silently dropped store-cli-verbs.md and friction-emit.md when they were
+  // added to meta after the allowlist was last edited.
 
-  const FRAGMENT_FILES = [
-    'context-injection.md',
-    'event-emission-schema.md',
-    'finalize.md',
-    'progress-reporting.md',
-  ];
+  const metaFragDir = path.join(metaDir, 'workflows', '_fragments');
+  const FRAGMENT_FILES = fs.readdirSync(metaFragDir)
+    .filter((f) => f.endsWith('.md'))
+    .sort();
 
   for (const fname of FRAGMENT_FILES) {
-    const src = path.join(metaDir, 'workflows', '_fragments', fname);
+    const src = path.join(metaFragDir, fname);
     let content = fs.readFileSync(src, 'utf8');
     content = applyGenericizationRules(content, rules);
     writeFile(path.join(outRoot, 'workflows', '_fragments', fname), content);
@@ -773,9 +774,9 @@ function buildBasePack({ forgeRoot, outRoot }) {
     'workflows/quiz_agent.md', 'workflows/review_code.md', 'workflows/review_plan.md',
     'workflows/run_sprint.md', 'workflows/sprint_retrospective.md',
     'workflows/update_implementation.md', 'workflows/update_plan.md', 'workflows/validate_task.md',
-    // Fragments (4)
-    'workflows/_fragments/context-injection.md', 'workflows/_fragments/event-emission-schema.md',
-    'workflows/_fragments/finalize.md', 'workflows/_fragments/progress-reporting.md',
+    // Fragments — enumerated dynamically from meta/workflows/_fragments/ to
+    // guarantee parity with the source-of-truth set.
+    ...FRAGMENT_FILES.map((f) => `workflows/_fragments/${f}`),
     // Templates (10)
     'templates/CODE_REVIEW_TEMPLATE.md', 'templates/COST_REPORT_TEMPLATE.md',
     'templates/PLAN_REVIEW_TEMPLATE.md', 'templates/PLAN_SUMMARY_TEMPLATE.json',

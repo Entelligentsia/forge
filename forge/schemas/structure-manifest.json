@@ -1,6 +1,6 @@
 {
-  "version": "0.43.11",
-  "generatedAt": "2026-05-13T17:16:42.582Z",
+  "version": "0.43.12",
+  "generatedAt": "2026-05-14T01:07:35.970Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -99,7 +99,9 @@
         "context-injection.md",
         "event-emission-schema.md",
         "finalize.md",
-        "progress-reporting.md"
+        "friction-emit.md",
+        "progress-reporting.md",
+        "store-cli-verbs.md"
       ]
     },
     "schemas": {

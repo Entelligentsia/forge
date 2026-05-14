@@ -17,9 +17,11 @@ deps:
 
 ```
 0. Pre-flight Gate Check:
-   - Run `/cost` to verify token reporting available
-   - If `/cost` succeeds → note for later (will use reported data)
-   - If `/cost` fails or unavailable → note for later (will use estimates)
+   - Probe token reporting: if the host runtime exposes a `/cost` slash command
+     (Claude Code), invoke it; on any other runtime treat as unavailable. Do
+     NOT search for or invent a `cost-cli.cjs` — there is no such tool.
+   - If the probe succeeds → note for later (will use reported data)
+   - If the probe fails or is unavailable → note for later (will use estimates)
 
 1. Load Context:
    - Query the store to orient on current project state before reading docs:
@@ -62,7 +64,7 @@ deps:
      (see Store-Write Verification). Do not proceed until this write succeeds.
 
 5. Finalize:
-   - Emit the complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`.
+   - Emit the complete event (canonical shape — required fields: `eventId, taskId, sprintId, role, action, phase, iteration, startTimestamp, endTimestamp, durationMinutes, model`; see `_fragments/event-emission-schema.md`. Do NOT invent `{type:"complete", verdict, timestamp}` — that shape is rejected. Run `node "$FORGE_ROOT/tools/store-cli.cjs" describe event` if unsure) via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`.
      If the command exits non-zero or the PreToolUse hook blocks the write:
      parse the error, correct the JSON, and retry (see Store-Write Verification).
      Do not proceed until this write succeeds.
