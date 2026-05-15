@@ -165,6 +165,8 @@ const TASK_TRANSITIONS = {
   implemented:           ['review-approved', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
   'review-approved':     ['approved', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
   approved:              ['committed', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
+  'plan-revision-required': ['planned', 'blocked', 'escalated', 'abandoned'],
+  'code-revision-required': ['implementing', 'blocked', 'escalated', 'abandoned'],
   // Terminal: committed, abandoned — no transitions out
 };
 
@@ -432,6 +434,8 @@ Commands:
   merge-sidecar <sprintId> <eventId>          Merge sidecar into canonical event
   record-usage <sprintId> <eventId> [flags]  Write a token-usage sidecar
   purge-events <sprintId>                     Delete all events for a sprint
+  resolve-event <sprintId> <eventId> --status <status> [--proposal-ref <path>] [--bug-ref <url>]
+                                              Resolve a friction event (sets resolution field)
   progress <sprintOrBugId> <agentName> <bannerKey> <status> [detail]
                                               Append a progress entry to the log
   progress-clear <sprintOrBugId>              Clear (truncate) the progress log
@@ -919,6 +923,79 @@ function cmdPurgeEvents() {
   if (VERBOSE) console.log(JSON.stringify(result, null, 2));
 }
 
+function cmdResolveEvent() {
+  // resolve-event <sprintId> <eventId> --status <status> [--proposal-ref <path>] [--bug-ref <url>]
+  const sprintId = args[1];
+  const eventId = args[2];
+
+  if (!sprintId || !eventId) {
+    console.error('Usage: store-cli.cjs resolve-event <sprintId> <eventId> --status <status> [--proposal-ref <path>] [--bug-ref <url>]');
+    console.error('  Statuses: open, resolved, wontfix, deferred');
+    process.exit(1);
+  }
+
+  // Parse flags
+  const flagArgs = args.slice(3);
+  let resolutionStatus = null;
+  let proposalRef = null;
+  let bugRef = null;
+
+  for (let i = 0; i < flagArgs.length; i++) {
+    const arg = flagArgs[i];
+    if (arg === '--status' && flagArgs[i + 1]) {
+      resolutionStatus = flagArgs[++i];
+    } else if (arg === '--proposal-ref' && flagArgs[i + 1]) {
+      proposalRef = flagArgs[++i];
+    } else if (arg === '--bug-ref' && flagArgs[i + 1]) {
+      bugRef = flagArgs[++i];
+    }
+  }
+
+  const VALID_STATUSES = ['open', 'resolved', 'wontfix', 'deferred'];
+  if (!resolutionStatus || !VALID_STATUSES.includes(resolutionStatus)) {
+    console.error(`Invalid resolution status: ${resolutionStatus}. Must be one of: ${VALID_STATUSES.join(', ')}`);
+    process.exit(1);
+  }
+
+  // Read the event
+  const eventPath = canonicalEventPath(sprintId, eventId);
+  if (!fs.existsSync(eventPath)) {
+    console.error(`Event not found: ${eventPath}`);
+    process.exit(1);
+  }
+
+  let event;
+  try {
+    event = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
+  } catch (e) {
+    console.error(`Invalid event JSON: ${e.message}`);
+    process.exit(1);
+  }
+
+  // Build resolution object
+  const resolution = { status: resolutionStatus };
+  if (proposalRef) resolution.proposalRef = proposalRef;
+  if (bugRef) resolution.bugRef = bugRef;
+  resolution.resolvedAt = new Date().toISOString();
+  // resolvedBy left absent — orchestrator fills if available
+
+  event.resolution = resolution;
+
+  // Validate the updated event against the schema
+  const errors = validateRecord(event, schemas.event);
+  if (errors.length > 0) {
+    for (const e of errors) console.error(e);
+    process.exit(1);
+  }
+
+  if (DRY_RUN) {
+    console.log(`[dry-run] would resolve event ${eventId} with status=${resolutionStatus}`);
+  } else {
+    store.writeEvent(sprintId, event);
+  }
+  if (VERBOSE) console.log(JSON.stringify({ ok: true, event: true, eventId, sprintId, resolution, dryRun: DRY_RUN }));
+}
+
 function cmdWriteCollationState() {
   const jsonStr = args[1];
 
@@ -1236,6 +1313,7 @@ switch (command) {
   case 'merge-sidecar':        cmdMergeSidecar(); break;
   case 'record-usage':        cmdRecordUsage(); break;
   case 'purge-events':         cmdPurgeEvents(); break;
+  case 'resolve-event':        cmdResolveEvent(); break;
   case 'write-collation-state': cmdWriteCollationState(); break;
   case 'validate':             cmdValidate(); break;
   case 'progress':             cmdProgress(); break;

@@ -781,6 +781,12 @@ forbid task.status == blocked
 forbid task.status == escalated
 ```
 
+```gates phase=writeback
+after approve = approved
+forbid task.status == blocked
+forbid task.status == escalated
+```
+
 Adjusting a gate is a data change — edit the block above, regenerate workflows
 on the user side via `/forge:update`, and the new gate takes effect on the next
 orchestrator run. No code change required to relax or tighten a gate.

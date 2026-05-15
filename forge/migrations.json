@@ -1,8 +1,19 @@
 {
+  "0.43.15": {
+    "version": "0.43.16",
+    "date": "2026-05-15",
+    "notes": "Sprint finalization ceremony (Plan 12). Add sprint-complete and sprint-halted event variants to event.schema.json with conditional requireds via allOf/if/then. Loosen top-level required (move taskId/phase/iteration into task-scoped allOf branch). Gate workflow finalize step-4 on verdict (Approved \u2192 completed; Revision Required + partial \u2192 partially-completed; Revision Required + complete \u2192 no transition). Update validate-store.cjs allOf if/then interpreter to support enum predicates alongside const. Pairs with forge-cli v0.6.6.",
+    "regenerate": [
+      "schemas:event",
+      "workflows:architect_review_sprint_completion"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.43.14": {
     "version": "0.43.15",
     "date": "2026-05-14",
-    "notes": "Slice-2 fragment-sweep completion. v0.43.14 introduced the orchestrator-emits-everything contract and surgically rewrote the five phase workflows (plan/review-plan/implement/validate/commit) plus their meta sources, but 16 other workflows — every other base-pack workflow body — still carried the pre-Slice-2 'Emit the complete event ... via store-cli emit' instruction and 'Execute Token Reporting' step in their Finalize blocks. Any subagent reading those workflows would faithfully reproduce the exact hallucination class Slice 2 was built to kill (LLM-fabricated model/provider strings). This patch removes those two lines from every remaining workflow — meta sources (meta-approve, meta-update-implementation, meta-review-implementation, meta-review-sprint-completion, meta-sprint-intake, meta-sprint-plan, meta-collate, meta-update-plan, meta-fix-bug, meta-retrospective) and base-pack mirrors (architect_sprint_plan, sprint_retrospective, architect_approve, collator_agent, architect_review_sprint_completion, fix_bug, update_implementation, architect_sprint_intake, update_plan, review_code). Replaced with the canonical 'Do NOT emit a phase event yourself; the orchestrator (or kickoff handler) owns event emission' directive. Also swept the friction-emit code block in meta-fix-bug.md and base-pack/fix_bug.md to point at friction-emit.cjs (matches the pattern shipped for meta-orchestrate in v0.43.14). For workflows that are kickoff-only standalones today (sprint-intake, sprint-plan, collate, retrospective, review-sprint-completion), removing the hardcoded emit means honest-absence of event coverage until the corresponding forge-cli kickoff handlers learn to emit on the LLM's behalf — a follow-up item. Tests: 1202 pass.",
+    "notes": "Slice-2 fragment-sweep completion. v0.43.14 introduced the orchestrator-emits-everything contract and surgically rewrote the five phase workflows (plan/review-plan/implement/validate/commit) plus their meta sources, but 16 other workflows \u2014 every other base-pack workflow body \u2014 still carried the pre-Slice-2 'Emit the complete event ... via store-cli emit' instruction and 'Execute Token Reporting' step in their Finalize blocks. Any subagent reading those workflows would faithfully reproduce the exact hallucination class Slice 2 was built to kill (LLM-fabricated model/provider strings). This patch removes those two lines from every remaining workflow \u2014 meta sources (meta-approve, meta-update-implementation, meta-review-implementation, meta-review-sprint-completion, meta-sprint-intake, meta-sprint-plan, meta-collate, meta-update-plan, meta-fix-bug, meta-retrospective) and base-pack mirrors (architect_sprint_plan, sprint_retrospective, architect_approve, collator_agent, architect_review_sprint_completion, fix_bug, update_implementation, architect_sprint_intake, update_plan, review_code). Replaced with the canonical 'Do NOT emit a phase event yourself; the orchestrator (or kickoff handler) owns event emission' directive. Also swept the friction-emit code block in meta-fix-bug.md and base-pack/fix_bug.md to point at friction-emit.cjs (matches the pattern shipped for meta-orchestrate in v0.43.14). For workflows that are kickoff-only standalones today (sprint-intake, sprint-plan, collate, retrospective, review-sprint-completion), removing the hardcoded emit means honest-absence of event coverage until the corresponding forge-cli kickoff handlers learn to emit on the LLM's behalf \u2014 a follow-up item. Tests: 1202 pass.",
     "regenerate": [
       "workflows:fix_bug",
       "workflows:update_plan",
@@ -22,7 +33,7 @@
   "0.43.13": {
     "version": "0.43.14",
     "date": "2026-05-14",
-    "notes": "Telemetry contract Slice 2 — orchestrator-emits-everything. Slice 1 (v0.43.13) added `provider` as required and moved cost out of the schema, but subagents were still hand-building 14-field event JSON containing runtime facts (model, provider, eventId, timestamps, iteration) and hallucinating them (HLO-S01-T05 evidence: events carried `provider:\"anthropic\"`/`model:\"claude-sonnet-4-20250514\"` while the subagent actually ran on `glm-5.1:cloud`). Slice 2 makes runtime attribution the orchestrator's responsibility end-to-end. Plugin-side changes: (1) workflow fragments `_fragments/event-emission-schema.md` and `_fragments/friction-emit.md` rewritten in both meta/ and init/base-pack/ — replace 'build a 14-field event JSON' instructions with 'write {PHASE}-SUMMARY.json; the orchestrator emits the event'. ALL hardcoded example model strings removed (the source of pattern-copy hallucination). (2) Phase meta workflows (meta-plan-task, meta-review-plan, meta-implement, meta-validate, meta-commit) and their base-pack mirrors (plan_task, review_plan, implement_plan, validate_task, commit_task) drop the `Emit the complete event ... via store-cli emit` line and the `Execute Token Reporting` step — subagents now only write SUMMARY and return. (3) meta-orchestrate.md + base-pack/orchestrate_task.md Event Emission and Friction Emit sections rewritten: orchestrator owns emission; friction is recorded by subagents via the new `friction-emit.cjs` tool which appends judgement-only records to `.forge/cache/FRICTION-{workflow}.jsonl`, drained and stamped with runtime attribution by the orchestrator. (4) New tool `forge/forge/tools/friction-emit.cjs` — judgement-only CLI that refuses any runtime-attribution flag (--model, --provider, --eventId, timestamps, tokens). (5) New tool `forge/forge/tools/backfill-provider.cjs` — one-shot helper for the 0.43.13 manual[] item (stamps provider:\"unknown\" on legacy events missing the field; sidecars skipped). Both tools shipped test-first per Iron Law 2. Slice 2 runtime emit site lives in forge-cli (run-task.ts) — see forge-cli v0.6.5 changelog. Tests: 1202 pass.",
+    "notes": "Telemetry contract Slice 2 \u2014 orchestrator-emits-everything. Slice 1 (v0.43.13) added `provider` as required and moved cost out of the schema, but subagents were still hand-building 14-field event JSON containing runtime facts (model, provider, eventId, timestamps, iteration) and hallucinating them (HLO-S01-T05 evidence: events carried `provider:\"anthropic\"`/`model:\"claude-sonnet-4-20250514\"` while the subagent actually ran on `glm-5.1:cloud`). Slice 2 makes runtime attribution the orchestrator's responsibility end-to-end. Plugin-side changes: (1) workflow fragments `_fragments/event-emission-schema.md` and `_fragments/friction-emit.md` rewritten in both meta/ and init/base-pack/ \u2014 replace 'build a 14-field event JSON' instructions with 'write {PHASE}-SUMMARY.json; the orchestrator emits the event'. ALL hardcoded example model strings removed (the source of pattern-copy hallucination). (2) Phase meta workflows (meta-plan-task, meta-review-plan, meta-implement, meta-validate, meta-commit) and their base-pack mirrors (plan_task, review_plan, implement_plan, validate_task, commit_task) drop the `Emit the complete event ... via store-cli emit` line and the `Execute Token Reporting` step \u2014 subagents now only write SUMMARY and return. (3) meta-orchestrate.md + base-pack/orchestrate_task.md Event Emission and Friction Emit sections rewritten: orchestrator owns emission; friction is recorded by subagents via the new `friction-emit.cjs` tool which appends judgement-only records to `.forge/cache/FRICTION-{workflow}.jsonl`, drained and stamped with runtime attribution by the orchestrator. (4) New tool `forge/forge/tools/friction-emit.cjs` \u2014 judgement-only CLI that refuses any runtime-attribution flag (--model, --provider, --eventId, timestamps, tokens). (5) New tool `forge/forge/tools/backfill-provider.cjs` \u2014 one-shot helper for the 0.43.13 manual[] item (stamps provider:\"unknown\" on legacy events missing the field; sidecars skipped). Both tools shipped test-first per Iron Law 2. Slice 2 runtime emit site lives in forge-cli (run-task.ts) \u2014 see forge-cli v0.6.5 changelog. Tests: 1202 pass.",
     "regenerate": [
       "fragments:event-emission-schema",
       "fragments:friction-emit",
@@ -38,13 +49,13 @@
     ],
     "breaking": false,
     "manual": [
-      "Run `node $FORGE_ROOT/tools/backfill-provider.cjs` once on existing installs to stamp `provider:\"unknown\"` on legacy events missing the field — this is the helper promised in 0.43.13 manual[]. After backfill, all event reads should validate cleanly."
+      "Run `node $FORGE_ROOT/tools/backfill-provider.cjs` once on existing installs to stamp `provider:\"unknown\"` on legacy events missing the field \u2014 this is the helper promised in 0.43.13 manual[]. After backfill, all event reads should validate cleanly."
     ]
   },
   "0.43.12": {
     "version": "0.43.13",
     "date": "2026-05-14",
-    "notes": "Telemetry contract fix (Slice 1) — refactors the token-usage capture pipeline from a subagent self-probe (which never worked: pi runtime has no `/cost` probe, and the workflow's `tokenSource: \"missing\"` writes were rejected by the schema enum [reported, estimated] causing 8 schema_drift errors per HLO-S01-T04 run) to an orchestrator-owned model. Three changes: (1) event.schema.json adds `provider` as a required field — same model is priced differently across providers (Anthropic direct vs Bedrock vs Vertex; ZAI cloud vs self-host) and cost is unattributable without it; auto-populated via new discoverProvider() helper from FORGE_PROVIDER / CLAUDE_CODE_PROVIDER env vars, falling back to \"unknown\" rather than guessing. (2) Dropped `estimatedCostUSD` from event + event-sidecar schemas entirely — cost is derived at collate time from (provider, model, tokens) via tools/lib/pricing.cjs, keeping the dataset truthful when pricing changes. (3) Rewrote meta/workflows/_fragments/finalize.md AND init/base-pack/workflows/_fragments/finalize.md to delete the broken `/cost` probe + `\"missing\"` write instructions; new rule: subagents MUST NOT write token sidecars; orchestrator owns telemetry and emits the canonical event with provider-reported usage. If runtime doesn't surface usage, fields are omitted (honest absence beats placeholder zeros). collate.cjs drops the `missing` bucket from tokenSourceCounts — token-less events surface as husks instead. Tool changes: store-cli.cjs (CANONICAL_TOKEN_FIELDS + SIDECAR_ACCEPTED_FIELDS adjusted, --provider flag added on record-usage, --estimated-cost-usd flag explicitly rejected with helpful error, discoverProvider() exported); estimate-usage.cjs (removed PRICE_PER_1M heuristic table + DEFAULT_PRICE_PER_1M — returns only inputTokens/outputTokens/tokenSource); collate.cjs (cost recomputed via pricing.cjs is now the only source). Slice 2 (forge-cli runtime emit site) will wire the orchestrator emit path that consumes this contract — out of scope here. Tests: 1173 pass, 1 pre-existing FRAGMENT_MAP failure unrelated to this slice. No `.forge/` or `engineering/` edits.",
+    "notes": "Telemetry contract fix (Slice 1) \u2014 refactors the token-usage capture pipeline from a subagent self-probe (which never worked: pi runtime has no `/cost` probe, and the workflow's `tokenSource: \"missing\"` writes were rejected by the schema enum [reported, estimated] causing 8 schema_drift errors per HLO-S01-T04 run) to an orchestrator-owned model. Three changes: (1) event.schema.json adds `provider` as a required field \u2014 same model is priced differently across providers (Anthropic direct vs Bedrock vs Vertex; ZAI cloud vs self-host) and cost is unattributable without it; auto-populated via new discoverProvider() helper from FORGE_PROVIDER / CLAUDE_CODE_PROVIDER env vars, falling back to \"unknown\" rather than guessing. (2) Dropped `estimatedCostUSD` from event + event-sidecar schemas entirely \u2014 cost is derived at collate time from (provider, model, tokens) via tools/lib/pricing.cjs, keeping the dataset truthful when pricing changes. (3) Rewrote meta/workflows/_fragments/finalize.md AND init/base-pack/workflows/_fragments/finalize.md to delete the broken `/cost` probe + `\"missing\"` write instructions; new rule: subagents MUST NOT write token sidecars; orchestrator owns telemetry and emits the canonical event with provider-reported usage. If runtime doesn't surface usage, fields are omitted (honest absence beats placeholder zeros). collate.cjs drops the `missing` bucket from tokenSourceCounts \u2014 token-less events surface as husks instead. Tool changes: store-cli.cjs (CANONICAL_TOKEN_FIELDS + SIDECAR_ACCEPTED_FIELDS adjusted, --provider flag added on record-usage, --estimated-cost-usd flag explicitly rejected with helpful error, discoverProvider() exported); estimate-usage.cjs (removed PRICE_PER_1M heuristic table + DEFAULT_PRICE_PER_1M \u2014 returns only inputTokens/outputTokens/tokenSource); collate.cjs (cost recomputed via pricing.cjs is now the only source). Slice 2 (forge-cli runtime emit site) will wire the orchestrator emit path that consumes this contract \u2014 out of scope here. Tests: 1173 pass, 1 pre-existing FRAGMENT_MAP failure unrelated to this slice. No `.forge/` or `engineering/` edits.",
     "regenerate": [
       "schemas:events",
       "schemas:event-sidecar",
@@ -56,14 +67,14 @@
     ],
     "breaking": false,
     "manual": [
-      "Existing event records on disk that lack `provider` will fail strict validation. On re-running collate or any read path that validates events, stamp legacy records with `provider: \"unknown\"` — a one-shot backfill helper will ship in a follow-up patch. New events emitted by `store-cli emit` auto-populate `provider` via FORGE_PROVIDER env var or fall back to \"unknown\".",
+      "Existing event records on disk that lack `provider` will fail strict validation. On re-running collate or any read path that validates events, stamp legacy records with `provider: \"unknown\"` \u2014 a one-shot backfill helper will ship in a follow-up patch. New events emitted by `store-cli emit` auto-populate `provider` via FORGE_PROVIDER env var or fall back to \"unknown\".",
       "`estimatedCostUSD` is no longer accepted on event or event-sidecar records. Existing records on disk that carry the field will fail strict validation; collate's recomputation path (lib/pricing.cjs) is now authoritative."
     ]
   },
   "0.43.11": {
     "version": "0.43.12",
     "date": "2026-05-14",
-    "notes": "build-base-pack.cjs + build-manifest.cjs allowlist bug — fragments added to meta/workflows/_fragments/ after the allowlists were last edited never reached init/base-pack/workflows/_fragments/, so the user-facing bundle silently dropped them. Discovered while debugging HLO-S01-T03 plan-phase friction in the testbench: store-cli verb fumble (#95) and event-shape iteration (#87) persisted after /forge:regenerate because store-cli-verbs.md and friction-emit.md were missing from the regenerated `.forge/workflows/_fragments/` even though the workflow body referenced them. Fix: both build-base-pack.cjs (fragment copy loop + expected-files validator) and build-manifest.cjs (FRAGMENT_MAP) now enumerate fragments dynamically from `meta/workflows/_fragments/*.md` instead of from hardcoded lists. Added parity assertion in build-base-pack.test.cjs that base-pack `_fragments/` must equal meta `_fragments/` exactly. Also bumped base-pack-byte-budget overrides for plan_task.md (5120→5632), implement_plan.md (5120→5888), validate_task.md (4096→4608) to absorb the now-included fragment references. Discovered blind spot: the replay-friction harness validates meta-source, not base-pack output — #95 PASSed in HLO-S01 without ever generating the user-facing fragment. Manifest fragment count 4 → 6 (store-cli-verbs.md + friction-emit.md now shipped).",
+    "notes": "build-base-pack.cjs + build-manifest.cjs allowlist bug \u2014 fragments added to meta/workflows/_fragments/ after the allowlists were last edited never reached init/base-pack/workflows/_fragments/, so the user-facing bundle silently dropped them. Discovered while debugging HLO-S01-T03 plan-phase friction in the testbench: store-cli verb fumble (#95) and event-shape iteration (#87) persisted after /forge:regenerate because store-cli-verbs.md and friction-emit.md were missing from the regenerated `.forge/workflows/_fragments/` even though the workflow body referenced them. Fix: both build-base-pack.cjs (fragment copy loop + expected-files validator) and build-manifest.cjs (FRAGMENT_MAP) now enumerate fragments dynamically from `meta/workflows/_fragments/*.md` instead of from hardcoded lists. Added parity assertion in build-base-pack.test.cjs that base-pack `_fragments/` must equal meta `_fragments/` exactly. Also bumped base-pack-byte-budget overrides for plan_task.md (5120\u21925632), implement_plan.md (5120\u21925888), validate_task.md (4096\u21924608) to absorb the now-included fragment references. Discovered blind spot: the replay-friction harness validates meta-source, not base-pack output \u2014 #95 PASSed in HLO-S01 without ever generating the user-facing fragment. Manifest fragment count 4 \u2192 6 (store-cli-verbs.md + friction-emit.md now shipped).",
     "regenerate": [
       "tools:build-base-pack",
       "tools:build-manifest",
@@ -77,7 +88,7 @@
   "0.43.10": {
     "version": "0.43.11",
     "date": "2026-05-13",
-    "notes": "HLO-S01 friction-fix sweep — batched migration covering 10 fixes surfaced by the 2026-05-13 dogfood run on /home/boni/src/forge-testbench/hello/ (umbrella forge#93). All non-breaking; each verified by the replay-friction harness (engineering/runbooks/hlo-s01/ in forge-engineering). Fixes: (a) #78/#76 meta-review-plan: `review-approved` → `plan-approved` so the review→plan-approved status flip matches the FSM; (b) #80 widen `event.type` enum to cover task-implemented, plan-complete, review-passed and the rest of the emitted set; (c) #79 task FSM permits `planned → implemented` (was illegal, breaking run-task phase 4 writeback); (d) #96 inline FSM transition table into plan_task / review_plan / implement_plan workflow prose so subagents read state machine inline, not from a sibling fragment; (e) #95 embed store-cli verb cheat-sheet into all run-task / fix-bug phase workflows via new shared `_fragments/store-cli-verbs.md` — eliminates `forge_store` invocation hallucinations; (f) #84 replace `/cost` slash-command pre-flight in implement/validate/update-implementation with a runtime-conditional probe ({{RUNTIME_COST_CMD}}) — fixes hard-fail when /cost is unavailable in the runtime; (g) #94 surface resolved `commands.test` (placeholder substitution) in workflow bodies, not just frontmatter — subagents now see the actual test command; (h) #87 gate `--force` behind `FORGE_ALLOW_FORCE` env in store-cli AND inline canonical event-shape into every workflow emit line (was two-bug pair: LLM-bypass + event mismatch); (i) #82 commit_task no longer hardcodes 'Claude' as Co-author — uses runtime principal; (j) forge-cli#5 forge-tools piece — native `--task-suffix` / `--sprint-suffix` flags on store-cli short-form resolution. Row 8 (forge#86 kickoff-shim markers in review_plan/review_code) was already covered by the 0.43.5 wave-2 migration — no new sub-target needed. forge#7 deferred (SKIPPED: needs live FORGE_DEBUG capture). Also bumped per-file byte budgets in phase-frontmatter.test.cjs across all nine subagent-targeted meta-workflow files (e.g. meta-plan-task 5500→6912, meta-implement 5500→7168, meta-update-plan 3072→3584) — same precedent as the 0.43.6 wave: legitimate friction-fix growth from #95 cheat-sheet + #96 FSM table + #87 event-shape + #84 cost probe + #94 commands.test inlined across phases. Budgets sized to current bytes + ~10% headroom, 512B-aligned.",
+    "notes": "HLO-S01 friction-fix sweep \u2014 batched migration covering 10 fixes surfaced by the 2026-05-13 dogfood run on /home/boni/src/forge-testbench/hello/ (umbrella forge#93). All non-breaking; each verified by the replay-friction harness (engineering/runbooks/hlo-s01/ in forge-engineering). Fixes: (a) #78/#76 meta-review-plan: `review-approved` \u2192 `plan-approved` so the review\u2192plan-approved status flip matches the FSM; (b) #80 widen `event.type` enum to cover task-implemented, plan-complete, review-passed and the rest of the emitted set; (c) #79 task FSM permits `planned \u2192 implemented` (was illegal, breaking run-task phase 4 writeback); (d) #96 inline FSM transition table into plan_task / review_plan / implement_plan workflow prose so subagents read state machine inline, not from a sibling fragment; (e) #95 embed store-cli verb cheat-sheet into all run-task / fix-bug phase workflows via new shared `_fragments/store-cli-verbs.md` \u2014 eliminates `forge_store` invocation hallucinations; (f) #84 replace `/cost` slash-command pre-flight in implement/validate/update-implementation with a runtime-conditional probe ({{RUNTIME_COST_CMD}}) \u2014 fixes hard-fail when /cost is unavailable in the runtime; (g) #94 surface resolved `commands.test` (placeholder substitution) in workflow bodies, not just frontmatter \u2014 subagents now see the actual test command; (h) #87 gate `--force` behind `FORGE_ALLOW_FORCE` env in store-cli AND inline canonical event-shape into every workflow emit line (was two-bug pair: LLM-bypass + event mismatch); (i) #82 commit_task no longer hardcodes 'Claude' as Co-author \u2014 uses runtime principal; (j) forge-cli#5 forge-tools piece \u2014 native `--task-suffix` / `--sprint-suffix` flags on store-cli short-form resolution. Row 8 (forge#86 kickoff-shim markers in review_plan/review_code) was already covered by the 0.43.5 wave-2 migration \u2014 no new sub-target needed. forge#7 deferred (SKIPPED: needs live FORGE_DEBUG capture). Also bumped per-file byte budgets in phase-frontmatter.test.cjs across all nine subagent-targeted meta-workflow files (e.g. meta-plan-task 5500\u21926912, meta-implement 5500\u21927168, meta-update-plan 3072\u21923584) \u2014 same precedent as the 0.43.6 wave: legitimate friction-fix growth from #95 cheat-sheet + #96 FSM table + #87 event-shape + #84 cost probe + #94 commands.test inlined across phases. Budgets sized to current bytes + ~10% headroom, 512B-aligned.",
     "regenerate": [
       "workflows:plan_task",
       "workflows:review_plan",
@@ -96,8 +107,12 @@
   "0.43.9": {
     "version": "0.43.10",
     "date": "2026-05-13",
-    "notes": "Verdict-source refactor: preflight-gate `after <phase>` predicates now read structured verdicts from store.task.summaries.<canonical>.verdict (and task.status for approve), not regex-parse markdown. New module forge/tools/read-verdict.cjs centralises the phase.role → canonical-summary-key mapping (mirrors VALID_SUMMARY_PHASES) and the approve-via-status sentinel. Eliminates three classes of recurring bugs: (a) forge#91 (approve phase markdown-vs-store mismatch), (b) forge-cli#11 (review-code → code_review key reversal), (c) the underscore-swap defensive fallback dance in run-task.ts (still present, now redundant). Removed: forge/tools/parse-verdict.cjs and its test (no consumers remaining). preflight()'s `verdictSources` parameter and the `resolveVerdictSources` helper are gone — `after` reads live from state.task / state.bug directly. The `**Verdict:**` line in review markdown is now a human breadcrumb only; the byte-budget lint asserting its presence is retained but documented as advisory. meta-approve.md updated to clarify the markdown line is not load-bearing. Live testbench HLO-S01-T01 commit preflight: EXIT=0 via the new store path. +11 read-verdict unit tests, +2 preflight tests (approve via status; revision in store).",
-    "regenerate": ["tools:preflight-gate", "tools:read-verdict", "workflows:architect_approve"],
+    "notes": "Verdict-source refactor: preflight-gate `after <phase>` predicates now read structured verdicts from store.task.summaries.<canonical>.verdict (and task.status for approve), not regex-parse markdown. New module forge/tools/read-verdict.cjs centralises the phase.role \u2192 canonical-summary-key mapping (mirrors VALID_SUMMARY_PHASES) and the approve-via-status sentinel. Eliminates three classes of recurring bugs: (a) forge#91 (approve phase markdown-vs-store mismatch), (b) forge-cli#11 (review-code \u2192 code_review key reversal), (c) the underscore-swap defensive fallback dance in run-task.ts (still present, now redundant). Removed: forge/tools/parse-verdict.cjs and its test (no consumers remaining). preflight()'s `verdictSources` parameter and the `resolveVerdictSources` helper are gone \u2014 `after` reads live from state.task / state.bug directly. The `**Verdict:**` line in review markdown is now a human breadcrumb only; the byte-budget lint asserting its presence is retained but documented as advisory. meta-approve.md updated to clarify the markdown line is not load-bearing. Live testbench HLO-S01-T01 commit preflight: EXIT=0 via the new store path. +11 read-verdict unit tests, +2 preflight tests (approve via status; revision in store).",
+    "regenerate": [
+      "tools:preflight-gate",
+      "tools:read-verdict",
+      "workflows:architect_approve"
+    ],
     "breaking": false,
     "manual": []
   },
@@ -105,22 +120,26 @@
     "version": "0.43.9",
     "date": "2026-05-13",
     "notes": "meta-approve.md now instructs the architect persona to emit the canonical `**Verdict:** [Approved | Revision Required]` line, matching the contract review-plan / review-code / validate meta workflows already document. The commit-phase preflight gate parses this exact line via parse-verdict.cjs; alternative phrasings (e.g. `Approval Status: APPROVED`) yield null and fail with `predecessor review for \"approve\" has no parseable **Verdict:** line`. Live regression on testbench HLO-S01-T01 phase 8 (commit). +1 Generation Instruction `Verdict Detection`, +4 structural lint tests in base-pack-byte-budget.test.cjs that assert every verdict-emitting phase file (review_plan, review_code, validate_task, architect_approve) contains the literal `**Verdict:**` token.",
-    "regenerate": ["workflows:architect_approve"],
+    "regenerate": [
+      "workflows:architect_approve"
+    ],
     "breaking": false,
     "manual": []
   },
   "0.43.7": {
     "version": "0.43.8",
     "date": "2026-05-13",
-    "notes": "preflight-gate.cjs: gate-less phases now pass through (exit 0) instead of escalating (exit 2). Some run-task phases are intentionally gate-less by design — writeback (collator regen) has no predecessor verdict to check. The previous semantic conflated `phase not declared in any workflow` and `workflow declares no gate block for phase` with `misconfiguration` (exit 2), causing live regression at phase 7 (writeback) of /forge:run-task HLO-S01-T01: `× preflight gate escalated for phase writeback (exit 2); manual intervention required`. Both `no workflow declares phase` and `no gate block for declared phase` now exit 0 with an informational stderr note. Exit 2 stays reserved for real argument / parse errors (unchanged). +1 regression test (sibling case: workflow exists, no gate block).",
-    "regenerate": ["tools:preflight-gate"],
+    "notes": "preflight-gate.cjs: gate-less phases now pass through (exit 0) instead of escalating (exit 2). Some run-task phases are intentionally gate-less by design \u2014 writeback (collator regen) has no predecessor verdict to check. The previous semantic conflated `phase not declared in any workflow` and `workflow declares no gate block for phase` with `misconfiguration` (exit 2), causing live regression at phase 7 (writeback) of /forge:run-task HLO-S01-T01: `\u00d7 preflight gate escalated for phase writeback (exit 2); manual intervention required`. Both `no workflow declares phase` and `no gate block for declared phase` now exit 0 with an informational stderr note. Exit 2 stays reserved for real argument / parse errors (unchanged). +1 regression test (sibling case: workflow exists, no gate block).",
+    "regenerate": [
+      "tools:preflight-gate"
+    ],
     "breaking": false,
     "manual": []
   },
   "0.43.6": {
     "version": "0.43.7",
     "date": "2026-05-13",
-    "notes": "Pack-06 materialization-marker regression fix, third (final) wave + structural lint. Adds Iron Laws + Store-Write Verification sections (plus persona-load step and `forge_store` token) to the remaining six meta workflows that subagent-target the run-task / fix-bug pipeline: meta-validate.md, meta-approve.md, meta-collate.md, meta-commit.md, meta-update-plan.md, meta-update-implementation.md. Live testbench surfaced the gap at phase 5 (validate) of /forge:run-task: kickoff shim hard-failed with `× workflow regression: Store-Write Verification not found in validate_task.md`. Three waves (0.43.2 plan/implement, 0.43.5 review-plan/review-code, 0.43.6 validate/approve/collate/commit/update-plan/update-impl) is the cost of discovering one phase at a time. Encoded a regression lint in base-pack-byte-budget.test.cjs (`phase files carry kickoff-shim markers`) that asserts all four markers across every PHASE_FILE — future drop-throughs fail the build, not the smoke test. Also bumped per-file byte budgets for meta-validate.md (4096→5120), meta-approve.md / meta-commit.md (3072→4096). See forge#? (this entry's GH issue).",
+    "notes": "Pack-06 materialization-marker regression fix, third (final) wave + structural lint. Adds Iron Laws + Store-Write Verification sections (plus persona-load step and `forge_store` token) to the remaining six meta workflows that subagent-target the run-task / fix-bug pipeline: meta-validate.md, meta-approve.md, meta-collate.md, meta-commit.md, meta-update-plan.md, meta-update-implementation.md. Live testbench surfaced the gap at phase 5 (validate) of /forge:run-task: kickoff shim hard-failed with `\u00d7 workflow regression: Store-Write Verification not found in validate_task.md`. Three waves (0.43.2 plan/implement, 0.43.5 review-plan/review-code, 0.43.6 validate/approve/collate/commit/update-plan/update-impl) is the cost of discovering one phase at a time. Encoded a regression lint in base-pack-byte-budget.test.cjs (`phase files carry kickoff-shim markers`) that asserts all four markers across every PHASE_FILE \u2014 future drop-throughs fail the build, not the smoke test. Also bumped per-file byte budgets for meta-validate.md (4096\u21925120), meta-approve.md / meta-commit.md (3072\u21924096). See forge#? (this entry's GH issue).",
     "regenerate": [
       "workflows:validate_task",
       "workflows:architect_approve",
@@ -135,7 +154,7 @@
   "0.43.5": {
     "version": "0.43.6",
     "date": "2026-05-13",
-    "notes": "preflight-gate.cjs artifact-dir resolution fix. Two compounding bugs surfaced when a sprint dir contained an artifact directory named exactly `<taskId>` (no `-<slug>` suffix — modern convention). (1) resolveTaskArtifactDir Pass 1 required `entry.startsWith(taskId + '-')`, rejecting exact-match entries. Pass 2's `<sprintId>-` prefix matcher also didn't apply when taskId already embeds sprintId (e.g. taskId=`HLO-S01-T01`, sprintId=`S01`). resolveTaskArtifactDir returned null. (2) The fallback then set `taskArtifactPath = taskRecord.path` directly — but `taskRecord.path` is the primary source FILE (e.g. `TASK_PROMPT.md`), not a directory. Predecessor-review resolution then appended `PLAN_REVIEW.md` to the file path, producing bogus paths like `.../TASK_PROMPT.md/PLAN_REVIEW.md` (ENOTDIR), failing every `after <phase>` gate. Fix: Pass 1 now also accepts `entry === taskId`; fallback dirname()s task.path when it has a file extension. Live testbench regression: phase 3 (implement) of `/forge:run-task HLO-S01-T01` was hard-failing preflight. After patch, EXIT=0. See forge#?.",
+    "notes": "preflight-gate.cjs artifact-dir resolution fix. Two compounding bugs surfaced when a sprint dir contained an artifact directory named exactly `<taskId>` (no `-<slug>` suffix \u2014 modern convention). (1) resolveTaskArtifactDir Pass 1 required `entry.startsWith(taskId + '-')`, rejecting exact-match entries. Pass 2's `<sprintId>-` prefix matcher also didn't apply when taskId already embeds sprintId (e.g. taskId=`HLO-S01-T01`, sprintId=`S01`). resolveTaskArtifactDir returned null. (2) The fallback then set `taskArtifactPath = taskRecord.path` directly \u2014 but `taskRecord.path` is the primary source FILE (e.g. `TASK_PROMPT.md`), not a directory. Predecessor-review resolution then appended `PLAN_REVIEW.md` to the file path, producing bogus paths like `.../TASK_PROMPT.md/PLAN_REVIEW.md` (ENOTDIR), failing every `after <phase>` gate. Fix: Pass 1 now also accepts `entry === taskId`; fallback dirname()s task.path when it has a file extension. Live testbench regression: phase 3 (implement) of `/forge:run-task HLO-S01-T01` was hard-failing preflight. After patch, EXIT=0. See forge#?.",
     "regenerate": [
       "tools:preflight-gate"
     ],
@@ -145,7 +164,7 @@
   "0.43.4": {
     "version": "0.43.5",
     "date": "2026-05-13",
-    "notes": "Pack-06 materialization-marker regression fix, second wave. Adds Iron Laws + Store-Write Verification sections (plus `.forge/personas/supervisor.md` persona-load step and `forge_store` tokens) to meta-review-plan.md and meta-review-implementation.md so generated review_plan.md and review_code.md carry the four markers required by forge-cli /forge:run-task's per-phase kickoff shim. Without these markers, every fresh init since 0.43.2 has shipped review-plan / review-code workflows that hard-fail phase 2 (and phase 4) of /forge:run-task with `× workflow regression: Store-Write Verification not found ...`. Root cause: 0.43.2 patched meta-plan-task.md and meta-implement.md, but the symmetric review metas were missed. Side-effect: per-file byte budgets bumped for review_plan.md / review_code.md (4096→5120) and meta-review-plan.md / meta-review-implementation.md (3200/4200→4500/5500) to fit the marker blocks. See forge#85.",
+    "notes": "Pack-06 materialization-marker regression fix, second wave. Adds Iron Laws + Store-Write Verification sections (plus `.forge/personas/supervisor.md` persona-load step and `forge_store` tokens) to meta-review-plan.md and meta-review-implementation.md so generated review_plan.md and review_code.md carry the four markers required by forge-cli /forge:run-task's per-phase kickoff shim. Without these markers, every fresh init since 0.43.2 has shipped review-plan / review-code workflows that hard-fail phase 2 (and phase 4) of /forge:run-task with `\u00d7 workflow regression: Store-Write Verification not found ...`. Root cause: 0.43.2 patched meta-plan-task.md and meta-implement.md, but the symmetric review metas were missed. Side-effect: per-file byte budgets bumped for review_plan.md / review_code.md (4096\u21925120) and meta-review-plan.md / meta-review-implementation.md (3200/4200\u21924500/5500) to fit the marker blocks. See forge#85.",
     "regenerate": [
       "workflows:review_plan",
       "workflows:review_code"
@@ -166,7 +185,7 @@
   "0.43.2": {
     "version": "0.43.3",
     "date": "2026-05-10",
-    "notes": "Adds workflows/enhance.md to base-pack (FORGE-S20-T04 sprint-completion gap fix). meta-enhance.md now generates init/base-pack/workflows/enhance.md via the standard transformWorkflow path; build-base-pack expects 20 workflow files (was 19); enhance.md ships with Iron Laws + Store-Write Verification + forge_store + engineer.md markers required by the forge-cli /forge:enhance kickoff shim. Without this file, /forge:enhance hard-failed every fresh init with `× forge:enhance — workflow not found at .forge/workflows/enhance.md`. enhance.md is orchestrator-only audience and exempt from the 4KB phase-file byte budget. Pairs with forge-cli v0.5.7.",
+    "notes": "Adds workflows/enhance.md to base-pack (FORGE-S20-T04 sprint-completion gap fix). meta-enhance.md now generates init/base-pack/workflows/enhance.md via the standard transformWorkflow path; build-base-pack expects 20 workflow files (was 19); enhance.md ships with Iron Laws + Store-Write Verification + forge_store + engineer.md markers required by the forge-cli /forge:enhance kickoff shim. Without this file, /forge:enhance hard-failed every fresh init with `\u00d7 forge:enhance \u2014 workflow not found at .forge/workflows/enhance.md`. enhance.md is orchestrator-only audience and exempt from the 4KB phase-file byte budget. Pairs with forge-cli v0.5.7.",
     "regenerate": [
       "workflows:enhance"
     ],
@@ -176,7 +195,7 @@
   "0.43.1": {
     "version": "0.43.2",
     "date": "2026-05-10",
-    "notes": "Pack-06 materialization-marker regression fix. Adds Iron Laws + Store-Write Verification sections (plus persona-load step and forge_store token) to meta-plan-task.md and meta-implement.md so generated plan_task.md and implement_plan.md carry the four markers required by forge-cli /forge:plan and /forge:implement kickoff shims. Without these markers, every fresh init produced workflows that hard-failed on dispatch with `× workflow regression: Store-Write Verification not found` (and three siblings: Iron Laws, forge_store, persona file path). Root cause: forge-cli FORGE-S20-T04/T05/T06 added kickoff-shim materialization preconditions but never updated the corresponding meta sources or base-pack regen. Side-effect: bumps base-pack byte budget for plan_task.md/implement_plan.md from 4096→5120 (per-file overrides) and meta-plan-task/meta-implement from 4096→5500 to fit the marker blocks. Pairs with forge-cli v0.5.6.",
+    "notes": "Pack-06 materialization-marker regression fix. Adds Iron Laws + Store-Write Verification sections (plus persona-load step and forge_store token) to meta-plan-task.md and meta-implement.md so generated plan_task.md and implement_plan.md carry the four markers required by forge-cli /forge:plan and /forge:implement kickoff shims. Without these markers, every fresh init produced workflows that hard-failed on dispatch with `\u00d7 workflow regression: Store-Write Verification not found` (and three siblings: Iron Laws, forge_store, persona file path). Root cause: forge-cli FORGE-S20-T04/T05/T06 added kickoff-shim materialization preconditions but never updated the corresponding meta sources or base-pack regen. Side-effect: bumps base-pack byte budget for plan_task.md/implement_plan.md from 4096\u21925120 (per-file overrides) and meta-plan-task/meta-implement from 4096\u21925500 to fit the marker blocks. Pairs with forge-cli v0.5.6.",
     "regenerate": [
       "workflows:plan_task",
       "workflows:implement_plan"
@@ -187,7 +206,7 @@
   "0.43.0": {
     "version": "0.43.1",
     "date": "2026-05-10",
-    "notes": "Direct-exec contract patch. Replaces all `/forge:store ...` slash-command references in init/base-pack/workflows/*.md (and _fragments/) with the canonical `node \"$FORGE_ROOT/tools/store-cli.cjs\" ...` direct-cjs form already used by meta/workflows/*.md. Pairs with forge-cli v0.5.1 (system-prompt tool-discipline block, kickoff-prompt rewrites, and bin fast-path for `forge {store|collate|validate-store|store-query} ...`). Root cause: cartographer testbench observed haiku-4-5 burning 26-220s per `bash forge store ...` shell-out — each invocation spawned a fresh pi/agent loop. Fix: prescriptive system prompt + canonical workflow text + bin fast-path. Existing `/forge:store` materialized workflows remain functional under the bin fast-path; no manual migration required for projects on v0.43.0.",
+    "notes": "Direct-exec contract patch. Replaces all `/forge:store ...` slash-command references in init/base-pack/workflows/*.md (and _fragments/) with the canonical `node \"$FORGE_ROOT/tools/store-cli.cjs\" ...` direct-cjs form already used by meta/workflows/*.md. Pairs with forge-cli v0.5.1 (system-prompt tool-discipline block, kickoff-prompt rewrites, and bin fast-path for `forge {store|collate|validate-store|store-query} ...`). Root cause: cartographer testbench observed haiku-4-5 burning 26-220s per `bash forge store ...` shell-out \u2014 each invocation spawned a fresh pi/agent loop. Fix: prescriptive system prompt + canonical workflow text + bin fast-path. Existing `/forge:store` materialized workflows remain functional under the bin fast-path; no manual migration required for projects on v0.43.0.",
     "regenerate": [
       "workflows:base-pack-store-cli-form"
     ],
@@ -197,7 +216,7 @@
   "0.42.0": {
     "version": "0.43.0",
     "date": "2026-05-10",
-    "notes": "FORGE-S20 Sprint A — Friction emit channel + foundation. T00 lands the writer side of the friction channel: event.schema.json gains `type:\"friction\"` enum with conditional required {workflow, persona, issue} via a JSON-Schema `allOf if/then` block; validate-store.cjs gains a minimal `allOf if/then required` interpreter; five meta-workflows (implement, fix-bug, validate, plan-task, orchestrate) now carry an explicit Friction Emit section describing trigger conditions and the canonical flat-payload `node \"$FORGE_ROOT/tools/store-cli.cjs\" emit` shape. T01 narrows the optional slots reserved by T00: `subkind` is constrained to a frozen enum (skill_unused|skill_failed|skill_missing|skill_stale|skill_redundant) plus a reserved `^x_[a-z_]+$` experimental namespace (no migration required for x_*), encoded as a single combined regex pattern; `evidence` is shaped into a closed object (trajectory_excerpt:string, tool_errors:string[], retrieval_score:number 0..1, skillId:string ref); validate-store.cjs gains a minimal `pattern` interpreter on string fields. Unblocks Plan 08 Phase B (dynamic skill curation): /forge:enhance --phase 2 reader has been waiting for typed writers since S13-T08. Non-breaking: events without `type` continue to validate exactly as before, and T00-shaped friction events without subkind/evidence remain valid because those slots are not in the friction allOf then-required block.",
+    "notes": "FORGE-S20 Sprint A \u2014 Friction emit channel + foundation. T00 lands the writer side of the friction channel: event.schema.json gains `type:\"friction\"` enum with conditional required {workflow, persona, issue} via a JSON-Schema `allOf if/then` block; validate-store.cjs gains a minimal `allOf if/then required` interpreter; five meta-workflows (implement, fix-bug, validate, plan-task, orchestrate) now carry an explicit Friction Emit section describing trigger conditions and the canonical flat-payload `node \"$FORGE_ROOT/tools/store-cli.cjs\" emit` shape. T01 narrows the optional slots reserved by T00: `subkind` is constrained to a frozen enum (skill_unused|skill_failed|skill_missing|skill_stale|skill_redundant) plus a reserved `^x_[a-z_]+$` experimental namespace (no migration required for x_*), encoded as a single combined regex pattern; `evidence` is shaped into a closed object (trajectory_excerpt:string, tool_errors:string[], retrieval_score:number 0..1, skillId:string ref); validate-store.cjs gains a minimal `pattern` interpreter on string fields. Unblocks Plan 08 Phase B (dynamic skill curation): /forge:enhance --phase 2 reader has been waiting for typed writers since S13-T08. Non-breaking: events without `type` continue to validate exactly as before, and T00-shaped friction events without subkind/evidence remain valid because those slots are not in the friction allOf then-required block.",
     "regenerate": [
       "events:friction-emit",
       "events:friction-subkind",
@@ -216,7 +235,7 @@
   "0.41.0": {
     "version": "0.42.0",
     "date": "2026-05-10",
-    "notes": "Release-routine catch-up bump. No code changes. Promotes v0.40.3 (substitute-placeholders --target pi) and v0.41.0 (store-cli describe/template + validate hint) cumulatively to skillforge marketplace under a single tag. Users on v0.40+ → /forge:update is non-breaking. Users on <v0.40 still need the v0.40.0 manual migration path (run /forge:update then /forge:migrate per v0.40.0 entry).",
+    "notes": "Release-routine catch-up bump. No code changes. Promotes v0.40.3 (substitute-placeholders --target pi) and v0.41.0 (store-cli describe/template + validate hint) cumulatively to skillforge marketplace under a single tag. Users on v0.40+ \u2192 /forge:update is non-breaking. Users on <v0.40 still need the v0.40.0 manual migration path (run /forge:update then /forge:migrate per v0.40.0 entry).",
     "regenerate": [],
     "breaking": false,
     "manual": []
@@ -224,7 +243,7 @@
   "0.40.3": {
     "version": "0.41.0",
     "date": "2026-05-09",
-    "notes": "Add store-cli describe/template subcommands and validate.js error hint (FORGE-BUG-029-friction). describe <entity> prints raw JSON Schema; template <entity> prints canonical sample with required fields populated. validateRecord errors now include a hint pointing to template/describe when entity is known. Reduces write→reject→retry friction on weak/non-Anthropic models. No breaking changes.",
+    "notes": "Add store-cli describe/template subcommands and validate.js error hint (FORGE-BUG-029-friction). describe <entity> prints raw JSON Schema; template <entity> prints canonical sample with required fields populated. validateRecord errors now include a hint pointing to template/describe when entity is known. Reduces write\u2192reject\u2192retry friction on weak/non-Anthropic models. No breaking changes.",
     "regenerate": [
       "tools:store-cli",
       "tools:lib:validate"
@@ -273,14 +292,17 @@
     "version": "0.40.1",
     "date": "2026-05-02",
     "notes": "Read-side collate patch (FORGE-S13-T12): sidecar merge by eventId deduplication, ingestion-quality (IQ) section in COST_REPORT.md, model canonicalization via new pricing.cjs library, no (unknown) row in cost table, deterministic cost recompute replaces stale sidecar values. Foundation for v0.41 emit-side improvements. New tool: tools/lib/pricing.cjs (29 tests). No schema changes. No emit-side changes. No workflow regeneration required.",
-    "regenerate": ["tools:collate", "tools:pricing"],
+    "regenerate": [
+      "tools:collate",
+      "tools:pricing"
+    ],
     "breaking": false,
     "manual": []
   },
   "0.32.0": {
     "version": "0.40.0",
     "date": "2026-05-02",
-    "notes": "Base-pack init with progressive enhancement (S13 — T02–T06 + T08–T10 + T11 friction reconciliation). Replaces multi-minute LLM cold-start init with a deterministic 4-phase pipeline (Collect → Discover → Materialize → Register, ~30–45s). Working artefacts ship as a base-pack with {{KEY}} placeholders; init substitutes from config.json + project-context.json (no LLM in materialization). New project-context.json schema (T02), substitute-placeholders.cjs tool (T03), 4-phase sdlc-init.md (T04), versioned structural snapshots in structure-versions.json (T05), npm run build-base-pack regeneration script (T06), enhancement agent skill at meta/workflows/meta-enhance.md and commands/enhance.md (T08), post-init + post-sprint hooks (T09), migration agent at meta/workflows/meta-migrate.md (T10), and bucket-A friction fixes (T11) covering forge#71 (7 sub-bugs in /forge:update) and forge#72 (preflight-gate workflow shadowing). Breaking: --fast aliases to default; init-progress.json is now 4-phase; structure-versions.json + project-context.json are net-new files; manage-versions.cjs is now the gateway for snapshot writes.",
+    "notes": "Base-pack init with progressive enhancement (S13 \u2014 T02\u2013T06 + T08\u2013T10 + T11 friction reconciliation). Replaces multi-minute LLM cold-start init with a deterministic 4-phase pipeline (Collect \u2192 Discover \u2192 Materialize \u2192 Register, ~30\u201345s). Working artefacts ship as a base-pack with {{KEY}} placeholders; init substitutes from config.json + project-context.json (no LLM in materialization). New project-context.json schema (T02), substitute-placeholders.cjs tool (T03), 4-phase sdlc-init.md (T04), versioned structural snapshots in structure-versions.json (T05), npm run build-base-pack regeneration script (T06), enhancement agent skill at meta/workflows/meta-enhance.md and commands/enhance.md (T08), post-init + post-sprint hooks (T09), migration agent at meta/workflows/meta-migrate.md (T10), and bucket-A friction fixes (T11) covering forge#71 (7 sub-bugs in /forge:update) and forge#72 (preflight-gate workflow shadowing). Breaking: --fast aliases to default; init-progress.json is now 4-phase; structure-versions.json + project-context.json are net-new files; manage-versions.cjs is now the gateway for snapshot writes.",
     "regenerate": [
       "workflows:orchestrate_task",
       "workflows:fix_bug",
@@ -316,10 +338,10 @@
     ],
     "breaking": true,
     "manual": [
-      "Init flow is now 4 phases (Collect → Discover → Materialize → Register). --fast and --full both run the same deterministic pipeline; existing init-progress.json checkpoints from 12-phase runs are deleted automatically on resume.",
+      "Init flow is now 4 phases (Collect \u2192 Discover \u2192 Materialize \u2192 Register). --fast and --full both run the same deterministic pipeline; existing init-progress.json checkpoints from 12-phase runs are deleted automatically on resume.",
       "structure-versions.json and project-context.json are net-new files at .forge/. Existing installations without them are migrated by /forge:migrate (T10).",
-      "Existing users on v0.28–v0.30.x: run /forge:update to install the new tools and workflows, then /forge:migrate to synthesise project-context.json from existing .forge/ artefacts. /forge:migrate archives the pre-migration .forge/ contents to .forge/archive/pre-migration/.",
-      "After /forge:update, run /forge:update-tools to install the three new schemas (project-context.schema.json, structure-versions.schema.json, project-overlay.schema.json) into .forge/schemas/. /forge:update does not regenerate schemas — this is by design (T11 forge#71-bug3); /forge:update-tools is the dedicated path for schema installation.",
+      "Existing users on v0.28\u2013v0.30.x: run /forge:update to install the new tools and workflows, then /forge:migrate to synthesise project-context.json from existing .forge/ artefacts. /forge:migrate archives the pre-migration .forge/ contents to .forge/archive/pre-migration/.",
+      "After /forge:update, run /forge:update-tools to install the three new schemas (project-context.schema.json, structure-versions.schema.json, project-overlay.schema.json) into .forge/schemas/. /forge:update does not regenerate schemas \u2014 this is by design (T11 forge#71-bug3); /forge:update-tools is the dedicated path for schema installation.",
       "After /forge:update-tools, run /forge:health to verify integrity.json and snapshot v0 register cleanly.",
       "T11 fixes: /forge:update Step 1 baseline derivation now uses localVersion ?? migratedFrom ?? LOCAL_VERSION; preflight-gate.cjs no longer requires --workflow workaround for orchestrate_task; integrity.json regenerated from current hashes (no false-positive on /forge:health post-update)."
     ]
@@ -327,7 +349,7 @@
   "0.31.0": {
     "version": "0.32.0",
     "date": "2026-05-01",
-    "notes": "Init flow rewrite (T04): replace 12-phase init with 4-phase model (Collect → Discover → Materialize → Register). forge/commands/init.md and forge/init/sdlc-init.md fully rewritten. Phase 3 calls substitute-placeholders.cjs to produce fully functional workflows (no stubs). Phase 4 writes structure-versions.json at .forge/structure-versions.json (T05 stub), generation-manifest.json, persona-pack.json, context-pack.md/json, init-context.json/md, store seed, update-check cache, and invokes refresh-kb-links. --fast and --full flags accepted as no-ops (both run identical 4-phase flow). Old 12-phase checkpoint files deleted automatically on resume.",
+    "notes": "Init flow rewrite (T04): replace 12-phase init with 4-phase model (Collect \u2192 Discover \u2192 Materialize \u2192 Register). forge/commands/init.md and forge/init/sdlc-init.md fully rewritten. Phase 3 calls substitute-placeholders.cjs to produce fully functional workflows (no stubs). Phase 4 writes structure-versions.json at .forge/structure-versions.json (T05 stub), generation-manifest.json, persona-pack.json, context-pack.md/json, init-context.json/md, store seed, update-check cache, and invokes refresh-kb-links. --fast and --full flags accepted as no-ops (both run identical 4-phase flow). Old 12-phase checkpoint files deleted automatically on resume.",
     "regenerate": [],
     "breaking": false,
     "manual": []
@@ -343,7 +365,7 @@
   "0.29.0": {
     "version": "0.30.0",
     "date": "2026-05-01",
-    "notes": "Prompt-efficiency structural cut (T01_6): (1) phase meta sources split by audience — orchestrate_task/fix_bug carry audience:orchestrator-only, all phase files carry audience:subagent with context: block; (2) PROJECT_OVERLAY replaces mandatory MASTER_INDEX.md reads — build-overlay.cjs materialises a ≤1kB task-scoped index slice injected by the orchestrator; architecture_block is now conditional on phase.context.architecture; (3) store-cli success-path stdout is now silent — pass --verbose for legacy JSON echo; (4) new _fragments/finalize.md carries the /cost sidecar contract; (5) review-code and validate phases default to diff-first read mode. Breaking: store-cli JSON stdout no longer emitted on success.",
+    "notes": "Prompt-efficiency structural cut (T01_6): (1) phase meta sources split by audience \u2014 orchestrate_task/fix_bug carry audience:orchestrator-only, all phase files carry audience:subagent with context: block; (2) PROJECT_OVERLAY replaces mandatory MASTER_INDEX.md reads \u2014 build-overlay.cjs materialises a \u22641kB task-scoped index slice injected by the orchestrator; architecture_block is now conditional on phase.context.architecture; (3) store-cli success-path stdout is now silent \u2014 pass --verbose for legacy JSON echo; (4) new _fragments/finalize.md carries the /cost sidecar contract; (5) review-code and validate phases default to diff-first read mode. Breaking: store-cli JSON stdout no longer emitted on success.",
     "regenerate": [
       "workflows:orchestrate_task",
       "workflows:fix_bug",
@@ -362,23 +384,37 @@
       "tools:store-cli"
     ],
     "breaking": true,
-    "manual": ["store-cli success-path stdout is now silent. Any script that parsed store-cli JSON output must be updated to pass --verbose or read from disk. Run /forge:update to regenerate all workflows and tools."]
+    "manual": [
+      "store-cli success-path stdout is now silent. Any script that parsed store-cli JSON output must be updated to pass --verbose or read from disk. Run /forge:update to regenerate all workflows and tools."
+    ]
   },
   "0.28.1": {
     "version": "0.29.0",
     "date": "2026-04-29",
-    "notes": "Security hardening (FORGE-BUG-016): fix 5 critical findings from security scan v0.28.0. (1) Bulk permission escalation: persist only matched rule instead of all 31 rules. (2) Remove node -e/p auto-approve — arbitrary code execution requires explicit approval. (3) Add domain allowlist for update URLs. (4) Block prototype pollution (__proto__/constructor/prototype) in getByPath/setByPath. (5) Add path traversal guard to cmdProgress/cmdProgressClear. Also scopes broad wildcards (touch, rmdir, rm -f) and adds require.main guard to forge-permissions.js.",
-    "regenerate": ["hooks:forge-permissions", "hooks:check-update", "tools:manage-config", "tools:store-cli"],
+    "notes": "Security hardening (FORGE-BUG-016): fix 5 critical findings from security scan v0.28.0. (1) Bulk permission escalation: persist only matched rule instead of all 31 rules. (2) Remove node -e/p auto-approve \u2014 arbitrary code execution requires explicit approval. (3) Add domain allowlist for update URLs. (4) Block prototype pollution (__proto__/constructor/prototype) in getByPath/setByPath. (5) Add path traversal guard to cmdProgress/cmdProgressClear. Also scopes broad wildcards (touch, rmdir, rm -f) and adds require.main guard to forge-permissions.js.",
+    "regenerate": [
+      "hooks:forge-permissions",
+      "hooks:check-update",
+      "tools:manage-config",
+      "tools:store-cli"
+    ],
     "breaking": true,
-    "manual": ["node -e one-liners will now prompt for approval — this is intentional. Run /forge:update to refresh hooks and tools."]
+    "manual": [
+      "node -e one-liners will now prompt for approval \u2014 this is intentional. Run /forge:update to refresh hooks and tools."
+    ]
   },
   "0.27.1": {
     "version": "0.28.0",
     "date": "2026-04-29",
     "notes": "Escalation hardening (GH-66): subagent response validation with retry-then-escalate, blocked/escalated status guard in phase gates and pre-task check, inline escalation procedure at all call sites, Iron Law prohibiting silent workarounds, expanded Error Recovery table. No schema changes.",
-    "regenerate": ["workflows:orchestrate_task", "personas:orchestrator"],
+    "regenerate": [
+      "workflows:orchestrate_task",
+      "personas:orchestrator"
+    ],
     "breaking": false,
-    "manual": ["Run /forge:update to regenerate the orchestrate_task workflow and orchestrator persona. Tasks previously stuck in blocked/escalated status will now be skipped by the orchestrator instead of re-attempted."]
+    "manual": [
+      "Run /forge:update to regenerate the orchestrate_task workflow and orchestrator persona. Tasks previously stuck in blocked/escalated status will now be skipped by the orchestrator instead of re-attempted."
+    ]
   },
   "0.27.0": {
     "version": "0.27.1",
@@ -392,7 +428,10 @@
     "version": "0.27.0",
     "date": "2026-04-23",
     "notes": "Store query engine: deterministic NLP-based store querying via store-cli nlp/query/schema commands. Decomposes store-query marketplace experiment into 4 forge tool modules (store-query.cjs, lib/store-facade.cjs, lib/store-nlp.cjs, lib/store-query-exec.cjs). Adds query-logger.cjs PostToolUse hook, forge:store-query-nlp and forge:store-query-grammar plugin skills, forge:store-query-validator agent, /forge:store-query command, and context-gathering shortcuts in plan/fix-bug/sprint-plan workflows. Replaces 5-6 manual KB navigation tool calls with 1-2 structured query calls.",
-    "regenerate": ["tools", "workflows"],
+    "regenerate": [
+      "tools",
+      "workflows"
+    ],
     "breaking": false,
     "manual": []
   },
@@ -400,9 +439,13 @@
     "version": "0.26.0",
     "date": "2026-04-23",
     "notes": "Permission prompt storm fix (BUG-014): add PermissionRequest hook that auto-approves known Forge tool patterns (node tools, shell commands, writes to .forge/ and .claude/commands/, WebFetch to raw.githubusercontent.com). First run shows ~17 approval prompts that persist to .claude/settings.local.json; subsequent runs have zero prompts for Forge patterns. Also updates bug status for FORGE-BUG-014.",
-    "regenerate": ["hooks"],
+    "regenerate": [
+      "hooks"
+    ],
     "breaking": false,
-    "manual": ["Restart Claude Code after updating for the new hook to take effect. On first Forge command, approve each permission prompt once — they will persist for future sessions."]
+    "manual": [
+      "Restart Claude Code after updating for the new hook to take effect. On first Forge command, approve each permission prompt once \u2014 they will persist for future sessions."
+    ]
   },
   "0.24.2": {
     "version": "0.25.0",
@@ -416,7 +459,9 @@
     "version": "0.24.2",
     "date": "2026-04-22",
     "notes": "Token telemetry reliability: workflows now emit placeholder sidecars with null token fields when /cost unavailable (was: skip silently). Users backfill via estimate-usage.cjs. Always emit sidecar with source: reported or missing.",
-    "regenerate": ["workflows"],
+    "regenerate": [
+      "workflows"
+    ],
     "breaking": false,
     "manual": []
   },
@@ -456,7 +501,9 @@
     "version": "0.22.0",
     "date": "2026-04-20",
     "notes": "Calibrate baseline auto-initialization: /forge:calibrate now computes and writes the initial calibration baseline when absent instead of dead-ending with 'run /forge:init'. health.md recommends /forge:calibrate for missing baseline.",
-    "regenerate": ["commands"],
+    "regenerate": [
+      "commands"
+    ],
     "breaking": false,
     "manual": []
   },
@@ -464,7 +511,9 @@
     "version": "0.21.0",
     "date": "2026-04-20",
     "notes": "Structured Result returns for resolveTaskDir (collate.cjs) and estimateTokens (estimate-usage.cjs): both now return { ok, value } / { ok, code, message } instead of null. Shared error codes in forge/tools/lib/result.js. Callers checking for null must update to check result.ok.",
-    "regenerate": ["tools"],
+    "regenerate": [
+      "tools"
+    ],
     "breaking": false,
     "manual": []
   },
@@ -472,7 +521,11 @@
     "version": "0.20.0",
     "date": "2026-04-20",
     "notes": "S11 tech-debt fixes: event timestamp zeroing fixed (store-cli.cjs), preflight-gate now scans all workflow files, ROLE_TIER fallback applied in orchestrate_task, collate generates task INDEX.md files with correct links, calibrationBaseline backfilled in fast-mode init/update, quiz-agent slash command added, generate-commands updated with quiz-agent and flat-file cleanup.",
-    "regenerate": ["tools", "workflows", "commands"],
+    "regenerate": [
+      "tools",
+      "workflows",
+      "commands"
+    ],
     "breaking": false,
     "manual": []
   },
@@ -501,31 +554,46 @@
     "version": "0.18.1",
     "date": "2026-04-19",
     "notes": "Bug fix: preflight-gate.cjs now scans all .forge/workflows/*.md files for gates phase blocks instead of looking only for two hardcoded meta-*.md filenames that only exist in the Forge development environment.",
-    "regenerate": ["tools"],
+    "regenerate": [
+      "tools"
+    ],
     "breaking": false,
     "manual": []
   },
   "0.17.1": {
     "version": "0.18.0",
     "date": "2026-04-19",
-    "notes": "Write-boundary schema enforcement. New PreToolUse hook (hooks/validate-write.js) intercepts Write/Edit/MultiEdit against Forge-owned paths under .forge/store/ and validates the proposed contents against the matching schema — task, sprint, bug, feature, event, event-sidecar, collation-state, and progress-log entries. Three new schemas added (event-sidecar, progress-entry, collation-state). store-cli gains schema enforcement on the four previously unvalidated write paths (sidecar emit, sidecar merge, progress append, collation-state write). Shared validator extracted to tools/lib/validate.js and reused by both the hook and store-cli. Emergency bypass via FORGE_SKIP_WRITE_VALIDATION=1, which also appends an audit line to the affected sprint's progress.log.",
-    "regenerate": ["hooks", "schemas"],
+    "notes": "Write-boundary schema enforcement. New PreToolUse hook (hooks/validate-write.js) intercepts Write/Edit/MultiEdit against Forge-owned paths under .forge/store/ and validates the proposed contents against the matching schema \u2014 task, sprint, bug, feature, event, event-sidecar, collation-state, and progress-log entries. Three new schemas added (event-sidecar, progress-entry, collation-state). store-cli gains schema enforcement on the four previously unvalidated write paths (sidecar emit, sidecar merge, progress append, collation-state write). Shared validator extracted to tools/lib/validate.js and reused by both the hook and store-cli. Emergency bypass via FORGE_SKIP_WRITE_VALIDATION=1, which also appends an audit line to the affected sprint's progress.log.",
+    "regenerate": [
+      "hooks",
+      "schemas"
+    ],
     "breaking": false,
-    "manual": ["Run /forge:update to install the new write-boundary hook. Any existing tooling that writes malformed JSON to .forge/store/ will now be rejected at write time — fix the data, don't bypass the hook."]
+    "manual": [
+      "Run /forge:update to install the new write-boundary hook. Any existing tooling that writes malformed JSON to .forge/store/ will now be rejected at write time \u2014 fix the data, don't bypass the hook."
+    ]
   },
   "0.17.0": {
     "version": "0.17.1",
     "date": "2026-04-19",
     "notes": "Architecture context pack. build-context-pack.cjs walks engineering/architecture/*.md and emits .forge/cache/context-pack.md and context-pack.json. Orchestrators inject the pack summary into every subagent prompt, replacing per-phase stack.md reads with a single cached summary. Phase workflows updated to consult the injected summary first and read full docs only on escalation. /forge:health detects stale packs. /forge:regenerate, /forge:collate, and /forge:materialize rebuild the pack.",
-    "regenerate": ["workflows", "tools"],
+    "regenerate": [
+      "workflows",
+      "tools"
+    ],
     "breaking": false,
-    "manual": ["Run /forge:regenerate to build the initial context pack at .forge/cache/context-pack.md."]
+    "manual": [
+      "Run /forge:regenerate to build the initial context pack at .forge/cache/context-pack.md."
+    ]
   },
   "0.16.0": {
     "version": "0.17.0",
     "date": "2026-04-19",
     "notes": "Artifact summaries in task manifest. Tasks and bugs gain an optional summaries field (plan, review_plan, implementation, code_review, validation). Phase workflows emit terse JSON sidecars via store-cli set-summary / set-bug-summary. Orchestrator injects summaries into downstream subagent prompts as a fast path, falling back to full artifact paths when summaries are absent. Old tasks without summaries continue to work unchanged.",
-    "regenerate": ["workflows", "tools"],
+    "regenerate": [
+      "workflows",
+      "tools"
+    ],
     "breaking": false,
     "manual": []
   },
@@ -533,22 +601,29 @@
     "version": "0.16.0",
     "date": "2026-04-19",
     "notes": "Persona/skill by reference. Subagent prompts inject a compact persona/skill summary from .forge/cache/persona-pack.json instead of verbatim persona and skill file prose. build-persona-pack.cjs compiles YAML frontmatter from meta/personas/ and meta/skills/ into the pack, triggered by /forge:regenerate and /forge:materialize. FORGE_PROMPT_MODE=inline preserves legacy behaviour for one version as a rollback path.",
-    "regenerate": ["personas", "workflows"],
+    "regenerate": [
+      "personas",
+      "workflows"
+    ],
     "breaking": false,
-    "manual": ["Run /forge:regenerate to rebuild the persona pack at .forge/cache/persona-pack.json."]
+    "manual": [
+      "Run /forge:regenerate to rebuild the persona pack at .forge/cache/persona-pack.json."
+    ]
   },
   "0.14.1": {
     "version": "0.15.0",
     "date": "2026-04-19",
     "notes": "Gate-check enforcement. Orchestrator and atomic phase workflows now run preflight-gate.cjs before every subagent spawn and parse verdicts via parse-verdict.cjs (closed vocabulary). Missing artifacts, forbidden states, and malformed verdicts halt loudly with structured events instead of silently advancing. No schema changes.",
-    "regenerate": ["workflows"],
+    "regenerate": [
+      "workflows"
+    ],
     "breaking": false,
     "manual": []
   },
   "0.14.0": {
     "version": "0.14.1",
     "date": "2026-04-18",
-    "notes": "collate now generates Sprint, Task, and Bug INDEX.md files — closes broken knowledge graph links from MASTER_INDEX.md. refresh-kb-links skill gains KB integrity check that warns when INDEX files are missing.",
+    "notes": "collate now generates Sprint, Task, and Bug INDEX.md files \u2014 closes broken knowledge graph links from MASTER_INDEX.md. refresh-kb-links skill gains KB integrity check that warns when INDEX files are missing.",
     "regenerate": [],
     "breaking": false,
     "manual": []
@@ -564,7 +639,7 @@
   "0.13.0": {
     "version": "0.13.1",
     "date": "2026-04-18",
-    "notes": "Tomoshibi Oracle warns before config changes that require regeneration — project.prefix change now shows impact and exact follow-up command before [Y/n] prompt.",
+    "notes": "Tomoshibi Oracle warns before config changes that require regeneration \u2014 project.prefix change now shows impact and exact follow-up command before [Y/n] prompt.",
     "regenerate": [],
     "breaking": false,
     "manual": []
@@ -573,7 +648,10 @@
     "version": "0.13.0",
     "date": "2026-04-18",
     "notes": "Generated commands are now namespaced under project prefix (/{prefix}:plan etc.). Command files gain description: frontmatter. /forge:remove is prefix-aware. /forge:add-task shows namespaced next-step commands.",
-    "regenerate": ["commands", "workflows"],
+    "regenerate": [
+      "commands",
+      "workflows"
+    ],
     "breaking": false,
     "manual": [
       "After regenerating, delete the old flat command files: rm -f .claude/commands/{sprint-intake,sprint-plan,run-task,run-sprint,plan,review-plan,implement,review-code,fix-bug,approve,commit,collate,retrospective}.md"
@@ -598,7 +676,7 @@
   "0.12.3": {
     "version": "0.12.4",
     "date": "2026-04-17",
-    "notes": "Fast-mode capability announcement: every materialise round (per-workflow stub trigger or /forge:materialize --all) now emits a 2-line summary like '〇 Forge is currently in fast mode · 5% capabilities generated (2 of 41) — this round will lift capabilities to 29% (12 of 41, +10 artifact(s))'. Silent on full installs. New ensure-ready.cjs subcommands: --capabilities, --capabilities-after, --announce.",
+    "notes": "Fast-mode capability announcement: every materialise round (per-workflow stub trigger or /forge:materialize --all) now emits a 2-line summary like '\u3007 Forge is currently in fast mode \u00b7 5% capabilities generated (2 of 41) \u2014 this round will lift capabilities to 29% (12 of 41, +10 artifact(s))'. Silent on full installs. New ensure-ready.cjs subcommands: --capabilities, --capabilities-after, --announce.",
     "regenerate": [],
     "breaking": false,
     "manual": []
@@ -606,7 +684,7 @@
   "0.12.2": {
     "version": "0.12.3",
     "date": "2026-04-17",
-    "notes": "Visual onboarding character: hero banners and per-phase/step badges across /forge:init, /forge:update, /forge:regenerate, /forge:health (and light touch on /forge:config and /forge:materialize). banners.cjs gains progressBar, subtitle, phaseHeader, plain-mode (NO_COLOR / non-tty / --plain). Backwards-compatible — all existing API + emits still work; new visuals are additive.",
+    "notes": "Visual onboarding character: hero banners and per-phase/step badges across /forge:init, /forge:update, /forge:regenerate, /forge:health (and light touch on /forge:config and /forge:materialize). banners.cjs gains progressBar, subtitle, phaseHeader, plain-mode (NO_COLOR / non-tty / --plain). Backwards-compatible \u2014 all existing API + emits still work; new visuals are additive.",
     "regenerate": [],
     "breaking": false,
     "manual": []
@@ -647,7 +725,9 @@
     "version": "0.11.2",
     "date": "2026-04-16",
     "notes": "Fix generate-workflows.md: preserve meta-workflow requirements frontmatter in generated output (needed for runtime model selection); fix self-check to look for persona symbol after closing --- rather than at absolute line 1.",
-    "regenerate": ["workflows"],
+    "regenerate": [
+      "workflows"
+    ],
     "breaking": false,
     "manual": []
   },
@@ -655,7 +735,9 @@
     "version": "0.11.1",
     "date": "2026-04-16",
     "notes": "Fix Phase 7 fan-out: extractPersonaSymbol now handles first-line emoji format; generate-workflows.md strips meta YAML frontmatter; workflow-gen-plan.json corrects architect_sprint_intake persona to product-manager.",
-    "regenerate": ["workflows"],
+    "regenerate": [
+      "workflows"
+    ],
     "breaking": false,
     "manual": []
   },
@@ -670,149 +752,1186 @@
   "0.10.0": {
     "version": "0.10.1",
     "date": "2026-04-16",
-    "notes": "Fix: quiz_agent.md was missing from new inits — add meta-quiz-agent.md so Phase 7 generates the KB knowledge-check workflow.",
-    "regenerate": ["workflows"],
+    "notes": "Fix: quiz_agent.md was missing from new inits \u2014 add meta-quiz-agent.md so Phase 7 generates the KB knowledge-check workflow.",
+    "regenerate": [
+      "workflows"
+    ],
     "breaking": false,
     "manual": []
   },
   "0.9.18": {
     "version": "0.10.0",
     "date": "2026-04-16",
-    "notes": "0.9.x → 0.10.0 — Tomoshibi agent (灯): coding-agent instruction files linked to Forge KB and workflows; KB folder name configurable at init pre-flight (paths.engineering); forge:init Phase 12, forge:update Step 7, meta-collate Finalize. Full 0.9.x cycle: store custodian gateway, named-agent IPC with phase banners and Monitor streaming, orchestrator context compaction, banner library, calibrate command, add-task, health improvements, structure manifest, BUG-008/009 fixes.",
-    "regenerate": ["workflows", "commands", "personas", "skills", "tools"],
+    "notes": "0.9.x \u2192 0.10.0 \u2014 Tomoshibi agent (\u706f): coding-agent instruction files linked to Forge KB and workflows; KB folder name configurable at init pre-flight (paths.engineering); forge:init Phase 12, forge:update Step 7, meta-collate Finalize. Full 0.9.x cycle: store custodian gateway, named-agent IPC with phase banners and Monitor streaming, orchestrator context compaction, banner library, calibrate command, add-task, health improvements, structure manifest, BUG-008/009 fixes.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
     "breaking": false,
     "manual": []
   },
-  "0.9.17": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.16": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.15": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.14": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.13": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.12": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.11": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.10": { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.9":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.8":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.7":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.6":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.5":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.4":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.3":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.2":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.1":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.9.0":  { "version": "0.10.0", "date": "2026-04-16", "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.9.17": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.16": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.15": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.14": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.13": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.12": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.11": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.10": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.9": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.8": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.7": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.6": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.5": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.4": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.3": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.2": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.1": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.9.0": {
+    "version": "0.10.0",
+    "date": "2026-04-16",
+    "notes": "0.9.x \u2192 0.10.0 \u2014 see 0.9.18 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.8.10": {
     "version": "0.9.0",
     "date": "2026-04-15",
     "notes": "0.8.x \u2192 0.9.0 \u2014 Store Custodian: deterministic store gateway (store-cli.cjs), 16 meta-workflows migrated from direct writes to custodian, sprint schema gains goal and features fields. Full 0.8.x cycle: Sprint S06 cap, slug-aware directory discovery, ghost event fix, collate purge-events, init migration baseline stamp, workflow canonical naming, effort: frontmatter, fix sprint-plan and forge:update Step 4.",
-    "regenerate": ["workflows", "commands", "personas", "skills", "tools"],
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
     "breaking": false,
     "manual": []
   },
-  "0.8.9":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.8.8":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.8.7":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.8.6":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.8.5":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.8.4":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.8.3":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.8.2":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.8.1":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
-  "0.8.0":  { "version": "0.9.0", "date": "2026-04-15", "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": false, "manual": [] },
+  "0.8.9": {
+    "version": "0.9.0",
+    "date": "2026-04-15",
+    "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.8.8": {
+    "version": "0.9.0",
+    "date": "2026-04-15",
+    "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.8.7": {
+    "version": "0.9.0",
+    "date": "2026-04-15",
+    "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.8.6": {
+    "version": "0.9.0",
+    "date": "2026-04-15",
+    "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.8.5": {
+    "version": "0.9.0",
+    "date": "2026-04-15",
+    "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.8.4": {
+    "version": "0.9.0",
+    "date": "2026-04-15",
+    "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.8.3": {
+    "version": "0.9.0",
+    "date": "2026-04-15",
+    "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.8.2": {
+    "version": "0.9.0",
+    "date": "2026-04-15",
+    "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.8.1": {
+    "version": "0.9.0",
+    "date": "2026-04-15",
+    "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.8.0": {
+    "version": "0.9.0",
+    "date": "2026-04-15",
+    "notes": "0.8.x \u2192 0.9.0 \u2014 see 0.8.10 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.7.11": {
     "version": "0.8.0",
     "date": "2026-04-14",
     "notes": "0.7.x \u2192 0.8.0 \u2014 Sprint S06: orchestrator persona noun-based lookup, meta-workflows purged of inline Persona sections, forge:regenerate includes personas, sprint schema path field, slug-aware seed-store/collate/validate-store. Full 0.7.x cycle: Japanese nature persona palette, orchestrator announcements, ghost event fix, false breaking-change suppression, validate-store slug and filesystem checks.",
-    "regenerate": ["workflows", "commands", "personas", "skills"],
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills"
+    ],
     "breaking": false,
     "manual": []
   },
-  "0.7.10": { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
-  "0.7.9":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
-  "0.7.8":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
-  "0.7.7":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
-  "0.7.6":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
-  "0.7.5":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
-  "0.7.4":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
-  "0.7.3":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
-  "0.7.2":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
-  "0.7.1":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
-  "0.7.0":  { "version": "0.8.0", "date": "2026-04-14", "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.", "regenerate": ["workflows", "commands", "personas", "skills"], "breaking": false, "manual": [] },
+  "0.7.10": {
+    "version": "0.8.0",
+    "date": "2026-04-14",
+    "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.7.9": {
+    "version": "0.8.0",
+    "date": "2026-04-14",
+    "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.7.8": {
+    "version": "0.8.0",
+    "date": "2026-04-14",
+    "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.7.7": {
+    "version": "0.8.0",
+    "date": "2026-04-14",
+    "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.7.6": {
+    "version": "0.8.0",
+    "date": "2026-04-14",
+    "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.7.5": {
+    "version": "0.8.0",
+    "date": "2026-04-14",
+    "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.7.4": {
+    "version": "0.8.0",
+    "date": "2026-04-14",
+    "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.7.3": {
+    "version": "0.8.0",
+    "date": "2026-04-14",
+    "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.7.2": {
+    "version": "0.8.0",
+    "date": "2026-04-14",
+    "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.7.1": {
+    "version": "0.8.0",
+    "date": "2026-04-14",
+    "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.7.0": {
+    "version": "0.8.0",
+    "date": "2026-04-14",
+    "notes": "0.7.x \u2192 0.8.0 \u2014 see 0.7.11 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.6.13": {
     "version": "0.7.0",
     "date": "2026-04-13",
     "notes": "0.6.x \u2192 0.7.0 \u25b3 Breaking \u2014 Portability migration: legacy model: fields \u2192 structured requirements blocks (3D Agent Model); grounding and descriptive pathing (ID-description folder naming, absolute path injection). Full 0.6.x cycle: distribution-aware update URLs, QA validate phase, store.cjs facade, collate fixes, skillforge git-subdir.",
-    "regenerate": ["workflows", "commands", "personas", "skills", "tools"],
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
     "breaking": true,
-    "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."]
+    "manual": [
+      "Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."
+    ]
   },
-  "0.6.12": { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
-  "0.6.11": { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
-  "0.6.10": { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
-  "0.6.9":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
-  "0.6.8":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
-  "0.6.7":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
-  "0.6.6":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
-  "0.6.5":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
-  "0.6.4":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
-  "0.6.3":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
-  "0.6.2":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
-  "0.6.1":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
-  "0.6.0":  { "version": "0.7.0", "date": "2026-04-13", "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.", "regenerate": ["workflows", "commands", "personas", "skills", "tools"], "breaking": true, "manual": ["Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."] },
+  "0.6.12": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."
+    ]
+  },
+  "0.6.11": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."
+    ]
+  },
+  "0.6.10": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."
+    ]
+  },
+  "0.6.9": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."
+    ]
+  },
+  "0.6.8": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."
+    ]
+  },
+  "0.6.7": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."
+    ]
+  },
+  "0.6.6": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."
+    ]
+  },
+  "0.6.5": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."
+    ]
+  },
+  "0.6.4": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."
+    ]
+  },
+  "0.6.3": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."
+    ]
+  },
+  "0.6.2": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."
+    ]
+  },
+  "0.6.1": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."
+    ]
+  },
+  "0.6.0": {
+    "version": "0.7.0",
+    "date": "2026-04-13",
+    "notes": "0.6.x \u2192 0.7.0 \u2014 see 0.6.13 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "personas",
+      "skills",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Check .forge/config.json for custom model overrides in config.pipelines. If present, migrate to the requirements block format in the corresponding workflow artifacts."
+    ]
+  },
   "0.5.9": {
     "version": "0.6.0",
     "date": "2026-04-09",
     "notes": "0.5.x \u2192 0.6.0 \u2014 Feature tier: Feature entity (feature.schema.json, .forge/store/features/), feature_id in sprint/task schemas, collate generates features/ registry, health reports per-feature coverage, docs/concepts/ added. Full 0.5.x cycle: fix-bug as true orchestrator, validate-store null handling, collate FORGE_ROOT fix, update UX improvements, canary source detection.",
-    "regenerate": ["workflows", "commands", "tools"],
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
     "breaking": false,
     "manual": []
   },
-  "0.5.8":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
-  "0.5.7":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
-  "0.5.6":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
-  "0.5.5":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
-  "0.5.4":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
-  "0.5.3":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
-  "0.5.2":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
-  "0.5.1":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
-  "0.5.0":  { "version": "0.6.0", "date": "2026-04-09", "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": false, "manual": [] },
+  "0.5.8": {
+    "version": "0.6.0",
+    "date": "2026-04-09",
+    "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.5.7": {
+    "version": "0.6.0",
+    "date": "2026-04-09",
+    "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.5.6": {
+    "version": "0.6.0",
+    "date": "2026-04-09",
+    "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.5.5": {
+    "version": "0.6.0",
+    "date": "2026-04-09",
+    "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.5.4": {
+    "version": "0.6.0",
+    "date": "2026-04-09",
+    "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.5.3": {
+    "version": "0.6.0",
+    "date": "2026-04-09",
+    "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.5.2": {
+    "version": "0.6.0",
+    "date": "2026-04-09",
+    "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.5.1": {
+    "version": "0.6.0",
+    "date": "2026-04-09",
+    "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.5.0": {
+    "version": "0.6.0",
+    "date": "2026-04-09",
+    "notes": "0.5.x \u2192 0.6.0 \u2014 see 0.5.9 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.4.1": {
     "version": "0.5.0",
     "date": "2026-04-06",
     "notes": "0.4.x \u2192 0.5.0 \u2014 Japanese-style marks (\u3007\u25b3\u00d7\ud83c\udf31\ud83c\udf3f\u26f0\ufe0f) across all output, agent personas with symbols, command renames (plan/review-plan/review-code), generation-manifest tool, engineering/tools/ eliminated (all tools from $FORGE_ROOT/tools/), paths.forgeRoot and paths.customCommands added to config schema.",
-    "regenerate": ["workflows", "commands"],
+    "regenerate": [
+      "workflows",
+      "commands"
+    ],
     "breaking": false,
     "manual": []
   },
-  "0.4.0":  { "version": "0.5.0", "date": "2026-04-06", "notes": "0.4.x \u2192 0.5.0 \u2014 see 0.4.1 entry. If upgrading from 0.4.0 directly, first run: node engineering/tools/manage-config.cjs pipeline backfill-models", "regenerate": ["workflows", "commands"], "breaking": false, "manual": [] },
+  "0.4.0": {
+    "version": "0.5.0",
+    "date": "2026-04-06",
+    "notes": "0.4.x \u2192 0.5.0 \u2014 see 0.4.1 entry. If upgrading from 0.4.0 directly, first run: node engineering/tools/manage-config.cjs pipeline backfill-models",
+    "regenerate": [
+      "workflows",
+      "commands"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.3.15": {
     "version": "0.4.0",
     "date": "2026-04-05",
     "notes": "0.3.x \u2192 0.4.0 \u25b3 Breaking \u2014 Pre-built CJS tools shipped (collate, seed-store, validate-store, manage-config); revision loop fix; context accumulation fix (BUG-001); error triage hook; graceful error handling. Full 0.3.x cycle included.",
-    "regenerate": ["workflows", "commands", "tools"],
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
     "breaking": true,
-    "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"]
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
   },
-  "0.3.14": { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
-  "0.3.13": { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
-  "0.3.12": { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
-  "0.3.11": { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
-  "0.3.10": { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
-  "0.3.9":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
-  "0.3.8":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
-  "0.3.7":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
-  "0.3.6":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
-  "0.3.5":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
-  "0.3.4":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
-  "0.3.3":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
-  "0.3.2":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
-  "0.3.1":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
-  "0.3.0":  { "version": "0.4.0", "date": "2026-04-05", "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.", "regenerate": ["workflows", "commands", "tools"], "breaking": true, "manual": ["Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"] },
+  "0.3.14": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
+  "0.3.13": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
+  "0.3.12": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
+  "0.3.11": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
+  "0.3.10": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
+  "0.3.9": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
+  "0.3.8": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
+  "0.3.7": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
+  "0.3.6": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
+  "0.3.5": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
+  "0.3.4": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
+  "0.3.3": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
+  "0.3.2": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
+  "0.3.1": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
+  "0.3.0": {
+    "version": "0.4.0",
+    "date": "2026-04-05",
+    "notes": "0.3.x \u2192 0.4.0 \u2014 see 0.3.15 entry.",
+    "regenerate": [
+      "workflows",
+      "commands",
+      "tools"
+    ],
+    "breaking": true,
+    "manual": [
+      "Backfill explicit model fields on pipeline phases: node engineering/tools/manage-config.cjs pipeline backfill-models"
+    ]
+  },
   "0.2.0": {
     "version": "0.3.0",
     "date": "2026-04-02",
     "notes": "Pluggable pipeline routing, /forge:add-pipeline command, manage-config tool spec, extended /forge:regenerate with tools and knowledge-base categories.",
-    "regenerate": ["workflows"],
+    "regenerate": [
+      "workflows"
+    ],
     "breaking": false,
     "manual": []
   }

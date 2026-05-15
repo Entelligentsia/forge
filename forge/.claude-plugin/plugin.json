@@ -1,7 +1,7 @@
 {
   "name": "forge",
-  "version": "0.43.15",
-  "description": "Self-enhancing AI software development lifecycle — generates project-specific SDLC instances from meta-definitions",
+  "version": "0.43.16",
+  "description": "Self-enhancing AI software development lifecycle \u2014 generates project-specific SDLC instances from meta-definitions",
   "license": "MIT",
   "author": {
     "name": "Entelligentsia",
@@ -11,5 +11,11 @@
   "repository": "https://github.com/Entelligentsia/forge",
   "updateUrl": "https://raw.githubusercontent.com/Entelligentsia/forge/release/forge/.claude-plugin/plugin.json",
   "migrationsUrl": "https://raw.githubusercontent.com/Entelligentsia/forge/release/forge/migrations.json",
-  "keywords": ["sdlc", "ai-agents", "code-review", "sprint-planning", "meta-generator"]
+  "keywords": [
+    "sdlc",
+    "ai-agents",
+    "code-review",
+    "sprint-planning",
+    "meta-generator"
+  ]
 }

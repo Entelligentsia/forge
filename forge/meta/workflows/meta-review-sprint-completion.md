@@ -38,7 +38,15 @@ Verify that all tasks in a sprint have been completed, committed, and validated 
      - If Approved: confirm sprint is ready for retrospective
 
 4. Finalize:
-   - Update sprint status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status completed`
+   - If step-3 verdict is `Approved`:
+     - Update sprint status to `completed` via
+       `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status completed`
+   - If step-3 verdict is `Revision Required` and orchestrator passed `mode=partial`:
+     - Update sprint status to `partially-completed` via
+       `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status partially-completed`
+   - If step-3 verdict is `Revision Required` and orchestrator passed `mode=complete`:
+     - Do NOT transition status. Leave the sprint at its current status and exit;
+       the orchestrator will surface the verdict to the user.
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 ```
 

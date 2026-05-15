@@ -197,11 +197,15 @@ function validateRecord(record, schema) {
       const allReqPresent = condRequired.every((f) => record[f] !== undefined && record[f] !== null && record[f] !== '');
       if (!allReqPresent) continue;
 
-      // Every const predicate in `if.properties` must match the record.
+      // Every const/enum predicate in `if.properties` must match the record.
+      // (Plan 12 — added enum support for multi-value type branches)
       let condMatches = true;
       for (const [field, pred] of Object.entries(condProps)) {
         if (pred && Object.prototype.hasOwnProperty.call(pred, 'const')) {
           if (record[field] !== pred.const) { condMatches = false; break; }
+        }
+        if (pred && Object.prototype.hasOwnProperty.call(pred, 'enum')) {
+          if (!pred.enum.includes(record[field])) { condMatches = false; break; }
         }
       }
       if (!condMatches) continue;

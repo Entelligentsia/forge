@@ -4,8 +4,8 @@
   "title": "Event",
   "type": "object",
   "required": [
-    "eventId", "taskId", "sprintId", "role", "action",
-    "phase", "iteration", "startTimestamp", "endTimestamp", "durationMinutes", "model", "provider"
+    "eventId", "sprintId", "role", "action",
+    "startTimestamp", "endTimestamp", "durationMinutes", "model", "provider"
   ],
   "properties": {
     "eventId":         { "type": "string" },
@@ -28,6 +28,19 @@
     "cacheWriteTokens":   { "type": "integer", "minimum": 0 },
     "tokenSource":        { "type": "string",  "enum": ["reported", "estimated"] },
 
+    "resolution": {
+      "type": "object",
+      "properties": {
+        "status":      { "type": "string", "enum": ["open", "resolved", "wontfix", "deferred"] },
+        "resolvedBy":  { "type": "string" },
+        "resolvedAt":  { "type": "string", "format": "date-time" },
+        "proposalRef": { "type": "string" },
+        "bugRef":       { "type": "string" }
+      },
+      "required": ["status"],
+      "additionalProperties": false
+    },
+
     "type":     {
       "type": "string",
       "enum": [
@@ -42,6 +55,7 @@
         "task-validated",
         "task-committed",
         "sprint-complete",
+        "sprint-halted",
         "bug-fixed"
       ]
     },
@@ -61,13 +75,73 @@
         "skillId":            { "type": "string" }
       },
       "additionalProperties": false
-    }
+    },
+
+    "taskCount":            { "type": "integer", "minimum": 0 },
+    "completedTaskIds":     { "type": "array", "items": { "type": "string" } },
+    "pausedAfterTaskIndex": { "type": "integer", "minimum": 0 },
+    "haltedAtTaskIndex":    { "type": "integer", "minimum": 0 },
+    "haltedAtTaskId":       { "type": "string" },
+    "lastError":            { "type": "string" },
+    "waveCount":            { "type": "integer", "minimum": 1 },
+    "maxConcurrency":       { "type": "integer", "minimum": 1 }
   },
   "additionalProperties": false,
   "allOf": [
     {
       "if":   { "properties": { "type": { "const": "friction" } }, "required": ["type"] },
       "then": { "required": ["workflow", "persona", "issue"] }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "task-planned", "plan-complete", "plan-approved",
+              "task-implemented", "review-passed", "review-failed",
+              "task-approved", "task-validated", "task-committed",
+              "bug-fixed"
+            ]
+          }
+        },
+        "required": ["type"]
+      },
+      "then": { "required": ["taskId", "phase", "iteration"] }
+    },
+    {
+      "if": { "properties": { "type": { "const": "sprint-complete" } }, "required": ["type"] },
+      "then": {
+        "required": [
+          "eventId", "sprintId", "role", "action",
+          "startTimestamp", "endTimestamp", "durationMinutes",
+          "model", "provider",
+          "taskCount", "completedTaskIds", "verdict"
+        ],
+        "properties": {
+          "taskCount":            { "type": "integer", "minimum": 0 },
+          "completedTaskIds":     { "type": "array", "items": { "type": "string" } },
+          "verdict":              { "type": "string", "enum": ["complete", "partial"] },
+          "pausedAfterTaskIndex": { "type": "integer", "minimum": 0 },
+          "waveCount":            { "type": "integer", "minimum": 1 },
+          "maxConcurrency":       { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "sprint-halted" } }, "required": ["type"] },
+      "then": {
+        "required": [
+          "eventId", "sprintId", "role", "action",
+          "startTimestamp", "endTimestamp", "durationMinutes",
+          "model", "provider",
+          "haltedAtTaskIndex", "haltedAtTaskId", "lastError"
+        ],
+        "properties": {
+          "haltedAtTaskIndex": { "type": "integer", "minimum": 0 },
+          "haltedAtTaskId":    { "type": "string" },
+          "lastError":         { "type": "string" }
+        }
+      }
     }
   ]
 }

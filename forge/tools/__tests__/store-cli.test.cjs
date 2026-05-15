@@ -124,6 +124,48 @@ describe('store-cli.cjs — isLegalTransition', () => {
     assert.equal(isLegalTransition('task', 'status', 'implementing', 'planned'), false);
   });
 
+  // gh#98: plan-revision-required must have outgoing transitions
+  test('plan-revision-required -> planned is legal (gh#98)', () => {
+    assert.equal(isLegalTransition('task', 'status', 'plan-revision-required', 'planned'), true);
+  });
+
+  test('plan-revision-required -> blocked is legal', () => {
+    assert.equal(isLegalTransition('task', 'status', 'plan-revision-required', 'blocked'), true);
+  });
+
+  test('plan-revision-required -> escalated is legal', () => {
+    assert.equal(isLegalTransition('task', 'status', 'plan-revision-required', 'escalated'), true);
+  });
+
+  test('plan-revision-required -> abandoned is legal', () => {
+    assert.equal(isLegalTransition('task', 'status', 'plan-revision-required', 'abandoned'), true);
+  });
+
+  test('plan-revision-required -> implementing is illegal (must go through planned)', () => {
+    assert.equal(isLegalTransition('task', 'status', 'plan-revision-required', 'implementing'), false);
+  });
+
+  // gh#99: code-revision-required must have outgoing transitions
+  test('code-revision-required -> implementing is legal (gh#99)', () => {
+    assert.equal(isLegalTransition('task', 'status', 'code-revision-required', 'implementing'), true);
+  });
+
+  test('code-revision-required -> blocked is legal', () => {
+    assert.equal(isLegalTransition('task', 'status', 'code-revision-required', 'blocked'), true);
+  });
+
+  test('code-revision-required -> escalated is legal', () => {
+    assert.equal(isLegalTransition('task', 'status', 'code-revision-required', 'escalated'), true);
+  });
+
+  test('code-revision-required -> abandoned is legal', () => {
+    assert.equal(isLegalTransition('task', 'status', 'code-revision-required', 'abandoned'), true);
+  });
+
+  test('code-revision-required -> planned is illegal (must go through implementing)', () => {
+    assert.equal(isLegalTransition('task', 'status', 'code-revision-required', 'planned'), false);
+  });
+
   test('unknown entity type returns true (no transition rules)', () => {
     assert.equal(isLegalTransition('unknown', 'status', 'foo', 'bar'), true);
   });
