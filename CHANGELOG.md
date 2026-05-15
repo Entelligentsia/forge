@@ -5,6 +5,33 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.43.16] — 2026-05-15
+
+**Sprint finalization ceremony (Plan 12).** Pairs with forge-cli `v0.6.6`.
+
+### Added
+
+- `event.schema.json` — `sprint-complete` and `sprint-halted` event variants admitted via `allOf` / `if` / `then` branches keyed on `type`. Sprint-scoped requireds (`taskCount`, `completedTaskIds`, `verdict`) and forward-compat fields (`waveCount`, `maxConcurrency`, `pausedAfterTaskIndex`, `haltedAtTaskIndex`, `haltedAtTaskId`, `lastError`) declared at top level so `additionalProperties: false` admits them, made required only within the conditional branches.
+- `meta-review-sprint-completion.md` — step-4 finalize block now gated on step-3 verdict:
+  - `Approved` → transition sprint to `completed` via `store-cli update-status`.
+  - `Revision Required` + orchestrator `mode=partial` → transition to `partially-completed`.
+  - `Revision Required` + orchestrator `mode=complete` → no transition; orchestrator surfaces the verdict to the user.
+
+### Changed
+
+- `event.schema.json` top-level `required` array — `taskId`, `phase`, `iteration` moved out of unconditional-required and into a new task-scoped `allOf` branch keyed on every task-event `type` value. Existing task events still validate identically; sprint events no longer carry dishonest task-scoped fields. **△ Schema variant change** — backward-compat by construction (every previously-valid event remains valid).
+- `validate-store.cjs` — `allOf` `if`/`then` interpreter extended to support `enum` predicates in `if.properties`, not just `const`. Required so the task-scoped branch (which uses an enum of every task-event type) compiles to the correct conditional.
+
+### Removed
+
+- Broken `sprint-collate-complete` event payload shape — never persisted (schema-rejected at every emit attempt); replaced by the schema-valid `sprint-complete` variant above. No migration data: rejected payloads were never written.
+
+### Tests
+
+All `node --test forge/tools/__tests__/*.test.cjs` pass. New schema-positive cases for `sprint-complete` / `sprint-halted` variants; new schema-negative cases (sprint event with task-scoped `taskId` → rejected by `not` clause).
+
+---
+
 ## [0.43.15] — 2026-05-14
 
 **Slice-2 fragment-sweep completion.**
