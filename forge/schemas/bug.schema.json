@@ -9,7 +9,7 @@
     "title":               { "type": "string" },
     "description":         { "type": "string" },
     "severity":            { "type": "string", "enum": ["critical", "major", "minor"] },
-    "status":              { "type": "string", "enum": ["reported", "triaged", "in-progress", "fixed", "verified"] },
+    "status":              { "type": "string", "enum": ["reported", "triaged", "in-progress", "fixed", "approved", "verified"] },
     "path":                { "type": "string" },
     "rootCauseCategory": {
       "type": "string",
@@ -26,10 +26,12 @@
       "description": "Terse structured summaries of phase artifacts. Optional; full artifacts on disk remain authoritative.",
       "properties": {
         "plan":           { "$ref": "#/$defs/phaseSummary" },
+        "triage":         { "$ref": "#/$defs/phaseSummary" },
         "review_plan":    { "$ref": "#/$defs/phaseSummary" },
         "implementation": { "$ref": "#/$defs/phaseSummary" },
         "code_review":    { "$ref": "#/$defs/phaseSummary" },
-        "validation":     { "$ref": "#/$defs/phaseSummary" }
+        "validation":     { "$ref": "#/$defs/phaseSummary" },
+        "approve":        { "$ref": "#/$defs/phaseSummary" }
       },
       "additionalProperties": false
     }

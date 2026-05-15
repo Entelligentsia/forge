@@ -10,6 +10,7 @@
   "properties": {
     "eventId":         { "type": "string" },
     "taskId":          { "type": "string" },
+    "bugId":          { "type": "string" },
     "sprintId":        { "type": "string" },
     "role":            { "type": "string" },
     "action":          { "type": "string" },
@@ -56,7 +57,11 @@
         "task-committed",
         "sprint-complete",
         "sprint-halted",
-        "bug-fixed"
+        "bug-fixed",
+
+        "bug-triaged", "fix-planned", "fix-review-passed", "fix-review-failed",
+        "fix-implemented", "fix-code-review-passed", "fix-code-review-failed",
+        "fix-approved", "bug-committed"
       ]
     },
     "workflow": { "type": "string" },
@@ -99,14 +104,28 @@
             "enum": [
               "task-planned", "plan-complete", "plan-approved",
               "task-implemented", "review-passed", "review-failed",
-              "task-approved", "task-validated", "task-committed",
-              "bug-fixed"
+              "task-approved", "task-validated", "task-committed"
             ]
           }
         },
         "required": ["type"]
       },
       "then": { "required": ["taskId", "phase", "iteration"] }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "bug-triaged", "fix-planned", "fix-review-passed", "fix-review-failed",
+              "fix-implemented", "fix-code-review-passed", "fix-code-review-failed",
+              "fix-approved", "bug-committed", "bug-fixed"
+            ]
+          }
+        },
+        "required": ["type"]
+      },
+      "then": { "required": ["bugId", "phase", "iteration"] }
     },
     {
       "if": { "properties": { "type": { "const": "sprint-complete" } }, "required": ["type"] },

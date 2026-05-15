@@ -60,7 +60,8 @@ function preflight({ phase, gates, state = {}, substitutions = {} }) {
       missing.push(`predecessor verdict unreadable for phase "${after.phase}": no task/bug record in state`);
       continue;
     }
-    const { verdict, source, key } = readVerdict({ record, phase: after.phase });
+    const entityType = state.bug ? 'bug' : 'task';
+    const { verdict, source, key } = readVerdict({ record, phase: after.phase, entityType });
     if (verdict === null) {
       const where = key ? `${source}["${key}"]` : source;
       missing.push(

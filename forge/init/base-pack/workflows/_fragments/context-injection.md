@@ -34,15 +34,21 @@ else:
 
 ## Prior Phase Summary Block
 
-Re-read the task record from disk after each phase so summaries accumulate:
+Re-read the record from disk after each phase so summaries accumulate.
+For bugs, pass `record_type="bug"` to read from the bugs store path.
 
 ```python
-task_record_fresh = read_json(f".forge/store/tasks/{task_id}.json")
-summaries = (task_record_fresh or {}).get("summaries", {})
+# record_type: "task" (default) or "bug"
+if record_type == "bug":
+  record_fresh = read_json(f".forge/store/bugs/{record_id}.json")
+else:
+  record_fresh = read_json(f".forge/store/tasks/{record_id}.json")
+summaries = (record_fresh or {}).get("summaries", {})
 
 SUMMARY_PHASE_LABELS = {
   "plan": "Plan", "review_plan": "Plan review",
-  "implementation": "Implementation", "code_review": "Code review", "validation": "Validation"
+  "implementation": "Implementation", "code_review": "Code review",
+  "validation": "Validation", "approve": "Approve", "triage": "Triage"
 }
 summary_lines = []
 for phase_key, label in SUMMARY_PHASE_LABELS.items():

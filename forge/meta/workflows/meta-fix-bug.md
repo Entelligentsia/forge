@@ -52,6 +52,11 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
             node "$FORGE_ROOT/tools/store-cli.cjs" read bug {BUG_ID} --json
    - Reproduce the bug: create a failing test case or a reproduction script
    - Confirm the root cause via codebase research
+   - After creating the bug record, transition to in-progress:
+     ```sh
+     node "$FORGE_ROOT/tools/store-cli.cjs" update-status bug {BUG_ID} status triaged
+     node "$FORGE_ROOT/tools/store-cli.cjs" update-status bug {BUG_ID} status in-progress
+     ```
 
 2. Plan:
    - Generate BUG_FIX_PLAN.md following the plan template
@@ -80,6 +85,9 @@ Triage and resolve a reported bug. This follows the same rigorous pipeline as a 
    - **After Implement phase:**
      Write `IMPLEMENTATION-SUMMARY.json` with `key_changes` and `verdict: "n/a"`.
      Then: `node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bug_id} implementation ...SUMMARY.json`
+   - **After Approve phase:**
+     Write `APPROVE-SUMMARY.json` with `objective`, `verdict` (approved|revision), and `artifact_ref`.
+     Then: `node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bug_id} approve ...APPROVE-SUMMARY.json`
    - If set-bug-summary exits non-zero, fix the JSON and retry before proceeding.
 
 6. Finalize:
@@ -261,6 +269,8 @@ identical to `meta-orchestrate.md` — see that file's "Phase Gates" section
 for the directive reference.
 
 ```gates phase=plan-fix
+forbid bug.status == blocked
+forbid bug.status == escalated
 forbid bug.status == fixed
 forbid bug.status == abandoned
 ```
@@ -270,6 +280,8 @@ artifact {engineering}/bugs/{bug}/BUG_FIX_PLAN.md min=200
 ```
 
 ```gates phase=implement
+forbid bug.status == blocked
+forbid bug.status == escalated
 artifact {engineering}/bugs/{bug}/BUG_FIX_PLAN.md min=200
 after review-plan = approved
 forbid bug.status == fixed

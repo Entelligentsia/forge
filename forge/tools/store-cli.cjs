@@ -134,7 +134,7 @@ const MINIMAL_REQUIRED = {
 const { validateRecord, NULLABLE_FIELDS } = require('./lib/validate.js');
 
 // Valid phase keys for summaries (dot-delimited → underscore in JSON key)
-const VALID_SUMMARY_PHASES = new Set(['plan', 'review_plan', 'implementation', 'code_review', 'validation']);
+const VALID_SUMMARY_PHASES = new Set(['plan', 'review_plan', 'implementation', 'code_review', 'validation', 'triage', 'approve']);
 
 // Schema for a single phase summary (used by set-summary / set-bug-summary)
 const PHASE_SUMMARY_SCHEMA = {
@@ -180,8 +180,9 @@ const SPRINT_TRANSITIONS = {
 const BUG_TRANSITIONS = {
   reported:     ['triaged'],
   triaged:      ['in-progress'],
-  'in-progress': ['fixed'],
-  fixed:        ['verified'],
+  'in-progress': ['fixed', 'approved'],   // fixed: code complete; approved: architect direct sign-off
+  fixed:        ['approved', 'in-progress'],   // approved: architect sign-off; in-progress: revision
+  approved:     ['verified', 'in-progress', 'fixed'],   // verified: commit; in-progress/ fixed: revision
   // Terminal: verified
 };
 
