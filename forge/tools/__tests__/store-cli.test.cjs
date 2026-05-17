@@ -1690,3 +1690,212 @@ describe('store-cli — bundled-payload .schemas/ fallback', () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// FORGE-S22-T02 — get* alias dispatch + summary read-through
+// ---------------------------------------------------------------------------
+
+describe('store-cli.cjs — get* alias dispatch (FORGE-S22-T02)', () => {
+  function run(tmpDir, ...cliArgs) {
+    return spawnSync(process.execPath, [STORE_CLI, ...cliArgs], { cwd: tmpDir, encoding: 'utf8' });
+  }
+
+  test('get task <id> is byte-equal to read task <id>', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const canon = run(tmpDir, 'read', 'task', 'T01');
+      const alias = run(tmpDir, 'get',  'task', 'T01');
+      assert.equal(alias.status, 0, `alias stderr: ${alias.stderr}`);
+      assert.equal(canon.status, 0, `canon stderr: ${canon.stderr}`);
+      assert.equal(alias.stdout, canon.stdout, 'stdout must be byte-equal');
+      assert.equal(alias.status, canon.status, 'exit codes must match');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('get-task <id> is byte-equal to read task <id>', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const canon = run(tmpDir, 'read', 'task', 'T01');
+      const alias = run(tmpDir, 'get-task', 'T01');
+      assert.equal(alias.status, 0, `stderr: ${alias.stderr}`);
+      assert.equal(alias.stdout, canon.stdout);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('get-bug <id> is byte-equal to read bug <id>', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeBugFile(tmpDir, 'BUG-001', MINIMAL_BUG);
+      const canon = run(tmpDir, 'read', 'bug', 'BUG-001');
+      const alias = run(tmpDir, 'get-bug', 'BUG-001');
+      assert.equal(alias.status, 0, `stderr: ${alias.stderr}`);
+      assert.equal(alias.stdout, canon.stdout);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('get-sprint <id> is byte-equal to read sprint <id>', () => {
+    const tmpDir = makeTempStore();
+    try {
+      const sprintsDir = path.join(tmpDir, '.forge', 'store', 'sprints');
+      fs.mkdirSync(sprintsDir, { recursive: true });
+      const sprint = { sprintId: 'S01', title: 'Test sprint', status: 'active', path: 'eng/s01' };
+      fs.writeFileSync(path.join(sprintsDir, 'S01.json'), JSON.stringify(sprint, null, 2));
+
+      const canon = run(tmpDir, 'read', 'sprint', 'S01');
+      const alias = run(tmpDir, 'get-sprint', 'S01');
+      assert.equal(alias.status, 0, `stderr: ${alias.stderr}`);
+      assert.equal(alias.stdout, canon.stdout);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('get task <id> --json is byte-equal to read task <id> --json (flag passthrough)', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const canon = run(tmpDir, 'read', 'task', 'T01', '--json');
+      const alias = run(tmpDir, 'get',  'task', 'T01', '--json');
+      assert.equal(alias.status, 0, `stderr: ${alias.stderr}`);
+      assert.equal(alias.stdout, canon.stdout);
+      // Sanity: --json output is a single line, no pretty-print indent
+      assert.ok(!alias.stdout.includes('\n  '), 'json output should not be pretty-printed');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('bare get (no entity, no id) exits 1 with usage error', () => {
+    const tmpDir = makeTempStore();
+    try {
+      const r = run(tmpDir, 'get');
+      assert.equal(r.status, 1, `stdout: ${r.stdout}`);
+      assert.match(r.stderr, /'get' requires an entity type/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('bare get <id-only> exits 1 with usage error', () => {
+    const tmpDir = makeTempStore();
+    try {
+      const r = run(tmpDir, 'get', 'T01');
+      assert.equal(r.status, 1, `stdout: ${r.stdout}`);
+      assert.match(r.stderr, /'get' requires an entity type/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('get <unknown-entity> <id> exits 1', () => {
+    const tmpDir = makeTempStore();
+    try {
+      const r = run(tmpDir, 'get', 'widget', 'W01');
+      assert.equal(r.status, 1, `stdout: ${r.stdout}`);
+      assert.match(r.stderr, /'get' requires an entity type/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('get task <nonexistent-id> exits 1 via read not-found path', () => {
+    const tmpDir = makeTempStore();
+    try {
+      const r = run(tmpDir, 'get', 'task', 'NOPE');
+      assert.equal(r.status, 1);
+      assert.match(r.stderr, /not found|Entity not found/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('get-summary <taskId> <existing-phase> prints summary', () => {
+    const tmpDir = makeTempStore();
+    try {
+      const task = { ...MINIMAL_TASK, summaries: { plan: VALID_SUMMARY } };
+      writeTaskFile(tmpDir, 'T01', task);
+      const r = run(tmpDir, 'get-summary', 'T01', 'plan');
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      // Default (non-JSON) mode prints the summary object pretty-printed.
+      const parsed = JSON.parse(r.stdout);
+      assert.equal(parsed.objective, VALID_SUMMARY.objective);
+      assert.equal(parsed.verdict, VALID_SUMMARY.verdict);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('get-summary <taskId> <unknown-phase> exits 1 with no-summary message', () => {
+    const tmpDir = makeTempStore();
+    try {
+      const task = { ...MINIMAL_TASK, summaries: { plan: VALID_SUMMARY } };
+      writeTaskFile(tmpDir, 'T01', task);
+      const r = run(tmpDir, 'get-summary', 'T01', 'implementation');
+      assert.equal(r.status, 1);
+      assert.match(r.stderr, /no summary for phase 'implementation'/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('get-summary <nonexistent-taskId> exits 1 with not-found message', () => {
+    const tmpDir = makeTempStore();
+    try {
+      const r = run(tmpDir, 'get-summary', 'NOPE', 'plan');
+      assert.equal(r.status, 1);
+      assert.match(r.stderr, /task NOPE not found/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('get-bug-summary <bugId> <existing-phase> prints summary (routes through cmdGetBugSummary, not set-bug-summary)', () => {
+    const tmpDir = makeTempStore();
+    try {
+      const bug = { ...MINIMAL_BUG, summaries: { triage: VALID_SUMMARY } };
+      writeBugFile(tmpDir, 'BUG-001', bug);
+      const r = run(tmpDir, 'get-bug-summary', 'BUG-001', 'triage');
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      const parsed = JSON.parse(r.stdout);
+      assert.equal(parsed.objective, VALID_SUMMARY.objective);
+      // Ensure the bug file was NOT mutated (would prove we hit set-bug-summary).
+      const after = readBugFile(tmpDir, 'BUG-001');
+      assert.deepEqual(after.summaries.triage, VALID_SUMMARY);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('get-bug-summary <nonexistent-bugId> exits 1', () => {
+    const tmpDir = makeTempStore();
+    try {
+      const r = run(tmpDir, 'get-bug-summary', 'BUG-NOPE', 'triage');
+      assert.equal(r.status, 1);
+      assert.match(r.stderr, /bug BUG-NOPE not found/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('--help lists Alias commands section with all 6 alias verbs', () => {
+    const tmpDir = makeTempStore();
+    try {
+      const r = run(tmpDir, '--help');
+      assert.equal(r.status, 0);
+      assert.match(r.stdout, /Alias commands/, '--help must include "Alias commands" section');
+      for (const verb of ['get', 'get-task', 'get-bug', 'get-sprint', 'get-summary', 'get-bug-summary']) {
+        assert.ok(r.stdout.includes(verb), `--help missing alias verb: ${verb}`);
+      }
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});

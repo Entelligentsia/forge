@@ -447,6 +447,14 @@ Commands:
   describe <entity>                           Print the JSON Schema for an entity
   template <entity>                           Print a canonical sample record (required fields populated)
 
+Alias commands:
+  get <entity> <id> [--json]                  Alias for: read <entity> <id> [--json]
+  get-task <id> [--json]                      Alias for: read task <id> [--json]
+  get-bug <id> [--json]                       Alias for: read bug <id> [--json]
+  get-sprint <id> [--json]                    Alias for: read sprint <id> [--json]
+  get-summary <taskId> <phase> [--json]       Read summaries[phase] from a task record
+  get-bug-summary <bugId> <phase> [--json]    Read summaries[phase] from a bug record
+
 Entities: sprint, task, bug, event, feature
 Phases (summaries): plan, review_plan, implementation, code_review, validation
 
@@ -462,7 +470,52 @@ Exit codes: 0 on success, 1 on failure`);
   process.exit(0);
 }
 
-const command = args[0];
+// ---------------------------------------------------------------------------
+// Alias dispatch table (FORGE-S22-T02)
+//
+// Read-aliases delegate to `cmdRead` by rewriting argv before the main switch.
+// Summary read-throughs (`get-summary`, `get-bug-summary`) are NOT in this
+// map — they are registered as direct cases in the switch below to avoid
+// any chance of routing through a write verb.
+//
+// Entries:
+//   target          — canonical command this alias rewrites to
+//   entity          — if set, inserted as the first positional arg (so
+//                     `get-task <id>` becomes `read task <id>`)
+//   injectEntity:false — bare `get`; requires the caller to supply the
+//                     entity as args[1]. Validated below.
+// ---------------------------------------------------------------------------
+const ALIAS_MAP = {
+  'get':        { target: 'read', injectEntity: false },
+  'get-task':   { target: 'read', entity: 'task'   },
+  'get-bug':    { target: 'read', entity: 'bug'    },
+  'get-sprint': { target: 'read', entity: 'sprint' },
+};
+
+let command = args[0];
+
+if (Object.prototype.hasOwnProperty.call(ALIAS_MAP, command)) {
+  const entry = ALIAS_MAP[command];
+  // Drop the alias verb from args; the remainder are positionals + flags.
+  args.splice(0, 1);
+  if (entry.entity) {
+    // `get-task <id>` → args becomes [<id>, ...flags]; prepend entity so the
+    // downstream cmdRead sees [entity, id, ...flags].
+    args.unshift(entry.entity);
+  } else if (entry.injectEntity === false) {
+    // Bare `get`: caller must have supplied `<entity> <id>`. Split flags from
+    // positionals so we validate the first positional, not a flag.
+    const positionals = args.filter((a) => !a.startsWith('--'));
+    if (positionals.length < 2 || !ENTITY_TYPES.includes(positionals[0])) {
+      console.error("error: 'get' requires an entity type — usage: get <task|bug|sprint> <id>");
+      process.exit(1);
+    }
+  }
+  command = entry.target;
+  // Reconstruct argv so cmdRead, which reads args[1]/args[2], sees the
+  // rewritten shape `[command, entity, id, ...flags]`.
+  args.unshift(command);
+}
 
 // ---------------------------------------------------------------------------
 // Command implementations
@@ -1175,6 +1228,58 @@ function _setSummaryOnEntity(entityKind, entityId, phase, summaryFilePath) {
   if (VERBOSE) console.log(JSON.stringify({ ok: true, entityKind, id: entityId, phase, dryRun: DRY_RUN }));
 }
 
+// ---------------------------------------------------------------------------
+// Summary read-through commands (FORGE-S22-T02)
+//
+// `get-summary <taskId> <phase> [--json]` and `get-bug-summary <bugId> <phase>
+// [--json]` extract a single phase summary from a task/bug record. Registered
+// as direct switch cases (NOT via ALIAS_MAP) so they cannot accidentally
+// route through a write verb (e.g. set-bug-summary).
+// ---------------------------------------------------------------------------
+function _readSummary(entityKind, id, phase, asJson) {
+  const record = entityKind === 'task' ? store.getTask(id) : store.getBug(id);
+  if (!record) {
+    console.error(`error: ${entityKind} ${id} not found`);
+    process.exit(1);
+  }
+  const summary = record.summaries && record.summaries[phase];
+  if (summary === undefined || summary === null) {
+    console.error(`error: no summary for phase '${phase}' on ${entityKind} ${id}`);
+    process.exit(1);
+  }
+  if (asJson) {
+    console.log(JSON.stringify({ entityId: id, phase, summary }, null, 2));
+  } else {
+    if (typeof summary === 'string') {
+      console.log(summary);
+    } else {
+      console.log(JSON.stringify(summary, null, 2));
+    }
+  }
+}
+
+function cmdGetSummary() {
+  const taskId = args[1];
+  const phase  = args[2];
+  const asJson = args.includes('--json');
+  if (!taskId || !phase) {
+    console.error('Usage: store-cli.cjs get-summary <taskId> <phase> [--json]');
+    process.exit(1);
+  }
+  _readSummary('task', taskId, phase, asJson);
+}
+
+function cmdGetBugSummary() {
+  const bugId = args[1];
+  const phase = args[2];
+  const asJson = args.includes('--json');
+  if (!bugId || !phase) {
+    console.error('Usage: store-cli.cjs get-bug-summary <bugId> <phase> [--json]');
+    process.exit(1);
+  }
+  _readSummary('bug', bugId, phase, asJson);
+}
+
 function cmdSetSummary() {
   const taskId      = args[1];
   const phase       = args[2];
@@ -1321,6 +1426,8 @@ switch (command) {
   case 'progress-clear':       cmdProgressClear(); break;
   case 'set-summary':          cmdSetSummary(); break;
   case 'set-bug-summary':      cmdSetBugSummary(); break;
+  case 'get-summary':          cmdGetSummary(); break;
+  case 'get-bug-summary':      cmdGetBugSummary(); break;
   case 'describe':             cmdDescribe(); break;
   case 'template':             cmdTemplate(); break;
   case 'query':
