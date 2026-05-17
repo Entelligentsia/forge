@@ -32,3 +32,8 @@ Notes for subagents:
   from the entity record. Do not inline summaries into the entity via `write`.
 - If you need a verb not on this list, run
   `node "$FORGE_ROOT/tools/store-cli.cjs" --help` before improvising.
+- If you supply an unknown verb, entity type, enum value, or field name,
+  store-cli appends a **Did you mean?** suggestion to the error message.
+  Suggestions use Levenshtein distance (≤ 2) and a curated drift map for
+  common agent misconceptions (e.g., `completed` → `committed`,
+  `task` → `taskId`, `set` → `set-summary`). See FORGE-S22-T03.

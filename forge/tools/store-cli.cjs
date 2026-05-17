@@ -133,6 +133,9 @@ const MINIMAL_REQUIRED = {
 // write-boundary hook can reuse the exact same validation logic as tool writes.
 const { validateRecord, NULLABLE_FIELDS } = require('./lib/validate.js');
 
+// FORGE-S22-T03: suggestion engine for "Did you mean?" on validation/transition errors
+const { suggest, suggestEntityType, formatSuggestion } = require('./lib/suggest.cjs');
+
 // Valid phase keys for summaries (dot-delimited → underscore in JSON key)
 const VALID_SUMMARY_PHASES = new Set(['plan', 'review_plan', 'implementation', 'code_review', 'validation', 'triage', 'approve']);
 
@@ -359,7 +362,7 @@ function deleteEntity(entity, id) {
     case 'bug':     return store.deleteBug(id);
     case 'feature': return store.deleteFeature(id);
     default:
-      console.error(`Unknown entity type: ${entity}`);
+      console.error(`Unknown entity type: ${entity}${formatSuggestion(suggestEntityType(entity, ['sprint', 'task', 'bug', 'feature']))}`);
       process.exit(1);
   }
 }
@@ -371,7 +374,7 @@ function listEntities(entity, filter) {
     case 'bug':     return store.listBugs(filter);
     case 'feature': return store.listFeatures(filter);
     default:
-      console.error(`Unknown entity type: ${entity}`);
+      console.error(`Unknown entity type: ${entity}${formatSuggestion(suggestEntityType(entity, ['sprint', 'task', 'bug', 'feature']))}`);
       process.exit(1);
   }
 }
@@ -531,7 +534,7 @@ function cmdWrite() {
   }
 
   if (!ENTITY_TYPES.includes(entity)) {
-    console.error(`Unknown entity type: ${entity}`);
+    console.error(`Unknown entity type: ${entity}${formatSuggestion(suggestEntityType(entity))}`);
     process.exit(1);
   }
 
@@ -575,7 +578,7 @@ function cmdRead() {
   }
 
   if (!ENTITY_TYPES.includes(entity)) {
-    console.error(`Unknown entity type: ${entity}`);
+    console.error(`Unknown entity type: ${entity}${formatSuggestion(suggestEntityType(entity))}`);
     process.exit(1);
   }
 
@@ -615,7 +618,7 @@ function cmdList() {
   }
 
   if (!ENTITY_TYPES.includes(entity)) {
-    console.error(`Unknown entity type: ${entity}`);
+    console.error(`Unknown entity type: ${entity}${formatSuggestion(suggestEntityType(entity, ['sprint', 'task', 'bug', 'feature']))}`);
     process.exit(1);
   }
 
@@ -646,7 +649,7 @@ function cmdDelete() {
   }
 
   if (!ENTITY_TYPES.includes(entity)) {
-    console.error(`Unknown entity type: ${entity}`);
+    console.error(`Unknown entity type: ${entity}${formatSuggestion(suggestEntityType(entity, ['sprint', 'task', 'bug', 'feature']))}`);
     process.exit(1);
   }
 
@@ -667,7 +670,13 @@ function cmdUpdateStatus() {
   }
 
   if (!TRANSITION_MAP[entity]) {
-    console.error(`No transition rules for entity type: ${entity}`);
+    const transitionTypes = Object.keys(TRANSITION_MAP);
+    const sug = suggestEntityType(entity, transitionTypes);
+    if (sug.length > 0) {
+      console.error(`No transition rules for entity type: ${entity} ${formatSuggestion(sug)}`);
+    } else {
+      console.error(`No transition rules for entity type: ${entity}. Valid types: ${transitionTypes.join(', ')}`);
+    }
     process.exit(1);
   }
 
@@ -694,7 +703,11 @@ function cmdUpdateStatus() {
 
   // Check transition legality
   if (!force && !isLegalTransition(entity, field, currentValue, value)) {
-    console.error(`Illegal transition: ${entity} ${id} ${field}: ${currentValue} → ${value}`);
+    const legalTargets = TRANSITION_MAP[entity] && TRANSITION_MAP[entity][currentValue]
+      ? TRANSITION_MAP[entity][currentValue]
+      : [];
+    const transitionSuggestions = suggest(value, legalTargets);
+    console.error(`Illegal transition: ${entity} ${id} ${field}: ${currentValue} → ${value}` + (formatSuggestion(transitionSuggestions) ? ' ' + formatSuggestion(transitionSuggestions) : ''));
     process.exit(1);
   }
 
@@ -1148,12 +1161,12 @@ function cmdValidate() {
   const jsonStr = args[2];
 
   if (!entity || !jsonStr) {
-    console.error('Usage: store-cli.cjs validate <entity> \'<json>\'');
+    console.error('Usage: store-cli.cjs validate \u003centity\u003e \'\u003cjson\u003e\'');
     process.exit(1);
   }
 
   if (!ENTITY_TYPES.includes(entity)) {
-    console.error(`Unknown entity type: ${entity}`);
+    console.error(`Unknown entity type: ${entity}${formatSuggestion(suggestEntityType(entity))}`);
     process.exit(1);
   }
 
@@ -1324,7 +1337,7 @@ function cmdDescribe() {
     process.exit(1);
   }
   if (!VALID_ENTITY_DESCRIBE.has(entity)) {
-    console.error(`Unknown entity: ${entity}`);
+    console.error(`Unknown entity: ${entity}${formatSuggestion(suggestEntityType(entity, Array.from(VALID_ENTITY_DESCRIBE)))}`);
     console.error(`Entities: ${Array.from(VALID_ENTITY_DESCRIBE).join(', ')}`);
     process.exit(1);
   }
@@ -1392,7 +1405,7 @@ function cmdTemplate() {
     process.exit(1);
   }
   if (!VALID_ENTITY_DESCRIBE.has(entity)) {
-    console.error(`Unknown entity: ${entity}`);
+    console.error(`Unknown entity: ${entity}${formatSuggestion(suggestEntityType(entity, Array.from(VALID_ENTITY_DESCRIBE)))}`);
     console.error(`Entities: ${Array.from(VALID_ENTITY_DESCRIBE).join(', ')}`);
     process.exit(1);
   }
@@ -1443,10 +1456,20 @@ switch (command) {
     process.exit(result.status ?? 1);
     break;
   }
-  default:
-    console.error(`Unknown command: ${command}`);
+  default: {
+    // Build candidate pool: all command names + ALIAS_MAP keys
+    const commandCandidates = [
+      'write', 'read', 'list', 'delete', 'update-status', 'emit', 'merge-sidecar',
+      'record-usage', 'purge-events', 'resolve-event', 'write-collation-state',
+      'validate', 'progress', 'progress-clear', 'set-summary', 'set-bug-summary',
+      'get-summary', 'get-bug-summary', 'describe', 'template', 'query', 'nlp', 'schema',
+      ...Object.keys(ALIAS_MAP)
+    ];
+    const cmdSuggestions = suggest(command, commandCandidates);
+    console.error(`Unknown command: ${command}${formatSuggestion(cmdSuggestions)}`);
     console.error('Run with --help for usage information.');
     process.exit(1);
+  }
 }
 
 } catch (err) {

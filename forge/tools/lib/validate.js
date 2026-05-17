@@ -15,6 +15,9 @@
 // Not supported (by design): $ref, allOf/anyOf/oneOf, propertyNames,
 // dependencies, const. Schemas can express what Forge needs without them.
 
+// FORGE-S22-T03: import suggestion engine for "Did you mean?" on enum/field errors
+const { suggest, formatSuggestion } = require('./suggest.cjs');
+
 // Fields that may legitimately be null (nullable FKs / optional timing).
 // Mirrors store-cli.cjs — keep in sync.
 const NULLABLE_FIELDS = new Set([
@@ -74,7 +77,9 @@ function validateRecord(record, schema, opts) {
     }
 
     if (def.enum && !def.enum.includes(val)) {
-      errors.push(`${field}: value "${val}" not in [${def.enum.join(', ')}]`);
+      const enumSuggestions = suggest(String(val), def.enum);
+      const suggestionStr = formatSuggestion(enumSuggestions);
+      errors.push(`${field}: value "${val}" not in [${def.enum.join(', ')}]${suggestionStr ? ' ' + suggestionStr : ''}`);
     }
 
     if (def.minimum !== undefined && typeof val === 'number' && val < def.minimum) {
@@ -120,8 +125,13 @@ function validateRecord(record, schema, opts) {
 
   if (schema.additionalProperties === false) {
     const allowed = new Set(Object.keys(properties));
+    const fieldNames = Object.keys(properties);
     for (const key of Object.keys(record)) {
-      if (!allowed.has(key)) errors.push(`${key}: undeclared field`);
+      if (!allowed.has(key)) {
+        const fieldSuggestions = suggest(key, fieldNames);
+        const suggestionStr = formatSuggestion(fieldSuggestions);
+        errors.push(`${key}: undeclared field${suggestionStr ? ' ' + suggestionStr : ''}`);
+      }
     }
   }
 

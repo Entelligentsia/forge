@@ -1899,3 +1899,163 @@ describe('store-cli.cjs — get* alias dispatch (FORGE-S22-T02)', () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// FORGE-S22-T03: "Did you mean?" suggestion integration tests
+// ---------------------------------------------------------------------------
+
+describe('store-cli.cjs — "Did you mean?" suggestions (FORGE-S22-T03)', () => {
+  function makeSuggestStore() {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-suggest-'));
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'S1'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'config.json'),
+      JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
+    );
+    return tmpDir;
+  }
+
+  // CLI test 1: Unknown entity type with suggestion
+  test('write evnt → stderr contains (Did you mean "event"?)', () => {
+    const tmpDir = makeSuggestStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'write', 'evnt', '{}'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /Did you mean "event"\?/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  // CLI test 3: read evnt → stderr contains suggestion for entity type
+  test('read evnt ID → stderr contains (Did you mean "event"?)', () => {
+    const tmpDir = makeSuggestStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'read', 'evnt', 'E1'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /Did you mean "event"\?/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  // CLI test 5: Unknown command with suggestion
+  test('emti → stderr contains (Did you mean "emit"?)', () => {
+    const tmpDir = makeSuggestStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emti'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /Did you mean "emit"\?/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  // CLI test 11: "No transition rules for entity type" with valid types listed
+  test('update-status event ID status draft → stderr contains "No transition rules" with valid types', () => {
+    const tmpDir = makeSuggestStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'update-status', 'event', 'E1', 'status', 'draft'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /No transition rules for entity type: event/);
+      assert.match(r.stderr, /Valid types: task, sprint, bug, feature/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  // CLI test: describe with invalid entity
+  test('describe evnt → stderr contains (Did you mean "event"?)', () => {
+    const tmpDir = makeSuggestStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'describe', 'evnt'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /Did you mean "event"\?/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  // CLI test: template with invalid entity
+  test('template evnt → stderr contains (Did you mean "event"?)', () => {
+    const tmpDir = makeSuggestStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'template', 'evnt'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /Did you mean "event"\?/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  // CLI test: validate with invalid entity type
+  test('validate evnt → stderr contains (Did you mean "event"?)', () => {
+    const tmpDir = makeSuggestStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'validate', 'evnt', '{}'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /Did you mean "event"\?/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  // CLI test: list with entity that is close to a narrower pool member
+  test('list feautre → stderr contains (Did you mean "feature"?)', () => {
+    const tmpDir = makeSuggestStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'list', 'feautre'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /Did you mean "feature"\?/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  // Negative test: no suggestion for valid entity type
+  test('write with valid entity type produces no suggestion spam', () => {
+    const tmpDir = makeSuggestStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'write', 'task', '{}'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(r.status, 0);
+      // Should NOT contain "Did you mean" for valid entity type 'task'
+      assert.ok(!r.stderr.includes('Did you mean'), `unexpected suggestion: ${r.stderr}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  // CLI test: Illegal transition with suggestion
+  test('illegal transition → stderr contains suggestion for target state', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', { ...MINIMAL_TASK, status: 'plan-approved' });
+      const r = spawnSync(process.execPath, [STORE_CLI, 'update-status', 'task', 'T01', 'status', 'implemented'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /Illegal transition/);
+      assert.match(r.stderr, /Did you mean "implementing"\?/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
