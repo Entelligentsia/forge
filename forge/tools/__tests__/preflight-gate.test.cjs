@@ -654,3 +654,185 @@ describe('preflight-gate.cjs :: resolveTaskArtifactDir()', () => {
     assert.equal(got, 'HLO-S01-T01');
   });
 });
+
+// Regression: FORGE-BUG-034 — preflight gate for review-plan fails when
+// bug engineering directory does not exist. The bug record can be pre-created
+// by the orchestrator without creating the directory, causing all downstream
+// artifact checks to fail with "artifact missing" because the directory never
+// existed. The fix is in fix_bug.md (mkdir -p after reading the record),
+// but the preflight-gate should still correctly report the missing artifact.
+describe('preflight-gate.cjs :: bug directory regression (FORGE-BUG-034)', () => {
+  test('[FORGE-BUG-034] review-plan gate fails when bug engineering directory is missing', () => {
+    const bugDir = tmpdir();
+    const workflowsDir = path.join(bugDir, '.forge', 'workflows');
+    fs.mkdirSync(workflowsDir, { recursive: true });
+
+    // Write fix_bug.md with review-plan gate
+    fs.writeFileSync(path.join(workflowsDir, 'fix_bug.md'), [
+      '# Fix Bug',
+      '',
+      '```gates phase=review-plan',
+      'artifact {engineering}/bugs/{bug}/BUG_FIX_PLAN.md min=200',
+      '```',
+    ].join('\n'));
+
+    // Write orchestrate_task.md with review-plan gate using task path (different placeholders)
+    fs.writeFileSync(path.join(workflowsDir, 'orchestrate_task.md'), [
+      '# Orchestrate Task',
+      '',
+      '```gates phase=review-plan',
+      'artifact {engineering}/sprints/{sprint}/{task}/PLAN.md min=200',
+      '```',
+    ].join('\n'));
+
+    // Store directory with a bug record
+    const storeDir = path.join(bugDir, '.forge', 'store', 'bugs');
+    fs.mkdirSync(storeDir, { recursive: true });
+    fs.writeFileSync(path.join(storeDir, 'FORGE-BUG-034.json'), JSON.stringify({
+      bugId: 'FORGE-BUG-034',
+      title: 'Test bug',
+      severity: 'minor',
+      status: 'in-progress',
+      path: 'engineering/bugs/FORGE-BUG-034',
+      reportedAt: '2026-05-17T06:00:00.000Z',
+    }));
+
+    // Config
+    fs.writeFileSync(path.join(bugDir, '.forge', 'config.json'), JSON.stringify({
+      paths: { engineering: 'engineering', store: '.forge/store' },
+    }));
+
+    const { spawnSync } = require('node:child_process');
+    const tool = path.resolve(__dirname, '..', 'preflight-gate.cjs');
+
+    // Run WITHOUT creating the engineering directory — gate should fail
+    const r1 = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'review-plan', '--bug', 'FORGE-BUG-034'],
+      { encoding: 'utf8', cwd: bugDir },
+    );
+    assert.equal(r1.status, 1, `Expected exit 1 (missing artifact), got ${r1.status}. stderr: ${r1.stderr}`);
+    assert.match(r1.stderr, /artifact missing.*BUG_FIX_PLAN\.md/);
+  });
+
+  test('[FORGE-BUG-034] review-plan gate passes when bug engineering directory and plan file exist', () => {
+    const bugDir = tmpdir();
+    const workflowsDir = path.join(bugDir, '.forge', 'workflows');
+    fs.mkdirSync(workflowsDir, { recursive: true });
+
+    // Write fix_bug.md with review-plan gate
+    fs.writeFileSync(path.join(workflowsDir, 'fix_bug.md'), [
+      '# Fix Bug',
+      '',
+      '```gates phase=review-plan',
+      'artifact {engineering}/bugs/{bug}/BUG_FIX_PLAN.md min=200',
+      '```',
+    ].join('\n'));
+
+    // Write orchestrate_task.md with task-scoped gate (should be filtered out for --bug)
+    fs.writeFileSync(path.join(workflowsDir, 'orchestrate_task.md'), [
+      '# Orchestrate Task',
+      '',
+      '```gates phase=review-plan',
+      'artifact {engineering}/sprints/{sprint}/{task}/PLAN.md min=200',
+      '```',
+    ].join('\n'));
+
+    // Store directory with a bug record
+    const storeDir = path.join(bugDir, '.forge', 'store', 'bugs');
+    fs.mkdirSync(storeDir, { recursive: true });
+    fs.writeFileSync(path.join(storeDir, 'FORGE-BUG-034.json'), JSON.stringify({
+      bugId: 'FORGE-BUG-034',
+      title: 'Test bug',
+      severity: 'minor',
+      status: 'in-progress',
+      path: 'engineering/bugs/FORGE-BUG-034',
+      reportedAt: '2026-05-17T06:00:00.000Z',
+      summaries: { review_plan: { verdict: 'approved' } },
+    }));
+
+    // Create engineering directory and plan file (this is what the fix_bug.md workflow should do)
+    const engDir = path.join(bugDir, 'engineering', 'bugs', 'FORGE-BUG-034');
+    fs.mkdirSync(engDir, { recursive: true });
+    fs.writeFileSync(path.join(engDir, 'BUG_FIX_PLAN.md'), 'A'.repeat(300));
+
+    // Config
+    fs.writeFileSync(path.join(bugDir, '.forge', 'config.json'), JSON.stringify({
+      paths: { engineering: 'engineering', store: '.forge/store' },
+    }));
+
+    const { spawnSync } = require('node:child_process');
+    const tool = path.resolve(__dirname, '..', 'preflight-gate.cjs');
+
+    // Run WITH the engineering directory and plan file — gate should pass
+    const r2 = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'review-plan', '--bug', 'FORGE-BUG-034'],
+      { encoding: 'utf8', cwd: bugDir },
+    );
+    assert.equal(r2.status, 0, `Expected exit 0 (gate pass), got ${r2.status}. stderr: ${r2.stderr}`);
+  });
+
+  test('[FORGE-BUG-034] --bug selects fix_bug.md over orchestrate_task.md for review-plan (placeholder filter)', () => {
+    const bugDir = tmpdir();
+    const workflowsDir = path.join(bugDir, '.forge', 'workflows');
+    fs.mkdirSync(workflowsDir, { recursive: true });
+
+    // Write fix_bug.md with {bug} placeholder
+    fs.writeFileSync(path.join(workflowsDir, 'fix_bug.md'), [
+      '# Fix Bug',
+      '',
+      '```gates phase=review-plan',
+      'artifact {engineering}/bugs/{bug}/BUG_FIX_PLAN.md min=200',
+      '```',
+    ].join('\n'));
+
+    // Write orchestrate_task.md with {task} placeholder — should be skipped for --bug
+    fs.writeFileSync(path.join(workflowsDir, 'orchestrate_task.md'), [
+      '# Orchestrate Task',
+      '',
+      '```gates phase=review-plan',
+      'artifact {engineering}/sprints/{sprint}/{task}/PLAN.md min=200',
+      'require task.status in [plan-approved, implementing]',
+      '```',
+    ].join('\n'));
+
+    // Store directory with a bug record
+    const storeDir = path.join(bugDir, '.forge', 'store', 'bugs');
+    fs.mkdirSync(storeDir, { recursive: true });
+    fs.writeFileSync(path.join(storeDir, 'FORGE-BUG-034.json'), JSON.stringify({
+      bugId: 'FORGE-BUG-034',
+      title: 'Test bug',
+      severity: 'minor',
+      status: 'in-progress',
+      path: 'engineering/bugs/FORGE-BUG-034',
+      reportedAt: '2026-05-17T06:00:00.000Z',
+    }));
+
+    // Create engineering directory and plan file in bug path (NOT in task path)
+    const engBugDir = path.join(bugDir, 'engineering', 'bugs', 'FORGE-BUG-034');
+    fs.mkdirSync(engBugDir, { recursive: true });
+    fs.writeFileSync(path.join(engBugDir, 'BUG_FIX_PLAN.md'), 'A'.repeat(300));
+
+    // Config
+    fs.writeFileSync(path.join(bugDir, '.forge', 'config.json'), JSON.stringify({
+      paths: { engineering: 'engineering', store: '.forge/store' },
+    }));
+
+    const { spawnSync } = require('node:child_process');
+    const tool = path.resolve(__dirname, '..', 'preflight-gate.cjs');
+
+    // When called with --bug, the placeholder filter should select fix_bug.md
+    // (which uses {bug}, present in substitutions) over orchestrate_task.md
+    // (which uses {sprint} and {task}, absent from --bug substitutions).
+    // If the wrong workflow were selected, the gate would look for
+    // engineering/sprints/undefined/undefined/PLAN.md and fail with "artifact missing".
+    const r3 = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'review-plan', '--bug', 'FORGE-BUG-034'],
+      { encoding: 'utf8', cwd: bugDir },
+    );
+    assert.equal(r3.status, 0, `Expected exit 0 (correct workflow selected), got ${r3.status}. stderr: ${r3.stderr}`);
+    // Should NOT mention skipping orchestrate_task in stderr (it was silently filtered)
+  });
+});

@@ -781,12 +781,6 @@ forbid task.status == blocked
 forbid task.status == escalated
 ```
 
-```gates phase=writeback
-after approve = approved
-forbid task.status == blocked
-forbid task.status == escalated
-```
-
 Adjusting a gate is a data change — edit the block above, regenerate workflows
 on the user side via `/forge:update`, and the new gate takes effect on the next
 orchestrator run. No code change required to relax or tighten a gate.
@@ -859,12 +853,22 @@ is a violation of the Iron Laws.
 
 The **orchestrator** is the only actor that calls `store-cli emit` for phase
 events. Phase subagents write `{PHASE}-SUMMARY.json` and return. After each
-subagent returns, the orchestrator captures runtime attribution (`model`,
-`provider`, token usage) from the runtime stream, records bracketed wall
-times, reads the SUMMARY for judgement, and calls
-`node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
-with the complete record. Do not hardcode example `model` / `provider`
-strings — they are the seed of LLM hallucination.
+subagent returns, the orchestrator:
+
+1. Captures the subagent's runtime attribution (`model`, `provider`, token
+   usage) from the runtime stream.
+2. Records bracketed wall times around the spawn call (`startTimestamp`,
+   `endTimestamp`, `durationMinutes`).
+3. Reads the SUMMARY for the judgement blob (`verdict`, `notes`, `findings`).
+4. Composes the canonical event with `eventId`, `taskId`, `sprintId`, `role`,
+   `action`, `phase`, `iteration` from its own task state and `tokenSource:
+   "reported"` when the runtime surfaced usage.
+5. Calls `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{event-json}'`
+   with the complete record.
+
+Do not include hardcoded example `model` or `provider` strings in the
+generated orchestrator prose — they are the seed of LLM hallucination.
+Refer subagents to `.forge/schemas/event.schema.json` instead.
 ## Friction Emit
 
 When the Orchestrator detects skill friction during orchestrate-task — a referenced skill is unused, fails on invocation, is missing from the registry, has gone stale relative to current architecture, or is redundant with another skill — emit a `friction` event so `/forge:enhance --phase 2` can act on the signal. This is the writer side of the channel whose reader landed in S13-T08; the reader is empty without these emits.
@@ -896,7 +900,9 @@ When the Orchestrator detects skill friction during orchestrate-task — a refer
    FSM rejection, verdict malformed). The orchestrator emits inline using
    its own model/provider attribution (`persona: "orchestrator"`,
    `workflow: "orchestrate"`, `phase: "orchestrate"`). Same `store-cli emit`
-   path; consult `.forge/schemas/event.schema.json` for the required shape.
+   path; no example record is reproduced here because the orchestrator
+   owns the field values — consult `.forge/schemas/event.schema.json` for
+   the required shape.
 
 The schema enforces `{workflow, persona, issue}` as required when
 `type === "friction"`. `subkind` is the frozen enum
@@ -904,4 +910,5 @@ The schema enforces `{workflow, persona, issue}` as required when
 experimental `^x_[a-z_]+$`. Emit one record per distinct friction signal
 — do not coalesce.
 
-The generated `orchestrate_task.md` MUST carry this section verbatim — `/forge:enhance --phase 2` greps for it.
+The generated `orchestrate_task.md` MUST carry this section verbatim —
+`/forge:enhance --phase 2` greps for it.
