@@ -383,3 +383,106 @@ describe('project-overlay.schema.json — version field', () => {
     assert.strictEqual(typeof schema.version, 'string', 'version must be a string');
   });
 });
+
+// ---------------------------------------------------------------------------
+// FORGE-S22-T05 — validate-store ORPHAN_EVENT_DIR check
+// ---------------------------------------------------------------------------
+
+describe('validate-store.cjs — ORPHAN_EVENT_DIR check (FORGE-S22-T05)', () => {
+  const os = require('os');
+  const fs = require('fs');
+  const path = require('path');
+  const { spawnSync } = require('child_process');
+
+  const VALIDATE_STORE = path.join(__dirname, '..', 'validate-store.cjs');
+
+  function makeOrphanStore() {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-orphan-'));
+    // Sprint record for FORGE-S01
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'sprints'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'store', 'sprints', 'FORGE-S01.json'),
+      JSON.stringify({ sprintId: 'FORGE-S01', title: 'Test sprint', status: 'planning', taskIds: [], createdAt: '2026-01-01T00:00:00Z' }, null, 2)
+    );
+    // Known sprint event dir — should NOT be flagged
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'FORGE-S01'), { recursive: true });
+    // Orphan event dir — should be flagged
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'S01'), { recursive: true });
+    // Reserved prefix dir — should NOT be flagged
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'SYS-init'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'config.json'),
+      JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
+    );
+    return tmpDir;
+  }
+
+  test('orphan event dir is flagged as ORPHAN_EVENT_DIR', () => {
+    const tmpDir = makeOrphanStore();
+    try {
+      const r = spawnSync(process.execPath, [VALIDATE_STORE], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      const output = r.stdout + r.stderr;
+      assert.ok(
+        output.includes('S01') && output.includes('ORPHAN_EVENT_DIR'),
+        `output should flag S01 as ORPHAN_EVENT_DIR. Got stdout: ${r.stdout}, stderr: ${r.stderr}`
+      );
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('known sprint event dir is NOT flagged', () => {
+    const tmpDir = makeOrphanStore();
+    try {
+      const r = spawnSync(process.execPath, [VALIDATE_STORE], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      const combined = r.stdout + r.stderr;
+      // FORGE-S01 should not appear in ORPHAN_EVENT_DIR context
+      assert.ok(
+        !combined.includes('FORGE-S01') || !combined.includes('ORPHAN_EVENT_DIR') ||
+        !combined.match(/FORGE-S01[^\n]*ORPHAN_EVENT_DIR/),
+        `FORGE-S01 should not be flagged as ORPHAN_EVENT_DIR. Got: ${combined}`
+      );
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('reserved prefix SYS-init dir is NOT flagged', () => {
+    const tmpDir = makeOrphanStore();
+    try {
+      const r = spawnSync(process.execPath, [VALIDATE_STORE], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      const combined = r.stdout + r.stderr;
+      assert.ok(
+        !combined.includes('SYS-init'),
+        `SYS-init should not be flagged. Got: ${combined}`
+      );
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('--json mode includes ORPHAN_EVENT_DIR warning with id=S01', () => {
+    const tmpDir = makeOrphanStore();
+    try {
+      const r = spawnSync(process.execPath, [VALIDATE_STORE, '--json'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      let result;
+      try { result = JSON.parse(r.stdout); } catch (e) {
+        assert.fail(`--json output must be valid JSON. stdout: ${r.stdout}, stderr: ${r.stderr}`);
+      }
+      const orphanWarnings = (result.warnings || []).filter(w => w.category === 'ORPHAN_EVENT_DIR');
+      assert.ok(orphanWarnings.length > 0, `warnings should contain at least one ORPHAN_EVENT_DIR entry. Got: ${JSON.stringify(result.warnings)}`);
+      const s01Warning = orphanWarnings.find(w => w.id === 'S01');
+      assert.ok(s01Warning, `ORPHAN_EVENT_DIR warning should have id "S01". Got warnings: ${JSON.stringify(orphanWarnings)}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});

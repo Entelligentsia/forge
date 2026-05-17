@@ -718,6 +718,11 @@ describe('store-cli.cjs — write-boundary in-tool schema enforcement', () => {
   function makeSprintStore() {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-wb-'));
     fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'S1'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'sprints'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'store', 'sprints', 'S1.json'),
+      JSON.stringify({ sprintId: 'S1', title: 'Test sprint', status: 'planning', taskIds: [], createdAt: '2026-01-01T00:00:00Z' }, null, 2)
+    );
     fs.writeFileSync(
       path.join(tmpDir, '.forge', 'config.json'),
       JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
@@ -885,6 +890,11 @@ describe('store-cli.cjs — emit timestamp normalization (#56)', () => {
   function makeEmitStore() {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-ts-'));
     fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'S1'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'sprints'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'store', 'sprints', 'S1.json'),
+      JSON.stringify({ sprintId: 'S1', title: 'Test sprint', status: 'planning', taskIds: [], createdAt: '2026-01-01T00:00:00Z' }, null, 2)
+    );
     fs.writeFileSync(
       path.join(tmpDir, '.forge', 'config.json'),
       JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
@@ -1181,6 +1191,11 @@ describe('store-cli.cjs — record-usage subcommand', () => {
   function makeUsageStore() {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-ru-'));
     fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'S1'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'sprints'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'store', 'sprints', 'S1.json'),
+      JSON.stringify({ sprintId: 'S1', title: 'Test sprint', status: 'planning', taskIds: [], createdAt: '2026-01-01T00:00:00Z' }, null, 2)
+    );
     fs.writeFileSync(
       path.join(tmpDir, '.forge', 'config.json'),
       JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
@@ -1415,6 +1430,11 @@ describe('store-cli.cjs — emit auto-populates model via discoverModel', () => 
   function makeEmitStoreForModel() {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-model-'));
     fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'S1'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'sprints'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'store', 'sprints', 'S1.json'),
+      JSON.stringify({ sprintId: 'S1', title: 'Test sprint', status: 'planning', taskIds: [], createdAt: '2026-01-01T00:00:00Z' }, null, 2)
+    );
     fs.writeFileSync(
       path.join(tmpDir, '.forge', 'config.json'),
       JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
@@ -1661,6 +1681,11 @@ describe('store-cli — bundled-payload .schemas/ fallback', () => {
 
     const projDir = path.join(stageRoot, 'project');
     fs.mkdirSync(path.join(projDir, '.forge', 'store', 'events', 'S1'), { recursive: true });
+    fs.mkdirSync(path.join(projDir, '.forge', 'store', 'sprints'), { recursive: true });
+    fs.writeFileSync(
+      path.join(projDir, '.forge', 'store', 'sprints', 'S1.json'),
+      JSON.stringify({ sprintId: 'S1', title: 'Test sprint', status: 'planning', taskIds: [], createdAt: '2026-01-01T00:00:00Z' })
+    );
     fs.writeFileSync(
       path.join(projDir, '.forge', 'config.json'),
       JSON.stringify({ paths: { store: '.forge/store' } })
@@ -2054,6 +2079,122 @@ describe('store-cli.cjs — "Did you mean?" suggestions (FORGE-S22-T03)', () => 
       assert.notEqual(r.status, 0);
       assert.match(r.stderr, /Illegal transition/);
       assert.match(r.stderr, /Did you mean "implementing"\?/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FORGE-S22-T05 — emit FK-check (sprintId foreign-key validation)
+// ---------------------------------------------------------------------------
+
+describe('store-cli.cjs — emit FK-check (FORGE-S22-T05)', () => {
+  // Minimal valid event payload; FK check fires before schema validation so
+  // tests 1/3/5 don't require a fully valid event shape to observe the error.
+  const MINIMAL_EVENT = JSON.stringify({
+    eventId: 'E-FK-001',
+    taskId: 'FORGE-S22-T05',
+    sprintId: 'FORGE-S01',
+    role: 'implement',
+    action: 'implement-task',
+    phase: 'implement',
+    iteration: 1,
+    startTimestamp: '2026-05-17T10:00:00.000Z',
+    endTimestamp: '2026-05-17T10:05:00.000Z',
+    durationMinutes: 5,
+    model: 'claude-sonnet-4-6',
+    provider: 'anthropic',
+  });
+
+  function makeEmitFKStore() {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-fk-'));
+    // Sprint record for FORGE-S01
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'sprints'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'store', 'sprints', 'FORGE-S01.json'),
+      JSON.stringify({ sprintId: 'FORGE-S01', title: 'Test sprint', status: 'planning', taskIds: [], createdAt: '2026-01-01T00:00:00Z' }, null, 2)
+    );
+    // Events directory for FORGE-S01
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'FORGE-S01'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'config.json'),
+      JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
+    );
+    return tmpDir;
+  }
+
+  test('unknown sprintId is rejected with structured error', () => {
+    const tmpDir = makeEmitFKStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'S01', '{}'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.notEqual(r.status, 0, `should exit non-zero for unknown sprintId S01, got exit 0. stderr: ${r.stderr}`);
+      assert.match(r.stderr, /Unknown sprintId: S01/, `stderr should contain "Unknown sprintId: S01". Got: ${r.stderr}`);
+      assert.match(r.stderr, /Did you mean "FORGE-S01"\?/, `stderr should contain suggestion. Got: ${r.stderr}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('reserved SYS-* prefix is accepted (no FK rejection)', () => {
+    const tmpDir = makeEmitFKStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'SYS-init', '{}'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      // FK check must NOT trigger — error may come from schema validation but
+      // stderr must NOT contain the FK rejection message.
+      assert.ok(
+        !r.stderr.includes('Unknown sprintId: SYS-init'),
+        `FK check should not reject SYS-init. stderr: ${r.stderr}`
+      );
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('--allow-synthetic bypasses FK check for unknown sprintId', () => {
+    const tmpDir = makeEmitFKStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'BOGUS-S99', '{}', '--allow-synthetic'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      // The FK check must NOT trigger. Schema may still reject the empty payload —
+      // we only assert that the FK rejection message is absent.
+      assert.ok(
+        !r.stderr.includes('Unknown sprintId: BOGUS-S99'),
+        `FK check should be bypassed with --allow-synthetic. stderr: ${r.stderr}`
+      );
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('valid sprintId from store is accepted (regression — golden path)', () => {
+    const tmpDir = makeEmitFKStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'FORGE-S01', MINIMAL_EVENT], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `should exit 0 for valid FORGE-S01 sprintId. stderr: ${r.stderr}`);
+      const evPath = path.join(tmpDir, '.forge', 'store', 'events', 'FORGE-S01', 'E-FK-001.json');
+      assert.ok(fs.existsSync(evPath), 'event file should be written for valid sprintId');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('rejection message lists valid sprint IDs', () => {
+    const tmpDir = makeEmitFKStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'BAD-S1', '{}'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.notEqual(r.status, 0, `should exit non-zero for BAD-S1. stderr: ${r.stderr}`);
+      assert.match(r.stderr, /Valid sprint IDs:/, `stderr should list valid IDs. Got: ${r.stderr}`);
+      assert.ok(r.stderr.includes('FORGE-S01'), `valid IDs list should include FORGE-S01. Got: ${r.stderr}`);
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }

@@ -1,4 +1,15 @@
 {
+  "0.43.18": {
+    "version": "0.43.19",
+    "date": "2026-05-17",
+    "notes": "G7 — FK-check on store-cli emit sprintId, reserved-prefix carve-out (SYS-*), --allow-synthetic escape hatch, and orphan event-dir flagger in validate-store. store-cli emit now rejects sprintIds not found in .forge/store/sprints/ and not matching SYS-* prefix, with Did-you-mean suggestions. validate-store adds Pass 2b scanning .forge/store/events/ for subdirs with no matching sprint record (warns ORPHAN_EVENT_DIR). Fixes silent acceptance of bare-string sprintIds that created orphan event dirs.",
+    "regenerate": [
+      "tools:store-cli",
+      "tools:validate-store"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.43.15": {
     "version": "0.43.16",
     "date": "2026-05-15",

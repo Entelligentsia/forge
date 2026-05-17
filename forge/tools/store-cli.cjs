@@ -434,7 +434,7 @@ Commands:
   delete <entity> <id>                        Delete an entity record
   update-status <entity> <id> <field> <value> [--force]
                                               Update status/enum field with transition check
-  emit <sprintId> '<json>' [--sidecar]        Write an event (or sidecar)
+  emit <sprintId> '<json>' [--sidecar] [--allow-synthetic]  Write an event (or sidecar)
   merge-sidecar <sprintId> <eventId>          Merge sidecar into canonical event
   record-usage <sprintId> <eventId> [flags]  Write a token-usage sidecar
   purge-events <sprintId>                     Delete all events for a sprint
@@ -467,7 +467,8 @@ Flags:
                FORGE_ALLOW_FORCE=1 in the environment. Subagents MUST NOT use this;
                surface the illegal transition to the orchestrator instead.
   --json       Output raw JSON on read (no pretty-print)
-  --sidecar    Write as sidecar file on emit (ephemeral _-prefixed)
+  --sidecar          Write as sidecar file on emit (ephemeral _-prefixed)
+  --allow-synthetic  Bypass sprintId FK check on emit (for synthetic/test events)
 
 Exit codes: 0 on success, 1 on failure`);
   process.exit(0);
@@ -755,14 +756,57 @@ function _normalizeEventTimestamps(data) {
   return data;
 }
 
+// resolveValidSprintIds() — reads .forge/store/sprints/ and returns an array
+// of sprintId strings (filenames without .json extension). Returns [] on ENOENT
+// so fresh installs without a sprints dir don't crash.
+// Not exported — CLI-only concern.
+function resolveValidSprintIds() {
+  try {
+    const storeRoot = store.storeRoot || '.forge/store';
+    const sprintsDir = path.join(storeRoot, 'sprints');
+    return fs.readdirSync(sprintsDir)
+      .filter(f => f.endsWith('.json'))
+      .map(f => f.slice(0, -5));
+  } catch (e) {
+    if (e.code === 'ENOENT') return [];
+    throw e;
+  }
+}
+
 function cmdEmit() {
   const sprintId = args[1];
   const jsonStr = args[2];
   const isSidecar = args.includes('--sidecar');
+  const allowSynthetic = args.includes('--allow-synthetic');
 
   if (!sprintId || !jsonStr) {
-    console.error('Usage: store-cli.cjs emit <sprintId> \'<json>\' [--sidecar]');
+    console.error('Usage: store-cli.cjs emit <sprintId> \'<json>\' [--sidecar] [--allow-synthetic]');
     process.exit(1);
+  }
+
+  // FK check: reject sprintIds that are not in the store and not reserved.
+  // SYS-* prefix is reserved for system-generated events that predate sprint records.
+  // --allow-synthetic bypasses the check for test-harness or synthetic events.
+  if (!allowSynthetic) {
+    const RESERVED_GLOB = /^SYS-/;
+    if (!RESERVED_GLOB.test(sprintId)) {
+      const validSprintIds = resolveValidSprintIds();
+      if (!validSprintIds.includes(sprintId)) {
+        // Suggestion strategy: Levenshtein first; if no results, try suffix match
+        // (e.g., "S01" is a suffix of "FORGE-S01") which Levenshtein alone misses
+        // when the prefix distance exceeds maxDist=2.
+        let suggestions = suggest(sprintId, validSprintIds);
+        if (suggestions.length === 0) {
+          const lower = sprintId.toLowerCase();
+          const suffixMatch = validSprintIds.filter(v => v.toLowerCase().endsWith(lower) || v.toLowerCase().endsWith('-' + lower));
+          if (suffixMatch.length > 0) suggestions = suffixMatch.slice(0, 3);
+        }
+        const hint = formatSuggestion(suggestions);
+        console.error(`Unknown sprintId: ${sprintId}.${hint ? ' ' + hint : ''}`);
+        console.error(`Valid sprint IDs: ${validSprintIds.join(', ') || '(none found)'}`);
+        process.exit(1);
+      }
+    }
   }
 
   let data;

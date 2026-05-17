@@ -5,6 +5,32 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.43.19] — 2026-05-17
+
+**G7 — Emit FK-check + reserved-prefix carve-out + orphan event-dir flagger.**
+
+### Added
+
+- `store-cli emit` — foreign-key check on `sprintId` arg. Rejects bare/unknown IDs
+  (e.g. `S01` instead of `FORGE-S01`) with structured error message including
+  `Unknown sprintId: <X>` + "Did you mean?" suggestion using Levenshtein + suffix
+  matching from `lib/suggest.cjs`.
+  Valid IDs = directory listing of `.forge/store/sprints/` + reserved `SYS-*` prefix.
+- `store-cli emit --allow-synthetic` — new flag bypasses the FK check for synthetic
+  or test-harness events. Documented in `--help`.
+- Reserved-prefix carve-out: any `SYS-*` pattern is accepted unconditionally
+  (system-generated events that predate sprint records).
+- `validate-store` Pass 2b — scans `.forge/store/events/` for subdirectories whose
+  name is not a known sprintId and does not match `SYS-*`. Flags each as
+  `ORPHAN_EVENT_DIR` warning (category preserved in `--json` mode). No auto-delete.
+
+### Tests
+
+All `node --test forge/tools/__tests__/*.test.cjs` pass (1302 tests). New FK-check
+cases in `store-cli.test.cjs`; new orphan-dir cases in `validate-store.test.cjs`.
+
+---
+
 ## [0.43.16] — 2026-05-15
 
 **Sprint finalization ceremony (Plan 12).** Pairs with forge-cli `v0.6.6`.

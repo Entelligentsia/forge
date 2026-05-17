@@ -274,13 +274,15 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const FIX_MODE = process.argv.includes('--fix');
 const JSON_MODE = process.argv.includes('--json');
 
-// Read engineering root and project prefix from config for filesystem consistency checks
+// Read engineering root, store root, and project prefix from config for filesystem consistency checks
 const CONFIG_PATH = '.forge/config.json';
 let engineeringRoot = 'engineering';
+let storeRootFromConfig = '.forge/store';
 let projectPrefix = '[A-Z]+';
 try {
   const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
   if (cfg.paths && cfg.paths.engineering) engineeringRoot = cfg.paths.engineering;
+  if (cfg.paths && cfg.paths.store) storeRootFromConfig = cfg.paths.store;
   if (cfg.project && cfg.project.prefix) projectPrefix = cfg.project.prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 } catch (_) {}
 
@@ -487,6 +489,25 @@ for (const sprint of allSprints) {
       err(`${sprintId}/${eventId}`, `taskId "${rec.taskId}" references unknown task or bug`, 'orphaned-fk', 'taskId', rec.taskId);
     if (rec.sprintId && !sprintIds.has(rec.sprintId) && rec.sprintId !== sprintId)
       err(`${sprintId}/${eventId}`, `sprintId "${rec.sprintId}" references unknown sprint`, 'orphaned-fk', 'sprintId', rec.sprintId);
+  }
+}
+
+// --- Pass 2b: Orphan event directories ---
+// Scan .forge/store/events/ for subdirectories whose name does not match any
+// known sprintId and is not a reserved SYS-* prefix.
+const RESERVED_EVENT_PREFIX = /^SYS-/;
+const eventsBaseDir = path.join(storeRootFromConfig, 'events');
+if (fs.existsSync(eventsBaseDir)) {
+  let eventDirEntries;
+  try { eventDirEntries = fs.readdirSync(eventsBaseDir); } catch (_) { eventDirEntries = []; }
+  for (const entry of eventDirEntries) {
+    if (RESERVED_EVENT_PREFIX.test(entry)) continue;  // reserved prefix — skip
+    if (sprintIds.has(entry)) continue;                // known sprint — skip
+    const entryPath = path.join(eventsBaseDir, entry);
+    let isDir = false;
+    try { isDir = fs.statSync(entryPath).isDirectory(); } catch (_) {}
+    if (!isDir) continue;  // non-directory entries — skip silently
+    warn(entry, `event directory "${entry}" has no matching sprint record (ORPHAN_EVENT_DIR)`, 'ORPHAN_EVENT_DIR');
   }
 }
 

@@ -18,6 +18,11 @@ function makeStore() {
   fs.mkdirSync(path.join(storeBase, 'tasks'), { recursive: true });
   fs.mkdirSync(path.join(storeBase, 'bugs'), { recursive: true });
   fs.mkdirSync(path.join(storeBase, 'events', 'SPRINT-01'), { recursive: true });
+  fs.mkdirSync(path.join(storeBase, 'sprints'), { recursive: true });
+  fs.writeFileSync(
+    path.join(storeBase, 'sprints', 'SPRINT-01.json'),
+    JSON.stringify({ sprintId: 'SPRINT-01', title: 'Test sprint', status: 'planning', taskIds: [], createdAt: '2026-01-01T00:00:00Z' }, null, 2)
+  );
   fs.writeFileSync(
     path.join(tmpDir, '.forge', 'config.json'),
     JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
