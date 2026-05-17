@@ -10,6 +10,28 @@
     "breaking": false,
     "manual": []
   },
+  "0.43.17": {
+    "version": "0.43.18",
+    "date": "2026-05-17",
+    "notes": "G4 — Vocab-drift detector and 'Did you mean?' suggestions across store-cli + validate.js error paths. New lib/suggest.cjs (Levenshtein + curated DRIFT_MAP) attaches suggestions at 12 store-cli error sites (entity types, transition rules, illegal transitions, unknown entity, unknown command) and at validate.js enum + undeclared-field errors. 46 suggest.test.cjs unit tests + 10 store-cli CLI integration tests added. Agent self-correction observed in fresh-corpus capture (e.g. `list tasks` → 'Did you mean \"task\"?'). Pairs with G3 aliases (0.43.17).",
+    "regenerate": [
+      "tools:store-cli",
+      "tools:validate-store"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "0.43.16": {
+    "version": "0.43.17",
+    "date": "2026-05-17",
+    "notes": "G3 — Six read-aliases for high-friction get ops on store-cli (get, get-task, get-bug, get-sprint, get-summary, get-bug-summary). ALIAS_MAP rewrites argv to ['read', entity, id, ...flags]; summary aliases route as direct cmdGetSummary/cmdGetBugSummary switch cases. Eliminates 37 of 39 erroring get* ops in the 927-op friction fixture (94.9%). Additive surface — no schema change, no removed verbs. 15 new node:test cases including byte-equality pairs and error variants. store-cli-verbs.md (base-pack + meta) refreshed.",
+    "regenerate": [
+      "tools:store-cli",
+      "workflows:_fragments_store-cli-verbs"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.43.15": {
     "version": "0.43.16",
     "date": "2026-05-15",

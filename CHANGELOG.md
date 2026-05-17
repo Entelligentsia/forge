@@ -7,6 +7,8 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ## [0.43.19] — 2026-05-17
 
+**FORGE-S22 STORE-TIGHTEN closure.** Sprint goal: drop store-op aggregate failure rate from 21.8% baseline to ≤12%. Closed PASS at 9.27% on the emberglow fresh-corpus capture (151 ops / 18 transcripts / 2 tasks). Versions 0.43.17 (G3 aliases), 0.43.18 (G4 vocab drift), and 0.43.19 (G7 FK-check) collectively deliver the sprint goals. Verification harness: forge-cli `test/analysis/store-friction/` (Mode A SHA256-pinned regression + Mode C live LLM testbench).
+
 **G7 — Emit FK-check + reserved-prefix carve-out + orphan event-dir flagger.**
 
 ### Added
@@ -28,6 +30,74 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 All `node --test forge/tools/__tests__/*.test.cjs` pass (1302 tests). New FK-check
 cases in `store-cli.test.cjs`; new orphan-dir cases in `validate-store.test.cjs`.
+
+---
+
+## [0.43.18] — 2026-05-17
+
+**G4 — Vocab-drift detector + "Did you mean?" suggestions.** Pairs with G3 (0.43.17) to make store-cli self-correcting under LLM-driven friction.
+
+### Added
+
+- `forge/tools/lib/suggest.cjs` — Levenshtein-based suggestion engine with curated `DRIFT_MAP`
+  (8 entries covering the most common LLM token drifts: `task` for `tasks`/`taske`,
+  `implementing` for `implementign`, `Approved` for `approved`/`approve`, etc.).
+  Public surface: `levenshtein()`, `suggest()`, `normalizeForMatch()`,
+  `formatSuggestion()`, `suggestEntityType()`.
+- `store-cli.cjs` — suggestions attached at 12 error sites: 7 entity-type rejection paths,
+  1 "No transition rules" error, 1 "Illegal transition" error, 2 "Unknown entity" paths,
+  and 1 "Unknown command" path.
+- `lib/validate.js` — enum-validation and undeclared-field errors now append a suggestion
+  when the offending value is within Levenshtein-2 of a valid alternative.
+
+### Why
+
+Fresh-corpus evidence (FORGE-S22-T06 emberglow capture) confirms agents self-correct
+when offered a suggestion: a `list tasks` → "Did you mean `task`?" cycle recovers
+on the next turn instead of escalating. Without the suggestion, the agent typically
+mis-attributes the failure.
+
+### Tests
+
+46 new unit tests in `suggest.test.cjs`; 10 new CLI integration tests in
+`store-cli.test.cjs`. All `node --test forge/tools/__tests__/*.test.cjs` pass.
+
+**Regenerate:** tools:store-cli, tools:validate-store
+
+---
+
+## [0.43.17] — 2026-05-17
+
+**G3 — Six read-aliases for high-friction `get` ops on `store-cli`.**
+
+### Added
+
+- `store-cli get <entity> <id>` — bare alias rewritten to `read <entity> <id>`.
+- `store-cli get-task <id>` — alias for `read task <id>`.
+- `store-cli get-bug <id>` — alias for `read bug <id>`.
+- `store-cli get-sprint <id>` — alias for `read sprint <id>`.
+- `store-cli get-summary <taskId> <phase>` — direct switch case `cmdGetSummary`
+  (never routed through `write`).
+- `store-cli get-bug-summary <bugId> <phase>` — direct switch case `cmdGetBugSummary`.
+
+`ALIAS_MAP` rewrites argv to `['read', entity, id, ...flags]` for the four bare
+read-aliases; the two summary aliases stay on their own switch arms to avoid any
+write-path coupling.
+
+### Why
+
+T01 friction fixture (927 ops, 21.8% baseline failure rate) had 39 erroring
+`get*` ops — agents reaching for `get-task`/`get-sprint`/`get-summary` patterns
+that did not exist. Adding the aliases eliminates 37 of those 39 (94.9%) without
+schema change or removed verbs.
+
+### Tests
+
+15 new node:test cases in `store-cli.test.cjs` covering each alias plus
+byte-equality pairs (`get-task X` == `read task X`) and error variants
+(missing args, unknown entity).
+
+**Regenerate:** tools:store-cli, workflows:_fragments_store-cli-verbs
 
 ---
 
