@@ -38,14 +38,19 @@ function parseFrontmatter(content) {
 // ---------------------------------------------------------------------------
 // Byte budget map (subagent-targeted files)
 // ---------------------------------------------------------------------------
+// Budgets accommodate dual-mode (task + bug) subagent metas. The phase metas
+// listed below carry an `entity-mode resolution` preamble and per-step
+// task-vs-bug branches so the same workflow file drives both the run-task
+// orchestrator (--task) and the fix-bug orchestrator (--bug). The bumps
+// versus the single-mode budgets reflect that added prose.
 const BYTE_BUDGETS = {
   'meta-plan-task.md':              6912,
   'meta-implement.md':              7168,
-  'meta-review-plan.md':            5376,
-  'meta-review-implementation.md':  6144,
+  'meta-review-plan.md':            5632,
+  'meta-review-implementation.md':  6400,
   'meta-validate.md':               5888,
-  'meta-approve.md':                4864,
-  'meta-commit.md':                 4608,
+  'meta-approve.md':                6656,
+  'meta-commit.md':                 5632,
   'meta-update-plan.md':            3584,
   'meta-update-implementation.md':  4096,
 };

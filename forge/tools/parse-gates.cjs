@@ -18,7 +18,13 @@
 const FENCE_OPEN = /^```gates\s+phase=([A-Za-z0-9_-]+)\s*$/;
 const FENCE_CLOSE = /^```\s*$/;
 
-const VALID_VERDICTS = new Set(['approved', 'revision']);
+// Verdicts a workflow can carry in an `after <phase> = <verdict>` directive.
+// Mirrors `read-verdict.cjs § ALLOWED_VERDICTS` — both must accept the same
+// set. `n/a` is the legitimate verdict for setup phases (plan, implement,
+// triage) that do not produce an approval/revision signal. Rejecting it
+// here caused EMBERGLOW-BUG-001 (v0.44.1) to halt at preflight exit 2
+// when the new fix-bug meta tried to use `after triage = n/a`.
+const VALID_VERDICTS = new Set(['approved', 'revision', 'n/a']);
 
 function parseGates(markdown) {
   if (typeof markdown !== 'string' || markdown.length === 0) return {};
@@ -142,7 +148,7 @@ function parseAfter(rest, lineNo) {
   const verdict = m[2].toLowerCase();
   if (!VALID_VERDICTS.has(verdict)) {
     throw new Error(
-      `parse-gates: line ${lineNo}: "after" verdict must be "approved" or "revision", got "${m[2]}"`,
+      `parse-gates: line ${lineNo}: "after" verdict must be "approved", "revision", or "n/a", got "${m[2]}"`,
     );
   }
   return { phase: m[1], verdict };

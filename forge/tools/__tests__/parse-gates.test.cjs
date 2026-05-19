@@ -130,13 +130,31 @@ describe('parse-gates.cjs :: parseGates()', () => {
     assert.throws(() => parseGates(md), /duplicate.*plan/i);
   });
 
-  test('after directive requires approved|revision verdict', () => {
+  test('after directive requires approved|revision|n/a verdict', () => {
     const md = [
       '```gates phase=implement',
       'after review-plan = maybe',
       '```',
     ].join('\n');
     assert.throws(() => parseGates(md), /verdict/i);
+  });
+
+  test('after directive accepts n/a verdict (setup phases like triage/plan)', () => {
+    // n/a is a legitimate verdict for non-review phases (plan, implement,
+    // triage) — see read-verdict.cjs ALLOWED_VERDICTS. The parser MUST
+    // accept it so meta-fix-bug.md gates like `after triage = n/a` parse.
+    // Previously rejected; surfaced as "preflight exit 2 (misconfigured)"
+    // on EMBERGLOW-BUG-001 first run.
+    const md = [
+      '```gates phase=plan',
+      'after triage = n/a',
+      '```',
+    ].join('\n');
+    const gates = parseGates(md);
+    assert.ok(gates.plan);
+    assert.equal(gates.plan.after.length, 1);
+    assert.equal(gates.plan.after[0].phase, 'triage');
+    assert.equal(gates.plan.after[0].verdict, 'n/a');
   });
 
   test('empty document returns empty object', () => {

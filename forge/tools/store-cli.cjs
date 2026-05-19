@@ -140,6 +140,12 @@ const { suggest, suggestEntityType, formatSuggestion } = require('./lib/suggest.
 const VALID_SUMMARY_PHASES = new Set(['plan', 'review_plan', 'implementation', 'code_review', 'validation', 'triage', 'approve']);
 
 // Schema for a single phase summary (used by set-summary / set-bug-summary)
+// Mirror of bug.schema.json § $defs.phaseSummary. Both definitions MUST stay
+// in sync — this constant validates set-summary / set-bug-summary writes;
+// the JSON schema validates entity reads. `route` is an optional triage-only
+// field carrying the fix-bug pipeline route decision (A | B) and exists here
+// for bug.summaries.triage in particular; non-triage phases simply do not
+// set it.
 const PHASE_SUMMARY_SCHEMA = {
   type: 'object',
   required: ['objective', 'written_at'],
@@ -149,7 +155,8 @@ const PHASE_SUMMARY_SCHEMA = {
     findings:    { type: 'array', items: { type: 'string', maxLength: 200 }, maxItems: 12 },
     verdict:     { type: 'string', enum: ['approved', 'revision', 'n/a'] },
     written_at:  { type: 'string' },
-    artifact_ref:{ type: 'string' }
+    artifact_ref:{ type: 'string' },
+    route:       { type: 'string', enum: ['A', 'B'] }
   },
   additionalProperties: false
 };
@@ -181,12 +188,21 @@ const SPRINT_TRANSITIONS = {
 };
 
 const BUG_TRANSITIONS = {
-  reported:     ['triaged'],
-  triaged:      ['in-progress'],
-  'in-progress': ['fixed', 'approved'],   // fixed: code complete; approved: architect direct sign-off
-  fixed:        ['approved', 'in-progress'],   // approved: architect sign-off; in-progress: revision
-  approved:     ['verified', 'in-progress', 'fixed'],   // verified: commit; in-progress/ fixed: revision
-  // Terminal: verified
+  reported:      ['triaged'],
+  triaged:       ['in-progress'],
+  'in-progress': ['fixed'],
+  // Terminal: fixed
+  //
+  // The `approved` and `verified` enum members were removed (forge#GH-NNN).
+  // The architect-approve verdict signal for bugs travels through
+  // `bug.summaries.approve.verdict` (see read-verdict.cjs §
+  // BUG_PHASE_VERDICT_SOURCE), not `bug.status`. Keeping them in the enum
+  // created an LLM-translation trap whereby a task-shaped approve workflow
+  // run on a bug improvised `update-status bug ... approved`, which failed
+  // either at the schema layer (illegal transition out of terminal
+  // `verified`) or, post-FORGE-BUG-002 preflight defence, at the gate
+  // layer (forbid bug.status == approved). Dropping the enum removes the
+  // trap at its source.
 };
 
 const FEATURE_TRANSITIONS = {
@@ -205,7 +221,7 @@ const TRANSITION_MAP = {
 const TERMINAL_STATES = new Set([
   'committed', 'abandoned',          // task
   'retrospective-done',              // sprint
-  'verified',                        // bug
+  'fixed',                           // bug
   'shipped', 'retired'               // feature
 ]);
 
@@ -785,10 +801,13 @@ function cmdEmit() {
   }
 
   // FK check: reject sprintIds that are not in the store and not reserved.
-  // SYS-* prefix is reserved for system-generated events that predate sprint records.
+  // Reserved sprintIds:
+  //   - SYS-*  — system-generated events that predate sprint records
+  //   - bugs   — virtual sprint dir for fix-bug phase events (see
+  //              meta/tool-specs/validate-store.spec.md §"event.sprintId")
   // --allow-synthetic bypasses the check for test-harness or synthetic events.
   if (!allowSynthetic) {
-    const RESERVED_GLOB = /^SYS-/;
+    const RESERVED_GLOB = /^(SYS-|bugs$)/;
     if (!RESERVED_GLOB.test(sprintId)) {
       const validSprintIds = resolveValidSprintIds();
       if (!validSprintIds.includes(sprintId)) {

@@ -494,8 +494,12 @@ for (const sprint of allSprints) {
 
 // --- Pass 2b: Orphan event directories ---
 // Scan .forge/store/events/ for subdirectories whose name does not match any
-// known sprintId and is not a reserved SYS-* prefix.
-const RESERVED_EVENT_PREFIX = /^SYS-/;
+// known sprintId and is not a reserved virtual dir.
+// Reserved:
+//   - SYS-* — system-generated events that predate sprint records
+//   - bugs  — virtual sprint dir for fix-bug phase events (see
+//             meta/tool-specs/validate-store.spec.md §"event.sprintId")
+const RESERVED_EVENT_PREFIX = /^(SYS-|bugs$)/;
 const eventsBaseDir = path.join(storeRootFromConfig, 'events');
 if (fs.existsSync(eventsBaseDir)) {
   let eventDirEntries;

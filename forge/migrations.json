@@ -1,4 +1,62 @@
 {
+  "0.44.3": {
+    "version": "0.44.4",
+    "date": "2026-05-19",
+    "notes": "Supervisor persona gains a top-level Iron Law forbidding `store-cli update-status` writes from any review phase. The workflow-level guard at meta-review-plan.md:76 and meta-review-implementation.md:82 (\"Bug mode — NO status write\") already existed; this is the persona-level reinforcement. Surfaced during FORGE-BUG-003 re-run testing of the forge-cli stale-ctx fix, where a supervisor subagent attempted `update-status bug FORGE-BUG-003 status plan-approved` against a bug already in terminal `fixed` state. store-cli correctly rejected the illegal transition; the persona update is defense-in-depth so the model stops attempting the write at all.",
+    "regenerate": ["personas:supervisor"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.44.2": {
+    "version": "0.44.3",
+    "date": "2026-05-19",
+    "notes": "Add `route` (enum [A, B]) to phaseSummary in bug.schema.json and the mirrored PHASE_SUMMARY_SCHEMA constant in store-cli.cjs. Required so triage subagents can record the fix-bug pipeline route decision via set-bug-summary. EMG-BUG-001 v0.44.2 first run failed with `route: undeclared field` because the schema's additionalProperties:false rejected the new field. Optional, triage-only by convention; non-triage phases ignore it.",
+    "regenerate": ["tools:store-cli", "schemas:bug"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.44.1": {
+    "version": "0.44.2",
+    "date": "2026-05-19",
+    "notes": "parse-gates.cjs now accepts `n/a` as a valid `after <phase> = <verdict>` directive value, matching read-verdict.cjs § ALLOWED_VERDICTS. EMBERGLOW-BUG-001 (v0.44.1 second run) halted at preflight exit 2 (gate misconfigured) because the new fix-bug meta uses `after triage = n/a` (legitimate for setup phases that produce verdict: \"n/a\") and the parser hardcoded the verdict set to {approved, revision}. Test added covering n/a parsing.",
+    "regenerate": ["tools:parse-gates"],
+    "breaking": false,
+    "manual": []
+  },
+  "0.44.0": {
+    "version": "0.44.1",
+    "date": "2026-05-19",
+    "notes": "Rename the triage route field from summaries.triage.path to summaries.triage.route to avoid collision with bug.path (artifact directory). Symptom from v0.44.0 first run on emberglow (EMBERGLOW-BUG-001): triage subagent wrote `\"path\": \"A\"` to the bug record, overwriting the artifact directory, causing TRIAGE.md to land under .forge/store/bugs/ instead of engineering/bugs/. Field is now `route`. The fix-bug meta carries a 'Field-naming caution' callout citing the regression so future readers understand why route is named route, not path.",
+    "regenerate": ["workflows:fix_bug"],
+    "breaking": false,
+    "manual": [
+      "If any bug at EMBERGLOW-BUG-001 vintage carries `path: \"A\"` or `path: \"B\"`, restore its real artifact directory before regeneration: FORGE_ALLOW_FORCE=1 node .forge/tools/store-cli.cjs write bug '{...corrected JSON with path: \"engineering/bugs/{slug}\"...}'"
+    ]
+  },
+  "0.43.19": {
+    "version": "0.44.0",
+    "date": "2026-05-19",
+    "notes": "fix-bug workflow rewrite — aligns with run-task persona/phase/state-transition model except for a single post-triage branch: Path A (short-circuit — minor severity, single-file ≤20-line diff, obvious regression test) skips plan-fix and review-plan; Path B (default, full loop) runs the entire pipeline. Six sub-workflows (plan_task, implement_plan, review_plan, review_code, architect_approve, commit_task) accept --bug in addition to --task and route bug-mode through BUG_PHASE_VERDICT_SOURCE in read-verdict.cjs. Bug status enum collapsed to reported→triaged→in-progress→fixed (terminal); removed approved and verified — vestigial states that produced the FORGE-BUG-002 LLM-translation trap. store-cli emit and validate-store now reserve the virtual sprint dir 'bugs' (matches validate-store.spec.md). collate.cjs reads bug events from the shared events/bugs/ directory filtered by event.bugId; new store.cjs purgeBugEvents filters and deletes only the target bug's events plus matching sidecars. Fixes silent cost-summary data loss and disk leak in bug-phase event tracking.",
+    "regenerate": [
+      "workflows:fix_bug",
+      "workflows:plan_task",
+      "workflows:implement_plan",
+      "workflows:review_plan",
+      "workflows:review_code",
+      "workflows:architect_approve",
+      "workflows:commit_task",
+      "tools:store-cli",
+      "tools:store",
+      "tools:validate-store",
+      "tools:collate",
+      "schemas:bug"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update to regenerate the seven workflows, four tools, and bug schema.",
+      "If any bug record in .forge/store/bugs/ has status 'approved' or 'verified', transition it to 'fixed' before regeneration — those enum values were removed. Use: FORGE_ALLOW_FORCE=1 node .forge/tools/store-cli.cjs update-status bug <BUG-ID> status fixed --force"
+    ]
+  },
   "0.43.18": {
     "version": "0.43.19",
     "date": "2026-05-17",

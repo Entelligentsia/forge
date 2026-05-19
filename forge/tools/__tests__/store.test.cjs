@@ -245,4 +245,80 @@ describe('store.cjs', () => {
       }, /escapes store root|aborting/i);
     });
   });
+
+  describe('purgeBugEvents (events/bugs/ filtered by bugId)', () => {
+    let tmpDir;
+    let impl;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-store-test-'));
+      const storeRoot = path.join(tmpDir, '.forge', 'store');
+      fs.mkdirSync(path.join(storeRoot, 'events', 'bugs'), { recursive: true });
+      const configPath = path.join(tmpDir, '.forge', 'config.json');
+      fs.writeFileSync(configPath, JSON.stringify({ paths: { store: storeRoot } }), 'utf8');
+      impl = new FSImpl(configPath);
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('purgeBugEvents removes only the matching bug\'s events from events/bugs/', () => {
+      // Three events: two for BUG-001, one for BUG-002.
+      impl.writeEvent('bugs', { eventId: 'E-001', bugId: 'PROJ-BUG-001', phase: 'triage' });
+      impl.writeEvent('bugs', { eventId: 'E-002', bugId: 'PROJ-BUG-001', phase: 'commit' });
+      impl.writeEvent('bugs', { eventId: 'E-003', bugId: 'PROJ-BUG-002', phase: 'triage' });
+
+      const result = impl.purgeBugEvents('PROJ-BUG-001');
+
+      assert.equal(result.fileCount, 2, `Expected 2 events purged, got ${result.fileCount}`);
+      assert.ok(result.purged, 'Expected purged=true');
+
+      // BUG-002's event must still be readable.
+      const remaining = impl.getEvent('E-003', 'bugs');
+      assert.ok(remaining, 'BUG-002 event should remain');
+
+      // BUG-001's events must be gone.
+      assert.equal(impl.getEvent('E-001', 'bugs'), null);
+      assert.equal(impl.getEvent('E-002', 'bugs'), null);
+    });
+
+    test('purgeBugEvents dry-run reports count but deletes nothing', () => {
+      impl.writeEvent('bugs', { eventId: 'E-001', bugId: 'PROJ-BUG-001', phase: 'triage' });
+      const result = impl.purgeBugEvents('PROJ-BUG-001', { dryRun: true });
+      assert.equal(result.purged, false);
+      assert.equal(result.fileCount, 1);
+      assert.ok(impl.getEvent('E-001', 'bugs'), 'Event should still exist after dry-run');
+    });
+
+    test('purgeBugEvents on a bug with no events returns fileCount=0', () => {
+      const result = impl.purgeBugEvents('PROJ-BUG-999');
+      assert.equal(result.fileCount, 0);
+      assert.equal(result.purged, false);
+    });
+
+    test('purgeBugEvents also purges sidecars whose eventId matches a purged primary', () => {
+      // Sidecars carry no bugId — they're matched by filename pattern
+      // `_{eventId}_usage.json` where {eventId} is a primary event being purged.
+      impl.writeEvent('bugs', { eventId: 'E-001', bugId: 'PROJ-BUG-001', phase: 'triage' });
+      impl.writeEvent('bugs', { eventId: 'E-002', bugId: 'PROJ-BUG-002', phase: 'triage' });
+
+      const eventsBugsDir = path.join(tmpDir, '.forge', 'store', 'events', 'bugs');
+      // Sidecar for BUG-001's event — should be purged
+      fs.writeFileSync(
+        path.join(eventsBugsDir, '_E-001_usage.json'),
+        JSON.stringify({ eventId: 'E-001', inputTokens: 100 })
+      );
+      // Sidecar for BUG-002's event — should NOT be purged
+      fs.writeFileSync(
+        path.join(eventsBugsDir, '_E-002_usage.json'),
+        JSON.stringify({ eventId: 'E-002', inputTokens: 200 })
+      );
+
+      const result = impl.purgeBugEvents('PROJ-BUG-001');
+      assert.equal(result.fileCount, 2, `Expected 2 files purged (E-001 primary + sidecar), got ${result.fileCount}`);
+      assert.ok(!fs.existsSync(path.join(eventsBugsDir, '_E-001_usage.json')), 'BUG-001 sidecar should be deleted');
+      assert.ok( fs.existsSync(path.join(eventsBugsDir, '_E-002_usage.json')), 'BUG-002 sidecar must remain');
+    });
+  });
 });

@@ -9,7 +9,7 @@
     "title":               { "type": "string" },
     "description":         { "type": "string" },
     "severity":            { "type": "string", "enum": ["critical", "major", "minor"] },
-    "status":              { "type": "string", "enum": ["reported", "triaged", "in-progress", "fixed", "approved", "verified"] },
+    "status":              { "type": "string", "enum": ["reported", "triaged", "in-progress", "fixed"] },
     "path":                { "type": "string" },
     "rootCauseCategory": {
       "type": "string",
@@ -47,7 +47,8 @@
         "findings":    { "type": "array", "items": { "type": "string", "maxLength": 200 }, "maxItems": 12 },
         "verdict":     { "type": "string", "enum": ["approved", "revision", "n/a"] },
         "written_at":  { "type": "string", "format": "date-time" },
-        "artifact_ref":{ "type": "string", "description": "Relative path to the full artifact" }
+        "artifact_ref":{ "type": "string", "description": "Relative path to the full artifact" },
+        "route":       { "type": "string", "enum": ["A", "B"], "description": "Fix-bug pipeline route decision. Only set on the triage phase summary by meta-fix-bug.md. A = short-circuit (skip plan-fix + review-plan); B = full loop (default). Optional and meaningless on non-triage phases — see meta-fix-bug.md § Triage Judgement." }
       },
       "additionalProperties": false
     }

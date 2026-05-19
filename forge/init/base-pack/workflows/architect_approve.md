@@ -45,7 +45,8 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
 
 0. Pre-flight Gate Check:
    - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
-   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase approve --task {taskId}`
+   - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
+   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase approve --{entity_kind} {record_id}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
@@ -69,9 +70,34 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
      - Approval status rationale
      - Deployment notes
      - Follow-up items for future sprints
-   - The downstream commit-phase preflight gate does NOT read this markdown; it reads `task.status === "approved"` set in step 4. The `**Verdict:**` line is a human breadcrumb only.
+   - The downstream commit-phase preflight gate does NOT read this markdown. **Task mode:** it reads `task.status === "approved"` set in step 4. **Bug mode:** it reads `bug.summaries.approve.verdict === "approved"` set in step 5. The `**Verdict:**` line is a human breadcrumb only.
 
 4. Finalize:
-   - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status approved`
+   - Transitions:
+     - **Task mode** — Update status: `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status approved`. The status IS the verdict signal for task-mode commit gate (`STATUS_SOURCE` in `read-verdict.cjs`).
+     - **Bug mode** — NO status write. The bug remains `in-progress`. The verdict signal travels through `summaries.approve.verdict` written in step 5 below (read by `read-verdict.cjs § BUG_PHASE_VERDICT_SOURCE`). Writing `bug.status` here — especially writing `approved` or `verified` — violates `meta-fix-bug.md § Iron Laws #2` and is the trap that produced the FORGE-BUG-002 regression.
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
+
+5. Emit Summary Sidecar:
+   - Write `APPROVE-SUMMARY.json` to the record's directory with the following shape:
+     ```json
+     {
+       "objective":   "<one sentence — what this approval covered>",
+       "findings":    ["<up to 12 bullets, 200 chars each — architectural notes, deployment concerns>"],
+       "verdict":     "<approved | revision>",
+       "written_at":  "<current ISO 8601 timestamp>",
+       "artifact_ref":"ARCHITECT_APPROVAL.md"
+     }
+     ```
+   - Call (task mode) — optional for tasks, since `task.status` is the canonical signal:
+     ```
+     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {taskId} approve \
+       engineering/sprints/{sprint}/{task}/APPROVE-SUMMARY.json
+     ```
+     Or (bug mode) — REQUIRED for bugs, this is the canonical verdict signal:
+     ```
+     node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bugId} approve \
+       engineering/bugs/{bugDir}/APPROVE-SUMMARY.json
+     ```
+   - In bug mode, if the set-bug-summary call exits non-zero, fix the sidecar JSON and retry. Do not return without a valid summary — the downstream commit gate has no other way to read the approval verdict.
 ```

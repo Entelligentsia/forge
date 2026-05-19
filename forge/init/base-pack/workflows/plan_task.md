@@ -27,7 +27,8 @@ deps:
 
 0. Pre-flight Gate Check:
    - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
-   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase plan --task {taskId}`
+   - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
+   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase plan --{entity_kind} {record_id}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
@@ -64,14 +65,14 @@ deps:
    - If new patterns were discovered, update architecture or business domain docs
 
 5. Finalize:
-   - Transitions: task FSM legal targets from this step
-     - `draft` → `planned` (this workflow's only legal target)
-     - Out-of-band escapes (any state): `plan-revision-required`, `code-revision-required`, `blocked`, `escalated`, `abandoned`
-   - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status planned`
+   - Transitions:
+     - **Task mode** — legal target from this step: `draft → planned`. Out-of-band escapes (any state): `plan-revision-required`, `code-revision-required`, `blocked`, `escalated`, `abandoned`.
+       Update status: `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status planned`
+     - **Bug mode** — NO status write. The bug remains `in-progress` until the commit phase transitions it to `fixed`. Writing `bug.status` here violates `meta-fix-bug.md § Iron Laws #2`.
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
 6. Emit Summary Sidecar:
-   - Write `PLAN-SUMMARY.json` to the task directory with the following shape:
+   - Write `PLAN-SUMMARY.json` (task mode) or `BUG-FIX-PLAN-SUMMARY.json` (bug mode) to the record's directory. Shape:
      ```json
      {
        "objective":   "<one sentence — what this plan sets out to build>",
@@ -81,12 +82,17 @@ deps:
        "artifact_ref":"PLAN.md"
      }
      ```
-   - Call:
+   - Call (task mode):
      ```
-     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {task_id} plan \
+     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {taskId} plan \
        engineering/sprints/{sprint}/{task}/PLAN-SUMMARY.json
      ```
-   - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
+     Or (bug mode):
+     ```
+     node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bugId} plan \
+       engineering/bugs/{bugDir}/BUG-FIX-PLAN-SUMMARY.json
+     ```
+   - If the set-summary call exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 
 ## Iron Laws

@@ -56,6 +56,7 @@ class Store {
    * @returns {{ purged: boolean, fileCount: number, files: string[] }}
    */
   purgeEvents(sprintId, opts) { return this.impl.purgeEvents(sprintId, opts); }
+  purgeBugEvents(bugId, opts) { return this.impl.purgeBugEvents(bugId, opts); }
   /**
    * List event filenames for a sprint directory.
    * @param {string} sprintId
@@ -285,6 +286,66 @@ class FSImpl {
     }
     fs.rmSync(eventsDir, { recursive: true, force: true });
     return { purged: true, fileCount: files.length, files };
+  }
+
+  /**
+   * Purge only the events belonging to a specific bug from the shared
+   * `.forge/store/events/bugs/` virtual sprint dir.
+   *
+   * Bugs share a single events directory (`events/bugs/`) — see
+   * `meta-fix-bug.md § Event Emission` and `validate-store.spec.md`. Purging
+   * by bug therefore must filter primary events by `event.bugId === bugId`
+   * and sweep sidecars whose filename pattern `_{eventId}_usage.json`
+   * matches a purged primary. The `events/bugs/` directory itself is
+   * never removed — other bugs' events remain.
+   *
+   * Returns `{ purged, fileCount, files }` matching `purgeEvents`.
+   */
+  purgeBugEvents(bugId, { dryRun = false } = {}) {
+    const eventsBugsDir = path.join(this.storeRoot, 'events', 'bugs');
+    if (!fs.existsSync(eventsBugsDir)) {
+      return { purged: false, fileCount: 0, files: [] };
+    }
+
+    const all = fs.readdirSync(eventsBugsDir).filter(f => f.endsWith('.json'));
+    const primaries = all.filter(f => !f.startsWith('_'));
+    const sidecars  = all.filter(f =>  f.startsWith('_') && f.endsWith('_usage.json'));
+
+    // Identify primaries whose payload.bugId matches the requested bug.
+    const matchedPrimaries = [];
+    const matchedEventIds = new Set();
+    for (const filename of primaries) {
+      const filePath = path.join(eventsBugsDir, filename);
+      let payload;
+      try {
+        payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      } catch (_) {
+        continue; // malformed file — skip
+      }
+      if (payload && payload.bugId === bugId) {
+        matchedPrimaries.push(filename);
+        if (payload.eventId) matchedEventIds.add(payload.eventId);
+      }
+    }
+
+    // Match sidecars by filename pattern: `_{eventId}_usage.json`.
+    const matchedSidecars = sidecars.filter(filename => {
+      const m = filename.match(/^_(.+)_usage\.json$/);
+      return m && matchedEventIds.has(m[1]);
+    });
+
+    const allMatches = [...matchedPrimaries, ...matchedSidecars];
+    if (dryRun) {
+      return { purged: false, fileCount: allMatches.length, files: allMatches };
+    }
+    for (const filename of allMatches) {
+      fs.unlinkSync(path.join(eventsBugsDir, filename));
+    }
+    return {
+      purged: allMatches.length > 0,
+      fileCount: allMatches.length,
+      files: allMatches,
+    };
   }
 
   /**

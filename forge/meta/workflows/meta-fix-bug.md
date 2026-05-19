@@ -1,15 +1,16 @@
 ---
 requirements:
-  reasoning: Medium
+  reasoning: High
   context: Medium
   speed: Medium
 audience: orchestrator-only
 deps:
-  personas: [bug-fixer]
-  skills: [bug-fixer, generic]
+  personas: [bug-fixer, supervisor, architect, engineer, collator]
+  skills: [bug-fixer, supervisor, architect, engineer, generic]
   templates: [PROGRESS_TEMPLATE]
-  sub_workflows: [review_code]
+  sub_workflows: [plan_task, implement_plan, review_plan, review_code, architect_approve, commit_task]
   kb_docs: [architecture/stack.md, architecture/routing.md]
+  context_pack: .forge/cache/context-pack.md
   config_fields: [commands.test, paths.engineering]
 ---
 
@@ -17,219 +18,288 @@ deps:
 
 ## Purpose
 
-Triage and resolve a reported bug. This follows the same rigorous pipeline as a standard task.
+Drive a single bug through its complete lifecycle. The pipeline mirrors
+`meta-orchestrate.md` so personas, phases, gates, and event emission stay
+identical — the only deviation is **the judgement step after triage**, which
+branches the bug into a short Path A or the full Path B. Everything past the
+branch reuses the run-task phases verbatim.
+
+## Pipeline Phases
+
+A fix-bug pipeline has these phases (mirrors `meta-orchestrate.md § Pipeline
+Phases`):
+
+| Phase | Role | Persona | Workflow | Path A | Path B |
+|---|---|---|---|---|---|
+| triage | `triage` | bug-fixer | (inline algorithm) | yes | yes |
+| plan-fix | `plan` | engineer | `plan_task.md` (bug-mode) | no | yes |
+| review-plan | `review-plan` | supervisor | `review_plan.md` | no | yes |
+| implement | `implement` | engineer | `implement_plan.md` (bug-mode) | yes | yes |
+| review-code | `review-code` | supervisor | `review_code.md` | yes | yes |
+| approve | `approve` | architect | `architect_approve.md` (bug-mode) | yes | yes |
+| commit | `commit` | engineer | `commit_task.md` (bug-mode) | yes | yes |
+| finalize | `finalize` | collator | (inline algorithm) | yes | yes |
+
+Phases past triage are the same workflows used by the run-task pipeline. The
+generated orchestrator passes `--bug {bugId}` (in place of `--task {taskId}`)
+to every sub-workflow and to `preflight-gate.cjs`. Sub-workflows resolve the
+record kind from the flag and adjust their verdict-source mapping via
+`BUG_PHASE_VERDICT_SOURCE` in `tools/read-verdict.cjs`.
+
+## Status State Machine
+
+Bug status writes are owned by specific phases — never by the workflow source
+in finalize, never by an LLM improvising on a task workflow.
+
+```
+reported -> triaged -> in-progress -> fixed
+                       (terminal)
+```
+
+| Transition | Owner | Trigger |
+|---|---|---|
+| `reported → triaged` | triage subagent | after reproduction confirmed |
+| `triaged → in-progress` | triage subagent | after route decision recorded in `summaries.triage.route` |
+| `in-progress → fixed` | commit phase | after git commit succeeds (terminal) |
+
+The schema's `approved` and `verified` enum members are vestigial — no phase in
+this workflow writes them, and the verdict gate reads
+`summaries.approve.verdict`, not `bug.status`. A follow-up cleanup should drop
+both members from `bug.schema.json` to remove the runtime trap. Until then,
+this workflow MUST NOT write either value. The Phase Gates below `forbid`
+them defensively.
+
+## Triage Judgement (the only run-task deviation)
+
+After the triage subagent reproduces the bug and confirms root cause, it MUST
+record a **route** decision in its summary:
+
+```json
+{
+  "objective": "Triage FORGE-BUG-NNN — reproduce, locate, decide route.",
+  "key_changes": [...],
+  "findings": [
+    "Root cause: <one line>",
+    "Reproduction: <one line>",
+    "Route decision: A | B",
+    "Rationale: <one line>"
+  ],
+  "verdict": "n/a",
+  "written_at": "<iso>",
+  "artifact_ref": "TRIAGE.md",
+  "route": "A"
+}
+```
+
+The `route` field is required. Allowed values: `"A"` or `"B"`.
+
+> **Field-naming caution — runtime-tested.** The route field is named
+> `route`, never `path`. The bug schema's top-level `path` field is the
+> bug's **artifact directory** (e.g. `engineering/bugs/EMG-BUG-001-...`).
+> Conflating the two caused EMBERGLOW-BUG-001 (v0.44.0 first run) to land
+> its `TRIAGE.md` under `.forge/store/bugs/` instead of `engineering/bugs/`.
+> Triage subagents MUST NOT touch `bug.path` — that field is set at bug
+> creation and never modified by triage.
+
+### Path A — short-circuit (eligibility)
+
+Path A is **eligible only when ALL** of the following hold. Triage subagent
+must enumerate each in its findings:
+
+- `bug.severity ∈ {minor}`
+- Fix is contained in a single file
+- Estimated diff ≤ ~20 lines (judgement call; one screen)
+- No schema, API, migration, security, or build-system change
+- A regression test is obvious from the reproduction script (single short
+  test case, no new fixtures, no test-harness change)
+
+If any criterion fails, the triage subagent MUST select Path B.
+
+### Path B — full loop (default)
+
+Path B runs the same plan/review/implement/review/approve/commit shape as
+`meta-orchestrate.md`. It is the default. Any uncertainty defaults Path B.
+
+### Pipeline selection by path
+
+```
+phases_A = [triage, implement, review-code, approve, commit, finalize]
+phases_B = [triage, plan-fix, review-plan, implement, review-code, approve, commit, finalize]
+
+if summaries.triage.route == "A": phases = phases_A
+else:                            phases = phases_B
+```
+
+The orchestrator MUST read `summaries.triage.route` from the bug record after
+the triage subagent returns and select the phase list before entering the main
+loop. The selection is final for the run — no mid-pipeline switching.
+
+## Pipeline Resolution
+
+Fix-bug does **not** read `task.pipeline` from config. The path-branch decision
+above replaces the task pipeline lookup. The orchestrator MAY honour
+`config.pipelines.bug` to override the default Path A / Path B phase lists,
+mirroring `meta-orchestrate.md § Pipeline Resolution`; if unset, the lists
+above are used.
 
 ## Algorithm
 
+The fix-bug orchestrator MUST follow this procedure exactly. The structure
+mirrors `meta-orchestrate.md § Execution Algorithm` — same persona-map, same
+banner-map, same cluster detection, same preflight gate, same event emission.
+Differences are confined to the **triage** step and the **path branch**.
+
 ```
-1. Triage:
-   - If the bug ID is known, query the store for context before navigating the KB:
-     ```sh
-     node "$FORGE_ROOT/tools/store-cli.cjs" nlp "{bugId} with blocked tasks"
-     ```
-     If results include title, status, sprint, blocked tasks, and excerpt, use them directly.
-     Fall back to reading MASTER_INDEX.md manually only if the query returns empty or low-confidence results.
+1. Pre-loop setup (mirrors meta-orchestrate.md):
+   - Resolve FORGE_ROOT.
+   - Detect execution cluster from ANTHROPIC_DEFAULT_*_MODEL env vars.
+   - Clear progress log: store-cli progress-clear bugs
+   - Read bug record. If status ∈ {blocked, escalated, fixed, abandoned}:
+     skip the run, emit a single `bug_skipped` event, return.
+
+2. Triage:
    - Locate or create the bug record (MANDATORY — do this before anything else):
      a. Determine the bug ID: if $ARGUMENTS is an existing FORGE-BUG-NNN ID, use it.
         Otherwise derive the next available ID by listing .forge/store/bugs/.
-     b. If .forge/store/bugs/{BUG_ID}.json does NOT exist:
-        - Derive a short slug from the bug title (kebab-case, ≤ 5 words)
-        - Create the engineering folder:
-            mkdir -p engineering/bugs/{BUG_ID}-{slug}
-        - Write the bug record via store-cli — NEVER write the file directly:
-            node "$FORGE_ROOT/tools/store-cli.cjs" write bug '{
-              "bugId":       "{BUG_ID}",
-              "title":       "<from input>",
-              "description": "<from input>",
-              "severity":    "<assessed: critical|major|minor>",
-              "status":      "reported",
-              "path":        "engineering/bugs/{BUG_ID}-{slug}",
-              "reportedAt":  "<current ISO timestamp>"
-            }'
-        - If $ARGUMENTS contains a GitHub issue URL, include it as "githubIssue"
-          in the JSON above — it is a valid schema field.
-     c. Read the now-guaranteed record:
-            node "$FORGE_ROOT/tools/store-cli.cjs" read bug {BUG_ID} --json
-   - Reproduce the bug: create a failing test case or a reproduction script
-   - Confirm the root cause via codebase research
-   - After creating the bug record, transition to in-progress:
-     ```sh
-     node "$FORGE_ROOT/tools/store-cli.cjs" update-status bug {BUG_ID} status triaged
-     node "$FORGE_ROOT/tools/store-cli.cjs" update-status bug {BUG_ID} status in-progress
-     ```
+     b. If .forge/store/bugs/{BUG_ID}.json does NOT exist, write a fresh record
+        via store-cli with status="reported".
+     c. Read the now-guaranteed record.
+   - Spawn the triage subagent (persona: bug-fixer). It MUST:
+     • Reproduce the bug (failing test or reproduction script).
+     • Confirm the root cause via codebase research.
+     • Decide Path A vs Path B by the criteria above.
+     • Write TRIAGE.md and TRIAGE-SUMMARY.json (with `path` field).
+     • Call set-bug-summary {bugId} triage TRIAGE-SUMMARY.json
+   - On return, orchestrator transitions status:
+       store-cli update-status bug {bugId} status triaged
+       store-cli update-status bug {bugId} status in-progress
+   - Read summaries.triage.route. If neither "A" nor "B": escalate
+     (verdict_malformed). Do not guess.
 
-2. Plan:
-   - Generate BUG_FIX_PLAN.md following the plan template
-   - Define the "Success Condition": how the reproduction script/test will now pass
+3. Path selection:
+   - phases = phases_A if route == "A" else phases_B
+   - Begin main phase loop.
 
-3. Implementation:
-   - Implement the fix following the approved plan
-   - Verify the fix using the reproduction script/test
-   - Run regression tests to ensure no side effects
+4. Phase loop (identical to meta-orchestrate.md § Execution Algorithm):
+   for each phase in phases[1:]:    # triage already done
+     - Resolve model (cluster + ROLE_TIER).
+     - Compute eventId, agent_name, banner_name (from PERSONA_MAP /
+       BANNER_MAP below).
+     - Announce phase: banner + "→ {bugId}  [{display_model}]".
+     - Start progress Monitor on .forge/store/events/bugs/progress.log.
+     - Preflight gate: preflight-gate.cjs --phase {role} --bug {bugId}
+       Exit 1 or 2 → escalate (see meta-orchestrate.md § Escalation Procedure)
+       with bug_id substituted for task_id. Update bug.status to "escalated"
+       only if it is currently "in-progress" (do not downgrade other states).
+     - Compose role-block, architecture-block, summary-block, overlay (via
+       build-overlay.cjs --bug {bugId}).
+     - Spawn subagent via Agent tool. Subagent prompt passes:
+         sprint_or_bug_id = "bugs"   # virtual sprint dir for emit/sidecar
+         record_id        = {bugId}
+         sidecar_path     = .forge/store/events/bugs/_{event_id}_usage.json
+     - On return: merge sidecar, emit canonical event (orchestrator-owned),
+       stop progress Monitor, print phase-exit signal (✓ / ↻ / ⚠), run
+       /compact with checkpoint line.
+     - If phase is a review and verdict == "revision": re-enter the loop
+       on the on_revision predecessor up to max_iterations. Exhaust →
+       escalate (see meta-orchestrate.md § Escalation Procedure).
 
-4. Documentation:
-   - Update the bug record in the store with:
-     - Root cause analysis
-     - Fix description
-     - Verification evidence
+5. Phase-specific responsibilities (sub-workflow contracts):
+   - plan-fix (Path B): engineer writes BUG_FIX_PLAN.md and BUG-FIX-PLAN-SUMMARY.json
+     (verdict: "n/a"). No status write.
+   - review-plan (Path B): supervisor writes REVIEW-PLAN-SUMMARY.json
+     (verdict: approved | revision). No status write.
+   - implement: engineer (or bug-fixer for Path A) applies the fix, runs the
+     regression test, writes IMPLEMENTATION-SUMMARY.json (verdict: "n/a").
+     No status write — bug stays at "in-progress".
+   - review-code: supervisor reads the actual diff and the regression test,
+     writes REVIEW-CODE-SUMMARY.json (verdict: approved | revision).
+   - approve: architect writes ARCHITECT_APPROVAL.md and APPROVE-SUMMARY.json
+     (verdict: approved | revision). No status write — the verdict signal is
+     the summary, not bug.status (see read-verdict.cjs:44).
+   - commit: engineer makes the git commit and runs:
+       store-cli update-status bug {bugId} status fixed
+     Then writes COMMIT-SUMMARY.json (verdict: "n/a"). This is the ONLY
+     phase that writes bug.status post-triage.
 
-5. Summary Sidecars:
-   - After each phase completes its artifact, emit a summary sidecar and register it via `set-bug-summary`.
-   - **After Plan phase:**
-     Write `BUG-FIX-PLAN-SUMMARY.json` in the bug directory:
-     `{ "objective": "...", "key_changes": [...], "verdict": "n/a", "written_at": "...", "artifact_ref": "BUG_FIX_PLAN.md" }`
-     Then: `node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bug_id} plan engineering/bugs/{bug_dir}/BUG-FIX-PLAN-SUMMARY.json`
-   - **After Review phases:**
-     Write `REVIEW-PLAN-SUMMARY.json` or `REVIEW-IMPL-SUMMARY.json` with `findings`, `verdict` (approved|revision), and `artifact_ref`.
-     Then: `node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bug_id} review_plan|code_review ...SUMMARY.json`
-   - **After Implement phase:**
-     Write `IMPLEMENTATION-SUMMARY.json` with `key_changes` and `verdict: "n/a"`.
-     Then: `node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bug_id} implementation ...SUMMARY.json`
-   - **After Approve phase:**
-     Write `APPROVE-SUMMARY.json` with `objective`, `verdict` (approved|revision), and `artifact_ref`.
-     Then: `node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bug_id} approve ...APPROVE-SUMMARY.json`
-   - If set-bug-summary exits non-zero, fix the JSON and retry before proceeding.
-
-6. Finalize:
-     first so the sidecar is written before the event directory is purged
-   - Summarise accumulated cost data into the bug artifact:
-     read all events from `.forge/store/events/{bugId}/`, aggregate
-     inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, and
-     estimatedCostUSD across all events that carry token fields, and
-     append a `## Cost Summary` section to the bug's markdown artifact
-     (e.g. `engineering/bugs/{bugDir}/BUG_ANALYSIS.md` or equivalent).
-     Format: one line per phase event, total row at the bottom.
-     If no events carry token data, skip this section silently.
-   - Run `node "$FORGE_ROOT/tools/collate.cjs" {bugId} --purge-events`
-     This purges `.forge/store/events/{bugId}/` deterministically.
-     The cost summary written to the bug artifact above is the durable
-     record; no COST_REPORT.md is generated for bug IDs (collate skips
-     sprint processing when the ID is not a known sprint).
-   - **Finalize gate: verify collate succeeded.** Run the finalize
-     phase gate before marking the bug as fixed:
-       `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase finalize --bug {bugId}`
-     This checks that `INDEX.md` exists in the bug's engineering directory.
-     If the gate fails (exit 1), collate did not produce the required
-     INDEX.md — do NOT mark the bug as fixed. Escalate to the human
-     with the missing artifacts listed on stderr.
-     If exit 2 (misconfiguration), escalate immediately.
-   - Update bug status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status bug {bugId} status fixed`
-   - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
-     (tombstone — written after the purge; the only event that will remain)
+6. Finalize (collator, housekeeping):
+   - Aggregate cost data from .forge/store/events/bugs/*.json filtered by
+     this bugId, and append a "## Cost Summary" section to the bug's
+     INDEX.md artifact.
+   - Run `node "$FORGE_ROOT/tools/collate.cjs" {bugId} --purge-events`.
+     Collate purges only this bug's events from the shared bugs/ dir
+     (filtered by bugId reference) — it does NOT purge other bugs' events.
+   - Run preflight finalize gate: preflight-gate.cjs --phase finalize --bug {bugId}.
+     Exit 1 → escalate. Do NOT downgrade bug.status (it is already "fixed").
+   - Do NOT emit a phase event yourself. The orchestrator owns event
+     emission for finalize as it does for every other phase — composed from
+     runtime telemetry plus the collator's summary.
 ```
 
-## Generation Instructions
+## Persona and Banner Maps
 
-- Begin by reading `.forge/personas/bug-fixer.md`. No banner command as first action — orchestrator owns banners.
-- Follow the strict "Algorithm" block format.
-- Symmetric injection pattern: `[Persona] -> [Skill] -> [Workflow]` for every subagent.
-- No inline triage or fix logic; use the `Agent` tool for sub-tasks.
-- Reference project-specific bug reporting paths.
-- Token reporting: see `_fragments/finalize.md` — wire via `file_ref:` in each phase subagent prompt.
-- Event emission: "complete" event MUST include the `eventId` passed by the orchestrator.
-
-## Announcement Algorithm
-
-The generated `fix_bug.md` MUST include the following verbatim algorithm for phase announcements and symmetric persona/skill injection. This mirrors the pattern from `meta-orchestrate.md`.
+Mirrors `meta-orchestrate.md` for shared roles. Bug-only role is `triage`.
 
 ```
 # --- Role-to-noun mapping (persona and skill file lookups) ---
 ROLE_TO_NOUN = {
-  "plan-fix":    "bug-fixer",
-  "review-plan": "supervisor",
-  "implement":   "bug-fixer",
+  "triage":      "bug-fixer",
+  "plan":        "engineer",         # Path B only
+  "review-plan": "supervisor",       # Path B only
+  "implement":   "engineer",
   "review-code": "supervisor",
   "approve":     "architect",
   "commit":      "engineer",
+  "finalize":    "collator",
 }
 # Default fallback: "bug-fixer"
 
 # --- Persona symbol lookup (emoji, name, tagline) ---
 PERSONA_MAP = {
-  "plan-fix":    ("🍂", "Bug Fixer",  "I find what has decayed and restore it."),
+  "triage":      ("🍂", "Bug Fixer",  "I find what has decayed and decide the path."),
+  "plan":        ("🌱", "Engineer",   "I plan what will be built before any code is written."),
   "review-plan": ("🌿", "Supervisor", "I review before things move forward. I read the actual fix, not just the plan."),
-  "implement":   ("🍂", "Bug Fixer",  "I find what has decayed and restore it."),
+  "implement":   ("🌱", "Engineer",   "I build what was planned. I do not move forward until the code is clean."),
   "review-code": ("🌿", "Supervisor", "I review before things move forward. I read the actual code, not the report."),
   "approve":     ("🗻", "Architect",  "I hold the shape of the whole. I give final sign-off before commit."),
   "commit":      ("🌱", "Engineer",   "I close out completed work with a clean, honest commit."),
+  "finalize":    ("🍃", "Collator",   "I gather what exists and arrange it into views."),
 }
-# Default fallback: ("🍂", "Bug Fixer", "I find what has decayed and restore it.")
+# Default fallback: ("🍂", "Bug Fixer", "I find what has decayed and decide the path.")
 
 # --- Banner identity map (banner name per phase role) ---
-# Displayed by the orchestrator ONLY (badge before spawn, exit signal after return).
-# Subagents do NOT display banners — the orchestrator owns phase announcements.
 BANNER_MAP = {
-  "plan-fix":    "rift",
+  "triage":      "rift",
+  "plan":        "forge",
   "review-plan": "oracle",
-  "implement":   "rift",
+  "implement":   "forge",
   "review-code": "oracle",
   "approve":     "north",
   "commit":      "forge",
+  "finalize":    "drift",
 }
 # Default fallback: "rift"
+```
 
-# --- Clear progress log for this bug ---
-progress_log_path = ".forge/store/events/bugs/progress.log"
-run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/store-cli.cjs" progress-clear bugs')
+## Subagent Prompt Composition
 
-# --- Announce phase with identity banner (badge) + bug context ---
-emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🍂", "Bug Fixer", "I find what has decayed and restore it."))
-banner_name = BANNER_MAP.get(phase.role, "rift")
-run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name}')
-print(f"  → {bug_id}  [{phase_model}]\n")
+Identical pattern to `meta-orchestrate.md § Execution Algorithm`. The only
+differences are:
 
-# --- Compute agent name for progress IPC ---
-persona_noun = ROLE_TO_NOUN.get(phase.role, "bug-fixer")
-iteration = iteration_counts.get(phase.name, 0) + 1
-agent_name = f"{bug_id}:{persona_noun}:{phase.role}:{iteration}"
+- `--bug {bugId}` flag passed to preflight-gate.cjs and sub-workflows.
+- `sprint_or_bug_id = "bugs"` for emit/sidecar/progress (virtual sprint dir).
+- `build-overlay.cjs --bug {bugId}` for the overlay (matches the task pattern
+  `build-overlay.cjs --task {taskId}`).
+- Sidecar path uses `.forge/store/events/bugs/_{event_id}_usage.json` — the
+  shared bugs virtual dir. Collate filters by bug reference at purge time.
 
-# --- Start progress Monitor before spawning subagent ---
-start_monitor(
-  command=f"tail -n +1 -F {progress_log_path} 2>/dev/null || true",
-  description=f"Progress: {agent_name}",
-  persistent=False
-)
-
-# --- Pre-flight gate check (see Phase Gates below) ---
-# Halts the fix-bug loop if prerequisites are missing or a predecessor
-# review did not clear. Same tool as meta-orchestrate.
-FORGE_ROOT = resolve_forge_root()
-preflight_result = run_bash(
-  f'node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase {phase.role} --bug {bug_id}'
-)
-if preflight_result.exit_code == 1:
-  print(f"  ✗ {bug_id}  {phase.role}  — gate failed\n{preflight_result.stderr}")
-  escalate_to_human(bug, phase, reason=f"gate_failed: {preflight_result.stderr}")
-  break
-elif preflight_result.exit_code == 2:
-  print(f"  ⚠ {bug_id}  {phase.role}  — gate misconfigured\n{preflight_result.stderr}")
-  escalate_to_human(bug, phase, reason=f"gate_misconfigured: {preflight_result.stderr}")
-  break
-
-# --- Symmetric Injection: noun resolved from ROLE_TO_NOUN ---
-# Mode is governed by FORGE_PROMPT_MODE (default: "reference"). See
-# meta-orchestrate.md § "Persona Injection Modes" for the helper definition —
-# the generated fix-bug orchestrator shares the same helper.
-role_block = compose_role_block(persona_noun)
-
-# --- Compose architecture context block (conditional on phase.context.architecture) ---
-# <!-- See _fragments/context-injection.md for canonical definition -->
-bug_architecture_block = (
-  compose_architecture_block(".forge/cache/context-pack.md", ".forge/cache/context-pack.json")
-  if phase.context.architecture else ""
-)
-
-# --- Compose prior-phase summary block for bug context ---
-# <!-- See _fragments/context-injection.md for canonical definition -->
-bug_summary_block = compose_summary_block(bug_id, record_type="bug") if phase.context.prior_summaries != "none" else ""
-
+```
 # --- Materialize project overlay (replaces MASTER_INDEX.md read in subagent) ---
 overlay_result = run_bash(
   f'node "$FORGE_ROOT/tools/build-overlay.cjs" --bug {bug_id} --format md'
 )
 bug_overlay_md = overlay_result.stdout if overlay_result.exit_code == 0 else ""
 
-# --- Spawn subagent (no banner command in prompt) ---
 spawn_subagent(
   prompt=compose_subagent_prompt(
     agent_name=agent_name, progress_log_path=progress_log_path, banner_name=banner_name,
@@ -244,68 +314,154 @@ spawn_subagent(
   description=f"{emoji} {persona_name} — {phase.name} for {bug_id}",
   model=phase_model
 )
-
-# --- Stop progress Monitor ---
-stop_monitor(progress_log_path)
 ```
-
-**Orchestrator Iron Laws:** See `generic-skills.md § Orchestrator Iron Laws` for the six universal laws that apply to this workflow.
-<!-- See _fragments/event-emission-schema.md for event field reference -->
-
-**Key rules for the generated `fix_bug.md`:**
-- `ROLE_TO_NOUN` MUST cover all six phases: `plan-fix`, `review-plan`, `implement`, `review-code`, `approve`, `commit`.
-- `PERSONA_MAP` MUST use correct emoji/name/tagline per persona (bug-fixer, supervisor, architect, engineer — not all bug-fixer).
-- Persona/skill lookups MUST use `{persona_noun}.md` and `{persona_noun}-skills.md`, never `{phase.role}.md`.
-- Sidecar path uses `.forge/store/events/bugs/_{event_id}_usage.json` (not `events/{sprint_id}/`).
-- Announcement `print()` line MUST include `{tagline}` and `[{phase_model}]`.
-- Include progress IPC: clear log at bug start, compute agent names, Monitor before spawn, stop after return.
-- Include phase-exit signals and post-phase `/compact` with checkpoint line `[checkpoint] bug={bug_id} phase={phase.role} iterations={iteration_counts}`. Do NOT compact on escalation.
 
 ## Phase Gates
 
-Declarative pre-flight gates for each fix-bug phase. Evaluated by
-`forge/tools/preflight-gate.cjs` before every subagent spawn. Grammar is
-identical to `meta-orchestrate.md` — see that file's "Phase Gates" section
-for the directive reference.
+Declarative pre-flight gates. Evaluated by `forge/tools/preflight-gate.cjs`
+before every subagent spawn. Grammar identical to `meta-orchestrate.md §
+Phase Gates`. Gates encode both the path-A/path-B split (via `after`
+predecessors that differ per path) and the status-trap defences.
 
-```gates phase=plan-fix
+```gates phase=triage
 forbid bug.status == blocked
 forbid bug.status == escalated
 forbid bug.status == fixed
 forbid bug.status == abandoned
+forbid bug.status == approved
+forbid bug.status == verified
+```
+
+```gates phase=plan
+artifact {engineering}/bugs/{bug}/TRIAGE.md min=200
+after triage = n/a
+forbid bug.status == fixed
+forbid bug.status == approved
+forbid bug.status == verified
+forbid bug.status == blocked
+forbid bug.status == escalated
 ```
 
 ```gates phase=review-plan
 artifact {engineering}/bugs/{bug}/BUG_FIX_PLAN.md min=200
+forbid bug.status == fixed
+forbid bug.status == approved
+forbid bug.status == verified
+forbid bug.status == blocked
+forbid bug.status == escalated
 ```
 
 ```gates phase=implement
+artifact {engineering}/bugs/{bug}/TRIAGE.md min=200
+forbid bug.status == fixed
+forbid bug.status == approved
+forbid bug.status == verified
 forbid bug.status == blocked
 forbid bug.status == escalated
-artifact {engineering}/bugs/{bug}/BUG_FIX_PLAN.md min=200
-after review-plan = approved
-forbid bug.status == fixed
 ```
 
 ```gates phase=review-code
-after review-plan = approved
+after implement = n/a
+forbid bug.status == fixed
+forbid bug.status == approved
+forbid bug.status == verified
+forbid bug.status == blocked
+forbid bug.status == escalated
 ```
 
 ```gates phase=approve
 after review-code = approved
+forbid bug.status == fixed
+forbid bug.status == approved
+forbid bug.status == verified
+forbid bug.status == blocked
+forbid bug.status == escalated
 ```
 
 ```gates phase=commit
 after approve = approved
+forbid bug.status == fixed
+forbid bug.status == approved
+forbid bug.status == verified
+forbid bug.status == blocked
+forbid bug.status == escalated
 ```
 
 ```gates phase=finalize
 artifact {engineering}/bugs/{bug}/INDEX.md
 ```
 
+Note: the `forbid bug.status == approved | verified` rows are defensive — no
+phase in this workflow writes those values, and a follow-up cleanup should
+drop them from `bug.schema.json` entirely. Until then, these gates halt any
+LLM-improvised attempt to land in the run-task trap (see today's regression).
+
+## Generation Instructions
+
+Mirrors `meta-orchestrate.md § Generation Instructions` with these
+adjustments:
+
+- The generated `fix_bug.md` must include the **Triage Judgement** section
+  verbatim, including the JSON shape, the Path A eligibility criteria, and
+  the path-selection algorithm.
+- `ROLE_TO_NOUN` MUST include `triage` and `finalize` in addition to the
+  five run-task roles.
+- The generated orchestrator MUST read `summaries.triage.route` and select
+  `phases_A` or `phases_B` before entering the main loop.
+- Sub-workflow invocations pass `--bug {bugId}` (mirroring `--task {taskId}`).
+- Event emission uses `sprint_or_bug_id="bugs"` (the reserved virtual sprint
+  dir; matches `validate-store.spec.md` and the reservation in
+  `store-cli.cjs`).
+- Build-overlay uses `--bug {bugId}` and falls back to the bug record's
+  `path` field for KB context if the overlay is empty.
+- Subagent personas, banners, and skills are loaded by noun via
+  `{persona_noun}.md` and `{persona_noun}-skills.md` — never by phase role.
+- Phase banners are orchestrator-owned (see `meta-orchestrate.md`). Subagent
+  prompts MUST NOT contain banner commands.
+- Include the cluster-detection block, model-resolution dispatch, progress
+  IPC, phase-exit signals, post-phase `/compact` with checkpoint line
+  `[checkpoint] bug={bug_id} phase={phase.role} iterations={iteration_counts}`,
+  and context-pack injection — identical to `meta-orchestrate.md`.
+- Token reporting: see `_fragments/finalize.md` — wire via `file_ref:` in
+  each subagent prompt.
+- Sub-workflows (`plan_task.md`, `implement_plan.md`, `review_plan.md`,
+  `review_code.md`, `architect_approve.md`, `commit_task.md`) MUST detect
+  the `--bug` flag and resolve their entity context against the bug record;
+  they share the gate-and-verdict machinery with their `--task` paths via
+  `BUG_PHASE_VERDICT_SOURCE` in `read-verdict.cjs`.
+
+## Iron Laws
+
+<!-- Shared orchestrator laws live in generic-skills.md § Orchestrator Iron Laws. -->
+> See `generic-skills.md § Orchestrator Iron Laws` for the six universal
+> laws that apply to all orchestrators.
+
+**Additional laws specific to fix-bug:**
+
+1. **Path is decided once.** The triage subagent records `summaries.triage.route`.
+   The orchestrator selects the phase list and does not switch paths mid-run.
+   If the architect or supervisor concludes Path A was wrong, the verdict is
+   `revision` — re-enter the loop, escalate on exhaustion. Never silently
+   promote a Path A run into Path B.
+
+2. **No status writes outside owned phases.** Only `triage` (`reported →
+   triaged → in-progress`) and `commit` (`in-progress → fixed`) write
+   `bug.status`. No phase writes `approved` or `verified`. No phase writes
+   anything in finalize. LLM improvisation that mirrors a task workflow's
+   status writes is a violation; the gates catch it, the iron law names it.
+
+3. **No silent skipping.** A bug at `fixed`/`abandoned`/`blocked`/`escalated`
+   is skipped at pre-loop with one `bug_skipped` event. Skipping inside the
+   phase loop (writing "phase skipped" summaries) is forbidden — that pattern
+   produced the inconsistent-skip drift that surfaced today's regression.
+
 ## Friction Emit
 
-When the Bug Fixer detects skill friction during fix-bug — a referenced skill is unused, fails on invocation, is missing from the registry, has gone stale relative to current architecture, or is redundant with another skill — emit a `friction` event so `/forge:enhance --phase 2` can act on the signal. This is the writer side of the channel whose reader landed in S13-T08; the reader is empty without these emits.
+When the Bug Fixer, Supervisor, Architect, Engineer, or Collator detects skill
+friction during fix-bug — a referenced skill is unused, fails on invocation,
+is missing from the registry, has gone stale relative to current architecture,
+or is redundant with another skill — emit a `friction` event so
+`/forge:enhance --phase 2` can act on the signal.
 
 **Trigger conditions** (set `issue` to the matching token):
 
@@ -329,3 +485,17 @@ Log path: `.forge/store/events/bugs/progress.log`. Agent name format: `{bugId}:{
 ## Phase-Exit Signals
 
 After each subagent returns: `✓` for completed/approved, `↻` for revision required (with iteration count), `⚠` for escalated. Format mirrors `meta-orchestrate.md § Phase-Exit Signals` with `bug_id` in place of `task_id`.
+
+## Event Emission
+
+<!-- See _fragments/event-emission-schema.md for canonical contract -->
+> See `_fragments/event-emission-schema.md` for the actor split (subagent
+> writes judgement-only SUMMARY; orchestrator composes the canonical event
+> from runtime telemetry + SUMMARY and emits it).
+
+The orchestrator is the only actor that calls `store-cli emit` for phase
+events. All bug-phase events use `sprintId="bugs"` (the reserved virtual
+sprint dir). The schema's `event.bugId` field carries the originating bug
+ID for cross-bug filtering at collate time. Subagents write
+`{PHASE}-SUMMARY.json` and return; the orchestrator composes the canonical
+event and emits it.

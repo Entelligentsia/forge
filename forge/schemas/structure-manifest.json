@@ -1,6 +1,6 @@
 {
-  "version": "0.43.19",
-  "generatedAt": "2026-05-17T13:10:18.533Z",
+  "version": "0.44.4",
+  "generatedAt": "2026-05-19T11:32:55.232Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -178,17 +178,29 @@
       },
       "fix_bug": {
         "personas": [
-          ".forge/personas/bug-fixer.md"
+          ".forge/personas/bug-fixer.md",
+          ".forge/personas/supervisor.md",
+          ".forge/personas/architect.md",
+          ".forge/personas/engineer.md",
+          ".forge/personas/collator.md"
         ],
         "skills": [
           ".forge/skills/bug-fixer-skills.md",
+          ".forge/skills/supervisor-skills.md",
+          ".forge/skills/architect-skills.md",
+          ".forge/skills/engineer-skills.md",
           ".forge/skills/generic-skills.md"
         ],
         "templates": [
           ".forge/templates/PROGRESS_TEMPLATE.md"
         ],
         "sub_workflows": [
-          ".forge/workflows/review_code.md"
+          ".forge/workflows/plan_task.md",
+          ".forge/workflows/implement_plan.md",
+          ".forge/workflows/review_plan.md",
+          ".forge/workflows/review_code.md",
+          ".forge/workflows/architect_approve.md",
+          ".forge/workflows/commit_task.md"
         ],
         "kb_docs": [
           "{KB_PATH}/architecture/stack.md",

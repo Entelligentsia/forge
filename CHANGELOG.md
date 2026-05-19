@@ -5,6 +5,74 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.44.4] — 2026-05-19
+
+**Supervisor persona forbids FSM writes from review phases.** `meta-supervisor.md` gains a top-level Iron Law: "The Supervisor NEVER writes entity status — the workflow orchestrator owns all FSM transitions. Do not call `store-cli update-status` from a review phase. The verdict signal travels through the SUMMARY's `verdict` field, not `entity.status`." The workflow-level guard at `meta-review-plan.md:76` and `meta-review-implementation.md:82` ("Bug mode — NO status write") already existed; this is the persona-level reinforcement so the model never attempts the write in the first place. Surfaced during FORGE-BUG-003 re-run testing of the forge-cli stale-ctx fix: a supervisor subagent called `update-status bug FORGE-BUG-003 status plan-approved` against a bug already in terminal `fixed` state. `store-cli` correctly rejected the illegal transition and the run completed (the rails held), but the persona now discourages the attempt.
+
+**Regenerate:** personas:supervisor
+
+---
+
+## [0.44.3] — 2026-05-19
+
+**phaseSummary accepts `route`.** Add `route: { enum: ["A", "B"] }` to `bug.schema.json` § `$defs.phaseSummary` and the mirrored `PHASE_SUMMARY_SCHEMA` constant in `forge/tools/store-cli.cjs`. Both must stay in sync — the JSON schema validates entity reads, the constant validates `set-summary`/`set-bug-summary` writes. EMG-BUG-001 v0.44.2 first run failed at `route: undeclared field` because the schema's `additionalProperties: false` rejected the new field even though meta-fix-bug had declared it as the canonical triage-route signal. Tests added covering valid (`route: "A"`) and invalid (`route: "C"`) writes.
+
+**Regenerate:** tools:store-cli, schemas:bug
+
+---
+
+## [0.44.2] — 2026-05-19
+
+**parse-gates accepts `n/a` verdict.** `forge/tools/parse-gates.cjs` hardcoded the `after <phase> = <verdict>` verdict set to `{approved, revision}`, even though `read-verdict.cjs § ALLOWED_VERDICTS` accepts a third value `n/a` (the legitimate verdict for setup phases that produce no review signal — plan, implement, triage). The new fix-bug meta uses `after triage = n/a` to gate plan/review-plan/implement on triage having completed, which caused EMBERGLOW-BUG-001 (v0.44.1 second run) to halt at preflight exit 2 ("gate misconfigured"). Parser now matches read-verdict's verdict set. Test added covering the n/a path.
+
+**Regenerate:** tools:parse-gates
+
+---
+
+## [0.44.1] — 2026-05-19
+
+**Field-name fix in meta-fix-bug Triage Judgement.** The Path A/B decision field is now `summaries.triage.route` (was `summaries.triage.path` in v0.44.0). First-run testing on emberglow (EMBERGLOW-BUG-001) surfaced a collision: the triage subagent reliably wrote `"path": "A"` onto the bug record's top-level `path` field (whose actual purpose is the artifact directory), causing `TRIAGE.md` to land under `.forge/store/bugs/` instead of `engineering/bugs/`. The collision was runtime-agnostic — observed on both Claude Code and pi. Renaming the field eliminates the trap. The meta now carries a "Field-naming caution" callout citing the regression.
+
+**Regenerate:** workflows:fix_bug
+
+---
+
+## [0.44.0] — 2026-05-19
+
+**fix-bug workflow rewrite.** Single-track triage with a post-triage Path A (short-circuit) / Path B (full loop) branch — the only structural deviation from the run-task pipeline. Aligns personas, phases, gates, and event emission with `meta-orchestrate.md` otherwise.
+
+### Added
+
+- `meta-fix-bug.md` — full rewrite. Pipeline phases: `triage → [Path A or B] → finalize`. Path A skips plan-fix and review-plan when triage classifies the bug as `minor`, single-file, ≤20-line diff, no schema/API/migration impact, regression test obvious from repro. Path B is the default and runs the full plan/review/implement/review/approve/commit shape. Triage subagent records the path decision in `summaries.triage.path ∈ {"A","B"}`; orchestrator selects `phases_A` or `phases_B` before entering the main loop. No mid-pipeline switching.
+- Iron Laws specific to fix-bug — path decided once; status writes only in triage (`reported → triaged → in-progress`) and commit (`in-progress → fixed`); no silent phase skipping.
+- `store.cjs purgeBugEvents(bugId)` — purges only the matching bug's events (filtered by `event.bugId`) from the shared `events/bugs/` virtual sprint dir, plus sidecars whose `_{eventId}_usage.json` filename matches a purged primary. Other bugs' events untouched.
+- Reserved virtual sprint dir `bugs` in `store-cli emit` and `validate-store` — extends the existing `SYS-*` carve-out so bug-phase events land cleanly in `.forge/store/events/bugs/` per `validate-store.spec.md`.
+- Dual-mode entity-kind resolution in six sub-workflow metas (plan-task, implement, review-plan, review-implementation, approve, commit). Each preamble detects `--task {id}` vs `--bug {id}` and routes status writes, summary writes (`set-summary` vs `set-bug-summary`), and preflight calls accordingly. Bug mode suppresses all status writes except commit (`→ fixed`).
+- Preflight gate defences `forbid bug.status == approved|verified` on every fix-bug phase — belt-and-suspenders against future re-introduction of those enum values.
+
+### Changed
+
+- **bug.schema.json status enum** — collapsed from `["reported","triaged","in-progress","fixed","approved","verified"]` to `["reported","triaged","in-progress","fixed"]`. The `approved` and `verified` values were vestigial: no workflow phase wrote them, and their presence in the enum invited LLM-translated task workflows to attempt `update-status bug ... approved`, which is what produced FORGE-BUG-002.
+- `store-cli.cjs BUG_TRANSITIONS` — terminal state is now `fixed`. Removed `approved` and `verified` rows and their cross-edges.
+- `store-cli.cjs TERMINAL_STATES` — bug terminal is now `fixed` (was `verified`).
+- `collate.cjs` — bug-phase cost aggregation now reads from the shared `events/bugs/` dir filtered by `event.bugId`. Previously called `loadSprintEvents(bug.bugId)` which targeted the non-existent `events/{bugId}/` path, silently losing cost-summary data and leaking disk via never-purged events.
+- `collate.cjs --purge-events` — when given a bug ID, dispatches to `purgeBugEvents` (filtered delete) instead of `purgeEvents` (whole-directory delete). The shared `events/bugs/` dir is preserved for other bugs.
+- `meta/store-schema/bug.schema.md` and `meta/tool-specs/store-cli.spec.md` — documented state machine collapsed to match the 4-state enum. Both files explain the FORGE-BUG-002 trap and why `approved`/`verified` were removed.
+- `meta-approve.md` — gained a required step 5 (set-summary / set-bug-summary). For bugs this is the canonical approve-verdict signal read by `read-verdict.cjs § BUG_PHASE_VERDICT_SOURCE`.
+
+### Fixed
+
+- FORGE-BUG-002 — `Illegal transition: verified → approved` during the fix-bug approve phase. Root cause was the schema enum trap (described above) combined with no preflight gate against terminal-state re-entry. Fixed at the source by removing the enum members; preflight gates remain as belt-and-suspenders.
+- "Unknown sprintId: bugs" warning on every bug-phase event emit. The shared virtual dir is now a reserved name.
+- Silent cost-summary data loss in bug INDEX.md. Bug runs now emit their token cost into the bug artifact's `## Cost Summary` section as designed.
+- Disk leak: bug events were never purged because the workflow purged `events/{bugId}/` (empty) while emitting to `events/bugs/` (shared). Now the purge targets the matching events in the correct dir.
+
+**Regenerate:** workflows:fix_bug, workflows:plan_task, workflows:implement_plan, workflows:review_plan, workflows:review_code, workflows:architect_approve, workflows:commit_task, tools:store-cli, tools:store, tools:validate-store, tools:collate, schemas:bug
+
+> Manual: if any bug record in `.forge/store/bugs/` carries status `approved` or `verified`, transition it to `fixed` before regeneration (the enum values were removed). Use: `FORGE_ALLOW_FORCE=1 node .forge/tools/store-cli.cjs update-status bug <BUG-ID> status fixed --force`.
+
+---
+
 ## [0.43.19] — 2026-05-17
 
 **FORGE-S22 STORE-TIGHTEN closure.** Sprint goal: drop store-op aggregate failure rate from 21.8% baseline to ≤12%. Closed PASS at 9.27% on the emberglow fresh-corpus capture (151 ops / 18 transcripts / 2 tasks). Versions 0.43.17 (G3 aliases), 0.43.18 (G4 vocab drift), and 0.43.19 (G7 FK-check) collectively deliver the sprint goals. Verification harness: forge-cli `test/analysis/store-friction/` (Mode A SHA256-pinned regression + Mode C live LLM testbench).

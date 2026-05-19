@@ -97,8 +97,14 @@ describe('store-cli.cjs — isLegalTransition', () => {
     assert.equal(isLegalTransition('task', 'status', 'abandoned', 'draft'), false);
   });
 
-  test('terminal state verified (bug) cannot transition out', () => {
-    assert.equal(isLegalTransition('bug', 'status', 'verified', 'reported'), false);
+  test('terminal state fixed (bug) cannot transition out', () => {
+    // Post-cleanup, bug terminal is `fixed` (was previously `verified`).
+    // The `approved` and `verified` enum members were dropped to remove the
+    // runtime trap that surfaced via FORGE-BUG-002 (verified → approved
+    // illegal transition driven by LLM-translated task workflow).
+    assert.equal(isLegalTransition('bug', 'status', 'fixed', 'reported'), false);
+    assert.equal(isLegalTransition('bug', 'status', 'fixed', 'in-progress'), false);
+    assert.equal(isLegalTransition('bug', 'status', 'fixed', 'triaged'), false);
   });
 
   test('terminal state retrospective-done (sprint) cannot transition out', () => {
@@ -190,6 +196,17 @@ describe('store-cli.cjs — isLegalTransition', () => {
     assert.equal(isLegalTransition('bug', 'status', 'reported', 'fixed'), false);
   });
 
+  test('bug: in-progress -> approved is illegal (approved removed from enum)', () => {
+    // Post-cleanup, `approved` is no longer a bug status. Any LLM-translated
+    // task workflow attempting this transition must be rejected.
+    assert.equal(isLegalTransition('bug', 'status', 'in-progress', 'approved'), false);
+  });
+
+  test('bug: fixed -> verified is illegal (verified removed from enum)', () => {
+    // Post-cleanup, `verified` is no longer a bug status. Terminal is `fixed`.
+    assert.equal(isLegalTransition('bug', 'status', 'fixed', 'verified'), false);
+  });
+
   test('sprint: planning -> active is legal', () => {
     assert.equal(isLegalTransition('sprint', 'status', 'planning', 'active'), true);
   });
@@ -217,8 +234,10 @@ describe('store-cli.cjs — TERMINAL_STATES', () => {
     assert.ok(TERMINAL_STATES.has('retrospective-done'), 'should contain retrospective-done');
   });
 
-  test('contains verified (bug)', () => {
-    assert.ok(TERMINAL_STATES.has('verified'), 'should contain verified');
+  test('contains fixed (bug)', () => {
+    // Post-cleanup, bug terminal is `fixed` (was previously `verified`).
+    assert.ok(TERMINAL_STATES.has('fixed'), 'should contain fixed');
+    assert.ok(!TERMINAL_STATES.has('verified'), 'should NOT contain verified (vestigial, removed)');
   });
 
   test('contains shipped and retired (feature)', () => {
@@ -629,6 +648,58 @@ describe('store-cli.cjs — set-summary CLI subprocess tests', () => {
       assert.ok(bug.summaries, 'bug should have summaries');
       assert.ok(bug.summaries.plan, 'bug.summaries.plan should exist');
       assert.equal(bug.summaries.plan.objective, VALID_SUMMARY.objective);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('set-bug-summary accepts triage summary with route field (A or B)', () => {
+    // The triage phase records the Path A / Path B route decision via the
+    // `route` field on its phase summary. Schema MUST permit it.
+    // Regression: EMG-BUG-001 v0.44.2 first attempt failed with
+    // "route: undeclared field" because phaseSummary had additionalProperties:false
+    // and no route field declared.
+    const tmpDir = makeTempStore();
+    try {
+      writeBugFile(tmpDir, 'BUG-001', MINIMAL_BUG);
+      const summaryFile = path.join(tmpDir, 'summary.json');
+      fs.writeFileSync(summaryFile, JSON.stringify({
+        objective: 'Triage BUG-001',
+        findings: ['Root cause: x', 'Reproduction: y', 'Route decision: A'],
+        verdict: 'n/a',
+        written_at: '2026-05-19T10:00:00Z',
+        artifact_ref: 'TRIAGE.md',
+        route: 'A',
+      }));
+
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-bug-summary', 'BUG-001', 'triage', summaryFile], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+      const bug = readBugFile(tmpDir, 'BUG-001');
+      assert.equal(bug.summaries.triage.route, 'A');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('set-bug-summary rejects route values other than A or B', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeBugFile(tmpDir, 'BUG-001', MINIMAL_BUG);
+      const summaryFile = path.join(tmpDir, 'summary.json');
+      fs.writeFileSync(summaryFile, JSON.stringify({
+        objective: 'Triage BUG-001',
+        verdict: 'n/a',
+        written_at: '2026-05-19T10:00:00Z',
+        route: 'C',  // invalid
+      }));
+
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-bug-summary', 'BUG-001', 'triage', summaryFile], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(result.status, 0, `expected non-zero exit for invalid route; stderr: ${result.stderr}`);
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -2133,6 +2204,25 @@ describe('store-cli.cjs — emit FK-check (FORGE-S22-T05)', () => {
       assert.notEqual(r.status, 0, `should exit non-zero for unknown sprintId S01, got exit 0. stderr: ${r.stderr}`);
       assert.match(r.stderr, /Unknown sprintId: S01/, `stderr should contain "Unknown sprintId: S01". Got: ${r.stderr}`);
       assert.match(r.stderr, /Did you mean "FORGE-S01"\?/, `stderr should contain suggestion. Got: ${r.stderr}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('reserved virtual sprintId "bugs" is accepted (no FK rejection)', () => {
+    // Regression for GH-#### — fix-bug workflow emits phase events under the
+    // shared "bugs" virtual sprint dir (validate-store.spec.md:145). emit must
+    // recognise it as reserved alongside SYS-*, otherwise every bug-fix run
+    // dies with "Unknown sprintId: bugs".
+    const tmpDir = makeEmitFKStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'bugs', '{}'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.ok(
+        !r.stderr.includes('Unknown sprintId: bugs'),
+        `FK check should not reject "bugs". stderr: ${r.stderr}`
+      );
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }

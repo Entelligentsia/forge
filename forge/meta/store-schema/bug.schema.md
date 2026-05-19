@@ -23,7 +23,16 @@
 
 ## Status Values
 
-`reported` → `triaged` → `in-progress` → `fixed` → `verified`
+`reported` → `triaged` → `in-progress` → `fixed`
+
+`fixed` is the terminal state — set by the commit phase after the bug-fix
+commit lands. The architect's approval signal travels through
+`bug.summaries.approve.verdict` (read by `read-verdict.cjs §
+BUG_PHASE_VERDICT_SOURCE`), not through `bug.status`. Earlier revisions of
+this schema included `approved` and `verified` enum values; they were
+removed because no workflow phase wrote them and their mere presence in the
+schema invited LLM-translated task workflows to attempt `update-status bug
+... approved`, which produced FORGE-BUG-002.
 
 ## Root Cause Categories
 
@@ -45,7 +54,7 @@ This block is the canonical machine-readable definition embedded in `validate-st
     "title":                { "type": "string" },
     "description":          { "type": "string" },
     "severity":             { "type": "string", "enum": ["critical", "major", "minor"] },
-    "status":               { "type": "string", "enum": ["reported", "triaged", "in-progress", "fixed", "verified"] },
+    "status":               { "type": "string", "enum": ["reported", "triaged", "in-progress", "fixed"] },
     "path":                 { "type": "string" },
     "rootCauseCategory": {
       "type": "string",

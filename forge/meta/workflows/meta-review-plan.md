@@ -46,7 +46,8 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
 
 0. Pre-flight Gate Check:
    - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
-   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase review-plan --task {taskId}`
+   - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
+   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase review-plan --{entity_kind} {record_id}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
@@ -66,15 +67,17 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
      - If Approved: provide any advisory notes
 
 4. Finalize:
-   - Transitions: task FSM predecessor must be `planned`.
-     - Approved          → `plan-approved`
-     - Revision Required → `plan-revision-required`
-     - Out-of-band escapes (any state): `code-revision-required`, `blocked`, `escalated`, `abandoned`
-   - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status plan-approved` (if Approved) or `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status plan-revision-required` (if Revision Required)
+   - Transitions:
+     - **Task mode** — predecessor must be `planned`.
+       - Approved          → `plan-approved`
+       - Revision Required → `plan-revision-required`
+       - Out-of-band escapes (any state): `code-revision-required`, `blocked`, `escalated`, `abandoned`
+       Update status: `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status plan-approved` (if Approved) or `... status plan-revision-required` (if Revision Required)
+     - **Bug mode** — NO status write. The bug remains `in-progress`. The verdict signal travels through `summaries.review_plan.verdict` (read by `read-verdict.cjs § BUG_PHASE_VERDICT_SOURCE`), not `bug.status`. Writing `bug.status` here violates `meta-fix-bug.md § Iron Laws #2`.
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
 5. Emit Summary Sidecar:
-   - Write `REVIEW-PLAN-SUMMARY.json` to the task directory with the following shape:
+   - Write `REVIEW-PLAN-SUMMARY.json` to the record's directory with the following shape:
      ```json
      {
        "objective":   "<one sentence — what this review assessed>",
@@ -84,12 +87,17 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
        "artifact_ref":"PLAN_REVIEW.md"
      }
      ```
-   - Call:
+   - Call (task mode):
      ```
-     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {task_id} review_plan \
+     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {taskId} review_plan \
        engineering/sprints/{sprint}/{task}/REVIEW-PLAN-SUMMARY.json
      ```
-   - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
+     Or (bug mode):
+     ```
+     node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bugId} review_plan \
+       engineering/bugs/{bugDir}/REVIEW-PLAN-SUMMARY.json
+     ```
+   - If the set-summary call exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 
 ## Generation Notes

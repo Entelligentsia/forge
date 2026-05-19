@@ -40,12 +40,21 @@ const BYTE_BUDGET = 4096;
 // Per-file budget overrides for phase workflows that legitimately need more space
 // (e.g. carry the kickoff-shim materialization markers — Iron Laws +
 // Store-Write Verification — required by forge-cli /forge:plan and /forge:implement).
+// Budgets accommodate dual-mode (task + bug) subagent metas — see the
+// matching comment in phase-frontmatter.test.cjs. The phase workflows
+// listed here carry an entity-mode preamble and per-step task-vs-bug
+// branches so the same workflow file drives both run-task (--task) and
+// fix-bug (--bug). architect_approve and commit_task gained the largest
+// bumps because they now contain the verdict-signal split (status vs
+// summary) and the bug-mode artifact list, respectively.
 const BYTE_BUDGET_OVERRIDES = {
-  'plan_task.md':      5632,
-  'implement_plan.md': 5888,
-  'review_plan.md':    5120,
-  'review_code.md':    5120,
-  'validate_task.md':  4608,
+  'plan_task.md':         6144,
+  'implement_plan.md':    6400,
+  'review_plan.md':       5632,
+  'review_code.md':       5120,
+  'validate_task.md':     4608,
+  'architect_approve.md': 5632,
+  'commit_task.md':       4864,
 };
 
 describe('base-pack-byte-budget — phase files within byte budget', () => {

@@ -410,6 +410,8 @@ describe('validate-store.cjs — ORPHAN_EVENT_DIR check (FORGE-S22-T05)', () => 
     fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'S01'), { recursive: true });
     // Reserved prefix dir — should NOT be flagged
     fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'SYS-init'), { recursive: true });
+    // Virtual sprint dir for bug-phase events — should NOT be flagged
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'bugs'), { recursive: true });
     fs.writeFileSync(
       path.join(tmpDir, '.forge', 'config.json'),
       JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
@@ -461,6 +463,25 @@ describe('validate-store.cjs — ORPHAN_EVENT_DIR check (FORGE-S22-T05)', () => 
       assert.ok(
         !combined.includes('SYS-init'),
         `SYS-init should not be flagged. Got: ${combined}`
+      );
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('virtual sprint dir "bugs" is NOT flagged', () => {
+    // The fix-bug workflow emits phase events under .forge/store/events/bugs/.
+    // validate-store must treat it as a reserved virtual sprint dir, matching
+    // the spec at meta/tool-specs/validate-store.spec.md §"event.sprintId".
+    const tmpDir = makeOrphanStore();
+    try {
+      const r = spawnSync(process.execPath, [VALIDATE_STORE], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      const combined = r.stdout + r.stderr;
+      assert.ok(
+        !combined.match(/\bbugs\b[^\n]*ORPHAN_EVENT_DIR/),
+        `"bugs" should not be flagged as ORPHAN_EVENT_DIR. Got: ${combined}`
       );
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });

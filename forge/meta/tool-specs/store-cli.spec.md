@@ -140,11 +140,19 @@ Terminal states:
 ### Bug
 
 ```
-reported -> triaged -> in-progress -> fixed -> verified
+reported -> triaged -> in-progress -> fixed
 
 Terminal state:
-  verified
+  fixed
 ```
+
+The architect-approve verdict for bugs travels through
+`bug.summaries.approve.verdict` (read by `read-verdict.cjs §
+BUG_PHASE_VERDICT_SOURCE`), not `bug.status`. Earlier revisions of this
+spec listed `approved` and `verified` between `fixed` and the terminal;
+they were removed because no workflow phase wrote them and their presence
+in the enum invited LLM-translated task workflows to attempt
+`update-status bug ... approved` — the trap that produced FORGE-BUG-002.
 
 ### Feature
 

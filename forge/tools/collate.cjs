@@ -952,10 +952,16 @@ for (const bug of allBugs) {
   // When purging events for a bug, aggregate cost data from event files
   // before they are deleted. The aggregated cost summary is embedded in
   // the bug's INDEX.md so the information survives the purge.
+  //
+  // Bug-phase events live in the shared `events/bugs/` virtual sprint dir
+  // (see meta-fix-bug.md § Event Emission). Read from that dir and filter
+  // by `event.bugId === bug.bugId` — the per-bug `events/{bugId}/` path
+  // never existed (silent data loss before this fix).
   let costTotals;
   if (PURGE_EVENTS && SPRINT_ARG && SPRINT_ARG === bug.bugId) {
-    const { events } = loadSprintEvents(bug.bugId);
-    const tokenEvents = events.filter(e => e.inputTokens !== undefined);
+    const { events } = loadSprintEvents('bugs');
+    const bugEvents = events.filter(e => e.bugId === bug.bugId);
+    const tokenEvents = bugEvents.filter(e => e.inputTokens !== undefined);
     if (tokenEvents.length > 0) {
       const totals = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0, sources: new Set() };
       for (const e of tokenEvents) {
@@ -1022,16 +1028,35 @@ const tag = DRY_RUN ? '[dry-run] ' : '';
 console.log(`${tag}Collated: ${targetSprints.length} sprint(s), ${allBugs.length} bug(s) → MASTER_INDEX.md updated, ${sprintIndexesWritten} sprint INDEX(es), ${taskIndexesWritten} task INDEX(es), ${bugIndexesWritten} bug INDEX(es), ${costReportsWritten} COST_REPORT(s) written`);
 
 // --- Purge event directory if requested ---
+//
+// Bug arg → purge only the bug-matching events from the shared
+// `events/bugs/` dir (filter by event.bugId). Sprint arg → purge the
+// whole sprint event directory as before.
 if (PURGE_EVENTS) {
-  const relDir = path.relative(cwd, path.join(storeRoot, 'events', SPRINT_ARG));
   try {
-    const result = _getStore().purgeEvents(SPRINT_ARG, { dryRun: DRY_RUN });
-    if (result.fileCount === 0) {
-      console.log(`${tag}Purge: no events directory found for '${SPRINT_ARG}' — nothing to delete`);
-    } else if (DRY_RUN) {
-      console.log(`[dry-run] would purge: ${relDir}/ (${result.fileCount} file(s))`);
+    let result;
+    let relDir;
+    if (IS_BUG_ARG) {
+      relDir = path.relative(cwd, path.join(storeRoot, 'events', 'bugs'));
+      result = _getStore().purgeBugEvents(SPRINT_ARG, { dryRun: DRY_RUN });
+      const label = `'${SPRINT_ARG}' in ${relDir}/`;
+      if (result.fileCount === 0) {
+        console.log(`${tag}Purge: no events for ${label} — nothing to delete`);
+      } else if (DRY_RUN) {
+        console.log(`[dry-run] would purge: ${label} (${result.fileCount} file(s))`);
+      } else {
+        console.log(`Purged: ${label} (${result.fileCount} event file(s) deleted)`);
+      }
     } else {
-      console.log(`Purged: ${relDir}/ (${result.fileCount} event file(s) deleted)`);
+      relDir = path.relative(cwd, path.join(storeRoot, 'events', SPRINT_ARG));
+      result = _getStore().purgeEvents(SPRINT_ARG, { dryRun: DRY_RUN });
+      if (result.fileCount === 0) {
+        console.log(`${tag}Purge: no events directory found for '${SPRINT_ARG}' — nothing to delete`);
+      } else if (DRY_RUN) {
+        console.log(`[dry-run] would purge: ${relDir}/ (${result.fileCount} file(s))`);
+      } else {
+        console.log(`Purged: ${relDir}/ (${result.fileCount} event file(s) deleted)`);
+      }
     }
   } catch (err) {
     console.error(`Error: ${err.message}`);
