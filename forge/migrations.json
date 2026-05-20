@@ -1,4 +1,12 @@
 {
+  "0.44.4": {
+    "version": "0.44.5",
+    "date": "2026-05-21",
+    "notes": "Migration apply path — runMigrations() deterministic engine + /forge:update integration (FORGE-S23-T01). Adds forge-cli migration-engine.ts: semver-range traversal [from, to) on keys, per-category resolver (84 unique category strings), idempotency ledger at .forge/applied-migrations.json, always-on schema refresh post-pass, fileOps forward-compat, path-traversal defense. The /forge:update command now prompts to apply migrations after npm upgrade; FORGE_NON_INTERACTIVE=1 auto-applies. update_plan and plan_task workflows reference migration application steps.",
+    "regenerate": ["workflows:update_plan", "workflows:plan_task"],
+    "breaking": false,
+    "manual": []
+  },
   "0.44.3": {
     "version": "0.44.4",
     "date": "2026-05-19",
