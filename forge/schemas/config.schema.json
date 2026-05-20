@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "forge/config.schema.json",
+  "title": "ForgeConfig",
+  "description": "Schema for .forge/config.json — the per-project Forge configuration file.",
+  "type": "object",
+  "required": ["version", "project", "paths"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Config schema version (e.g. '1.0')"
+    },
+    "project": {
+      "type": "object",
+      "required": ["prefix", "name"],
+      "properties": {
+        "prefix": { "type": "string", "description": "Task ID prefix (e.g. FORGE)" },
+        "name": { "type": "string", "description": "Human-readable project name" },
+        "description": { "type": "string" }
+      }
+    },
+    "stack": {
+      "type": "object",
+      "properties": {
+        "languages": { "type": "array", "items": { "type": "string" } },
+        "framework": { "type": ["string", "null"] },
+        "frontendFramework": { "type": ["string", "null"] },
+        "database": { "type": ["string", "null"] },
+        "taskQueue": { "type": ["string", "null"] },
+        "containerisation": { "type": ["string", "null"] }
+      }
+    },
+    "commands": {
+      "type": "object",
+      "properties": {
+        "test": { "type": "string" },
+        "lint": { "type": "string" },
+        "syntaxCheck": {}
+      }
+    },
+    "paths": {
+      "type": "object",
+      "required": ["engineering", "store", "forgeRoot"],
+      "properties": {
+        "engineering": { "type": "string" },
+        "store": { "type": "string" },
+        "workflows": { "type": "string" },
+        "commands": { "type": "string" },
+        "templates": { "type": "string" },
+        "customCommands": { "type": "string" },
+        "forgeRoot": { "type": "string" },
+        "forgeRef": { "type": "string" }
+      }
+    },
+    "pipeline": {
+      "type": "object",
+      "properties": {
+        "maxReviewIterations": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "pipelines": {
+      "type": "object",
+      "description": "Custom pipeline definitions keyed by pipeline name"
+    },
+    "installedSkills": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "calibrationBaseline": {
+      "type": "object",
+      "properties": {
+        "lastCalibrated": { "type": "string" },
+        "version": { "type": "string" },
+        "masterIndexHash": { "type": "string" },
+        "sprintsCovered": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["full", "fast"]
+    }
+  }
+}
