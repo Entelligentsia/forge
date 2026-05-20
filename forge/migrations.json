@@ -1,4 +1,16 @@
 {
+  "0.44.5": {
+    "version": "0.44.6",
+    "date": "2026-05-20",
+    "notes": "P1 bug-fix batch (forge-cli#25): (C) substitute-placeholders.cjs now probes .base-pack/ before init/base-pack/ when no --base-pack flag is given, and short-circuits on --help/--h before any path check; (D) store-cli.cjs list event traverses all events/ sub-directories (bugs/, enhancement/, <sprintId>/) and returns the union — previously exited 1 with 'Unknown entity type: event'; (E) substitute-placeholders.cjs gains --category flag to limit materialisation to named subdirectories; commands/regenerate.md documents the --category scope-enforcement rule.",
+    "regenerate": [
+      "tools:substitute-placeholders",
+      "tools:store-cli",
+      "commands:regenerate"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.44.4": {
     "version": "0.44.5",
     "date": "2026-05-21",

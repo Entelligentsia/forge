@@ -5,6 +5,28 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.44.6] — 2026-05-20
+
+**P1 bug-fix batch (forge-cli#25 — defects C, D, E).** Three tool fixes to address defects discovered in the forge-cli 0.11.0 dogfooding session.
+
+**C — substitute-placeholders.cjs base-pack path stale.** Tool now probes `.base-pack/` (bundled install layout) before `init/base-pack` (source layout) when no `--base-pack` flag is supplied. `--help`/`-h` now short-circuits before any path resolution so the usage text is always accessible.
+
+**D — store-cli list event.** The `list` subcommand previously exited 1 with "Unknown entity type: event" despite `event` being in the documented entity set. Fixed by adding an `event` case to `listEntities()` that traverses all sub-directories under `.forge/store/events/` (`bugs/`, `enhancement/`, and per-sprint `<sprintId>/` dirs) and returns the union. Sidecar files (`_`-prefixed) are skipped.
+
+**E — substitute-placeholders.cjs --category flag.** New `--category <name[,name]>` flag limits materialisation to the specified subdirectory names (e.g. `--category personas` writes only `.forge/personas/` and skips workflows, skills, templates, and commands). `commands/regenerate.md` documents the scope-enforcement rule for callers that invoke the tool directly during per-category regeneration.
+
+**Regenerate:** tools:substitute-placeholders, tools:store-cli, commands:regenerate
+
+---
+
+## [0.44.5] — 2026-05-20
+
+**Migration apply path + config schema.** Two FORGE-S23 contributions to the plugin distribution. First, `migrations.json` gains the `0.44.4→0.44.5` entry consumed by forge-cli's new `runMigrations()` deterministic engine: semver-range traversal `[from, to)` on keys, per-category resolver covering 84 unique category strings, idempotency ledger at `.forge/applied-migrations.json`, always-on schema refresh post-pass, fileOps forward-compat, and path-traversal defense. The `/forge:update` flow in forge-cli prompts to apply pending migrations after upgrade (`FORGE_NON_INTERACTIVE=1` auto-applies); the `update_plan` and `plan_task` workflows reference the new application steps. Second, `forge/schemas/config.schema.json` is added so the validate-write hook (also ported to forge-cli in this sprint) can enforce `.forge/config.json` structure at write time. No tool or persona changes — the plugin's role is to ship the migration entry and the new schema; the engine lives in forge-cli (v0.11.0).
+
+**Regenerate:** workflows:update_plan, workflows:plan_task
+
+---
+
 ## [0.44.4] — 2026-05-19
 
 **Supervisor persona forbids FSM writes from review phases.** `meta-supervisor.md` gains a top-level Iron Law: "The Supervisor NEVER writes entity status — the workflow orchestrator owns all FSM transitions. Do not call `store-cli update-status` from a review phase. The verdict signal travels through the SUMMARY's `verdict` field, not `entity.status`." The workflow-level guard at `meta-review-plan.md:76` and `meta-review-implementation.md:82` ("Bug mode — NO status write") already existed; this is the persona-level reinforcement so the model never attempts the write in the first place. Surfaced during FORGE-BUG-003 re-run testing of the forge-cli stale-ctx fix: a supervisor subagent called `update-status bug FORGE-BUG-003 status plan-approved` against a bug already in terminal `fixed` state. `store-cli` correctly rejected the illegal transition and the run completed (the rails held), but the persona now discourages the attempt.

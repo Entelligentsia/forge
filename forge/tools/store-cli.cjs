@@ -389,6 +389,32 @@ function listEntities(entity, filter) {
     case 'task':    return store.listTasks(filter);
     case 'bug':     return store.listBugs(filter);
     case 'feature': return store.listFeatures(filter);
+    case 'event': {
+      // Defect D fix: traverse all sub-directories under events/ — sprints write
+      // to events/<sprintId>/, bugs to events/bugs/, enhancements to events/enhancement/.
+      // Return the union of all event JSONs across every sub-directory, skipping
+      // sidecar files (_-prefixed) and non-JSON files.
+      const eventsBase = path.join(store.impl.storeRoot, 'events');
+      if (!fs.existsSync(eventsBase)) return [];
+      const allEvents = [];
+      const subDirs = fs.readdirSync(eventsBase, { withFileTypes: true });
+      for (const entry of subDirs) {
+        if (!entry.isDirectory()) continue;
+        const subDir = path.join(eventsBase, entry.name);
+        const files = fs.readdirSync(subDir).filter(
+          (f) => f.endsWith('.json') && !f.startsWith('_')
+        );
+        for (const file of files) {
+          try {
+            const rec = JSON.parse(fs.readFileSync(path.join(subDir, file), 'utf8'));
+            if (rec && (!filter || Object.entries(filter).every(([k, v]) => rec[k] === v))) {
+              allEvents.push(rec);
+            }
+          } catch (_) { /* skip malformed files */ }
+        }
+      }
+      return allEvents;
+    }
     default:
       console.error(`Unknown entity type: ${entity}${formatSuggestion(suggestEntityType(entity, ['sprint', 'task', 'bug', 'feature']))}`);
       process.exit(1);
@@ -635,7 +661,7 @@ function cmdList() {
   }
 
   if (!ENTITY_TYPES.includes(entity)) {
-    console.error(`Unknown entity type: ${entity}${formatSuggestion(suggestEntityType(entity, ['sprint', 'task', 'bug', 'feature']))}`);
+    console.error(`Unknown entity type: ${entity}${formatSuggestion(suggestEntityType(entity, ['sprint', 'task', 'bug', 'event', 'feature']))}`);
     process.exit(1);
   }
 

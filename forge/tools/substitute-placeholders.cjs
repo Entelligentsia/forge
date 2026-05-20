@@ -343,13 +343,14 @@ function renderDeploymentTable(envs) {
  * Advisory Note 3: every output path is resolved and checked to be under outRoot
  * to prevent path traversal via symlinks or '..' segments.
  *
- * @param {string} basePack       — absolute path to the base-pack directory
+ * @param {string} basePack           — absolute path to the base-pack directory
  * @param {Map<string, string>} map
- * @param {string} outRoot        — absolute project root (e.g. '/home/user/myproject')
- * @param {boolean} dryRun        — if true, perform no writes
- * @param {{ warn: function }} io  — pluggable stderr for warnings
+ * @param {string} outRoot            — absolute project root (e.g. '/home/user/myproject')
+ * @param {boolean} dryRun            — if true, perform no writes
+ * @param {{ warn: function }} io     — pluggable stderr for warnings
+ * @param {Set<string>|null} categoryFilter — Defect E: if set, only walk matching subdirs
  */
-function walkBasePack(basePack, map, outRoot, dryRun, io) {
+function walkBasePack(basePack, map, outRoot, dryRun, io, categoryFilter) {
   const warn = (io && io.warn) || ((msg) => process.stderr.write(msg + '\n'));
 
   // Extract prefix from substitution map for commands path computation
@@ -362,6 +363,11 @@ function walkBasePack(basePack, map, outRoot, dryRun, io) {
     const subdirPath = path.join(basePack, subdir);
     const stat = fs.statSync(subdirPath);
     if (!stat.isDirectory()) continue;
+
+    // Defect E: skip subdirs not in the category filter when one is provided
+    if (categoryFilter !== null && categoryFilter !== undefined && !categoryFilter.has(subdir)) {
+      continue;
+    }
 
     let relOutputDir;
     if (subdir === 'commands') {
@@ -464,6 +470,32 @@ function walkBasePackPi(src, outRoot, dryRun, io) {
 if (require.main === module) {
   try {
     const argv = process.argv.slice(2);
+
+    // ── Defect C fix: short-circuit --help/-h BEFORE any path resolution ────────
+    if (argv.includes('--help') || argv.includes('-h')) {
+      process.stdout.write([
+        'substitute-placeholders.cjs — Phase 3 (Materialize) engine.',
+        '',
+        'Usage:',
+        '  node substitute-placeholders.cjs [options]',
+        '',
+        'Options:',
+        '  --target <claude-code|pi>  Output layout target (default: claude-code)',
+        '  --src <path>               Base-pack source dir for --target pi',
+        '  --forge-root <path>        Forge plugin root directory',
+        '  --base-pack <path>         Base-pack directory (probes .base-pack/ then init/base-pack/)',
+        '  --config <path>            Path to .forge/config.json',
+        '  --context <path>           Path to project-context.json',
+        '  --rules <path>             Path to build-base-pack-rules.json',
+        '  --out <path>               Output root directory (default: cwd)',
+        '  --dry-run                  Preview without writing',
+        '  --category <name[,name]>   Limit materialisation to named subdirectories',
+        '                             (personas, skills, workflows, templates, commands)',
+        '  --help, -h                 Show this message and exit',
+      ].join('\n') + '\n');
+      process.exit(0);
+    }
+
     const args = parseCliArgs(argv);
 
     const dryRun = args.dryRun || false;
@@ -515,8 +547,20 @@ if (require.main === module) {
     // Resolve forge root
     const forgeRoot = args.forgeRoot || resolveForgeRoot();
 
-    // Resolve base-pack
-    const basePack = args.basePack || path.join(forgeRoot, 'init', 'base-pack');
+    // Resolve base-pack — Defect C fix: when no --base-pack flag given,
+    // probe .base-pack/ (bundled layout) before init/base-pack (source layout).
+    let basePack;
+    if (args.basePack) {
+      basePack = args.basePack;
+    } else {
+      const dotBasePack = path.resolve(process.cwd(), '.base-pack');
+      const initBasePack = path.join(forgeRoot, 'init', 'base-pack');
+      if (fs.existsSync(dotBasePack)) {
+        basePack = dotBasePack;
+      } else {
+        basePack = initBasePack;
+      }
+    }
     if (!fs.existsSync(basePack)) {
       process.stderr.write(`substitute-placeholders: base-pack not found at ${basePack}\n`);
       process.exit(1);
@@ -563,8 +607,15 @@ if (require.main === module) {
       process.exit(1);
     }
 
+    // Defect E: parse --category flag into a Set<string> filter (or null for all)
+    let categoryFilter = null;
+    if (args.category) {
+      const cats = args.category.split(',').map((c) => c.trim()).filter(Boolean);
+      categoryFilter = new Set(cats);
+    }
+
     // Walk and materialise
-    walkBasePack(basePack, map, outRoot, dryRun, null);
+    walkBasePack(basePack, map, outRoot, dryRun, null, categoryFilter);
 
     if (dryRun) {
       process.stdout.write('substitute-placeholders: dry run complete (no files written)\n');
@@ -593,6 +644,7 @@ function parseCliArgs(argv) {
     if (a === '--context' && argv[i + 1]) { args.context = argv[++i]; continue; }
     if (a === '--rules' && argv[i + 1]) { args.rules = argv[++i]; continue; }
     if (a === '--out' && argv[i + 1]) { args.out = argv[++i]; continue; }
+    if (a === '--category' && argv[i + 1]) { args.category = argv[++i]; continue; }
   }
   return args;
 }

@@ -2289,4 +2289,125 @@ describe('store-cli.cjs — emit FK-check (FORGE-S22-T05)', () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+});  // end describe('store-cli.cjs — emit FK-check (FORGE-S22-T05)')
+
+// ---------------------------------------------------------------------------
+// Defect D — list event traverses all sub-directories (bugs/, enhancement/, <sprintId>/)
+// ---------------------------------------------------------------------------
+
+describe('store-cli.cjs — list event traverses all subdirectories (Defect D)', () => {
+  function makeEventStore() {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-event-list-'));
+    // Create .forge config + store skeleton
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'FORGE-S01'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'bugs'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events', 'enhancement'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'sprints'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'config.json'),
+      JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
+    );
+
+    const sprintEvent = {
+      eventId: 'EVT-S-001', taskId: 'T-001', sprintId: 'FORGE-S01', role: 'engineer',
+      action: 'plan', phase: 'plan', iteration: 1,
+      startTimestamp: '2026-05-20T10:00:00Z', endTimestamp: '2026-05-20T10:30:00Z',
+      durationMinutes: 30, model: 'claude-sonnet-4-6',
+    };
+    const bugEvent = {
+      eventId: 'EVT-B-001', taskId: 'BUG-001', sprintId: 'bugs', role: 'engineer',
+      action: 'triage', phase: 'triage', iteration: 1,
+      startTimestamp: '2026-05-20T11:00:00Z', endTimestamp: '2026-05-20T11:15:00Z',
+      durationMinutes: 15, model: 'claude-sonnet-4-6',
+    };
+    const enhancementEvent = {
+      eventId: 'EVT-E-001', taskId: 'ENH-001', sprintId: 'enhancement', role: 'architect',
+      action: 'plan', phase: 'plan', iteration: 1,
+      startTimestamp: '2026-05-20T12:00:00Z', endTimestamp: '2026-05-20T12:20:00Z',
+      durationMinutes: 20, model: 'claude-sonnet-4-6',
+    };
+
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'store', 'events', 'FORGE-S01', 'EVT-S-001.json'),
+      JSON.stringify(sprintEvent, null, 2)
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'store', 'events', 'bugs', 'EVT-B-001.json'),
+      JSON.stringify(bugEvent, null, 2)
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, '.forge', 'store', 'events', 'enhancement', 'EVT-E-001.json'),
+      JSON.stringify(enhancementEvent, null, 2)
+    );
+
+    return tmpDir;
+  }
+
+  test('list event exits 0 (previously exited 1 with "Unknown entity type: event")', () => {
+    const tmpDir = makeEventStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'list', 'event'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0,
+        `list event should exit 0, got ${r.status}. stderr: ${r.stderr}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('list event returns events from all three sub-directories', () => {
+    const tmpDir = makeEventStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'list', 'event'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      const records = JSON.parse(r.stdout);
+      assert.ok(Array.isArray(records), 'output should be a JSON array');
+      assert.equal(records.length, 3, `expected 3 events, got ${records.length}: ${JSON.stringify(records)}`);
+      const ids = records.map(e => e.eventId).sort();
+      assert.deepEqual(ids, ['EVT-B-001', 'EVT-E-001', 'EVT-S-001']);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('list event on an empty events dir returns empty array', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-event-empty-'));
+    try {
+      fs.mkdirSync(path.join(tmpDir, '.forge', 'store', 'events'), { recursive: true });
+      fs.writeFileSync(
+        path.join(tmpDir, '.forge', 'config.json'),
+        JSON.stringify({ paths: { store: '.forge/store' } }, null, 2)
+      );
+      const r = spawnSync(process.execPath, [STORE_CLI, 'list', 'event'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      const records = JSON.parse(r.stdout);
+      assert.deepEqual(records, []);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('list event skips sidecar files (_-prefixed)', () => {
+    const tmpDir = makeEventStore();
+    try {
+      // Add a sidecar file
+      fs.writeFileSync(
+        path.join(tmpDir, '.forge', 'store', 'events', 'FORGE-S01', '_EVT-S-001_usage.json'),
+        JSON.stringify({ inputTokens: 100 }, null, 2)
+      );
+      const r = spawnSync(process.execPath, [STORE_CLI, 'list', 'event'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      const records = JSON.parse(r.stdout);
+      assert.equal(records.length, 3, `sidecar should not be counted; got ${records.length}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
 });

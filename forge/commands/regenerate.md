@@ -99,7 +99,23 @@ $ARGUMENTS
 
 Parse the argument to identify the target category and optional sub-target.
 Sub-targets may be passed either as a second positional argument or embedded
-with a colon delimiter (both forms are equivalent):
+with a colon delimiter (both forms are equivalent).
+
+> **Category scope enforcement**: If this workflow (or any subagent it spawns)
+> calls `substitute-placeholders.cjs` directly to re-materialise base-pack
+> files, it MUST pass `--category <parsed-category>` to restrict writes to the
+> requested namespace. Without this flag the tool overwrites all five output
+> directories (personas, skills, workflows, templates, commands), silently
+> discarding any regenerated content in non-targeted categories.
+>
+> Example:
+> ```sh
+> node "$FORGE_ROOT/tools/substitute-placeholders.cjs" \
+>   --base-pack  "$FORGE_ROOT/init/base-pack" \
+>   --config     ".forge/config.json" \
+>   --category   "personas" \
+>   --out        "."
+> ```
 
 ```
 /forge:regenerate                              # workflows + commands + templates + personas (default)

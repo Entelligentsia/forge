@@ -483,6 +483,202 @@ describe('Flat-key constraint (no dot-notation placeholders)', () => {
   });
 });
 
+// ── Test Group 10a: Defect C — --help short-circuit and base-pack probe ─────
+
+describe('Defect C — --help short-circuit before path check', () => {
+  test('--help exits 0 even when run from a directory with no .base-pack/', () => {
+    // Run from a temp dir that has neither init/base-pack/ nor .base-pack/ — the path
+    // check would previously exit 1 BEFORE the help text was printed.
+    const dir = tmpDir();
+    try {
+      const result = spawnSync(process.execPath, [SCRIPT_PATH, '--help'], {
+        encoding: 'utf8',
+        cwd: dir,
+      });
+      assert.equal(result.status, 0, `--help should exit 0, got ${result.status}:\n${result.stderr}`);
+      assert.ok(result.stdout.length > 0, '--help should print usage to stdout');
+    } finally {
+      rmrf(dir);
+    }
+  });
+
+  test('-h exits 0 even when run from a directory with no .base-pack/', () => {
+    const dir = tmpDir();
+    try {
+      const result = spawnSync(process.execPath, [SCRIPT_PATH, '-h'], {
+        encoding: 'utf8',
+        cwd: dir,
+      });
+      assert.equal(result.status, 0, `-h should exit 0, got ${result.status}:\n${result.stderr}`);
+    } finally {
+      rmrf(dir);
+    }
+  });
+
+  test('probes .base-pack/ before init/base-pack/ when no --base-pack flag given', () => {
+    // Fixture: directory has ONLY .base-pack/ (not init/base-pack/)
+    const dir = tmpDir();
+    try {
+      const dotBasePack = path.join(dir, '.base-pack');
+      writeFile(path.join(dotBasePack, 'personas', 'engineer.md'), '# {{PROJECT_NAME}} Engineer\n');
+
+      // Write .forge/config.json so the tool can resolve config
+      const forgeDir = path.join(dir, '.forge');
+      fs.mkdirSync(forgeDir, { recursive: true });
+      fs.writeFileSync(path.join(forgeDir, 'config.json'), JSON.stringify({
+        project: { name: 'ProbeTest', prefix: 'PT' },
+        commands: {}, paths: { engineering: 'engineering' },
+      }), 'utf8');
+
+      const outDir = path.join(dir, 'out');
+      const result = spawnSync(process.execPath, [
+        SCRIPT_PATH,
+        '--out', outDir,
+      ], { encoding: 'utf8', cwd: dir });
+
+      assert.equal(result.status, 0,
+        `should exit 0 when .base-pack/ exists — got ${result.status}:\nstderr: ${result.stderr}`);
+      const personaOut = path.join(outDir, '.forge', 'personas', 'engineer.md');
+      assert.ok(fs.existsSync(personaOut), `persona file should be written; got: ${result.stderr}`);
+    } finally {
+      rmrf(dir);
+    }
+  });
+});
+
+// ── Test Group 10b: Defect E — --category flag ───────────────────────────────
+
+describe('Defect E — --category flag limits which subdirs are materialised', () => {
+  // Helper: create a fixture with all 4 base-pack subdirs + a config.
+  function makeFullFixture() {
+    const dir = tmpDir();
+    const basePack = path.join(dir, 'base-pack');
+    writeFile(path.join(basePack, 'personas', 'engineer.md'),   '# {{PROJECT_NAME}} Engineer\n');
+    writeFile(path.join(basePack, 'skills', 'engineer-skills.md'), '# {{PROJECT_NAME}} Engineer Skills\n');
+    writeFile(path.join(basePack, 'workflows', 'plan_task.md'), '# Plan task\n');
+    writeFile(path.join(basePack, 'templates', 'PLAN.md'),       '# Plan\n');
+
+    const configFile = path.join(dir, 'config.json');
+    fs.writeFileSync(configFile, JSON.stringify({
+      project: { name: 'CatTest', prefix: 'CT' },
+      commands: {}, paths: { engineering: 'engineering' },
+    }), 'utf8');
+
+    return { dir, basePack, configFile };
+  }
+
+  test('--category personas writes only .forge/personas/, not workflows or skills', () => {
+    const { dir, basePack, configFile } = makeFullFixture();
+    try {
+      const outDir = path.join(dir, 'out');
+      const result = spawnSync(process.execPath, [
+        SCRIPT_PATH,
+        '--base-pack', basePack,
+        '--config', configFile,
+        '--out', outDir,
+        '--category', 'personas',
+      ], { encoding: 'utf8' });
+
+      assert.equal(result.status, 0, `should exit 0, got ${result.status}:\n${result.stderr}`);
+      assert.ok(
+        fs.existsSync(path.join(outDir, '.forge', 'personas', 'engineer.md')),
+        'persona file should exist'
+      );
+      assert.ok(
+        !fs.existsSync(path.join(outDir, '.forge', 'workflows', 'plan_task.md')),
+        'workflow file should NOT exist when --category personas'
+      );
+      assert.ok(
+        !fs.existsSync(path.join(outDir, '.forge', 'skills', 'engineer-skills.md')),
+        'skill file should NOT exist when --category personas'
+      );
+      assert.ok(
+        !fs.existsSync(path.join(outDir, '.forge', 'templates', 'PLAN.md')),
+        'template file should NOT exist when --category personas'
+      );
+    } finally {
+      rmrf(dir);
+    }
+  });
+
+  test('--category workflows writes only .forge/workflows/, not personas', () => {
+    const { dir, basePack, configFile } = makeFullFixture();
+    try {
+      const outDir = path.join(dir, 'out');
+      const result = spawnSync(process.execPath, [
+        SCRIPT_PATH,
+        '--base-pack', basePack,
+        '--config', configFile,
+        '--out', outDir,
+        '--category', 'workflows',
+      ], { encoding: 'utf8' });
+
+      assert.equal(result.status, 0, `should exit 0, got ${result.status}:\n${result.stderr}`);
+      assert.ok(
+        fs.existsSync(path.join(outDir, '.forge', 'workflows', 'plan_task.md')),
+        'workflow file should exist'
+      );
+      assert.ok(
+        !fs.existsSync(path.join(outDir, '.forge', 'personas', 'engineer.md')),
+        'persona file should NOT exist when --category workflows'
+      );
+    } finally {
+      rmrf(dir);
+    }
+  });
+
+  test('--category skills,workflows writes both subdirs but not personas', () => {
+    const { dir, basePack, configFile } = makeFullFixture();
+    try {
+      const outDir = path.join(dir, 'out');
+      const result = spawnSync(process.execPath, [
+        SCRIPT_PATH,
+        '--base-pack', basePack,
+        '--config', configFile,
+        '--out', outDir,
+        '--category', 'skills,workflows',
+      ], { encoding: 'utf8' });
+
+      assert.equal(result.status, 0, `should exit 0, got ${result.status}:\n${result.stderr}`);
+      assert.ok(
+        fs.existsSync(path.join(outDir, '.forge', 'skills', 'engineer-skills.md')),
+        'skill file should exist'
+      );
+      assert.ok(
+        fs.existsSync(path.join(outDir, '.forge', 'workflows', 'plan_task.md')),
+        'workflow file should exist'
+      );
+      assert.ok(
+        !fs.existsSync(path.join(outDir, '.forge', 'personas', 'engineer.md')),
+        'persona file should NOT exist when --category skills,workflows'
+      );
+    } finally {
+      rmrf(dir);
+    }
+  });
+
+  test('no --category flag materialises all subdirs (unchanged default)', () => {
+    const { dir, basePack, configFile } = makeFullFixture();
+    try {
+      const outDir = path.join(dir, 'out');
+      const result = spawnSync(process.execPath, [
+        SCRIPT_PATH,
+        '--base-pack', basePack,
+        '--config', configFile,
+        '--out', outDir,
+      ], { encoding: 'utf8' });
+
+      assert.equal(result.status, 0, `should exit 0, got ${result.status}:\n${result.stderr}`);
+      assert.ok(fs.existsSync(path.join(outDir, '.forge', 'personas', 'engineer.md')));
+      assert.ok(fs.existsSync(path.join(outDir, '.forge', 'workflows', 'plan_task.md')));
+      assert.ok(fs.existsSync(path.join(outDir, '.forge', 'skills', 'engineer-skills.md')));
+      assert.ok(fs.existsSync(path.join(outDir, '.forge', 'templates', 'PLAN.md')));
+    } finally {
+      rmrf(dir);
+    }
+  });
+});
+
 // ── Test Group 10: CLI smoke test ─────────────────────────────────────────────
 
 describe('CLI smoke test', () => {
