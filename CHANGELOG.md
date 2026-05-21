@@ -5,6 +5,18 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.44.8] — 2026-05-21
+
+**#104 fix — /forge:enhance UX gaps.** Two workflow enhancements:
+
+1. **Phase-routing guidance** — the `--phase` flag table in both `commands/enhance.md` and the bundled `workflows/enhance.md` now includes a "when to run" one-liner for each phase: `--phase 1` (post-init placeholder fill), `--phase 2` (post-sprint friction scan), `--phase 3` (on-demand drift detection).
+
+2. **Zero-friction guard for Phase 2** — meta-enhance.md now guards Step 1: if the friction event list is empty, the workflow prints `No friction events queued for the active sprint — nothing to enhance.` and exits Phase 2 immediately (skips steps 3–10; emits the enhancement event with `frictionCount: 0`). Prevents silent no-op Phase 2 runs. Steps 2–9 in Phase 2 are renumbered 3–10 accordingly.
+
+**Regenerate:** workflows:enhance
+
+---
+
 ## [0.44.7] — 2026-05-21
 
 **#105 fix — build-persona-pack.cjs schema mismatch.** Tool now accepts both:

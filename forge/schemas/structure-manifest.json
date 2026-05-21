@@ -1,6 +1,6 @@
 {
-  "version": "0.44.4",
-  "generatedAt": "2026-05-19T11:32:55.232Z",
+  "version": "0.44.7",
+  "generatedAt": "2026-05-21T03:50:40.152Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -110,6 +110,7 @@
       "files": [
         "bug.schema.json",
         "collation-state.schema.json",
+        "config.schema.json",
         "event-sidecar.schema.json",
         "event.schema.json",
         "feature.schema.json",

@@ -1,5 +1,12 @@
 {
-  "0.44.6": {
+  "0.44.7": {
+    "version": "0.44.8",
+    "date": "2026-05-21",
+    "notes": "fix: meta-enhance.md — add phase-routing guidance to command table; add zero-friction guard (skip steps 3-10; emit event with frictionCount=0); renumber Phase 2 steps 2-9 to 3-10 to align with zero-friction guard.",
+    "regenerate": ["workflows:enhance"],
+    "breaking": false,
+    "manual": []
+  },
     "version": "0.44.7",
     "date": "2026-05-21",
     "notes": "fix: build-persona-pack.cjs schema mismatch — tool now accepts both base-pack (no frontmatter) and meta (YAML frontmatter) persona files; derives id/role/summary/responsibilities/outputs/file_ref from content for base-pack; derives file_ref from path for base-pack skills; throws (no empty-pack write) when both dirs are empty.",

@@ -64,9 +64,9 @@ Receive the phase flag from the command invocation:
 
 | Flag | Mode |
 |------|------|
-| `--phase 1` or `--auto` | Auto-apply: placeholder fills only |
-| `--phase 2` | Propose-diffs: sprint artifact + friction scan |
-| `--phase 3` | Drift detection: full codebase vs structural-element comparison |
+| `--phase 1` or `--auto` | Auto-apply: placeholder fills only — **use after** `/forge:init` completes to fill `{{KEY}}` placeholders from project signals |
+| `--phase 2` | Propose-diffs: sprint artifact + friction scan — **use after** a sprint completes to turn friction events into persona/skill enrichments |
+| `--phase 3` | Drift detection: full codebase vs structural-element comparison — **use on-demand** or after `/forge:calibrate` to detect stale references |
 
 Default to `--phase 3` if no phase flag is given.
 
@@ -191,28 +191,34 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
    "
    ```
 
-2. **Deduplicate** friction events by composite key `workflow + persona + issue`. Keep the most
+2. **Zero-friction guard**: If the friction event list is empty, print:
+   ```
+   No friction events queued for the active sprint — nothing to enhance.
+   ```
+   and exit Phase 2 immediately (skip steps 3–9; emit the enhancement event with `"notes": "{\"phase\":2,\"frictionCount\":0}"`). Do not create `.forge/enhancement-proposals/` when there are no proposals.
+
+3. **Deduplicate** friction events by composite key `workflow + persona + issue`. Keep the most
    recent occurrence of each composite key.
 
-3. **Read most recent completed sprint** from `.forge/store/sprints/` (status `done` or
+4. **Read most recent completed sprint** from `.forge/store/sprints/` (status `done` or
    `retrospective-done`), sorted by completion date. Read its task records from
    `.forge/store/tasks/` filtered by the sprint ID.
 
-4. **Synthesize enrichment proposals** — for each friction event:
+5. **Synthesize enrichment proposals** — for each friction event:
    - Identify which persona or skill file it references.
    - Propose a targeted addition: e.g., "architect persona lacks routing pattern knowledge —
      suggest adding `{{KB_PATH}}/routing.md` reference to deps.kb_docs."
    - For large committed file sets (> 5 files in the sprint), also check whether
      `engineer-skills.md` or `architect-skills.md` should reference new patterns.
 
-5. **Write proposal artifact**:
+6. **Write proposal artifact**:
    ```sh
    mkdir -p "$PROJECT_ROOT/.forge/enhancement-proposals"
    ```
    Write to `$PROJECT_ROOT/.forge/enhancement-proposals/phase2-<timestamp>.md`. Format:
    one section per proposed change, with a fenced diff block showing before/after text.
 
-6. **Present to user**:
+7. **Present to user**:
    ```
    ## Phase 2 Enhancement Proposals
 
@@ -221,13 +227,13 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
    [A] Apply all  [r] Review individually  [n] Skip
    ```
 
-7. **On approval** — for each approved change:
+8. **On approval** — for each approved change:
    - Apply the edit in-place.
    - Call `manage-versions.cjs add-snapshot --source post-sprint:<SPRINT_ID> --enhanced-elements <list>`.
 
-8. **Emit enhancement event** (same schema as Phase 1, with `"phase": "post-sprint"`).
+9. **Emit enhancement event** (same schema as Phase 1, with `"phase": "post-sprint"`).
 
-9. **Report**: N changes applied, M skipped, snapshot written or skipped.
+10. **Report**: N changes applied, M skipped, snapshot written or skipped.
 
 ---
 
