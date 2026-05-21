@@ -1,4 +1,12 @@
 {
+  "0.44.8": {
+    "version": "0.44.9",
+    "date": "2026-05-21",
+    "notes": "fix: /forge:regenerate personas + skills silently overwrote manual modifications (forge#106 / FORGE-BUG-037). Pre-write generation-manifest check added to both single-file and full-rebuild paths in commands/regenerate.md, mirroring the workflows + templates pattern. Closes asymmetric modification-detection across the four structural-element categories. Markdown-only fix.",
+    "regenerate": ["commands:regenerate"],
+    "breaking": false,
+    "manual": []
+  },
   "0.44.7": {
     "version": "0.44.8",
     "date": "2026-05-21",

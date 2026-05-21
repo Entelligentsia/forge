@@ -160,7 +160,18 @@ If `CONFIG_MODE == "fast"`: apply the single-file materialized check
 not materialized, emit the stub-or-missing message and exit 0. Otherwise
 proceed.
 
-Before writing, remove any existing manifest entry for this specific file (handles rename case):
+Before writing, check the file for manual modifications (mirrors the workflows
+and templates pre-write guard — FORGE-BUG-037 / forge#106):
+```sh
+node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/personas/<sub-target>.md
+```
+For exit 1 (modified): warn `△ .forge/personas/<sub-target>.md has been manually
+modified (likely by /forge:enhance). Overwriting will discard your changes.
+Proceed? (yes / no / show diff)`. Collect the answer before proceeding. On
+`no` or `show diff` rejecting overwrite, skip this file and exit cleanly.
+On exit 2 (untracked) or exit 3 (missing): proceed without prompting.
+
+Then remove any existing manifest entry for this specific file (handles rename case):
 ```sh
 node "$FORGE_ROOT/tools/generation-manifest.cjs" remove .forge/personas/<sub-target>.md 2>/dev/null || true
 ```
@@ -198,17 +209,28 @@ steps below apply to that single file.
    node "$FORGE_ROOT/tools/banners.cjs" --badge bloom
    ```
    Then emit: `Generating personas (<N> files in parallel)...` — use `N_materialized` in fast mode, `M_total` in full mode.
-4. **Full mode only**: clear stale entries (skip in fast mode — see step 2):
+4. Check each (enumerated, fast-mode-filtered) file for manual modifications
+   before any clearing or regeneration (mirrors the workflows + templates
+   pre-write guard — FORGE-BUG-037 / forge#106):
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/personas/<role>.md
+   ```
+   For any exit 1 (modified): warn `△ .forge/personas/<role>.md has been manually
+   modified (likely by /forge:enhance). Overwriting will discard your changes.
+   Proceed? (yes / no / show diff)`. Collect answers before proceeding. Files
+   the user declines are removed from the regeneration set for this run. Exit
+   2 (untracked) and exit 3 (missing) require no prompt.
+5. **Full mode only**: clear stale entries (skip in fast mode — see step 2):
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/personas/
    ```
-5. **Spawn the persona subagents in a SINGLE Agent tool message** using
+6. **Spawn the persona subagents in a SINGLE Agent tool message** using
    `$FORGE_ROOT/init/generation/generate-persona.md` as the per-subagent rulebook
    (same fan-out pattern as `/forge:init` Phase 4). Spawn one per filtered
    entry — every entry in fast mode, every meta source in full mode.
-6. Collect results. For each `done:` result → emit `  〇 <filename>.md`.
+7. Collect results. For each `done:` result → emit `  〇 <filename>.md`.
    Retry failures once. Any still failing: surface the id list.
-7. Emit `  〇 personas — <N> files written` (fast mode appends ` (M-N deferred)` when `N < M`).
+8. Emit `  〇 personas — <N> files written` (fast mode appends ` (M-N deferred)` when `N < M`).
 
 ---
 
@@ -226,7 +248,19 @@ If `CONFIG_MODE == "fast"`: apply the single-file materialized check
 If not materialized, emit the stub-or-missing message and exit 0. Otherwise
 proceed.
 
-Before writing, remove any existing manifest entry for this specific file:
+Before writing, check the file for manual modifications (mirrors the workflows
+and templates pre-write guard — FORGE-BUG-037 / forge#106):
+```sh
+node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/skills/<sub-target>-skills.md
+```
+For exit 1 (modified): warn `△ .forge/skills/<sub-target>-skills.md has been
+manually modified (likely by /forge:enhance). Overwriting will discard your
+changes. Proceed? (yes / no / show diff)`. Collect the answer before
+proceeding. On `no` or `show diff` rejecting overwrite, skip this file and
+exit cleanly. On exit 2 (untracked) or exit 3 (missing): proceed without
+prompting.
+
+Then remove any existing manifest entry for this specific file:
 ```sh
 node "$FORGE_ROOT/tools/generation-manifest.cjs" remove .forge/skills/<sub-target>-skills.md 2>/dev/null || true
 ```
@@ -251,14 +285,25 @@ apply to that single file.
    node "$FORGE_ROOT/tools/banners.cjs" --badge tide
    ```
    Then emit: `Generating skills (<N> files in parallel)...`
-4. **Full mode only**: clear stale entries (skip in fast mode):
+4. Check each (enumerated, fast-mode-filtered) file for manual modifications
+   before any clearing or regeneration (mirrors the workflows + templates
+   pre-write guard — FORGE-BUG-037 / forge#106):
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/skills/<role>-skills.md
+   ```
+   For any exit 1 (modified): warn `△ .forge/skills/<role>-skills.md has been
+   manually modified (likely by /forge:enhance). Overwriting will discard your
+   changes. Proceed? (yes / no / show diff)`. Collect answers before proceeding.
+   Files the user declines are removed from the regeneration set for this run.
+   Exit 2 (untracked) and exit 3 (missing) require no prompt.
+5. **Full mode only**: clear stale entries (skip in fast mode):
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" clear-namespace .forge/skills/
    ```
-5. **Spawn the skill subagents in a SINGLE Agent tool message** using
+6. **Spawn the skill subagents in a SINGLE Agent tool message** using
    `$FORGE_ROOT/init/generation/generate-skill.md` as the per-subagent rulebook.
-6. Collect results. Retry failures once. Any still failing: surface the id list.
-7. For each completed file, check manifest (warn on modified), emit `  〇 <filename>.md`.
+7. Collect results. Retry failures once. Any still failing: surface the id list.
+8. For each completed file, check manifest (warn on modified), emit `  〇 <filename>.md`.
    Fast mode appends `〇 skills — <N> files written (M-N deferred)` when `N < M`.
 
 ---

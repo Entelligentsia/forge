@@ -312,9 +312,9 @@ publication. Reports are filed as versioned artifacts in
 
 | Version | Date | Report | Summary |
 |---------|------|--------|---------|
+| 0.44.9 | 2026-05-21 | [scan-v0.44.9.md](docs/security/scan-v0.44.9.md) | 306 files — 0 critical, 0 warnings, 2 info — SAFE TO USE |
 | 0.43.19 | 2026-05-17 | [scan-v0.43.19.md](docs/security/scan-v0.43.19.md) | 318 files — 0 critical, 2 warnings, 3 info — SAFE TO USE |
 | 0.40.2 | 2026-05-05 | [scan-v0.40.2.md](docs/security/scan-v0.40.2.md) | 290 files — 0 critical, 4 warnings, 5 info — SAFE TO USE |
-| 0.40.1 | 2026-05-02 | [scan-v0.40.1.md](docs/security/scan-v0.40.1.md) | 284 files — 0 critical, 4 warnings, 5 info — SAFE TO USE |
 
 [Full scan history →](docs/security/index.md)
 

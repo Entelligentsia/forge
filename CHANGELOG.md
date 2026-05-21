@@ -5,6 +5,16 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.44.9] — 2026-05-21
+
+Fix `/forge:regenerate personas` and `/forge:regenerate skills` silently overwriting manual modifications (typically applied by `/forge:enhance` Phase 2). Pre-write `generation-manifest check` + `△ ...has been manually modified. Overwriting will discard your changes. Proceed? (yes / no / show diff)` prompt added to both single-file and full-rebuild paths in `commands/regenerate.md`, mirroring the workflows and templates pattern. Closes the asymmetric modification-detection across the four structural-element categories. Markdown-only fix — no `.cjs` changes.
+
+**Regenerate:** commands:regenerate
+
+> Closes [forge#106](https://github.com/Entelligentsia/forge/issues/106) (FORGE-BUG-037).
+
+---
+
 ## [0.44.8] — 2026-05-21
 
 **#104 fix — /forge:enhance UX gaps.** Two workflow enhancements:
