@@ -152,7 +152,11 @@ function copyFileWithDirs(src, dest) {
  *
  * @param {string} projectRoot        - path to the project root (where .forge/ lives)
  * @param {string} source             - snapshot source label (post-init | post-sprint:<ID> | on-demand)
- * @param {string[]} enhancedElements - list of .forge/-relative paths that were enhanced
+ * @param {string[]} enhancedElements - list of paths that were enhanced. Both
+ *                                       ".forge/-relative" (e.g. "personas/X.md") and
+ *                                       project-root-relative (".forge/personas/X.md")
+ *                                       forms accepted; the tool strips a leading
+ *                                       ".forge/" if present. See forge#108.
  * @param {boolean} [dryRun]          - when true, log intent but perform no I/O
  */
 function addSnapshot(projectRoot, source, enhancedElements, dryRun) {
@@ -191,9 +195,23 @@ function addSnapshot(projectRoot, source, enhancedElements, dryRun) {
   }
 
   // Archive each enhanced element by copying from .forge/ into the archive dir.
+  //
+  // Workflow callers pass paths in two forms historically:
+  //   (a) ".forge/-relative", e.g. "personas/engineer.md"
+  //   (b) project-root-relative, e.g. ".forge/personas/engineer.md"
+  // The docstring at the top of this function declared (a), but every meta-enhance
+  // and base-pack/enhance.md invocation passes (b). The previous code did
+  // path.join(projectRoot, ".forge", relPath) which double-prefixed (b) paths
+  // and silently skipped them via fs.existsSync. Result: every archive directory
+  // since basePackVersion 0.43.3 was created empty — layer 2 of the composition
+  // contract (manage-versions.cjs:13) became a no-op. See forge#108 / FORGE-BUG-038.
+  //
+  // Fix: normalize each relPath by stripping a leading ".forge/" if present.
+  // Archive destination uses the normalized form for consistency.
   for (const relPath of (enhancedElements || [])) {
-    const srcPath = path.join(projectRoot, '.forge', relPath);
-    const destPath = path.join(archiveAbsPath, relPath);
+    const normalizedRel = relPath.replace(/^\.\/?(?=\.forge\/)/, '').replace(/^\.forge\//, '');
+    const srcPath = path.join(projectRoot, '.forge', normalizedRel);
+    const destPath = path.join(archiveAbsPath, normalizedRel);
     if (fs.existsSync(srcPath)) {
       copyFileWithDirs(srcPath, destPath);
     }

@@ -515,6 +515,40 @@ describe('manage-versions.cjs — add-snapshot', () => {
       cleanup(tmp);
     }
   });
+
+  // Test 20 (forge#108): tolerates ".forge/" prefix in --enhanced-elements.
+  // Workflows in production pass paths with the prefix (e.g.
+  // ".forge/personas/architect.md"); the tool previously path.join'd
+  // (projectRoot, ".forge", relPath) which double-prefixed and silently
+  // skipped via fs.existsSync. Result: every archive directory created
+  // empty since basePackVersion 0.43.3.
+  test('forge#108 — tolerates leading ".forge/" prefix in --enhanced-elements (archives correctly)', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
+      const result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'add-snapshot', '--source', 'post-sprint:S99',
+         '--enhanced-elements', '.forge/personas/engineer.md,.forge/skills/engineer-skills.md'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0,
+        `add-snapshot must exit 0 even when paths include .forge/ prefix. stderr: ${result.stderr}`);
+      const archiveDir = path.join(tmp, '.forge', 'archive', 'snap-1');
+      assert.ok(fs.existsSync(archiveDir),
+        '.forge/archive/snap-1/ must be created');
+      // Archive layout should be normalized — no double .forge/ prefix in destination
+      assert.ok(
+        fs.existsSync(path.join(archiveDir, 'personas', 'engineer.md')),
+        'archived personas/engineer.md must exist under snap-1 (no double .forge/ prefix)'
+      );
+      assert.ok(
+        fs.existsSync(path.join(archiveDir, 'skills', 'engineer-skills.md')),
+        'archived skills/engineer-skills.md must exist under snap-1'
+      );
+    } finally {
+      cleanup(tmp);
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

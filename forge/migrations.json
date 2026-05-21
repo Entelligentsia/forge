@@ -1,4 +1,12 @@
 {
+  "0.44.9": {
+    "version": "0.44.10",
+    "date": "2026-05-21",
+    "notes": "fix: manage-versions add-snapshot now archives files correctly when --enhanced-elements paths include the .forge/ prefix (forge#108). Previously, every archive directory has been created empty since basePackVersion 0.43.3 — layer 2 of the composition contract was silently a no-op. Tool now strips a leading .forge/ from each element path before joining; both .forge/-relative (e.g. personas/X.md) and project-root-relative (.forge/personas/X.md) forms accepted. Unblocks forge#107 (Approach A — snapshot replay). Pure tool fix.",
+    "regenerate": ["tools:manage-versions"],
+    "breaking": false,
+    "manual": []
+  },
   "0.44.8": {
     "version": "0.44.9",
     "date": "2026-05-21",

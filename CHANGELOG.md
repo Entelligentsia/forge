@@ -5,6 +5,16 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.44.10] — 2026-05-21
+
+Fix `manage-versions add-snapshot` silently failing to archive files. The tool previously did `path.join(projectRoot, ".forge", relPath)` to locate source files. Workflow callers (`meta-enhance.md`, `base-pack/workflows/enhance.md`) have always passed `--enhanced-elements` with the full `.forge/` prefix (e.g. `.forge/personas/architect.md`), producing a double-prefixed source path `projectRoot/.forge/.forge/...` that never exists — `fs.existsSync` then silently skipped every file. Every archive directory created since basePackVersion 0.43.3 has been empty. Layer 2 of the composition contract declared at `manage-versions.cjs:13` (`Working Artifact = base + snapshot + user_enhancements`) was a no-op. Tool now strips a leading `.forge/` from each element path; both `.forge/-relative` and project-root-relative forms accepted. New test `forge#108 — tolerates leading ".forge/" prefix in --enhanced-elements`. Unblocks [forge#107](https://github.com/Entelligentsia/forge/issues/107) (Approach A — snapshot replay).
+
+**Regenerate:** tools:manage-versions
+
+> Closes [forge#108](https://github.com/Entelligentsia/forge/issues/108).
+
+---
+
 ## [0.44.9] — 2026-05-21
 
 Fix `/forge:regenerate personas` and `/forge:regenerate skills` silently overwriting manual modifications (typically applied by `/forge:enhance` Phase 2). Pre-write `generation-manifest check` + `△ ...has been manually modified. Overwriting will discard your changes. Proceed? (yes / no / show diff)` prompt added to both single-file and full-rebuild paths in `commands/regenerate.md`, mirroring the workflows and templates pattern. Closes the asymmetric modification-detection across the four structural-element categories. Markdown-only fix — no `.cjs` changes.
