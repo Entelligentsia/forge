@@ -5,6 +5,32 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.45.0] — 2026-05-21
+
+Feature: **Approach A — snapshot replay** ([forge#107](https://github.com/Entelligentsia/forge/issues/107)). `manage-versions` gains a new `replay` subcommand that fulfills **layer 3** of the composition contract declared at `manage-versions.cjs:13` (`Working Artifact = base@pluginVersion + snapshot@currentSnapshot + user_enhancements`).
+
+After `/forge:regenerate` writes fresh base-pack content over `.forge/{personas,skills,workflows,templates}/`, the replay step walks all snapshots in `.forge/structure-versions.json`, finds enhanced elements matching the target prefix, and restores them from the archive over the freshly-generated content. Later snapshots win on file collision; files not captured by any snapshot remain at the fresh base-pack version.
+
+This closes the loop opened by the v0.44.9 modification guard (forge#106) and the v0.44.10 archive-path fix (forge#108): user enhancements applied by `/forge:enhance` Phase 2 now survive `/forge:regenerate` automatically. The pre-write modification guard remains as defence-in-depth for manual edits not captured in any snapshot.
+
+**v1 semantics (overlay).** A user-enhanced file retains its captured content even when the base-pack version of that file has changed in a plugin update. Trade-off accepted for v1; future v2 may layer 3-way merge for richer plugin-update propagation.
+
+New CLI:
+
+```sh
+node "$FORGE_ROOT/tools/manage-versions.cjs" replay --target personas              # restore all personas/* enhancements
+node "$FORGE_ROOT/tools/manage-versions.cjs" replay --target personas/engineer.md  # restore one file
+node "$FORGE_ROOT/tools/manage-versions.cjs" replay --target skills [--dry-run]
+```
+
+`regenerate.md` updated: each of personas, skills, workflows, templates fans out generation → calls `replay` → re-records manifest hashes so subsequent `check` operations reflect the restored content.
+
+**Regenerate:** commands:regenerate, tools:manage-versions
+
+> Closes [forge#107](https://github.com/Entelligentsia/forge/issues/107). Companion forge-cli mirror tracked in [forge-cli#27](https://github.com/Entelligentsia/forge-cli/issues/27).
+
+---
+
 ## [0.44.10] — 2026-05-21
 
 Fix `manage-versions add-snapshot` silently failing to archive files. The tool previously did `path.join(projectRoot, ".forge", relPath)` to locate source files. Workflow callers (`meta-enhance.md`, `base-pack/workflows/enhance.md`) have always passed `--enhanced-elements` with the full `.forge/` prefix (e.g. `.forge/personas/architect.md`), producing a double-prefixed source path `projectRoot/.forge/.forge/...` that never exists — `fs.existsSync` then silently skipped every file. Every archive directory created since basePackVersion 0.43.3 has been empty. Layer 2 of the composition contract declared at `manage-versions.cjs:13` (`Working Artifact = base + snapshot + user_enhancements`) was a no-op. Tool now strips a leading `.forge/` from each element path; both `.forge/-relative` and project-root-relative forms accepted. New test `forge#108 — tolerates leading ".forge/" prefix in --enhanced-elements`. Unblocks [forge#107](https://github.com/Entelligentsia/forge/issues/107) (Approach A — snapshot replay).

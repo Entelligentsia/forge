@@ -280,18 +280,115 @@ function initStructureVersions(projectRoot, forgeRoot, dryRun, source) {
 }
 
 // ---------------------------------------------------------------------------
+// forge#107 — Approach A layer 3: snapshot replay
+//
+// After /forge:regenerate writes fresh base-pack content over .forge/{personas,
+// skills,workflows,templates}/, walk the snapshots in order and restore each
+// enhancedElement that matches the target prefix. Later snapshots win on file
+// collision (last write).
+//
+// Semantics: "overlay" — user-enhanced files retain their captured content
+// even when the base-pack version of that file has changed in a plugin
+// update. Trade-off accepted for v1; future v2 may layer 3-way merge.
+//
+// Target prefix is normalized (leading ".forge/" stripped) and matches against
+// the normalized form of each enhancedElement's path. So:
+//   --target personas              matches  personas/X.md, personas/Y.md
+//   --target personas/engineer.md  matches only that exact file
+//   --target .forge/personas       same as --target personas
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalize a path by stripping a leading ".forge/" prefix.
+ * Symmetric with addSnapshot's archive normalization (forge#108).
+ */
+function normalizeRel(p) {
+  return p.replace(/^\.\/?(?=\.forge\/)/, '').replace(/^\.forge\//, '');
+}
+
+/**
+ * Replay snapshots — restore enhanced files matching the target prefix.
+ *
+ * @param {string} projectRoot - cwd; project root with .forge/
+ * @param {string} target       - prefix (e.g. "personas") or exact path
+ *                                (e.g. "personas/engineer.md"); ".forge/" prefix tolerated
+ * @param {boolean} [dryRun]    - log intent without copying
+ * @returns {{restored: string[], skipped: string[]}}
+ */
+function replaySnapshots(projectRoot, target, dryRun) {
+  if (!target) {
+    throw new Error('replay requires --target <prefix>. Examples: --target personas, --target personas/engineer.md');
+  }
+
+  const normalizedTarget = normalizeRel(target);
+  const doc = readStructureVersions(projectRoot);
+
+  // Build a per-file map: relPath -> { archivePath, snapshotIndex }.
+  // Later snapshots overwrite earlier on collision (Map insertion semantics
+  // give us first-set value; we want last-set, so iterate ascending and
+  // overwrite explicitly).
+  const fileMap = new Map();
+  for (const snap of doc.snapshots) {
+    if (!snap.enhancedElements || !snap.archivePath) continue;
+    for (const elem of snap.enhancedElements) {
+      const normalized = normalizeRel(elem);
+      // Match: target is a path-prefix of normalized element.
+      // Path-boundary: ensure "personas" matches "personas/X.md" but not "personas-foo.md".
+      const isMatch = normalized === normalizedTarget ||
+                      normalized.startsWith(normalizedTarget + '/');
+      if (!isMatch) continue;
+
+      const archiveAbs = path.join(projectRoot, snap.archivePath, normalized);
+      fileMap.set(normalized, { archiveAbs, snapshotIndex: snap.index });
+    }
+  }
+
+  const restored = [];
+  const skipped = [];
+
+  for (const [normalized, { archiveAbs, snapshotIndex }] of fileMap) {
+    const destAbs = path.join(projectRoot, '.forge', normalized);
+    if (!fs.existsSync(archiveAbs)) {
+      // Archive missing (pre-forge#108 snapshots created empty archives).
+      // Skip — we can't restore what we don't have.
+      skipped.push(normalized);
+      continue;
+    }
+    if (dryRun) {
+      console.log(`[dry-run] Would restore ${normalized} from snap-${snapshotIndex}`);
+      restored.push(normalized);
+      continue;
+    }
+    copyFileWithDirs(archiveAbs, destAbs);
+    restored.push(normalized);
+  }
+
+  if (restored.length > 0) {
+    console.log(`〇 replay complete — ${restored.length} file(s) restored from snapshots matching '${target}'`);
+  } else if (skipped.length > 0) {
+    console.log(`△ replay — ${skipped.length} matching element(s) skipped (archive missing; created before forge#108 fix)`);
+  } else {
+    console.log(`〇 replay — no enhanced elements match target '${target}'; nothing to restore`);
+  }
+
+  return { restored, skipped };
+}
+
+// ---------------------------------------------------------------------------
 // Exports (for unit tests)
 // ---------------------------------------------------------------------------
 
 module.exports = {
   initStructureVersions,
   addSnapshot,
+  replaySnapshots,
   readStructureVersions,
   writeStructureVersions,
   VERSIONS_PATH,
   versionsPath,
   readPluginVersion,
   readOverlayToolVersion,
+  normalizeRel,
 };
 
 // ---------------------------------------------------------------------------
@@ -370,9 +467,22 @@ if (require.main === module) {
         break;
       }
 
+      case 'replay': {
+        // forge#107 — Approach A layer 3
+        const targetIdx = args.indexOf('--target');
+        const target = targetIdx !== -1 ? args[targetIdx + 1] : null;
+        if (!target || target.startsWith('--')) {
+          console.error('× replay requires --target <prefix>.');
+          console.error('  Examples: --target personas, --target personas/engineer.md');
+          process.exit(1);
+        }
+        replaySnapshots(projectRoot, target, DRY_RUN);
+        break;
+      }
+
       default: {
         console.error(`× Unknown subcommand: ${subcommand || '(none)'}`);
-        console.error('  Usage: manage-versions.cjs <init|current|list|add-snapshot> [--dry-run]');
+        console.error('  Usage: manage-versions.cjs <init|current|list|add-snapshot|replay> [--dry-run]');
         process.exit(1);
       }
     }

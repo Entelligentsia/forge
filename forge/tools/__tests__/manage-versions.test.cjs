@@ -659,3 +659,230 @@ describe('manage-versions.cjs — init --source flag (FR-013)', () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// forge#107: replay subcommand — Approach A layer 3
+// ---------------------------------------------------------------------------
+
+describe('manage-versions.cjs — replay (forge#107 / Approach A)', () => {
+  test('no-op when no snapshots have enhancedElements matching target', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
+      // Write a fresh persona file (simulating substitute-placeholders just ran)
+      const personaPath = path.join(tmp, '.forge', 'personas', 'architect.md');
+      fs.mkdirSync(path.dirname(personaPath), { recursive: true });
+      fs.writeFileSync(personaPath, 'fresh base-pack content\n', 'utf8');
+
+      const result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'replay', '--target', 'personas'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0, `replay no-op must exit 0. stderr: ${result.stderr}`);
+      // Content unchanged
+      assert.strictEqual(
+        fs.readFileSync(personaPath, 'utf8'),
+        'fresh base-pack content\n',
+        'replay must not touch files when no snapshot matches'
+      );
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  test('restores a single enhanced file from snap-1 after substitute-placeholders overwrite', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
+      // Stage: file with enhanced content, captured in snap-1
+      const personaPath = path.join(tmp, '.forge', 'personas', 'engineer.md');
+      fs.writeFileSync(personaPath, '# Engineer (enhanced)\nUser added section.\n', 'utf8');
+
+      // Create snapshot via tool
+      let result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'add-snapshot', '--source', 'post-sprint:TEST',
+         '--enhanced-elements', 'personas/engineer.md'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0, `add-snapshot setup must exit 0. stderr: ${result.stderr}`);
+
+      // Simulate substitute-placeholders overwriting with fresh base content
+      fs.writeFileSync(personaPath, '# Engineer (fresh from base-pack)\n', 'utf8');
+
+      // Run replay
+      result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'replay', '--target', 'personas'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0, `replay must exit 0. stderr: ${result.stderr}`);
+
+      // File restored to enhanced content
+      assert.strictEqual(
+        fs.readFileSync(personaPath, 'utf8'),
+        '# Engineer (enhanced)\nUser added section.\n',
+        'replay must restore the enhanced version from snap-1 archive'
+      );
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  test('respects target prefix — replay personas does NOT restore skills', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
+      const personaPath = path.join(tmp, '.forge', 'personas', 'engineer.md');
+      const skillPath = path.join(tmp, '.forge', 'skills', 'engineer-skills.md');
+      fs.writeFileSync(personaPath, 'PERSONA enhanced\n', 'utf8');
+      fs.writeFileSync(skillPath, 'SKILL enhanced\n', 'utf8');
+
+      let result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'add-snapshot', '--source', 'post-sprint:T',
+         '--enhanced-elements', 'personas/engineer.md,skills/engineer-skills.md'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0, `add-snapshot must exit 0. stderr: ${result.stderr}`);
+
+      // Overwrite both with fresh
+      fs.writeFileSync(personaPath, 'PERSONA fresh\n', 'utf8');
+      fs.writeFileSync(skillPath, 'SKILL fresh\n', 'utf8');
+
+      // Replay only personas
+      result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'replay', '--target', 'personas'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0, `replay must exit 0. stderr: ${result.stderr}`);
+
+      assert.strictEqual(fs.readFileSync(personaPath, 'utf8'), 'PERSONA enhanced\n',
+        'personas restored');
+      assert.strictEqual(fs.readFileSync(skillPath, 'utf8'), 'SKILL fresh\n',
+        'skills NOT restored — target prefix scopes the replay');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  test('exact-path target restores single file only', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
+      const engineerPath = path.join(tmp, '.forge', 'personas', 'engineer.md');
+      const architectPath = path.join(tmp, '.forge', 'personas', 'architect.md');
+      fs.writeFileSync(engineerPath, 'ENG enhanced\n', 'utf8');
+      fs.writeFileSync(architectPath, 'ARCH enhanced\n', 'utf8');
+
+      let result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'add-snapshot', '--source', 'post-sprint:T',
+         '--enhanced-elements', 'personas/engineer.md,personas/architect.md'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0);
+
+      fs.writeFileSync(engineerPath, 'ENG fresh\n', 'utf8');
+      fs.writeFileSync(architectPath, 'ARCH fresh\n', 'utf8');
+
+      // Target a specific file
+      result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'replay', '--target', 'personas/engineer.md'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0, `replay must exit 0. stderr: ${result.stderr}`);
+
+      assert.strictEqual(fs.readFileSync(engineerPath, 'utf8'), 'ENG enhanced\n');
+      assert.strictEqual(fs.readFileSync(architectPath, 'utf8'), 'ARCH fresh\n',
+        'architect NOT touched — target was the specific engineer file');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  test('later snapshot wins over earlier when same file enhanced twice', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
+      const p = path.join(tmp, '.forge', 'personas', 'engineer.md');
+      fs.writeFileSync(p, 'v1 enhanced\n', 'utf8');
+
+      let result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'add-snapshot', '--source', 'post-sprint:S1',
+         '--enhanced-elements', 'personas/engineer.md'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0);
+
+      fs.writeFileSync(p, 'v2 enhanced\n', 'utf8');
+      result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'add-snapshot', '--source', 'post-sprint:S2',
+         '--enhanced-elements', 'personas/engineer.md'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0);
+
+      // Simulate regenerate overwrite
+      fs.writeFileSync(p, 'fresh\n', 'utf8');
+
+      result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'replay', '--target', 'personas'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0);
+
+      // v2 (later snapshot) wins
+      assert.strictEqual(fs.readFileSync(p, 'utf8'), 'v2 enhanced\n',
+        'later snapshot overrides earlier for the same file');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  test('replay --target is required', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
+      const result = spawnSync(
+        process.execPath,
+        [TOOL_PATH, 'replay'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 1, 'must exit 1 when --target missing');
+      assert.ok(/--target/.test(result.stderr + result.stdout),
+        'error message must mention --target');
+    } finally {
+      cleanup(tmp);
+    }
+  });
+
+  test('replay reports count of files restored', () => {
+    const { tmp, forgeRoot } = makeInitedProject();
+    try {
+      const p1 = path.join(tmp, '.forge', 'personas', 'engineer.md');
+      const p2 = path.join(tmp, '.forge', 'personas', 'architect.md');
+      fs.writeFileSync(p1, 'ENG\n', 'utf8');
+      fs.writeFileSync(p2, 'ARCH\n', 'utf8');
+
+      spawnSync(process.execPath,
+        [TOOL_PATH, 'add-snapshot', '--source', 'post-sprint:T',
+         '--enhanced-elements', 'personas/engineer.md,personas/architect.md'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+
+      fs.writeFileSync(p1, 'X\n', 'utf8');
+      fs.writeFileSync(p2, 'Y\n', 'utf8');
+
+      const result = spawnSync(process.execPath,
+        [TOOL_PATH, 'replay', '--target', 'personas'],
+        { cwd: tmp, env: { ...process.env, FORGE_ROOT: forgeRoot }, encoding: 'utf8' }
+      );
+      assert.strictEqual(result.status, 0);
+      assert.ok(/2/.test(result.stdout),
+        `stdout must report 2 files restored: ${result.stdout}`);
+    } finally {
+      cleanup(tmp);
+    }
+  });
+});

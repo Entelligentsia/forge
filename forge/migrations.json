@@ -1,4 +1,12 @@
 {
+  "0.44.10": {
+    "version": "0.45.0",
+    "date": "2026-05-21",
+    "notes": "feat: Approach A — snapshot replay (forge#107). manage-versions gains a new replay subcommand that restores user-enhanced files captured by /forge:enhance Phase 2 snapshots after /forge:regenerate writes fresh base-pack content. Fulfills layer 3 of the composition contract (Working Artifact = base + snapshot + user_enhancements) declared at manage-versions.cjs:13. regenerate.md updated to invoke replay per category (personas, skills, workflows, templates) between subagent generation and manifest record. Overlay semantics: user-enhanced files retain captured content; later snapshots win on collision. Pairs with v0.44.10 (forge#108 archive-path fix) which made layer 2 functional in the first place.",
+    "regenerate": ["commands:regenerate", "tools:manage-versions"],
+    "breaking": false,
+    "manual": []
+  },
   "0.44.9": {
     "version": "0.44.10",
     "date": "2026-05-21",

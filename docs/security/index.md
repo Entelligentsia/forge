@@ -5,6 +5,7 @@ Reports are filed as versioned artifacts in this directory.
 
 | Version | Date | Report | Summary |
 |---------|------|--------|---------|
+| 0.45.0 | 2026-05-21 | [scan-v0.45.0.md](scan-v0.45.0.md) | 306 files — 0 critical, 0 warnings, 2 info — SAFE TO USE |
 | 0.44.10 | 2026-05-21 | [scan-v0.44.10.md](scan-v0.44.10.md) | 306 files — 0 critical, 0 warnings, 2 info — SAFE TO USE |
 | 0.44.9 | 2026-05-21 | [scan-v0.44.9.md](scan-v0.44.9.md) | 306 files — 0 critical, 0 warnings, 2 info — SAFE TO USE |
 | 0.43.19 | 2026-05-17 | [scan-v0.43.19.md](scan-v0.43.19.md) | 318 files — 0 critical, 2 warnings, 3 info — SAFE TO USE |

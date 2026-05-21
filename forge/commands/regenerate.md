@@ -230,7 +230,25 @@ steps below apply to that single file.
    entry — every entry in fast mode, every meta source in full mode.
 7. Collect results. For each `done:` result → emit `  〇 <filename>.md`.
    Retry failures once. Any still failing: surface the id list.
-8. Emit `  〇 personas — <N> files written` (fast mode appends ` (M-N deferred)` when `N < M`).
+8. **Replay user enhancements** (forge#107 / Approach A — layer 3 of the composition
+   contract declared at `manage-versions.cjs:13`). After fresh base-pack content
+   is written, restore any user-enhanced files captured by `/forge:enhance` Phase 2
+   snapshots:
+   ```sh
+   node "$FORGE_ROOT/tools/manage-versions.cjs" replay --target personas
+   ```
+   The tool walks all snapshots in `.forge/structure-versions.json`, finds enhanced
+   elements whose normalized path starts with `personas/`, and copies them from
+   the archive back over the freshly-generated content. Later snapshots win on
+   file collision. Files not captured by any snapshot remain at the fresh
+   base-pack version.
+9. Re-record manifest hashes for the (now restored) files so subsequent
+   `generation-manifest check` calls reflect current on-disk content:
+   ```sh
+   for each <role> in the filtered set:
+     node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/personas/<role>.md
+   ```
+10. Emit `  〇 personas — <N> files written` (fast mode appends ` (M-N deferred)` when `N < M`).
 
 ---
 
@@ -303,8 +321,20 @@ apply to that single file.
 6. **Spawn the skill subagents in a SINGLE Agent tool message** using
    `$FORGE_ROOT/init/generation/generate-skill.md` as the per-subagent rulebook.
 7. Collect results. Retry failures once. Any still failing: surface the id list.
-8. For each completed file, check manifest (warn on modified), emit `  〇 <filename>.md`.
-   Fast mode appends `〇 skills — <N> files written (M-N deferred)` when `N < M`.
+8. **Replay user enhancements** (forge#107 / Approach A):
+   ```sh
+   node "$FORGE_ROOT/tools/manage-versions.cjs" replay --target skills
+   ```
+   Walks snapshots; restores any enhanced `skills/<role>-skills.md` files from
+   the archive over the freshly-generated content. Later snapshots win on
+   collision.
+9. Re-record manifest hashes for the (now restored) files:
+   ```sh
+   for each <role> in the filtered set:
+     node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/skills/<role>-skills.md
+   ```
+10. For each completed file, check manifest (warn on modified), emit `  〇 <filename>.md`.
+    Fast mode appends `〇 skills — <N> files written (M-N deferred)` when `N < M`.
 
 ---
 
@@ -386,7 +416,7 @@ write, record hash.
    node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/workflows/{filename}.md
    ```
    For any exit 1 (modified): warn `△ .forge/workflows/{filename}.md has been manually
-   modified. Overwriting will discard your changes. Proceed? (yes / no / show diff)`
+   modified. Overwriting may discard manual edits not captured in any /forge:enhance snapshot. Edits captured by snapshots will be restored automatically via `manage-versions replay` after regeneration. Proceed? (yes / no / show diff)`
    Collect answers before proceeding.
 5. **Full mode only**: clear stale entries (skip in fast mode — clearing
    would drop manifest entries for stubs we are intentionally leaving alone):
@@ -412,8 +442,15 @@ write, record hash.
    Input: $FORGE_ROOT/meta/workflows/meta-orchestrate.md + .forge/workflows/
    Output: .forge/workflows/orchestrate_task.md and .forge/workflows/run_sprint.md
    ```
-9. For each written file: record hash `node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/workflows/{filename}.md`
-10. Emit `  〇 workflows — <N> files written` (full mode: 18; fast mode:
+9. **Replay user enhancements** (forge#107 / Approach A):
+   ```sh
+   node "$FORGE_ROOT/tools/manage-versions.cjs" replay --target workflows
+   ```
+   Walks snapshots; restores enhanced `workflows/<name>.md` files. Later
+   snapshots win on collision.
+10. For each written file: record hash `node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/workflows/{filename}.md`
+    (this runs AFTER replay so the recorded hash reflects the restored content).
+11. Emit `  〇 workflows — <N> files written` (full mode: 18; fast mode:
     `〇 workflows — N of M files regenerated (others remain as stubs)`).
 
 **Do NOT touch:** `.claude/commands/`, `.forge/config.json`, or any knowledge base file.
@@ -509,14 +546,21 @@ Generate the single file (no fan-out needed). Record hash after writing.
 6. **Spawn the template subagents in a SINGLE Agent tool message** using
    `$FORGE_ROOT/init/generation/generate-template.md` as the per-subagent rulebook.
 7. Collect results. Retry failures once. Any still failing: surface the id list.
-8. For each written file: record hash, emit `  〇 <filename>.md`.
-9. Re-record the one-shot init artifact not regenerated from a meta file:
+8. **Replay user enhancements** (forge#107 / Approach A):
    ```sh
-   if [ -f ".forge/templates/CUSTOM_COMMAND_TEMPLATE.md" ]; then
-     node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/templates/CUSTOM_COMMAND_TEMPLATE.md
-   fi
+   node "$FORGE_ROOT/tools/manage-versions.cjs" replay --target templates
    ```
-   Fast-mode footer: emit `〇 templates — <N> files written (M-N deferred)` when `N < M`.
+   Walks snapshots; restores enhanced `templates/<STEM>.md` files. Later
+   snapshots win on collision.
+9. For each written file: record hash, emit `  〇 <filename>.md` (hash reflects
+   post-replay content).
+10. Re-record the one-shot init artifact not regenerated from a meta file:
+    ```sh
+    if [ -f ".forge/templates/CUSTOM_COMMAND_TEMPLATE.md" ]; then
+      node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/templates/CUSTOM_COMMAND_TEMPLATE.md
+    fi
+    ```
+    Fast-mode footer: emit `〇 templates — <N> files written (M-N deferred)` when `N < M`.
 
 ---
 
