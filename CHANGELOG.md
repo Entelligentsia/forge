@@ -5,6 +5,35 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.45.1] — 2026-05-22
+
+Feature: **`skill_usage` event variant** (FORGE-S24-T01, plan 08 Phase B — SKILL-CURATION).
+
+`event.schema.json` gains a new event type `skill_usage` with an `allOf`
+branch requiring `{eventId, sprintId, taskId, skillId, retrieved, used,
+tool_call_success_rate, retrieval_score}`. The numeric properties
+`tool_call_success_rate` and `retrieval_score` carry declarative `[0, 1]`
+bounds; `skillId` is `minLength: 1`. The root `additionalProperties: false`
+gate continues to reject unknown fields on every variant.
+
+This is the data foundation for Sprint S24 SKILL-CURATION:
+
+- **T02** emits `skill_usage` records when a skill is retrieved into context or invoked.
+- **T04** correlates the `retrieval_score` against tool-call outcomes.
+- **T05** detects delete-candidate skills using rolling-window aggregates of `used` × `tool_call_success_rate`.
+- **T08** replays historic events for retrospective scoring.
+
+No `validate-store.cjs` code-path change — the existing `validateRecord()`
+machinery handles the new `allOf` branch identically to the `friction`,
+`sprint-complete`, and `sprint-halted` variants. Additive and non-breaking:
+existing event records remain valid.
+
+**Note on target version.** TASK_PROMPT requested `v0.45.0`, but that tag
+already shipped (snapshot-replay, forge#107). Bumping to `0.45.1` is the
+minimum forward step.
+
+---
+
 ## [0.45.0] — 2026-05-21
 
 Feature: **Approach A — snapshot replay** ([forge#107](https://github.com/Entelligentsia/forge/issues/107)). `manage-versions` gains a new `replay` subcommand that fulfills **layer 3** of the composition contract declared at `manage-versions.cjs:13` (`Working Artifact = base@pluginVersion + snapshot@currentSnapshot + user_enhancements`).

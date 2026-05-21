@@ -1,4 +1,12 @@
 {
+  "0.45.0": {
+    "version": "0.45.1",
+    "date": "2026-05-22",
+    "notes": "feat: event.schema.json — new `skill_usage` event variant (FORGE-S24-T01, plan 08 Phase B). Adds `skill_usage` to the `type` enum and a conditional allOf branch requiring {skillId, retrieved, used, tool_call_success_rate, retrieval_score}. Top-level numeric properties (`tool_call_success_rate`, `retrieval_score`) carry [0,1] declarative bounds; `skillId` is `minLength: 1`. The root `additionalProperties: false` gate continues to reject unknown fields on every variant. Foundation for Sprint S24 SKILL-CURATION: T02 emits, T04 retrieval-score correlation, T05 delete-candidate detection, T08 replay scoring all consume records of this type. No code path change to validate-store.cjs — the existing validateRecord() handles the new allOf branch via the same machinery used for friction / sprint-complete / sprint-halted variants. Additive, non-breaking: existing event records remain valid. Note on target version: TASK_PROMPT requested v0.45.0 but that tag already shipped (snapshot-replay change); bumping to 0.45.1 is the minimum forward step.",
+    "regenerate": ["schemas:event"],
+    "breaking": false,
+    "manual": []
+  },
   "0.44.10": {
     "version": "0.45.0",
     "date": "2026-05-21",

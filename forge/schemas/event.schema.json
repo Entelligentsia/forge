@@ -61,7 +61,9 @@
 
         "bug-triaged", "fix-planned", "fix-review-passed", "fix-review-failed",
         "fix-implemented", "fix-code-review-passed", "fix-code-review-failed",
-        "fix-approved", "bug-committed"
+        "fix-approved", "bug-committed",
+
+        "skill_usage"
       ]
     },
     "workflow": { "type": "string" },
@@ -89,7 +91,13 @@
     "haltedAtTaskId":       { "type": "string" },
     "lastError":            { "type": "string" },
     "waveCount":            { "type": "integer", "minimum": 1 },
-    "maxConcurrency":       { "type": "integer", "minimum": 1 }
+    "maxConcurrency":       { "type": "integer", "minimum": 1 },
+
+    "skillId":                { "type": "string", "minLength": 1 },
+    "retrieved":              { "type": "boolean" },
+    "used":                   { "type": "boolean" },
+    "tool_call_success_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+    "retrieval_score":        { "type": "number", "minimum": 0, "maximum": 1 }
   },
   "additionalProperties": false,
   "allOf": [
@@ -160,6 +168,16 @@
           "haltedAtTaskId":    { "type": "string" },
           "lastError":         { "type": "string" }
         }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "skill_usage" } }, "required": ["type"] },
+      "then": {
+        "required": [
+          "eventId", "sprintId", "taskId",
+          "skillId", "retrieved", "used",
+          "tool_call_success_rate", "retrieval_score"
+        ]
       }
     }
   ]
