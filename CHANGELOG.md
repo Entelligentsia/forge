@@ -5,6 +5,21 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.44.7] — 2026-05-21
+
+**#105 fix — build-persona-pack.cjs schema mismatch.** Tool now accepts both:
+
+- **Base-pack format** (no frontmatter, `init/base-pack/personas/`): derives `id`, `role`, `summary`, `responsibilities`, `outputs`, `file_ref` from content and filename. Previously threw "no frontmatter block found".
+- **Meta format** (YAML frontmatter, `meta/personas/`): existing behavior preserved; `file_ref` must be in frontmatter.
+
+Skills: `file_ref` is now derived from the file path when absent from frontmatter (base-pack skills). Previously threw "frontmatter missing required field 'file_ref'".
+
+Guard: `buildPack()` throws when both dirs are empty, preventing silent empty-pack writes that caused `/forge:health` to report persona-pack permanently stale.
+
+**Regenerate:** tools:build-persona-pack
+
+---
+
 ## [0.44.6] — 2026-05-20
 
 **P1 bug-fix batch (forge-cli#25 — defects C, D, E).** Three tool fixes to address defects discovered in the forge-cli 0.11.0 dogfooding session.

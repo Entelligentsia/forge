@@ -160,14 +160,15 @@ describe('buildPack', () => {
     assert.equal(pack.skills['engineer-skills'].file_ref, '.forge/skills/engineer-skills.md');
   });
 
-  test('throws with path-specific error when a persona file lacks frontmatter', () => {
+  test('no-frontmatter persona files are parsed as base-pack personas (not errors)', () => {
     const { personaDir, skillDir } = setupFixture();
-    const badPath = path.join(personaDir, 'meta-broken.md');
-    fs.writeFileSync(badPath, '# No frontmatter here\n');
-    assert.throws(
-      () => buildPack({ personaDir, skillDir }),
-      (err) => err.message.includes('meta-broken.md') && /frontmatter/i.test(err.message),
-    );
+    // The fixture already writes frontmatter-based personas; add a no-frontmatter one
+    fs.writeFileSync(path.join(personaDir, 'no-fm.md'), '# Just a heading\n## Capabilities\n- Do things\n');
+    // Should NOT throw — files without frontmatter are valid base-pack personas
+    const pack = buildPack({ personaDir, skillDir });
+    assert.ok(pack.personas['no-fm'], 'no-fm persona should be created');
+    assert.equal(pack.personas['no-fm'].id, 'no-fm');
+    assert.equal(pack.personas['no-fm'].role, 'no-fm');
   });
 
   test('throws clearly on malformed YAML (not a crash)', () => {
@@ -243,5 +244,74 @@ describe('writePack', () => {
     const pack = { version: 1, personas: {}, skills: {}, built_at: '2026-04-19T00:00:00Z', source_hash: 'sha256:0' };
     writePack(pack, out);
     assert.ok(fs.existsSync(out));
+  });
+});
+
+// ── No-empty-pack-on-failure ──────────────────────────────────────────────────
+
+describe('no empty pack on failure', () => {
+  test('buildPack throws when both persona and skill dirs are empty (refuses to write empty pack)', () => {
+    const root = tmpdir();
+    const personaDir = path.join(root, 'personas');
+    const skillDir = path.join(root, 'skills');
+    fs.mkdirSync(personaDir, { recursive: true });
+    fs.mkdirSync(skillDir, { recursive: true });
+    // Both dirs exist but are empty
+    assert.throws(
+      () => buildPack({ personaDir, skillDir }),
+      /no personas or skills found/i,
+    );
+  });
+});
+
+// ── Build-from-base-pack ──────────────────────────────────────────────────────
+
+describe('buildPack from base-pack templates', () => {
+  const FORGE_ROOT = path.resolve(__dirname, '..', '..');
+  const BASE_PACK_PERSONAS = path.join(FORGE_ROOT, 'init', 'base-pack', 'personas');
+  const BASE_PACK_SKILLS = path.join(FORGE_ROOT, 'init', 'base-pack', 'skills');
+
+  test('produces non-empty persona pack from base-pack personas and skills', () => {
+    const pack = buildPack({ personaDir: BASE_PACK_PERSONAS, skillDir: BASE_PACK_SKILLS });
+    assert.ok(Object.keys(pack.personas).length > 0, 'personas must not be empty');
+    assert.ok(Object.keys(pack.skills).length > 0, 'skills must not be empty');
+  });
+
+  test('persona entries include id, role, summary, responsibilities, outputs, file_ref', () => {
+    const pack = buildPack({ personaDir: BASE_PACK_PERSONAS, skillDir: BASE_PACK_SKILLS });
+    const persona = Object.values(pack.personas)[0];
+    assert.ok(persona.id, 'persona must have id');
+    assert.ok(persona.role, 'persona must have role');
+    assert.ok(persona.summary, 'persona must have summary');
+    assert.ok(Array.isArray(persona.responsibilities), 'persona.responsibilities must be an array');
+    assert.ok(Array.isArray(persona.outputs), 'persona.outputs must be an array');
+    assert.ok(persona.file_ref, 'persona must have file_ref');
+  });
+
+  test('skill entries include id, applies_to, summary, capabilities, file_ref', () => {
+    const pack = buildPack({ personaDir: BASE_PACK_PERSONAS, skillDir: BASE_PACK_SKILLS });
+    const skill = Object.values(pack.skills)[0];
+    assert.ok(skill.id, 'skill must have id');
+    assert.ok(skill.applies_to, 'skill must have applies_to');
+    assert.ok(skill.summary, 'skill must have summary');
+    assert.ok(Array.isArray(skill.capabilities), 'skill.capabilities must be an array');
+    assert.ok(skill.file_ref, 'skill must have file_ref');
+  });
+
+  test('each persona and skill has a unique id', () => {
+    const pack = buildPack({ personaDir: BASE_PACK_PERSONAS, skillDir: BASE_PACK_SKILLS });
+    const personaIds = Object.keys(pack.personas);
+    const skillIds = Object.keys(pack.skills);
+    assert.equal(new Set(personaIds).size, personaIds.length, 'persona ids must be unique');
+    assert.equal(new Set(skillIds).size, skillIds.length, 'skill ids must be unique');
+  });
+
+  test('source_hash is non-trivial (not SHA256 of empty string)', () => {
+    const pack = buildPack({ personaDir: BASE_PACK_PERSONAS, skillDir: BASE_PACK_SKILLS });
+    assert.notEqual(
+      pack.source_hash,
+      'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      'source_hash must not be SHA256 of zero bytes',
+    );
   });
 });

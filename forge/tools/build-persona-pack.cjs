@@ -22,6 +22,99 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+// ── Persona parser — two variants: base-pack (no frontmatter) and meta (YAML frontmatter) ──
+//
+// Base-pack personas: first line is a markdown heading, e.g. "# Architect" or
+// "# Architect — subtitle". The rest is the body. id and role are derived from
+// the filename. summary is the first sentence of the first non-heading line.
+// responsibilities and outputs are derived from section headers in the body.
+// file_ref is derived from the file path.
+//
+// Meta personas: YAML frontmatter block (--- ... ---) containing all required
+// fields. The body is ignored.
+
+function parsePersona(content, filePath) {
+  if (content.startsWith('---')) {
+    // Meta format — parse frontmatter then ignore body
+    const fm = parseFrontmatter(content, filePath);
+    // Re-validate required fields for meta personas
+    for (const field of REQUIRED_PERSONA_FIELDS) {
+      if (!(field in fm)) {
+        throw new Error(`${filePath}: frontmatter missing required field '${field}'`);
+      }
+    }
+    return fm;
+  }
+
+  // Base-pack format — no frontmatter, derive fields from content
+  const lines = content.split(/\r?\n/);
+  const fileName = path.basename(filePath, '.md'); // e.g. "architect"
+
+  // Derive id and role from filename (e.g. "meta-architect.md" → "architect", "architect.md" → "architect")
+  const id = fileName.replace(/^meta-/, '').replace(/-skills$/, '');
+  const role = id;
+
+  // Extract summary: first non-heading, non-empty line
+  let summary = '';
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('{{')) {
+      // Grab first sentence (up to first period + space or first line break)
+      const sentenceEnd = trimmed.search(/\.\s/);
+      summary = sentenceEnd >= 0 ? trimmed.slice(0, sentenceEnd + 1) : trimmed;
+      break;
+    }
+  }
+
+  // Derive responsibilities and outputs from section headers
+  const responsibilities = [];
+  const outputs = [];
+  for (const line of lines) {
+    if (/^##\s+(What I Produce|Outputs?)/i.test(line)) {
+      // Collect bullet points under this header until next ## or end
+      let i = lines.indexOf(line) + 1;
+      while (i < lines.length && !lines[i].startsWith('##')) {
+        const m = lines[i].match(/^[-*]\s+(.+)/);
+        if (m) outputs.push(m[1].trim());
+        i++;
+      }
+    }
+    if (/^##\s+(Capabilities?)/i.test(line)) {
+      let i = lines.indexOf(line) + 1;
+      while (i < lines.length && !lines[i].startsWith('##')) {
+        const m = lines[i].match(/^[-*]\s+(.+)/);
+        if (m) responsibilities.push(m[1].trim());
+        i++;
+      }
+    }
+  }
+
+  // file_ref: base-pack personas become .forge/personas/<id>.md
+  const file_ref = `.forge/personas/${id}.md`;
+
+  return { id, role, summary, responsibilities, outputs, file_ref };
+}
+
+// ── Skill parser — base-pack skills (with frontmatter, no file_ref) and meta skills (with file_ref) ──
+
+function parseSkill(content, filePath) {
+  const fm = parseFrontmatter(content, filePath);
+
+  // Skills must have: id, applies_to, summary, capabilities
+  for (const field of ['id', 'applies_to', 'summary', 'capabilities']) {
+    if (!(field in fm)) {
+      throw new Error(`${filePath}: frontmatter missing required field '${field}'`);
+    }
+  }
+
+  // file_ref is present in meta skills; derive it for base-pack skills from the path
+  if (!fm.file_ref) {
+    fm.file_ref = `.forge/skills/${path.basename(filePath)}`;
+  }
+
+  return fm;
+}
+
 // ── YAML frontmatter parser ──────────────────────────────────────────────────
 // Narrow-scope parser: handles scalars, folded scalars (`>`), block lists
 // (`- item`) under a key, and inline flow lists (`[a, b]`). Anything else
@@ -123,30 +216,44 @@ function listMarkdown(dir) {
     .map((f) => path.join(dir, f));
 }
 
-function loadEntries(dir, requiredFields) {
+function loadPersonas(dir) {
   const entries = {};
   for (const filePath of listMarkdown(dir)) {
     const content = fs.readFileSync(filePath, 'utf8');
-    let fm;
     try {
-      fm = parseFrontmatter(content, filePath);
+      const persona = parsePersona(content, filePath);
+      entries[persona.id] = persona;
     } catch (err) {
-      // Re-throw with original path-bearing message intact.
       throw err;
     }
-    for (const field of requiredFields) {
-      if (!(field in fm)) {
-        throw new Error(`${filePath}: frontmatter missing required field '${field}'`);
-      }
+  }
+  return entries;
+}
+
+function loadSkills(dir) {
+  const entries = {};
+  for (const filePath of listMarkdown(dir)) {
+    const content = fs.readFileSync(filePath, 'utf8');
+    try {
+      const skill = parseSkill(content, filePath);
+      entries[skill.id] = skill;
+    } catch (err) {
+      throw err;
     }
-    entries[fm.id] = fm;
   }
   return entries;
 }
 
 function buildPack({ personaDir, skillDir }) {
-  const personas = loadEntries(personaDir, REQUIRED_PERSONA_FIELDS);
-  const skills = loadEntries(skillDir, REQUIRED_SKILL_FIELDS);
+  const personas = loadPersonas(personaDir);
+  const skills = loadSkills(skillDir);
+
+  const personaCount = Object.keys(personas).length;
+  const skillCount = Object.keys(skills).length;
+  if (personaCount === 0 && skillCount === 0) {
+    throw new Error('no personas or skills found; refusing to write empty pack');
+  }
+
   return {
     version: 1,
     built_at: new Date().toISOString(),
@@ -220,6 +327,8 @@ if (require.main === module) {
 
 module.exports = {
   parseFrontmatter,
+  parsePersona,
+  parseSkill,
   buildPack,
   computeSourceHash,
   writePack,

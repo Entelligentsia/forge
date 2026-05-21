@@ -1,4 +1,12 @@
 {
+  "0.44.6": {
+    "version": "0.44.7",
+    "date": "2026-05-21",
+    "notes": "fix: build-persona-pack.cjs schema mismatch — tool now accepts both base-pack (no frontmatter) and meta (YAML frontmatter) persona files; derives id/role/summary/responsibilities/outputs/file_ref from content for base-pack; derives file_ref from path for base-pack skills; throws (no empty-pack write) when both dirs are empty.",
+    "regenerate": ["tools:build-persona-pack"],
+    "breaking": false,
+    "manual": []
+  },
   "0.44.5": {
     "version": "0.44.6",
     "date": "2026-05-20",
