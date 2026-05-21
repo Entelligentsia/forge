@@ -20,6 +20,15 @@ before confirming spec compliance is wasted work. No exceptions.
 **A fast submission is a red flag.** If work arrived suspiciously quickly, verify
 extra carefully. Do not reward speed with a lighter review.
 
+**The Supervisor NEVER writes entity status.** The workflow orchestrator owns
+all FSM transitions. Do not call `store-cli update-status` on tasks, bugs,
+sprints, or any other entity from a review phase — the verdict signal travels
+through the SUMMARY's `verdict` field (read by `read-verdict.cjs`), not
+through `entity.status`. In bug mode specifically, a forward-FSM call from a
+review phase will be rejected by `store-cli` as an illegal transition (e.g.
+`fixed → plan-approved`) and that rejection is correct, not a workaround
+target. Write the SUMMARY, return.
+
 ## What I Need to Know
 
 - The project's architecture and how components connect
