@@ -62,6 +62,12 @@ This is the **public** Forge repository. It contains only the plugin source and 
 - A secondary `FIXME: skip` / `TODO: re-enable` scan runs in warn-only mode — it prints to stderr but does not fail the build, so reminder comments like `TODO(FORGE-S25-T28)` in workflow YAML can land without self-tripping the gate.
 - Bypassing the gate requires a documented Iron Law amendment (sprint decision log entry).
 
+### Tmp-smoke gate (plugin-side)
+
+- `.github/workflows/plugin-ci.yml` `tmp-smoke` job (FORGE-S25-T03) clones forge-cli at `main` and runs `./test/e2e/tmp-smoke.sh` with `FORGE_TMP_SMOKE_PLUGIN_SRC` pointing at the in-tree plugin source under `forge/`.
+- The gate exercises `/forge:init --fast` (auth-free structural assertions per `forge/init/smoke-test.md`), `/forge:plan` against a seeded `SMOKE-TMP-S01-T01` fixture (auth-required; skips cleanly without `ANTHROPIC_API_KEY`), and `/forge:health` via `validate-store --dry-run` + `generation-manifest check`.
+- A plugin change cannot ship green without the forge-cli driver also being green against it. If the forge-cli driver itself has a regression unrelated to the plugin change, the failure must be triaged on the forge-cli side before this gate can be unblocked.
+
 ---
 
 ## Iron Laws

@@ -40,3 +40,55 @@ jobs:
 
       - name: Integrity verification
         run: node forge/tools/verify-integrity.cjs
+
+  tmp-smoke:
+    # FORGE-S25-T03 — shared-surface contract. Clones forge-cli at main and
+    # runs the tmp-smoke driver with FORGE_TMP_SMOKE_PLUGIN_SRC pointing at the
+    # in-tree plugin source, so a plugin change cannot ship green without the
+    # forge-cli driver also being green against it.
+    name: tmp-smoke (forge-cli driver against in-tree plugin)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: tests-and-skip-gate
+
+    steps:
+      - name: Checkout plugin (in-tree)
+        uses: actions/checkout@v4
+        with:
+          path: forge
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Clone forge-cli at HEAD
+        run: |
+          set -e
+          git clone --depth 1 --branch main https://github.com/Entelligentsia/forge-cli.git forge-cli-driver
+
+      - name: Install forge-cli deps
+        working-directory: forge-cli-driver
+        run: npm ci
+
+      - name: Build forge-cli
+        working-directory: forge-cli-driver
+        run: npm run build
+
+      - name: Run tmp-smoke against in-tree plugin source
+        working-directory: forge-cli-driver
+        env:
+          FORGE_TMP_SMOKE_PLUGIN_SRC: ${{ github.workspace }}/forge/forge
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: ./test/e2e/tmp-smoke.sh
+
+      - name: Upload tmp-smoke SUMMARY artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tmp-smoke-summary-plugin-side
+          path: |
+            forge-cli-driver/.tmp-smoke-out/SUMMARY.md
+            forge-cli-driver/.tmp-smoke-out/*.out
+            forge-cli-driver/.tmp-smoke-out/*.log
+          if-no-files-found: warn
+          retention-days: 7
