@@ -1,4 +1,12 @@
 {
+  "0.45.3": {
+    "version": "0.45.4",
+    "date": "2026-05-22",
+    "notes": "feat: delete-candidate detection — 3-sprint zero-use (FORGE-S24-T05). Adds `forge/tools/delete-candidate-detector.cjs` exporting `scanZeroUse({events, sprintOrder, windowSize})` and `buildDeleteProposals({events, sprintOrder, windowSize, targetPathFor})`. The detector scans `skill_usage` events across the trailing `windowSize` (default 3) sprints; any skill with at least one in-window observation AND zero `retrieved` AND zero `used` qualifies as a delete candidate. Skills with zero in-window observations are explicitly NOT proposed — that case is indistinguishable from a newly-added skill that hasn't been loaded yet. `meta/workflows/meta-enhance.md` Phase 2 gains step 5b calling `buildDeleteProposals` between recurrence annotation (step 5a) and artifact write (step 6). Each delete proposal carries `op: 'delete_skill'`, `target_path` resolved via the supplied `targetPathFor(skillId)` callback, a diff body and rationale that name the cold skill and the observed sprints, `sourceFrictionIds: []` (usage-derived, not friction-derived), `window_size`, `window_sprint_ids`, plus neutral `recurrence_count: 1` and `recurrence_task_ids: []` so the proposal shape stays uniform with the rest of the Phase 2 array. Carry-over caveat documented in the workflow: the trailing-3-sprint window only becomes meaningful once 3 sprints have elapsed since `skill_usage` emission landed in T01 (0.45.1); short-history runs produce advisory rather than authoritative deletes. This is the only mechanism by which the skill repository shrinks, completing the three-op classification rollout from T02 (insert/update were already in play). Test-first per Iron Law 2: `delete-candidate-detector.test.cjs` (16 cases — three-sprint zero-use baseline, retrieved=true disqualification, used=true disqualification, trailing-window guard against pre-window usage, default windowSize 3, configurable windowSize, never-observed-in-window suppression, empty events, friction-event filtering, short-history carry-over case, no-mutation invariant, multi-skill output, deterministic ordering, callback contract, plus AC restatement cases) landed before the detector. Pure module; no fs access. Full suite 1380/1380 (was 1364; +16). Additive, non-breaking.",
+    "regenerate": ["tools:delete-candidate-detector", "workflows:enhance"],
+    "breaking": false,
+    "manual": []
+  },
   "0.45.2": {
     "version": "0.45.3",
     "date": "2026-05-22",

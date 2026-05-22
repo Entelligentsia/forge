@@ -253,6 +253,61 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
    - The annotator returns new proposal objects; the input array is not
      mutated.
 
+5b. **Delete-candidate detection (3-sprint zero-use)** — scan `skill_usage`
+   events across the trailing 3 sprints and emit a `delete_skill` proposal
+   for every skill with zero retrieval AND zero invocation across the
+   window. This is the only mechanism by which the skill repository shrinks:
+
+   ```sh
+   node -e "
+   const { buildDeleteProposals } = require('./forge/tools/delete-candidate-detector.cjs');
+   // skillUsageEvents = all events with type === 'skill_usage' across the
+   //                    sprints in scope (collected via the same Step 1
+   //                    walker, filtered by type instead of friction).
+   // sprintOrder      = sprint IDs sorted by completion order (oldest →
+   //                    newest). The detector takes the trailing windowSize
+   //                    entries.
+   // windowSize       = 3 by default; configurable. Defined as the trailing
+   //                    N sprints of sprintOrder.
+   // targetPathFor    = (skillId) => the on-disk path of the skill file to
+   //                    delete. Workflow chooses the mapping convention.
+   const deletes = buildDeleteProposals({
+     events:        skillUsageEvents,
+     sprintOrder,
+     windowSize:    3,
+     targetPathFor: (skillId) => 'forge/skills/' + skillId + '.md',
+   });
+   process.stdout.write(JSON.stringify(deletes));
+   "
+   ```
+
+   Append the resulting `delete_skill` proposals to the proposal array from
+   step 5/5a before step 6. Each delete proposal already carries
+   `recurrence_count: 1` and `recurrence_task_ids: []` (the annotator from
+   step 5a is for friction-derived proposals; delete candidates come from
+   usage telemetry, not friction, so recurrence is neutral by construction).
+
+   Contract (per `forge/tools/delete-candidate-detector.cjs`):
+   - A skill qualifies for deletion iff it has at least one `skill_usage`
+     event inside the trailing window AND every in-window observation has
+     `retrieved === false` AND `used === false`. Any single `retrieved: true`
+     or `used: true` event disqualifies the skill.
+   - Skills with zero observations in the window are NOT proposed — this
+     case is indistinguishable from a newly-added skill that hasn't been
+     loaded yet, so silence is the safe default.
+   - Each proposal carries `window_size`, `window_sprint_ids`, and a
+     `sourceFrictionIds: []` (delete candidates derive from usage telemetry,
+     not friction).
+
+   **Carry-over caveat** — the trailing-3-sprint window is only meaningful
+   once 3 sprints have actually elapsed since `skill_usage` event emission
+   landed in FORGE-S24-T01 (forge 0.45.1). During the carry-over period the
+   detector still runs over whatever sprintOrder it receives, but the
+   signal is noisier: a skill flagged after only one or two sprints of
+   history may simply be new or temporarily idle. Operators should treat
+   delete proposals from short-history runs as advisory until the full
+   window is populated.
+
 6. **Write proposal artifact**:
    ```sh
    mkdir -p "$PROJECT_ROOT/.forge/enhancement-proposals"
