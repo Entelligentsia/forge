@@ -287,6 +287,71 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
    step 5a is for friction-derived proposals; delete candidates come from
    usage telemetry, not friction, so recurrence is neutral by construction).
 
+5c. **LLM-judge gate (Sonnet rubric, drop <3/5)** — score every proposal
+   against the 5-axis rubric and drop low-signal proposals before
+   presentation. The rubric is single-sourced in
+   `forge/tools/judge-proposal.cjs`:
+
+   | Axis (0..5) | What it measures |
+   |---|---|
+   | `specificity` | Names a concrete target_path beyond `forge/skills/*` floor; carries a non-trivial rationale; recurrence trail boosts. |
+   | `when_not_to_use` | Body contains a literal "When NOT to use" section. |
+   | `no_trajectory_copy_paste` | No long verbatim runs or unbroken non-whitespace blocks (>= 400 bytes) that suggest pasted trajectory log. |
+   | `body_under_2kb` | `Buffer.byteLength(diff_body, 'utf8') <= 2048`. |
+   | `cites_friction` | Proposal carries at least one `sourceFrictionIds` entry; multiple citations or recurrence boost the score. |
+
+   For each proposal in the post-5b array, the workflow asks Sonnet to
+   apply the rubric and emit per-axis 0..5 scores; in the absence of an
+   LLM call, the deterministic `scoreProposal(proposal)` helper in
+   `judge-proposal.cjs` is used as both the fallback scorer and the
+   validation contract for Sonnet-produced scores (single source of truth
+   for the rubric definition).
+
+   ```sh
+   node -e "
+   const {
+     scoreProposal,
+     decideJudgement,
+   } = require('./forge/tools/judge-proposal.cjs');
+   // proposals = post-5b array of proposal records.
+   const judged = proposals.map((p) => {
+     const scored   = scoreProposal(p);
+     const decision = decideJudgement(scored);
+     return { proposal: p, ...decision };
+   });
+   const kept    = judged.filter((j) => j.verdict === 'keep').map((j) => j.proposal);
+   const dropped = judged.filter((j) => j.verdict === 'drop');
+   process.stdout.write(JSON.stringify({ kept, dropped }));
+   "
+   ```
+
+   Contract (per `forge/tools/judge-proposal.cjs`):
+   - `scoreProposal(proposal)` returns `{ axes, average }` with `axes`
+     keyed by every entry in `RUBRIC_AXES` and `average` rounded to one
+     decimal place.
+   - `decideJudgement({ axes })` returns
+     `{ verdict, average, axes, reason }`. `verdict === 'drop'` iff
+     `average < 3` (strictly less than); ties at exactly 3.0 keep.
+   - `decideJudgement` fails loud on missing or out-of-range axes — the
+     judge will NOT silently coerce a malformed score sheet into a verdict.
+
+   **Logging dropped proposals (AC3).** Every rejection MUST be persisted
+   for retro review. Replace the proposal array passed to step 6 with the
+   `kept` list, and append the `dropped` list to
+   `$PROJECT_ROOT/.forge/enhancement-proposals/phase2-<timestamp>-rejections.json`
+   as a sibling artifact. Each rejection record carries the original
+   proposal alongside `{ verdict: 'drop', average, axes, reason }`. The
+   markdown summary written in step 6 SHOULD include a "Dropped (N)" line
+   pointing at the rejections file when N > 0.
+
+   **Carry-over caveat** — the rubric is deterministic; Sonnet's role is
+   to add semantic judgement to axes that the heuristic scorer
+   approximates (specificity in particular). When Sonnet is invoked, its
+   per-axis scores MUST be validated against the 0..5 range via the same
+   `validateAxes` invariant `decideJudgement` enforces. Operators
+   investigating an unexpected drop should consult the per-axis trace in
+   `reason`.
+
    Contract (per `forge/tools/delete-candidate-detector.cjs`):
    - A skill qualifies for deletion iff it has at least one `skill_usage`
      event inside the trailing window AND every in-window observation has
@@ -312,7 +377,9 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
    ```sh
    mkdir -p "$PROJECT_ROOT/.forge/enhancement-proposals"
    ```
-   Write **two** outputs for each Phase 2 run:
+   Write **two** outputs for each Phase 2 run (using the `kept` list from
+   step 5c — dropped proposals are persisted separately to the
+   `phase2-<timestamp>-rejections.json` sibling described in step 5c):
 
    - `phase2-<timestamp>.md` — human-readable markdown, one section per proposal,
      showing op + target_path + a fenced diff block.
