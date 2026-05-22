@@ -1,6 +1,6 @@
 {
-  "version": "0.46.1",
-  "generatedAt": "2026-05-22T11:29:49.206Z",
+  "version": "0.47.0",
+  "generatedAt": "2026-05-22T13:17:48.905Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -108,6 +108,7 @@
       "logicalKey": "schemas",
       "dir": ".forge/schemas",
       "files": [
+        "_defs/phaseSummary.schema.json",
         "bug.schema.json",
         "collation-state.schema.json",
         "config.schema.json",

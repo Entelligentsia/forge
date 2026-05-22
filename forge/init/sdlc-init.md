@@ -80,7 +80,7 @@ Run the 5 discovery prompts in parallel. Each reads from `$FORGE_ROOT/init/disco
 
 **Output**: `.forge/config.json` (assembled from discovery results) + internal discovery context.
 
-Validate the config against `$FORGE_ROOT/sdlc-config.schema.json`.
+Validate the config against `$FORGE_ROOT/schemas/config.schema.json`.
 
 After writing `.forge/config.json`, write `mode` as `"full"` unconditionally:
 

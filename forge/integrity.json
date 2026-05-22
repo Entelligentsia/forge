@@ -1,5 +1,5 @@
 {
-  "version": "0.46.1",
+  "version": "0.47.0",
   "generated": "2026-05-22",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
@@ -9,7 +9,7 @@
     "commands/calibrate.md": "c764e735c9212eaf785d3d0afaf926f536fef099421b2b1bde7a4b1e3114d443",
     "commands/config.md": "67251316b806d706bb77f063128e29995c6b4abaf554f4d5558bd97a1a6cfcfe",
     "commands/enhance.md": "4bbfc05cf85c862c49883bc36f1272f87cd49c8cbe00f9196e76d542e6eaa720",
-    "commands/health.md": "cf8a59cfb403ba268922bc60abcdd9255a3b5690ae0175bb2819b3f6789debc0",
+    "commands/health.md": "31fdc6e01529b0ee8cfea4a4937e140bacec78f273260d5406108f8be1bf7aea",
     "commands/init.md": "3c0522294c692e8fbb75f925370caee66f54b23d7dd3a692bedcd69f95718b28",
     "commands/materialize.md": "195292c9e98f50773c1b0c84f9bbc42438c4c8c989a84bd98092f6692799d6d6",
     "commands/migrate.md": "b226f10a6f202bfd4a840314f34d503da34a077abbf1dff8d2b40f864474a76b",

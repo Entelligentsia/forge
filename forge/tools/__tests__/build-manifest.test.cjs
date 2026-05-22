@@ -87,6 +87,19 @@ describe('build-manifest.cjs — mapping tables', () => {
     assert.ok(COMMAND_NAMES.includes('validate.md'), 'COMMAND_NAMES must include validate.md');
   });
 
+  test('schemas namespace in generated structure-manifest.json includes _defs/ subdirectory schemas (FORGE-S25-T12)', () => {
+    const manifestPath = path.join(__dirname, '..', '..', 'schemas', 'structure-manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const files = manifest.namespaces.schemas.files;
+    // The phaseSummary _defs file is single-sourced and $ref'd by task + bug
+    // schemas. The manifest's recursive schemas walker must surface nested
+    // *.schema.json files with their relative path so structure-check sees them.
+    assert.ok(
+      files.includes(path.join('_defs', 'phaseSummary.schema.json')),
+      `schemas.files must include _defs/phaseSummary.schema.json, got: ${JSON.stringify(files)}`
+    );
+  });
+
   test('commands namespace in generated structure-manifest.json has prefixed: true', () => {
     const manifestPath = path.join(__dirname, '..', '..', 'schemas', 'structure-manifest.json');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));

@@ -1,4 +1,20 @@
 {
+  "0.46.2": {
+    "version": "0.47.0",
+    "date": "2026-05-22",
+    "notes": "FORGE-S25-T12 schema hygiene — extract schemas/_defs/phaseSummary.schema.json (single-source for task + bug phase-summary shape; superset includes the bug-only `route` field used by meta-fix-bug.md triage). Refactor task.schema.json + bug.schema.json `summaries.*` slots to external $ref into the shared _defs file; drop inline $defs.phaseSummary from both (proven equivalent — bug `route` field now lives in the shared definition). Upgrade config.schema.json $schema to draft 2020-12 + HTTPS $id (https://github.com/Entelligentsia/agentic-skills/forge/config.schema.json) — body already 2020-12-compatible. Add root additionalProperties:false to config.schema.json — live dogfooded config validates clean, so no manual strip step is needed for known-good consumers. Port rich content from sdlc-config.schema.json into config.schema.json (pipelines definition, calibrationHistory, sprint.execution, pipeline.skipPhases + includeTokenDataInBugReports, commands.syntaxCheck object form, mode description) so config.schema.json becomes the single canonical source. DELETE forge/sdlc-config.schema.json outright (FORGE-S25-T12 / S-6) — three plugin consumers rewritten to schemas/config.schema.json in the same task: commands/health.md:57, init/sdlc-init.md:83, init/smoke-test.md:26+114. forge-cli's write-guard already loaded config.schema.json. Pre-commit grep across forge/forge/ + forge-cli/src/ confirmed zero live consumers of sdlc-config.schema.json (vision/*.md historical design docs only). Fix migrations.json typos schemas:events -> schemas:event at entries 0.43.12 and 0.43.11 (third occurrence at 0.45.0 was already correct). Remove stale schemas:update-check-cache target from 0.40.2 (FORGE-S25-T12 N-S-1; never resolvable — update-check-cache is a runtime cache, not a schema; documented via notes_addendum on the 0.40.2 entry). PREREQUISITE shared-surface change in forge-cli (paired same-commit): migration-engine.ts `schemas` branch in resolveCategory now walks .schemas/ recursively and preserves relative subdir structure under .forge/schemas/, so the new _defs/ subtree actually ships to user installs via /forge:update. forge-cli build-payload.cjs schema copy loop likewise recursive so the bundle carries _defs/phaseSummary.schema.json. Test surface: forge-cli adds migration-engine-defs.test.ts (5 cases, test-first) + migration-engine-dryrun.test.ts (2 cases, F-5 behavioural). Plugin tests stay 1492 green; forge-cli tests stay green (3 pre-existing unrelated doctor.test.ts failures from local auth env). Additive: no record field changes (phaseSummary $ref resolves to the same shape); store validation unchanged (validate-store.cjs validates top-level fields only, does not traverse $ref).",
+    "regenerate": [
+      "schemas",
+      "commands:health",
+      "init:sdlc-init",
+      "init:smoke-test"
+    ],
+    "breaking": false,
+    "manual": [
+      "If any project carries non-canonical keys at the root of .forge/config.json, the tightened additionalProperties:false will fail validation under the new draft-2020-12 schema. Inspect the live config and remove unknown root keys before /forge:update completes. Live dogfooded configs validate clean — this step only applies to hand-edited installs.",
+      "After /forge:update, manually delete `.forge/sdlc-config.schema.json` if present — it is the now-removed sibling schema; the regenerate mechanism only writes, it does not prune. No tooling reads it post-migration."
+    ]
+  },
   "0.46.1": {
     "version": "0.46.2",
     "date": "2026-05-22",
@@ -288,7 +304,7 @@
     "date": "2026-05-14",
     "notes": "Telemetry contract fix (Slice 1) \u2014 refactors the token-usage capture pipeline from a subagent self-probe (which never worked: pi runtime has no `/cost` probe, and the workflow's `tokenSource: \"missing\"` writes were rejected by the schema enum [reported, estimated] causing 8 schema_drift errors per HLO-S01-T04 run) to an orchestrator-owned model. Three changes: (1) event.schema.json adds `provider` as a required field \u2014 same model is priced differently across providers (Anthropic direct vs Bedrock vs Vertex; ZAI cloud vs self-host) and cost is unattributable without it; auto-populated via new discoverProvider() helper from FORGE_PROVIDER / CLAUDE_CODE_PROVIDER env vars, falling back to \"unknown\" rather than guessing. (2) Dropped `estimatedCostUSD` from event + event-sidecar schemas entirely \u2014 cost is derived at collate time from (provider, model, tokens) via tools/lib/pricing.cjs, keeping the dataset truthful when pricing changes. (3) Rewrote meta/workflows/_fragments/finalize.md AND init/base-pack/workflows/_fragments/finalize.md to delete the broken `/cost` probe + `\"missing\"` write instructions; new rule: subagents MUST NOT write token sidecars; orchestrator owns telemetry and emits the canonical event with provider-reported usage. If runtime doesn't surface usage, fields are omitted (honest absence beats placeholder zeros). collate.cjs drops the `missing` bucket from tokenSourceCounts \u2014 token-less events surface as husks instead. Tool changes: store-cli.cjs (CANONICAL_TOKEN_FIELDS + SIDECAR_ACCEPTED_FIELDS adjusted, --provider flag added on record-usage, --estimated-cost-usd flag explicitly rejected with helpful error, discoverProvider() exported); estimate-usage.cjs (removed PRICE_PER_1M heuristic table + DEFAULT_PRICE_PER_1M \u2014 returns only inputTokens/outputTokens/tokenSource); collate.cjs (cost recomputed via pricing.cjs is now the only source). Slice 2 (forge-cli runtime emit site) will wire the orchestrator emit path that consumes this contract \u2014 out of scope here. Tests: 1173 pass, 1 pre-existing FRAGMENT_MAP failure unrelated to this slice. No `.forge/` or `engineering/` edits.",
     "regenerate": [
-      "schemas:events",
+      "schemas:event",
       "schemas:event-sidecar",
       "fragments:finalize",
       "tools:store-cli",
@@ -327,7 +343,7 @@
       "workflows:validate_task",
       "workflows:update_implementation",
       "workflows:commit_task",
-      "schemas:events",
+      "schemas:event",
       "tools:store-cli",
       "fragments:store-cli-verbs",
       "tools:integrity"
@@ -513,11 +529,11 @@
       "workflows:migrate_structural",
       "workflows:_fragments",
       "schemas:config",
-      "schemas:update-check-cache",
       "schemas:structure-manifest"
     ],
     "breaking": false,
-    "manual": []
+    "manual": [],
+    "notes_addendum": "removed schemas:update-check-cache target — not a schema (runtime cache only); the target was never resolvable. Removed by FORGE-S25-T12 (N-S-1)."
   },
   "0.40.0": {
     "version": "0.40.1",

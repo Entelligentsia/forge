@@ -54,10 +54,10 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
 
 1. **Config-completeness check** — Read `$PROJECT_ROOT/.forge/config.json`.
    If it does not exist, stop and tell the user to run `/forge:init` in that directory first.
-   If it exists, validate it against `$FORGE_ROOT/sdlc-config.schema.json`:
+   If it exists, validate it against `$FORGE_ROOT/schemas/config.schema.json`:
    - Read the schema and extract all `required` fields at each level (top-level and nested objects).
-   - Required top-level fields: `version`, `project`, `stack`, `commands`, `paths`.
-   - Nested required fields: `project.prefix`, `project.name`, `commands.test`, `paths.engineering`, `paths.store`, `paths.workflows`, `paths.commands`, `paths.templates`.
+   - Required top-level fields per `config.schema.json`: `version`, `project`, `paths`.
+   - Nested required fields: `project.prefix`, `project.name`, `paths.engineering`, `paths.store`, `paths.forgeRoot`. Additionally enforce as completeness invariants (warn-if-missing, not schema-required): `commands.test`, `paths.workflows`, `paths.commands`, `paths.templates`.
    - For each required field, verify it exists in the config and has a non-empty value.
    - If all required fields are present and non-empty, emit:
      > 〇 Config complete — all required fields present.

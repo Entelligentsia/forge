@@ -293,9 +293,23 @@ try {
   const schemasDir = path.join(forgeRoot, 'schemas');
   let schemaFiles = [];
   try {
-    schemaFiles = fs.readdirSync(schemasDir)
-      .filter(f => f.endsWith('.schema.json'))
-      .sort();
+    // Recursive walk so subdir schemas (e.g. _defs/phaseSummary.schema.json,
+    // FORGE-S25-T12) appear in the manifest with their relative path.
+    const walk = (dir) => {
+      const out = [];
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          for (const f of walk(full)) {
+            out.push(path.join(entry.name, f));
+          }
+        } else if (entry.isFile() && entry.name.endsWith('.schema.json')) {
+          out.push(entry.name);
+        }
+      }
+      return out;
+    };
+    schemaFiles = walk(schemasDir).sort();
   } catch (e) {
     process.stderr.write(`△ Could not read schemas dir: ${e.message}\n`);
   }

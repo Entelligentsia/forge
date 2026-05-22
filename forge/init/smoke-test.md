@@ -23,7 +23,7 @@ run the **Fast-mode invariants** block below instead of the standard checks.
 Assert each of the following. Self-correct once per failing item.
 
 1. **Config validates** — `.forge/config.json` validates against
-   `$FORGE_ROOT/sdlc-config.schema.json` and includes `mode: "fast"`.
+   `$FORGE_ROOT/schemas/config.schema.json` and includes `mode: "fast"`.
 
 2. **Schemas present** — `.forge/schemas/` contains all expected `.schema.json`
    files (Phase 10 output).
@@ -111,7 +111,7 @@ After all fast-mode invariants pass, write `.forge/update-check-cache.json`
 
 ### 5. Config validation
 
-- `.forge/config.json` validates against `sdlc-config.schema.json`
+- `.forge/config.json` validates against `schemas/config.schema.json`
 
 ## Self-Correction
 
