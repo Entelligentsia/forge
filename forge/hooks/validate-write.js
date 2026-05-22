@@ -27,8 +27,11 @@ const path = require('path');
 
 const { matchRegistry } = require('./lib/write-registry.js');
 
-// Schema resolution order mirrors store-cli.cjs so the hook sees the exact
-// same schemas as tool writes do.
+// Schema resolution — delegates to lib/schema-loader.cjs which implements the
+// same 4-path search chain (project → in-tree → plugin-installed → bundled)
+// that store-cli.cjs uses. This ensures the hook sees the exact same schemas
+// as tool writes do, and gains the bundled .schemas/ lookup that the previous
+// inline loadSchema() was missing.
 const PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT || path.join(__dirname, '..');
 
 function resolveValidator() {
@@ -45,19 +48,30 @@ function resolveValidator() {
   throw new Error(`validate.js not found (looked in: ${candidates.join(', ')})`);
 }
 
-function loadSchema(filename) {
+function resolveSchemaLoader() {
+  // schema-loader.cjs lives at forge/tools/lib/schema-loader.cjs. Resolve it
+  // relative to the plugin root so the hook works from both dev tree and
+  // installed plugin cache.
   const candidates = [
-    path.join(process.cwd(), '.forge', 'schemas', filename),
-    path.join(process.cwd(), 'forge', 'schemas', filename),
-    path.join(PLUGIN_ROOT, 'schemas', filename),
-    path.join(__dirname, '..', 'schemas', filename),
+    path.join(PLUGIN_ROOT, 'tools', 'lib', 'schema-loader.cjs'),
+    path.join(__dirname, '..', 'tools', 'lib', 'schema-loader.cjs'),
   ];
   for (const c of candidates) {
-    if (fs.existsSync(c)) {
-      return JSON.parse(fs.readFileSync(c, 'utf8'));
-    }
+    if (fs.existsSync(c)) return require(c);
   }
-  throw new Error(`schema not found: ${filename}`);
+  throw new Error(`schema-loader.cjs not found (looked in: ${candidates.join(', ')})`);
+}
+
+function loadSchema(filename) {
+  // filename is e.g. "task.schema.json"; the schema-loader key is "task".
+  const typeKey = filename.replace(/\.schema\.json$/, '');
+  const { loadSchemas } = resolveSchemaLoader();
+  const schemas = loadSchemas();
+  const schema = schemas[typeKey];
+  if (!schema) {
+    throw new Error(`schema not found: ${filename}`);
+  }
+  return schema;
 }
 
 function readStdinSync() {

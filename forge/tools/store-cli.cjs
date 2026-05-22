@@ -12,6 +12,7 @@ let _projectRoot;
 function _getProjectRoot() { return _projectRoot || (_projectRoot = require('./lib/project-root.cjs').findProjectRoot()); }
 
 const _path = require('path');
+const { loadSchemas } = require('./lib/schema-loader.cjs');
 
 // Path traversal guard — resolves the events directory and validates that
 // sprintOrBugId doesn't escape it. Same pattern as store.cjs purgeEvents.
@@ -28,91 +29,10 @@ function _resolveEventsDir(sprintOrBugId) {
   return resolvedDir;
 }
 
-let _schemas;
+// _getSchemas() delegates to lib/schema-loader.cjs (memoized, 4-path search
+// chain). Callers use _getSchemas() so no call-sites need updating.
 function _getSchemas() {
-  if (_schemas) return _schemas;
-  const fs = require('fs');
-  const path = require('path');
-
-  const ENTITY_TYPES = ['sprint', 'task', 'bug', 'event', 'feature'];
-
-  const MINIMAL_REQUIRED = {
-    sprint:  ['sprintId', 'title', 'status', 'taskIds', 'createdAt'],
-    task:    ['taskId', 'sprintId', 'title', 'status', 'path'],
-    bug:     ['bugId', 'title', 'severity', 'status', 'path', 'reportedAt'],
-    event:   ['eventId', 'taskId', 'sprintId', 'role', 'action', 'phase', 'iteration', 'startTimestamp', 'endTimestamp', 'durationMinutes', 'model'],
-    feature: ['id', 'title', 'status', 'created_at']
-  };
-
-  const schemas = {};
-  const projectDir   = path.join('.forge', 'schemas');
-  const inTreeDir    = path.join('forge', 'schemas');
-  const pluginDir    = path.join(__dirname, '..', 'schemas');
-
-  const AUX_SCHEMAS = {
-    'event-sidecar':    'event-sidecar.schema.json',
-    'progress-entry':   'progress-entry.schema.json',
-    'collation-state':  'collation-state.schema.json',
-  };
-
-  const allTypes = [...ENTITY_TYPES, ...Object.keys(AUX_SCHEMAS)];
-  for (const type of allTypes) {
-    const schemaFile = AUX_SCHEMAS[type] || `${type}.schema.json`;
-    let schema = null;
-
-    // 1. Try project-installed schemas first
-    const projectPath = path.join(projectDir, schemaFile);
-    try {
-      if (fs.existsSync(projectPath)) {
-        schema = JSON.parse(fs.readFileSync(projectPath, 'utf8'));
-      }
-    } catch (_) {}
-
-    // 2. Fall back to in-tree source schemas (development mode)
-    if (!schema) {
-      const inTreePath = path.join(inTreeDir, schemaFile);
-      try {
-        if (fs.existsSync(inTreePath)) {
-          schema = JSON.parse(fs.readFileSync(inTreePath, 'utf8'));
-        }
-      } catch (_) {}
-    }
-
-    // 3. Fall back to plugin-installed schemas (production mode)
-    //    store-cli.cjs lives at $FORGE_ROOT/tools/, so __dirname/../schemas/
-    //    resolves to $FORGE_ROOT/schemas/ — always correct for installed plugins.
-    if (!schema) {
-      const pluginPath = path.join(pluginDir, schemaFile);
-      try {
-        if (fs.existsSync(pluginPath)) {
-          schema = JSON.parse(fs.readFileSync(pluginPath, 'utf8'));
-        }
-      } catch (_) {}
-    }
-
-    // 4. Fall back to forge-cli bundled payload layout, where build-payload.cjs
-    //    writes plugin schemas to `.schemas/` (dot-prefixed). Without this lookup,
-    //    bundled `forgecli` installs silently degrade to the minimal fallback at
-    //    the bottom and stop enforcing schema constraints at runtime.
-    if (!schema) {
-      const bundledPath = path.join(__dirname, '..', '.schemas', schemaFile);
-      try {
-        if (fs.existsSync(bundledPath)) {
-          schema = JSON.parse(fs.readFileSync(bundledPath, 'utf8'));
-        }
-      } catch (_) {}
-    }
-
-    if (schema) {
-      schemas[type] = schema;
-    } else {
-      console.error(`WARN: schema file ${schemaFile} not found, using minimal fallback`);
-      schemas[type] = { type: 'object', required: MINIMAL_REQUIRED[type] || [], properties: {} };
-    }
-  }
-
-  _schemas = schemas;
-  return _schemas;
+  return loadSchemas();
 }
 
 // ---------------------------------------------------------------------------

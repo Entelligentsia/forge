@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { readJson } = require('./json-io.cjs');
 
 class StoreFacade {
   constructor(storeDir) {
@@ -16,7 +17,7 @@ class StoreFacade {
     return fs.readdirSync(full)
       .filter(f => f.endsWith('.json'))
       .map(f => {
-        try { return JSON.parse(fs.readFileSync(path.join(full, f), 'utf8')); }
+        try { return readJson(path.join(full, f)); }
         catch { return null; }
       })
       .filter(Boolean);
@@ -45,8 +46,7 @@ class StoreFacade {
     const dir = { tasks: 'tasks', bugs: 'bugs', sprints: 'sprints', features: 'features' }[type];
     if (!dir) return null;
     const filePath = path.join(this.storeDir, dir, `${id}.json`);
-    if (!fs.existsSync(filePath)) return null;
-    try { return JSON.parse(fs.readFileSync(filePath, 'utf8')); }
+    try { return readJson(filePath); }
     catch { return null; }
   }
 
@@ -115,7 +115,7 @@ function loadForgeConfig(cwd) {
   const configPath = path.join(root, '.forge', 'config.json');
   let cfg = {};
   if (fs.existsSync(configPath)) {
-    try { cfg = JSON.parse(fs.readFileSync(configPath, 'utf8')); } catch {}
+    try { cfg = readJson(configPath) || {}; } catch {}
   }
   const prefix = cfg.project?.prefix || 'WI';
   const kbRel = cfg.paths?.engineering || 'engineering';

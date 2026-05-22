@@ -1,4 +1,15 @@
 {
+  "0.47.0": {
+    "version": "0.47.1",
+    "date": "2026-05-22",
+    "notes": "FORGE-S25-T06 — extract lib/json-io.cjs + lib/schema-loader.cjs (memoized). Closes findings T-1, T-10, H-4d, N-T-2. Creates forge/forge/tools/lib/json-io.cjs (readJson/writeJson shared primitives extracted from FSImpl in store.cjs) and forge/forge/tools/lib/schema-loader.cjs (memoized 4-path search chain: project → in-tree → plugin-installed → forge-cli bundled .schemas/; extracted from _getSchemas() in store-cli.cjs). Migrates four consumers: tools/store.cjs (FSImpl._readJson/_writeJson now delegate to lib/json-io.cjs), tools/lib/store-facade.cjs (_loadDir, getEntity, loadForgeConfig inline JSON.parse calls replaced with readJson), tools/store-cli.cjs (_getSchemas() body replaced with loadSchemas() wrapper — memoization and 4-path chain live in schema-loader.cjs; dead _schemas variable removed), hooks/validate-write.js (inline loadSchema() replaced with resolveSchemaLoader()+loadSchemas() — gains the bundled .schemas/ path that the previous inline implementation was missing). Adds unit tests: json-io.test.cjs (7 cases), schema-loader.test.cjs (7 cases), store-facade.test.cjs (9 cases). Full plugin test suite 1516/1516 passing. forge-cli build-payload.cjs LIB_ALLOWLIST updated with json-io.cjs + schema-loader.cjs; npm run build passes; both files confirmed in dist/forge-payload/tools/lib/. MINIMAL_REQUIRED is now canonical in schema-loader.cjs (exported); store-cli.cjs retains its own copy for the exported symbol surface (backward-compat). resetSchemaCache() exported for test isolation only. Additive, non-breaking — no schema changes, no workflow regeneration needed.",
+    "regenerate": ["tools:store-facade", "tools:store-cli", "hooks:validate-write"],
+    "breaking": false,
+    "manual": [
+      "After /forge:update, the new lib/json-io.cjs and lib/schema-loader.cjs files will be installed alongside the updated tools. No manual steps needed for standard installs.",
+      "forge-cli users: rebuild the forge-cli bundle (npm run build in forge-cli/) to pick up the two new lib files in the forge-cli bundled payload."
+    ]
+  },
   "0.46.2": {
     "version": "0.47.0",
     "date": "2026-05-22",
