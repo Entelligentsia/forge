@@ -287,6 +287,65 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
    step 5a is for friction-derived proposals; delete candidates come from
    usage telemetry, not friction, so recurrence is neutral by construction).
 
+5b.5. **Compression gate (reject >20% growth without 3+ frictions)** — a cheap
+   deterministic filter that runs BEFORE the LLM judge (step 5c). Any
+   `update_skill` proposal that would grow the target file by more than 20%
+   (byte-wise, UTF-8) must be backed by at least 3 supporting friction events;
+   otherwise it is rejected here and never reaches the judge. `insert_skill`
+   and `delete_skill` proposals pass through unconditionally — insert growth
+   is handled by the judge's `body_under_2kb` axis and delete only shrinks.
+
+   Why a pre-judge gate? Judging is expensive. Unbounded skill-body growth is
+   the classic SkillOS failure mode — pasting pages of trajectory copy-paste to
+   "patch" a friction. It is cheap to detect deterministically and wasteful to
+   ask the judge to rule on.
+
+   ```sh
+   node -e "
+   const fs = require('node:fs');
+   const path = require('node:path');
+   const { filterProposals } = require('./forge/tools/compression-gate.cjs');
+   // proposals = post-5b array (synthesis + recurrence + delete-candidates).
+   // PROJECT_ROOT resolves the target_path; forge plugin source is the source
+   // of truth for current bodies. The workflow renders the diff via its own
+   // applyProposalDiff helper (left abstract here — the gate is body-agnostic).
+   const projectRoot = process.env.PROJECT_ROOT;
+   const result = filterProposals({
+     proposals,
+     currentBodyFor: (p) => {
+       const abs = path.join(projectRoot, p.target_path);
+       try { return fs.readFileSync(abs, 'utf8'); }
+       catch (e) { return ''; } // insert_skill or missing file → empty
+     },
+     newBodyFor: (p) => applyProposalDiff(currentBodyFor(p), p),
+     // Default supporting count = proposal.sourceFrictionIds.length. Override
+     // if the policy is 'count frictions citing the same skill across the
+     // sprint' rather than 'count citations on the proposal itself'.
+   });
+   const proposalsAfterGate = result.admitted;
+   const compressionRejections = result.rejected; // [{ proposal, ...evaluation }]
+   process.stdout.write(JSON.stringify({ kept: proposalsAfterGate, rejected: compressionRejections }));
+   "
+   ```
+
+   **Logging gate rejections.** Append every rejection from this step to the
+   same `phase2-<timestamp>-rejections.json` sibling that step 5c uses, with
+   the rejection record carrying `{ proposal, admit: false,
+   reason: 'compression_gate_growth_unsupported', growthRatio, currentBytes,
+   newBytes, supportingFrictionCount, threshold, minSupportingFrictions }`.
+   This keeps every drop — gate or judge — traceable in one place.
+
+   Contract (per `forge/tools/compression-gate.cjs`):
+   - `GROWTH_THRESHOLD === 0.20`; comparison is **strict** (`> 0.20`). A
+     proposal at exactly 20% growth admits without friction support.
+   - `MIN_SUPPORTING_FRICTIONS === 3`. Two or fewer citations is not enough.
+   - An update on an empty current body yields `growthRatio: Infinity`; the
+     friction-support rule still applies.
+   - Negative growth (shrink) admits unconditionally.
+   - `filterProposals` partitions the input array preserving order; the
+     output `rejected` array carries the structured evaluation alongside the
+     original proposal.
+
 5c. **LLM-judge gate (Sonnet rubric, drop <3/5)** — score every proposal
    against the 5-axis rubric and drop low-signal proposals before
    presentation. The rubric is single-sourced in
