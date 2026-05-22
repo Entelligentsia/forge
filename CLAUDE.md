@@ -49,10 +49,18 @@ This is the **public** Forge repository. It contains only the plugin source and 
 ## Script Test Suite — Key Rules
 
 - Every `.cjs` tool has a corresponding test in `forge/tools/__tests__/*.test.cjs`
-- Run with: `node --test forge/tools/__tests__/*.test.cjs`
+- Run with: `npm test` (globs both `forge/tools/__tests__/*.test.cjs` and `forge/hooks/__tests__/*.test.cjs`)
 - **Every change to a `.cjs` script must be preceded by a failing test** — write test, watch it fail, implement, watch it pass
 - New exports require new tests
 - Test-only helpers belong in `__tests__/`, never in tool scripts themselves
+
+### No skipped or focused tests
+
+- Every committed test must execute. No `it.skip` / `describe.skip` / `test.skip`, no `it.only` / `describe.only` / `test.only`, no `xit` / `xdescribe`, no commented-out tests.
+- Enforced by `forge/tools/check-no-skipped-tests.cjs` (`npm run lint:no-skip`) and by the `tests-and-skip-gate` job in `.github/workflows/plugin-ci.yml`.
+- The gate scans `forge/tools/__tests__/` and `forge/hooks/__tests__/`, skips `fixtures/` subtrees, and self-excludes its own paired test file (which contains literal marker strings as fixtures).
+- A secondary `FIXME: skip` / `TODO: re-enable` scan runs in warn-only mode — it prints to stderr but does not fail the build, so reminder comments like `TODO(FORGE-S25-T28)` in workflow YAML can land without self-tripping the gate.
+- Bypassing the gate requires a documented Iron Law amendment (sprint decision log entry).
 
 ---
 

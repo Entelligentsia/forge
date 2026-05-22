@@ -1,0 +1,42 @@
+name: plugin-ci
+
+# FORGE-S25-T01 — plugin test baseline + no-skip CI gate.
+# Single job for Stage A; T28 ("Guardrails CI consolidation") extends this
+# file additively with manifest-drift, allowlist-coverage, enum-catalog
+# drift, and ts-prune gates.
+
+on:
+  push:
+    branches:
+      - main
+      - release
+      - "**/release/**"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  tests-and-skip-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # TODO(FORGE-S25-T28): re-add `npm ci` once devDependencies + lockfile land.
+      # package.json currently declares no dependencies / devDependencies and
+      # ships no package-lock.json, so an unconditional `npm ci` would fail.
+
+      - name: No-skip / no-only gate
+        run: node forge/tools/check-no-skipped-tests.cjs
+
+      - name: Plugin test suite (tools + hooks)
+        run: npm test
+
+      - name: Manifest regen sanity
+        run: node forge/tools/build-manifest.cjs --forge-root forge/
+
+      - name: Integrity verification
+        run: node forge/tools/verify-integrity.cjs

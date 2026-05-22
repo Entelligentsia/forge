@@ -2,6 +2,7 @@
   "name": "forge-plugin",
   "scripts": {
     "build-base-pack": "node forge/tools/build-base-pack.cjs --forge-root forge",
-    "test": "node --test forge/tools/__tests__/*.test.cjs"
+    "test": "node --test forge/tools/__tests__/*.test.cjs forge/hooks/__tests__/*.test.cjs",
+    "lint:no-skip": "node forge/tools/check-no-skipped-tests.cjs"
   }
 }

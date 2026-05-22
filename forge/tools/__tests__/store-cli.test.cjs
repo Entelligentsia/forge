@@ -2228,6 +2228,25 @@ describe('store-cli.cjs — emit FK-check (FORGE-S22-T05)', () => {
     }
   });
 
+  test('reserved virtual sprintId "enhancement" is accepted (no FK rejection)', () => {
+    // FORGE-S25-T01 — post-init / post-sprint hooks emit enhancement-trigger
+    // events under the shared "enhancement" virtual sprint dir. emit must
+    // recognise it as reserved alongside "bugs" and SYS-*, otherwise the
+    // hooks silently drop the event (caught only by the hook test suite).
+    const tmpDir = makeEmitFKStore();
+    try {
+      const r = spawnSync(process.execPath, [STORE_CLI, 'emit', 'enhancement', '{}'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.ok(
+        !r.stderr.includes('Unknown sprintId: enhancement'),
+        `FK check should not reject "enhancement". stderr: ${r.stderr}`
+      );
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   test('reserved SYS-* prefix is accepted (no FK rejection)', () => {
     const tmpDir = makeEmitFKStore();
     try {

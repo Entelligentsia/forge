@@ -828,12 +828,14 @@ function cmdEmit() {
 
   // FK check: reject sprintIds that are not in the store and not reserved.
   // Reserved sprintIds:
-  //   - SYS-*  — system-generated events that predate sprint records
-  //   - bugs   — virtual sprint dir for fix-bug phase events (see
-  //              meta/tool-specs/validate-store.spec.md §"event.sprintId")
+  //   - SYS-*       — system-generated events that predate sprint records
+  //   - bugs        — virtual sprint dir for fix-bug phase events (see
+  //                   meta/tool-specs/validate-store.spec.md §"event.sprintId")
+  //   - enhancement — virtual sprint dir for post-init / post-sprint
+  //                   enhancement-trigger events (FORGE-S25-T01)
   // --allow-synthetic bypasses the check for test-harness or synthetic events.
   if (!allowSynthetic) {
-    const RESERVED_GLOB = /^(SYS-|bugs$)/;
+    const RESERVED_GLOB = /^(SYS-|bugs$|enhancement$)/;
     if (!RESERVED_GLOB.test(sprintId)) {
       const validSprintIds = resolveValidSprintIds();
       if (!validSprintIds.includes(sprintId)) {
