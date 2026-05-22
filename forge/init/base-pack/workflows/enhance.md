@@ -38,6 +38,40 @@ Phases 2 and 3 write proposal artifacts to `.forge/enhancement-proposals/`. This
 distinct from `.forge/enhancements/` (FR-007, S14 scope). This workflow uses `mkdir -p` before
 writing the first proposal artifact to avoid assuming the directory exists. No conflict with S14.
 
+### Sub-directory: `.forge/enhancement-proposals/queue/`
+
+FORGE-S24-T07 introduces a project-local **enhancement queue** at
+`.forge/enhancement-proposals/queue/<sprintId>/<taskId>-<ts>.json` — one file per
+per-task curator run (T10). The queue is **append-only**: each curator run writes
+a fresh file (the ISO compact `<ts>` suffix differentiates writes; nothing is
+overwritten). Phase 2 drains the queue at sprint close, dedupes by
+`{op, target_path, sha256(diff_body)}`, and feeds the merged batch into the
+existing recurrence → delete-candidate → compression-gate → judge pipeline.
+The result: **one batched review prompt per sprint, not one per task** (paper
+§3.2.1 grouped reward). The drain is read-only — Phase 2 never deletes queue
+files; operators triage them during retrospective if needed.
+
+**Per-task curator (T10) write contract.** A curator MUST write via
+`forge/tools/queue-drain.cjs` to preserve the append-only invariant:
+
+```sh
+node -e "
+const { appendToQueue } = require('./forge/tools/queue-drain.cjs');
+appendToQueue({
+  queueRoot: '.forge/enhancement-proposals/queue',
+  sprintId:  process.env.FORGE_SPRINT_ID,
+  taskId:    process.env.FORGE_TASK_ID,
+  ts:        new Date().toISOString().replace(/[-:]|\\.\\d{3}/g, ''),
+  proposals: PROPOSALS_ARRAY,
+});
+"
+```
+
+`appendToQueue` throws if the exact file path already exists; curators MUST
+choose a fresh `ts` per run rather than overwriting. The drain is empty-safe:
+if no curator ever wrote (queue dir missing) or no files exist in the sprint
+sub-dir, Phase 2 reports "no proposals" and exits cleanly (AC5).
+
 ## Confidence gating (Phase 1)
 
 A key substitution is **high-confidence** when there is exactly one unambiguous signal source
@@ -179,11 +213,40 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
    "
    ```
 
-2. **Zero-friction guard**: If the friction event list is empty, print:
+1a. **Drain enhancement queue** (FORGE-S24-T07) — read per-task curator
+   proposals from `.forge/enhancement-proposals/queue/<sprintId>/`, dedupe by
+   `{op, target_path, sha256(diff_body)}`, and produce a `queuedProposals`
+   array that joins the synthesised proposals from step 5. This is what makes
+   the review **batched** rather than per-task (paper §3.2.1):
+
+   ```sh
+   node -e "
+   const { drainQueue } = require('./forge/tools/queue-drain.cjs');
+   const drained = drainQueue({
+     queueRoot: '.forge/enhancement-proposals/queue',
+     sprintId:  process.env.FORGE_SPRINT_ID,
+   });
+   process.stdout.write(JSON.stringify(drained));
+   "
    ```
-   No friction events queued for the active sprint — nothing to enhance.
+
+   Contract (per `forge/tools/queue-drain.cjs`):
+   - Returns `{ proposals: [...], files: [...], errors: [...] }`. `proposals`
+     is the deduped union of every per-task curator file in the sprint
+     sub-dir. `files` is the lexicographic-sorted list of source paths (used
+     by step 6 to log provenance). `errors` carries any malformed JSON files
+     skipped during read — log them, do not abort.
+   - Empty / missing queue → empty result. The drain never throws on absent
+     queue dir (first-run or no curators registered yet, AC5).
+   - The drain is read-only. Operators are responsible for queue triage
+     after sprint close.
+
+2. **Zero-input guard**: If both the friction event list AND `queuedProposals`
+   are empty, print:
    ```
-   and exit Phase 2 immediately (skip steps 3–9; emit the enhancement event with `"notes": "{\"phase\":2,\"frictionCount\":0}"`). Do not create `.forge/enhancement-proposals/` when there are no proposals.
+   No friction events or queued proposals for the active sprint — nothing to enhance.
+   ```
+   and exit Phase 2 immediately (skip steps 3–9; emit the enhancement event with `"notes": "{\"phase\":2,\"frictionCount\":0,\"queuedCount\":0}"`). Do not create `.forge/enhancement-proposals/` when there are no proposals.
 
 3. **Deduplicate** friction events by composite key `workflow + persona + issue`. Keep the most
    recent occurrence of each composite key.
@@ -192,19 +255,276 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
    `retrospective-done`), sorted by completion date. Read its task records from
    `.forge/store/tasks/` filtered by the sprint ID.
 
-5. **Synthesize enrichment proposals** — for each friction event:
-   - Identify which persona or skill file it references.
-   - Propose a targeted addition: e.g., "architect persona lacks routing pattern knowledge —
-     suggest adding `{{KB_PATH}}/routing.md` reference to deps.kb_docs."
-   - For large committed file sets (> 5 files in the sprint), also check whether
-     `engineer-skills.md` or `architect-skills.md` should reference new patterns.
+5. **Synthesize enrichment proposals** — for each friction event, classify the proposed
+   change into exactly one of three ops (see `forge/schemas/proposal.schema.json`):
+
+   | `op`            | When to use                                                                 |
+   |-----------------|-----------------------------------------------------------------------------|
+   | `insert_skill`  | A new skill / persona / kb_docs reference is needed; target file does not yet carry the guidance. |
+   | `update_skill`  | An existing skill or persona file needs revised guidance — e.g., add a routing pattern reference to `deps.kb_docs`, replace a stale instruction. |
+   | `delete_skill`  | A skill is unused, redundant, or stale (`skill_unused` / `skill_redundant` / `skill_stale` friction subkinds); target file or section should be removed. |
+
+   For each proposal capture **at minimum** the schema-required triplet
+   `{op, target_path, diff_body}` plus optional `rationale` and `sourceFrictionIds`.
+   `sourceFrictionIds` MUST carry the `eventId` of every friction event that
+   contributed to the proposal — the next step depends on it to resolve the
+   originating task for the recurrence scan.
+   For large committed file sets (> 5 files in the sprint), also check whether
+   `engineer-skills.md` or `architect-skills.md` should be updated (`update_skill`).
+   The op classification is the foundation for the downstream judge (T03),
+   delete-candidate detection (T05), compression gate (T06), and queue drain (T07).
+
+   **Merge with queued proposals (T07).** Concatenate the synthesised
+   proposals built in this step with the `queuedProposals` array from
+   step 1a, then dedupe the combined array with the same key the drain
+   uses (`{op, target_path, sha256(diff_body)}`) so a friction-synthesised
+   proposal that happens to be byte-identical to a curator-queued one
+   collapses. Use:
+
+   ```sh
+   node -e "
+   const { dedupeProposals } = require('./forge/tools/queue-drain.cjs');
+   // synthesised = proposals built above from friction events.
+   // queued      = drained.proposals from step 1a.
+   const merged = dedupeProposals(synthesised.concat(queued));
+   process.stdout.write(JSON.stringify(merged));
+   "
+   ```
+
+   The merged array is what feeds steps 5a (recurrence) → 5b (delete
+   candidates) → 5b.5 (compression gate) → 5c (judge) — a single batched
+   pipeline, never one per task (AC4).
+
+5a. **Cross-task replay scoring (recurrence boost)** — before writing the
+   artifact, stamp each proposal with `recurrence_count` and
+   `recurrence_task_ids` so the T03 judge can score "this friction recurred
+   across N tasks" rather than treating every signal as a singleton:
+
+   ```sh
+   node -e "
+   const { annotateProposals } = require('./forge/tools/replay-scoring.cjs');
+   // friction = deduped friction events from step 3, each carrying eventId,
+   //            taskId, subkind, evidence.skillId (orchestrator-stamped).
+   // proposals = array built in step 5.
+   // taskOrder = task IDs of the most-recent sprint sorted by completion
+   //             order — same source as step 4.
+   const annotated = annotateProposals(proposals, friction, taskOrder);
+   process.stdout.write(JSON.stringify(annotated));
+   "
+   ```
+
+   Contract (per `forge/tools/replay-scoring.cjs`):
+   - `recurrence_count` is the number of distinct tasks (origin task + later
+     tasks in `taskOrder`) whose friction events match the proposal's
+     originating `(subkind, evidence.skillId)` pair. Always `>= 1`.
+   - `recurrence_task_ids` is the `taskOrder`-sorted list of those task IDs.
+   - Proposals whose `sourceFrictionIds` cannot be resolved (no matching
+     `eventId` in the friction set, or the resolved event lacks
+     `subkind`/`evidence.skillId`) receive `recurrence_count: 1` and an empty
+     `recurrence_task_ids: []` — neutral signal, not silent failure.
+   - The annotator returns new proposal objects; the input array is not
+     mutated.
+
+5b. **Delete-candidate detection (3-sprint zero-use)** — scan `skill_usage`
+   events across the trailing 3 sprints and emit a `delete_skill` proposal
+   for every skill with zero retrieval AND zero invocation across the
+   window. This is the only mechanism by which the skill repository shrinks:
+
+   ```sh
+   node -e "
+   const { buildDeleteProposals } = require('./forge/tools/delete-candidate-detector.cjs');
+   // skillUsageEvents = all events with type === 'skill_usage' across the
+   //                    sprints in scope (collected via the same Step 1
+   //                    walker, filtered by type instead of friction).
+   // sprintOrder      = sprint IDs sorted by completion order (oldest →
+   //                    newest). The detector takes the trailing windowSize
+   //                    entries.
+   // windowSize       = 3 by default; configurable. Defined as the trailing
+   //                    N sprints of sprintOrder.
+   // targetPathFor    = (skillId) => the on-disk path of the skill file to
+   //                    delete. Workflow chooses the mapping convention.
+   const deletes = buildDeleteProposals({
+     events:        skillUsageEvents,
+     sprintOrder,
+     windowSize:    3,
+     targetPathFor: (skillId) => 'forge/skills/' + skillId + '.md',
+   });
+   process.stdout.write(JSON.stringify(deletes));
+   "
+   ```
+
+   Append the resulting `delete_skill` proposals to the proposal array from
+   step 5/5a before step 6. Each delete proposal already carries
+   `recurrence_count: 1` and `recurrence_task_ids: []` (the annotator from
+   step 5a is for friction-derived proposals; delete candidates come from
+   usage telemetry, not friction, so recurrence is neutral by construction).
+
+5b.5. **Compression gate (reject >20% growth without 3+ frictions)** — a cheap
+   deterministic filter that runs BEFORE the LLM judge (step 5c). Any
+   `update_skill` proposal that would grow the target file by more than 20%
+   (byte-wise, UTF-8) must be backed by at least 3 supporting friction events;
+   otherwise it is rejected here and never reaches the judge. `insert_skill`
+   and `delete_skill` proposals pass through unconditionally — insert growth
+   is handled by the judge's `body_under_2kb` axis and delete only shrinks.
+
+   Why a pre-judge gate? Judging is expensive. Unbounded skill-body growth is
+   the classic SkillOS failure mode — pasting pages of trajectory copy-paste to
+   "patch" a friction. It is cheap to detect deterministically and wasteful to
+   ask the judge to rule on.
+
+   ```sh
+   node -e "
+   const fs = require('node:fs');
+   const path = require('node:path');
+   const { filterProposals } = require('./forge/tools/compression-gate.cjs');
+   // proposals = post-5b array (synthesis + recurrence + delete-candidates).
+   // PROJECT_ROOT resolves the target_path; forge plugin source is the source
+   // of truth for current bodies. The workflow renders the diff via its own
+   // applyProposalDiff helper (left abstract here — the gate is body-agnostic).
+   const projectRoot = process.env.PROJECT_ROOT;
+   const result = filterProposals({
+     proposals,
+     currentBodyFor: (p) => {
+       const abs = path.join(projectRoot, p.target_path);
+       try { return fs.readFileSync(abs, 'utf8'); }
+       catch (e) { return ''; } // insert_skill or missing file → empty
+     },
+     newBodyFor: (p) => applyProposalDiff(currentBodyFor(p), p),
+     // Default supporting count = proposal.sourceFrictionIds.length. Override
+     // if the policy is 'count frictions citing the same skill across the
+     // sprint' rather than 'count citations on the proposal itself'.
+   });
+   const proposalsAfterGate = result.admitted;
+   const compressionRejections = result.rejected; // [{ proposal, ...evaluation }]
+   process.stdout.write(JSON.stringify({ kept: proposalsAfterGate, rejected: compressionRejections }));
+   "
+   ```
+
+   **Logging gate rejections.** Append every rejection from this step to the
+   same `phase2-<timestamp>-rejections.json` sibling that step 5c uses, with
+   the rejection record carrying `{ proposal, admit: false,
+   reason: 'compression_gate_growth_unsupported', growthRatio, currentBytes,
+   newBytes, supportingFrictionCount, threshold, minSupportingFrictions }`.
+   This keeps every drop — gate or judge — traceable in one place.
+
+   Contract (per `forge/tools/compression-gate.cjs`):
+   - `GROWTH_THRESHOLD === 0.20`; comparison is **strict** (`> 0.20`). A
+     proposal at exactly 20% growth admits without friction support.
+   - `MIN_SUPPORTING_FRICTIONS === 3`. Two or fewer citations is not enough.
+   - An update on an empty current body yields `growthRatio: Infinity`; the
+     friction-support rule still applies.
+   - Negative growth (shrink) admits unconditionally.
+   - `filterProposals` partitions the input array preserving order; the
+     output `rejected` array carries the structured evaluation alongside the
+     original proposal.
+
+5c. **LLM-judge gate (Sonnet rubric, drop <3/5)** — score every proposal
+   against the 5-axis rubric and drop low-signal proposals before
+   presentation. The rubric is single-sourced in
+   `forge/tools/judge-proposal.cjs`:
+
+   | Axis (0..5) | What it measures |
+   |---|---|
+   | `specificity` | Names a concrete target_path beyond `forge/skills/*` floor; carries a non-trivial rationale; recurrence trail boosts. |
+   | `when_not_to_use` | Body contains a literal "When NOT to use" section. |
+   | `no_trajectory_copy_paste` | No long verbatim runs or unbroken non-whitespace blocks (>= 400 bytes) that suggest pasted trajectory log. |
+   | `body_under_2kb` | `Buffer.byteLength(diff_body, 'utf8') <= 2048`. |
+   | `cites_friction` | Proposal carries at least one `sourceFrictionIds` entry; multiple citations or recurrence boost the score. |
+
+   For each proposal in the post-5b array, the workflow asks Sonnet to
+   apply the rubric and emit per-axis 0..5 scores; in the absence of an
+   LLM call, the deterministic `scoreProposal(proposal)` helper in
+   `judge-proposal.cjs` is used as both the fallback scorer and the
+   validation contract for Sonnet-produced scores (single source of truth
+   for the rubric definition).
+
+   ```sh
+   node -e "
+   const {
+     scoreProposal,
+     decideJudgement,
+   } = require('./forge/tools/judge-proposal.cjs');
+   // proposals = post-5b array of proposal records.
+   const judged = proposals.map((p) => {
+     const scored   = scoreProposal(p);
+     const decision = decideJudgement(scored);
+     return { proposal: p, ...decision };
+   });
+   const kept    = judged.filter((j) => j.verdict === 'keep').map((j) => j.proposal);
+   const dropped = judged.filter((j) => j.verdict === 'drop');
+   process.stdout.write(JSON.stringify({ kept, dropped }));
+   "
+   ```
+
+   Contract (per `forge/tools/judge-proposal.cjs`):
+   - `scoreProposal(proposal)` returns `{ axes, average }` with `axes`
+     keyed by every entry in `RUBRIC_AXES` and `average` rounded to one
+     decimal place.
+   - `decideJudgement({ axes })` returns
+     `{ verdict, average, axes, reason }`. `verdict === 'drop'` iff
+     `average < 3` (strictly less than); ties at exactly 3.0 keep.
+   - `decideJudgement` fails loud on missing or out-of-range axes — the
+     judge will NOT silently coerce a malformed score sheet into a verdict.
+
+   **Logging dropped proposals (AC3).** Every rejection MUST be persisted
+   for retro review. Replace the proposal array passed to step 6 with the
+   `kept` list, and append the `dropped` list to
+   `$PROJECT_ROOT/.forge/enhancement-proposals/phase2-<timestamp>-rejections.json`
+   as a sibling artifact. Each rejection record carries the original
+   proposal alongside `{ verdict: 'drop', average, axes, reason }`. The
+   markdown summary written in step 6 SHOULD include a "Dropped (N)" line
+   pointing at the rejections file when N > 0.
+
+   **Carry-over caveat** — the rubric is deterministic; Sonnet's role is
+   to add semantic judgement to axes that the heuristic scorer
+   approximates (specificity in particular). When Sonnet is invoked, its
+   per-axis scores MUST be validated against the 0..5 range via the same
+   `validateAxes` invariant `decideJudgement` enforces. Operators
+   investigating an unexpected drop should consult the per-axis trace in
+   `reason`.
+
+   Contract (per `forge/tools/delete-candidate-detector.cjs`):
+   - A skill qualifies for deletion iff it has at least one `skill_usage`
+     event inside the trailing window AND every in-window observation has
+     `retrieved === false` AND `used === false`. Any single `retrieved: true`
+     or `used: true` event disqualifies the skill.
+   - Skills with zero observations in the window are NOT proposed — this
+     case is indistinguishable from a newly-added skill that hasn't been
+     loaded yet, so silence is the safe default.
+   - Each proposal carries `window_size`, `window_sprint_ids`, and a
+     `sourceFrictionIds: []` (delete candidates derive from usage telemetry,
+     not friction).
+
+   **Carry-over caveat** — the trailing-3-sprint window is only meaningful
+   once 3 sprints have actually elapsed since `skill_usage` event emission
+   landed in FORGE-S24-T01 (forge 0.45.1). During the carry-over period the
+   detector still runs over whatever sprintOrder it receives, but the
+   signal is noisier: a skill flagged after only one or two sprints of
+   history may simply be new or temporarily idle. Operators should treat
+   delete proposals from short-history runs as advisory until the full
+   window is populated.
 
 6. **Write proposal artifact**:
    ```sh
    mkdir -p "$PROJECT_ROOT/.forge/enhancement-proposals"
    ```
-   Write to `$PROJECT_ROOT/.forge/enhancement-proposals/phase2-<timestamp>.md`. Format:
-   one section per proposed change, with a fenced diff block showing before/after text.
+   Write **two** outputs for each Phase 2 run (using the `kept` list from
+   step 5c — dropped proposals are persisted separately to the
+   `phase2-<timestamp>-rejections.json` sibling described in step 5c):
+
+   - `phase2-<timestamp>.md` — human-readable markdown, one section per proposal,
+     showing op + target_path + a fenced diff block.
+   - `phase2-<timestamp>.json` — machine-readable array of proposal records, each
+     conforming to `forge/schemas/proposal.schema.json` (required keys: `op`,
+     `target_path`, `diff_body`; `op` ∈ {insert_skill, update_skill, delete_skill};
+     optional `recurrence_count` ≥ 1 and `recurrence_task_ids` populated by step 5a).
+
+   **Back-compat on read** — pre-0.45.2 proposal records lack `op`. Downstream
+   consumers MUST route legacy records through
+   `forge/tools/proposal-normalize.cjs:normaliseProposal()` which defaults the
+   missing `op` to `insert_skill` (the only op the prior insert-biased flow
+   could produce). Do NOT silently coerce — call the helper explicitly so the
+   normalisation is auditable.
 
 7. **Present to user**:
    ```

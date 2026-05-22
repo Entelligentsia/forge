@@ -1,4 +1,12 @@
 {
+  "0.46.0": {
+    "version": "0.46.1",
+    "date": "2026-05-22",
+    "notes": "build: regenerate base-pack/workflows/enhance.md from meta sources to ship the FORGE-S24 SKILL-CURATION Phase 2 pipeline. The 0.45.1–0.45.7 entries declared `workflows:enhance` in their `regenerate` lists, but the meta→base-pack derivation (node tools/build-base-pack.cjs) was not re-run during the sprint, so the installable workflow stayed at the pre-S24 algorithm and downstream projects migrating to 0.46.0 received a stale workflow that lacked queue-drain (step 1a), recurrence scoring, delete-candidate detection (step 5b), compression gate (step 5b.5), and the LLM-judge step (step 5c). This patch bump regenerates the base-pack copy (init/base-pack/workflows/enhance.md — 280→600 lines, 20 S24 markers landed) and forces a re-copy on any project sitting at 0.46.0 by declaring `workflows:enhance` here. No plugin source change beyond the regenerated workflow file. Additive, non-breaking.",
+    "regenerate": ["workflows:enhance"],
+    "breaking": false,
+    "manual": []
+  },
   "0.45.7": {
     "version": "0.46.0",
     "date": "2026-05-22",
