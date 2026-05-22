@@ -50,6 +50,40 @@ Phases 2 and 3 write proposal artifacts to `.forge/enhancement-proposals/`. This
 distinct from `.forge/enhancements/` (FR-007, S14 scope). This workflow uses `mkdir -p` before
 writing the first proposal artifact to avoid assuming the directory exists. No conflict with S14.
 
+### Sub-directory: `.forge/enhancement-proposals/queue/`
+
+FORGE-S24-T07 introduces a project-local **enhancement queue** at
+`.forge/enhancement-proposals/queue/<sprintId>/<taskId>-<ts>.json` — one file per
+per-task curator run (T10). The queue is **append-only**: each curator run writes
+a fresh file (the ISO compact `<ts>` suffix differentiates writes; nothing is
+overwritten). Phase 2 drains the queue at sprint close, dedupes by
+`{op, target_path, sha256(diff_body)}`, and feeds the merged batch into the
+existing recurrence → delete-candidate → compression-gate → judge pipeline.
+The result: **one batched review prompt per sprint, not one per task** (paper
+§3.2.1 grouped reward). The drain is read-only — Phase 2 never deletes queue
+files; operators triage them during retrospective if needed.
+
+**Per-task curator (T10) write contract.** A curator MUST write via
+`forge/tools/queue-drain.cjs` to preserve the append-only invariant:
+
+```sh
+node -e "
+const { appendToQueue } = require('./forge/tools/queue-drain.cjs');
+appendToQueue({
+  queueRoot: '.forge/enhancement-proposals/queue',
+  sprintId:  process.env.FORGE_SPRINT_ID,
+  taskId:    process.env.FORGE_TASK_ID,
+  ts:        new Date().toISOString().replace(/[-:]|\\.\\d{3}/g, ''),
+  proposals: PROPOSALS_ARRAY,
+});
+"
+```
+
+`appendToQueue` throws if the exact file path already exists; curators MUST
+choose a fresh `ts` per run rather than overwriting. The drain is empty-safe:
+if no curator ever wrote (queue dir missing) or no files exist in the sprint
+sub-dir, Phase 2 reports "no proposals" and exits cleanly (AC5).
+
 ## Confidence gating (Phase 1)
 
 A key substitution is **high-confidence** when there is exactly one unambiguous signal source
@@ -191,11 +225,40 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
    "
    ```
 
-2. **Zero-friction guard**: If the friction event list is empty, print:
+1a. **Drain enhancement queue** (FORGE-S24-T07) — read per-task curator
+   proposals from `.forge/enhancement-proposals/queue/<sprintId>/`, dedupe by
+   `{op, target_path, sha256(diff_body)}`, and produce a `queuedProposals`
+   array that joins the synthesised proposals from step 5. This is what makes
+   the review **batched** rather than per-task (paper §3.2.1):
+
+   ```sh
+   node -e "
+   const { drainQueue } = require('./forge/tools/queue-drain.cjs');
+   const drained = drainQueue({
+     queueRoot: '.forge/enhancement-proposals/queue',
+     sprintId:  process.env.FORGE_SPRINT_ID,
+   });
+   process.stdout.write(JSON.stringify(drained));
+   "
    ```
-   No friction events queued for the active sprint — nothing to enhance.
+
+   Contract (per `forge/tools/queue-drain.cjs`):
+   - Returns `{ proposals: [...], files: [...], errors: [...] }`. `proposals`
+     is the deduped union of every per-task curator file in the sprint
+     sub-dir. `files` is the lexicographic-sorted list of source paths (used
+     by step 6 to log provenance). `errors` carries any malformed JSON files
+     skipped during read — log them, do not abort.
+   - Empty / missing queue → empty result. The drain never throws on absent
+     queue dir (first-run or no curators registered yet, AC5).
+   - The drain is read-only. Operators are responsible for queue triage
+     after sprint close.
+
+2. **Zero-input guard**: If both the friction event list AND `queuedProposals`
+   are empty, print:
    ```
-   and exit Phase 2 immediately (skip steps 3–9; emit the enhancement event with `"notes": "{\"phase\":2,\"frictionCount\":0}"`). Do not create `.forge/enhancement-proposals/` when there are no proposals.
+   No friction events or queued proposals for the active sprint — nothing to enhance.
+   ```
+   and exit Phase 2 immediately (skip steps 3–9; emit the enhancement event with `"notes": "{\"phase\":2,\"frictionCount\":0,\"queuedCount\":0}"`). Do not create `.forge/enhancement-proposals/` when there are no proposals.
 
 3. **Deduplicate** friction events by composite key `workflow + persona + issue`. Keep the most
    recent occurrence of each composite key.
@@ -222,6 +285,27 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
    `engineer-skills.md` or `architect-skills.md` should be updated (`update_skill`).
    The op classification is the foundation for the downstream judge (T03),
    delete-candidate detection (T05), compression gate (T06), and queue drain (T07).
+
+   **Merge with queued proposals (T07).** Concatenate the synthesised
+   proposals built in this step with the `queuedProposals` array from
+   step 1a, then dedupe the combined array with the same key the drain
+   uses (`{op, target_path, sha256(diff_body)}`) so a friction-synthesised
+   proposal that happens to be byte-identical to a curator-queued one
+   collapses. Use:
+
+   ```sh
+   node -e "
+   const { dedupeProposals } = require('./forge/tools/queue-drain.cjs');
+   // synthesised = proposals built above from friction events.
+   // queued      = drained.proposals from step 1a.
+   const merged = dedupeProposals(synthesised.concat(queued));
+   process.stdout.write(JSON.stringify(merged));
+   "
+   ```
+
+   The merged array is what feeds steps 5a (recurrence) → 5b (delete
+   candidates) → 5b.5 (compression gate) → 5c (judge) — a single batched
+   pipeline, never one per task (AC4).
 
 5a. **Cross-task replay scoring (recurrence boost)** — before writing the
    artifact, stamp each proposal with `recurrence_count` and
