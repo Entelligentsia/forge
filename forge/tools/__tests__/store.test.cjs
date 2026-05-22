@@ -321,4 +321,69 @@ describe('store.cjs', () => {
       assert.ok( fs.existsSync(path.join(eventsBugsDir, '_E-002_usage.json')), 'BUG-002 sidecar must remain');
     });
   });
+
+  describe('_listEntities consolidation (T-9)', () => {
+    let tmpDir;
+    let impl;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-store-list-test-'));
+      const storeRoot = path.join(tmpDir, '.forge', 'store');
+      fs.mkdirSync(path.join(storeRoot, 'sprints'), { recursive: true });
+      fs.mkdirSync(path.join(storeRoot, 'tasks'), { recursive: true });
+      const configPath = path.join(tmpDir, '.forge', 'config.json');
+      fs.writeFileSync(configPath, JSON.stringify({ paths: { store: storeRoot } }), 'utf8');
+      impl = new FSImpl(configPath);
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('_listEntities returns all records from a given subdir', () => {
+      impl.writeSprint({ sprintId: 'S-001', status: 'planning' });
+      impl.writeSprint({ sprintId: 'S-002', status: 'active' });
+      const results = impl._listEntities('sprints', null);
+      assert.equal(results.length, 2);
+    });
+
+    test('_listEntities with filter returns only matching records', () => {
+      impl.writeSprint({ sprintId: 'S-001', status: 'planning' });
+      impl.writeSprint({ sprintId: 'S-002', status: 'active' });
+      const results = impl._listEntities('sprints', { status: 'active' });
+      assert.equal(results.length, 1);
+      assert.equal(results[0].sprintId, 'S-002');
+    });
+
+    test('_listEntities on a missing subdir returns empty array without throwing', () => {
+      const results = impl._listEntities('nonexistent', null);
+      assert.deepStrictEqual(results, []);
+    });
+
+    test('_listEntities skips non-.json files in the subdir', () => {
+      impl.writeSprint({ sprintId: 'S-001', status: 'planning' });
+      // Place a non-JSON file in the same directory to confirm it is skipped
+      const storeRoot = path.join(tmpDir, '.forge', 'store');
+      fs.writeFileSync(path.join(storeRoot, 'sprints', 'README.txt'), 'not json', 'utf8');
+      const results = impl._listEntities('sprints', null);
+      assert.equal(results.length, 1);
+      assert.equal(results[0].sprintId, 'S-001');
+    });
+
+    test('listSprints delegates to _listEntities (regression)', () => {
+      impl.writeSprint({ sprintId: 'S-001', status: 'planning' });
+      impl.writeSprint({ sprintId: 'S-002', status: 'active' });
+      const all = impl.listSprints();
+      assert.equal(all.length, 2);
+      const active = impl.listSprints({ status: 'active' });
+      assert.equal(active.length, 1);
+    });
+
+    test('listTasks delegates to _listEntities (regression)', () => {
+      impl.writeTask({ taskId: 'T-001', status: 'planned' });
+      impl.writeTask({ taskId: 'T-002', status: 'planned' });
+      const all = impl.listTasks();
+      assert.equal(all.length, 2);
+    });
+  });
 });

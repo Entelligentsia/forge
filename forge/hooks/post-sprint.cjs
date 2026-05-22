@@ -24,20 +24,7 @@ process.on('uncaughtException', (err) => {
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
-
-function resolveForgePaths() {
-  const cfgPath = path.join(process.cwd(), '.forge', 'config.json');
-  if (!fs.existsSync(cfgPath)) return null;
-  let cfg;
-  try { cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8')); } catch (_) { return null; }
-  const forgeDir = path.dirname(cfgPath);
-  return {
-    forgeDir,
-    eventsRoot: path.join(forgeDir, 'store', 'events'),
-    cacheDir: path.join(forgeDir, 'cache'),
-    forgeRoot: (cfg.paths && cfg.paths.forgeRoot) || null,
-  };
-}
+const { resolveForgePaths } = require('./lib/common.cjs');
 
 let raw = '';
 try { raw = fs.readFileSync(0, 'utf8'); } catch (_) { process.exit(0); }

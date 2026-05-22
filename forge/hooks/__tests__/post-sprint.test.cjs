@@ -179,3 +179,20 @@ describe('post-sprint hook — validate-store accepts enhancement bucket', () =>
     assert.equal(r.status, 0, `validate-store failed: ${r.stdout}\n${r.stderr}`);
   });
 });
+
+describe('post-sprint hook — resolveForgePaths migration (H-1a regression)', () => {
+  test('post-sprint.cjs source does not contain inline resolveForgePaths definition', () => {
+    // Regression guard: if the inline function is re-introduced the migration has regressed.
+    // post-sprint.cjs has top-level side-effects (reads stdin) so it cannot be require()d
+    // in a test without blocking. Instead verify the source text directly.
+    const source = fs.readFileSync(HOOK, 'utf8');
+    assert.ok(
+      !source.includes('function resolveForgePaths()'),
+      'post-sprint.cjs must not define resolveForgePaths inline — it must require from common.cjs'
+    );
+    assert.ok(
+      source.includes("require('./lib/common.cjs')"),
+      "post-sprint.cjs must require('./lib/common.cjs') for resolveForgePaths"
+    );
+  });
+});

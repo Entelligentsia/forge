@@ -112,16 +112,31 @@ class FSImpl {
     return writeJson(filePath, data);
   }
 
-  // Sprints
-  getSprint(id) { return this._readJson(this._getPath('sprint', id)); }
-  listSprints(filter) {
-    const dir = path.join(this.storeRoot, 'sprints');
+  /**
+   * Shared list helper: read all .json files in a store subdirectory and
+   * apply an optional filter. Only top-level files are read (no recursion).
+   *
+   * NOTE: listEvents is intentionally excluded from this helper. It requires
+   * an extra `sprintId` path segment and a different call shape, making it
+   * impossible to express as a simple `_listEntities('events', filter)` call.
+   * Do not attempt to unify listEvents here — the distinction is load-bearing.
+   *
+   * @param {string} subdir - subdirectory under storeRoot (e.g. 'sprints')
+   * @param {object|null} filter - field equality filter, or null for all records
+   * @returns {Array} matching records (null entries from parse failures included)
+   */
+  _listEntities(subdir, filter) {
+    const dir = path.join(this.storeRoot, subdir);
     if (!fs.existsSync(dir)) return [];
     return fs.readdirSync(dir)
       .filter(f => f.endsWith('.json'))
       .map(f => this._readJson(path.join(dir, f)))
-      .filter(s => !s || (filter ? this._matches(s, filter) : true));
+      .filter(r => !r || (filter ? this._matches(r, filter) : true));
   }
+
+  // Sprints
+  getSprint(id) { return this._readJson(this._getPath('sprint', id)); }
+  listSprints(filter) { return this._listEntities('sprints', filter); }
   writeSprint(data) {
     return this._writeJson(this._getPath('sprint', data.sprintId), data);
   }
@@ -132,14 +147,7 @@ class FSImpl {
 
   // Tasks
   getTask(id) { return this._readJson(this._getPath('task', id)); }
-  listTasks(filter) {
-    const dir = path.join(this.storeRoot, 'tasks');
-    if (!fs.existsSync(dir)) return [];
-    return fs.readdirSync(dir)
-      .filter(f => f.endsWith('.json'))
-      .map(f => this._readJson(path.join(dir, f)))
-      .filter(t => !t || (filter ? this._matches(t, filter) : true));
-  }
+  listTasks(filter) { return this._listEntities('tasks', filter); }
   writeTask(data) {
     return this._writeJson(this._getPath('task', data.taskId), data);
   }
@@ -150,14 +158,7 @@ class FSImpl {
 
   // Bugs
   getBug(id) { return this._readJson(this._getPath('bug', id)); }
-  listBugs(filter) {
-    const dir = path.join(this.storeRoot, 'bugs');
-    if (!fs.existsSync(dir)) return [];
-    return fs.readdirSync(dir)
-      .filter(f => f.endsWith('.json'))
-      .map(f => this._readJson(path.join(dir, f)))
-      .filter(b => !b || (filter ? this._matches(b, filter) : true));
-  }
+  listBugs(filter) { return this._listEntities('bugs', filter); }
   writeBug(data) {
     return this._writeJson(this._getPath('bug', data.bugId), data);
   }
@@ -231,14 +232,7 @@ class FSImpl {
 
   // Features
   getFeature(id) { return this._readJson(this._getPath('feature', id)); }
-  listFeatures(filter) {
-    const dir = path.join(this.storeRoot, 'features');
-    if (!fs.existsSync(dir)) return [];
-    return fs.readdirSync(dir)
-      .filter(f => f.endsWith('.json'))
-      .map(f => this._readJson(path.join(dir, f)))
-      .filter(f => !f || (filter ? this._matches(f, filter) : true));
-  }
+  listFeatures(filter) { return this._listEntities('features', filter); }
   writeFeature(data) {
     return this._writeJson(this._getPath('feature', data.feature_id), data);
   }
