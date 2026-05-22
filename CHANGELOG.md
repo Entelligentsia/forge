@@ -5,6 +5,32 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.46.0] — 2026-05-22
+
+**FORGE-S24 SKILL-CURATION sprint completion — gated rollout marker (FORGE-S24-T12).**
+
+No plugin source change in this bump. The seven preceding migration entries (0.45.1 → 0.45.7) carry the actual SKILL-CURATION machinery:
+
+| Bump | Task | Adds |
+|------|------|------|
+| 0.45.0 → 0.45.1 | T01 | `skill_usage` event variant in `forge/schemas/event.schema.json` |
+| 0.45.1 → 0.45.2 | T02 | Proposal op classification (`insert_skill`/`update_skill`/`delete_skill`) — `forge/schemas/proposal.schema.json` + `forge/tools/proposal-normalize.cjs` |
+| 0.45.2 → 0.45.3 | T04 | Cross-task recurrence scoring — `forge/tools/replay-scoring.cjs` |
+| 0.45.3 → 0.45.4 | T05 | Delete-candidate detection (3-sprint zero-use) — `forge/tools/delete-candidate-detector.cjs` |
+| 0.45.4 → 0.45.5 | T03 | LLM-judge rubric (Sonnet, drop <3/5) — `forge/tools/judge-proposal.cjs` |
+| 0.45.5 → 0.45.6 | T06 | Compression gate (reject >20% growth without 3+ frictions) — `forge/tools/compression-gate.cjs` |
+| 0.45.6 → 0.45.7 | T07 | Queue drain at sprint close — `forge/tools/queue-drain.cjs` |
+
+T12 lands the **gated-rollout contract on the forge-cli side** via the new `forgeCli.skillCuration.enabled` config flag (default OFF). The four forge-cli modules (T08 skill-retriever, T09 skill-usage-tracker, T10 skill-curator-subagent, T11 friction-emit) no-op at entry when the flag is off, so a flag-off run is byte-identical to pre-FORGE-S24 behaviour. This plugin-side minor bump (0.45.7 → 0.46.0) is the convergent terminal marker for the sprint: it signals to operators running `/forge:update` that the full SKILL-CURATION pipeline has shipped end-to-end, and pairs with the forge-cli 0.13.4 → 0.14.0 bump that lands the rollout flag.
+
+**No regeneration required** (no manifest entry change, no workflow change, no schema change in this bump alone — those landed in 0.45.1–0.45.7).
+
+**Operator action required to enable:** upgrade forge-cli to ≥ 0.14.0 **and** set `forgeCli.skillCuration.enabled: true` in `<cwd>/.pi/forge-cli/config.json` (or the env override `FORGE_CLI_SKILL_CURATION_ENABLED=1` for one-shot use). Until both conditions hold, the new event variants and friction subkinds remain emitter-silent — the plugin schema continues to accept them on receipt, so a delayed forge-cli upgrade is non-blocking.
+
+Additive, non-breaking.
+
+---
+
 ## [0.45.3] — 2026-05-22
 
 Feature: **Cross-task replay scoring — recurrence boost** (FORGE-S24-T04 — SKILL-CURATION).
