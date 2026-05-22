@@ -48,6 +48,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { getCommandsSubdir } = require('./lib/paths.cjs');
+const { extractFrontmatter: _extractFrontmatter } = require('./lib/frontmatter.cjs');
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -111,38 +112,14 @@ const PI_TARGET_SUBDIRS = new Set(['workflows', 'personas', 'skills', 'templates
 
 /**
  * Extract YAML frontmatter from a file's content.
- *
- * The opening `---` must be at line 1, column 0 (no leading whitespace) to
- * avoid false positives from `---` horizontal rules in Markdown body content.
+ * Delegates to lib/frontmatter.cjs (canonical CRLF-normalizing implementation).
+ * Exported for backward compat with existing tests.
  *
  * @param {string} content
  * @returns {{ frontmatter: string|null, body: string }}
  */
 function extractFrontmatter(content) {
-  // Opening --- must be at the very start of the file, at column 0.
-  if (!content.startsWith('---\n') && !content.startsWith('---\r\n')) {
-    return { frontmatter: null, body: content };
-  }
-
-  // Find the closing ---
-  const lines = content.split('\n');
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i] === '---' || lines[i] === '---\r') {
-      // Closing delimiter found at line i (0-indexed)
-      // Reconstruct frontmatter (lines 0..i inclusive) and body (lines i+1..)
-      const frontmatterLines = lines.slice(0, i + 1);
-      const bodyLines = lines.slice(i + 1);
-
-      // Re-attach trailing newline to closing --- so frontmatter ends with \n
-      const frontmatter = frontmatterLines.join('\n') + '\n';
-      const body = bodyLines.join('\n');
-
-      return { frontmatter, body };
-    }
-  }
-
-  // No closing --- found — treat entire content as body (malformed frontmatter)
-  return { frontmatter: null, body: content };
+  return _extractFrontmatter(content);
 }
 
 // ── Substitution ─────────────────────────────────────────────────────────────

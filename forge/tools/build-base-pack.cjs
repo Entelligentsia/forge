@@ -35,6 +35,8 @@
 
 const fs   = require('fs');
 const path = require('path');
+const { extractFrontmatter } = require('./lib/frontmatter.cjs');
+const { ensureDir } = require('./lib/fsutil.cjs');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -112,35 +114,6 @@ const PERSONA_IDENTITY = {
 };
 
 // ── Utility functions ─────────────────────────────────────────────────────────
-
-/**
- * Ensure a directory exists (recursive mkdir).
- */
-function ensureDir(dir) {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-}
-
-/**
- * Strip YAML frontmatter block (--- ... ---) from content.
- * Returns { frontmatter: string|null, body: string }
- * frontmatter includes the opening and closing --- delimiters.
- */
-function extractFrontmatter(content) {
-  if (!content.startsWith('---')) {
-    return { frontmatter: null, body: content };
-  }
-  const lines = content.split('\n');
-  let end = -1;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trimEnd() === '---') { end = i; break; }
-  }
-  if (end === -1) {
-    return { frontmatter: null, body: content };
-  }
-  const frontmatter = lines.slice(0, end + 1).join('\n');
-  const body = lines.slice(end + 1).join('\n');
-  return { frontmatter, body };
-}
 
 /**
  * Strip a named section (## Heading) and its content until the next ## heading.

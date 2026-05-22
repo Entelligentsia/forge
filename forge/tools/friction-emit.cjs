@@ -24,6 +24,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { ensureDir } = require('./lib/fsutil.cjs');
 
 const REQUIRED = ['workflow', 'persona', 'issue'];
 const OPTIONAL = ['subkind', 'evidence'];
@@ -99,7 +100,7 @@ function main(argv) {
   }
 
   const cacheDir = path.join(process.cwd(), '.forge', 'cache');
-  fs.mkdirSync(cacheDir, { recursive: true });
+  ensureDir(cacheDir);
   const target = path.join(cacheDir, `FRICTION-${args.workflow}.jsonl`);
   fs.appendFileSync(target, `${JSON.stringify(record)}\n`, 'utf8');
   process.stdout.write(`${target}\n`);

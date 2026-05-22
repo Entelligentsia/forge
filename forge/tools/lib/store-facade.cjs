@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { readJson } = require('./json-io.cjs');
+const { deriveSlug } = require('./slug.cjs');
 
 class StoreFacade {
   constructor(storeDir) {
@@ -152,7 +153,7 @@ function findIndexPath(entity, kbPath) {
   }
   if (entity.bugId) {
     const slug = entity.title
-      ? entity.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')
+      ? deriveSlug(entity.title, { maxLen: 30 })
       : entity.bugId;
     return path.join(kbPath, 'bugs', `${entity.bugId}-${slug}`, 'INDEX.md');
   }

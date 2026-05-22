@@ -1,4 +1,14 @@
 {
+  "0.47.1": {
+    "version": "0.47.2",
+    "date": "2026-05-22",
+    "notes": "FORGE-S25-T07 — extract lib/frontmatter.cjs (CRLF normalization), lib/slug.cjs (maxLen=30), lib/fsutil.cjs. Closes findings N-T-3, N-T-4, T-5. lib/frontmatter.cjs: canonical YAML frontmatter extractor normalizing all line endings (CRLF/CR/mixed) to LF on read — resolves silent divergence between build-base-pack.cjs and substitute-placeholders.cjs. lib/slug.cjs: deriveSlug(title, {maxLen=30}) with trailing-hyphen trim — closes slug truncation divergence between seed-store.cjs (truncated at 30) and store-facade.cjs (no truncation). lib/fsutil.cjs: ensureDir/isFile/isDirectory — consolidates 4 inline mkdirSync sites. One-shot migration script: tools/migrate-slug-maxlen.cjs (dry-run by default; --apply renames KB directories for any bug whose title exceeds 30 chars). forge-cli build-payload.cjs LIB_ALLOWLIST updated with frontmatter.cjs, slug.cjs, fsutil.cjs. Decision doc: doc/decisions/lib-extraction-contract.md.",
+    "regenerate": ["tools:seed-store", "tools:store-facade", "tools:build-base-pack", "tools:substitute-placeholders"],
+    "breaking": false,
+    "manual": [
+      "Run `node forge/forge/tools/migrate-slug-maxlen.cjs` to check for long-title bug entities that may have slug changes under maxLen=30. If affected entities are reported, run with --apply to rename KB directories."
+    ]
+  },
   "0.47.0": {
     "version": "0.47.1",
     "date": "2026-05-22",

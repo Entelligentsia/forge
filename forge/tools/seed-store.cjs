@@ -10,21 +10,9 @@
 const fs = require('fs');
 const path = require('path');
 const Store = require('./store.cjs');
+const { deriveSlug } = require('./lib/slug.cjs');
 
 const DRY_RUN = process.argv.includes('--dry-run');
-
-/**
- * Convert a title string to a lower-kebab-case slug, truncated to 30 chars.
- * Non-alphanumeric characters are collapsed to a single hyphen.
- */
-function deriveSlug(title) {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 30)
-    .replace(/-+$/g, '');       // trim trailing hyphens after truncation
-}
 
 // ── Exports for testing ────────────────────────────────────────────────────────
 

@@ -20,6 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { ensureDir } = require('./lib/fsutil.cjs');
 
 const PACK_LINE_LIMIT = 400;
 
@@ -220,8 +221,8 @@ function buildContextPack({ archDir, existingPackPath }) {
 // ── Atomic write ─────────────────────────────────────────────────────────────
 
 function writeContextPack(pack, outMd, outJson) {
-  fs.mkdirSync(path.dirname(outMd), { recursive: true });
-  fs.mkdirSync(path.dirname(outJson), { recursive: true });
+  ensureDir(path.dirname(outMd));
+  ensureDir(path.dirname(outJson));
 
   // Write markdown
   const tmpMd = outMd + '.tmp';

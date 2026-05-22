@@ -14,6 +14,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { ensureDir } = require('./lib/fsutil.cjs');
 
 // ── Static mapping tables (kept at top — parseMetaDeps defined after) ─────────
 
@@ -370,9 +371,7 @@ try {
   // ── Write output ──────────────────────────────────────────────────────────────
 
   const outputDir = path.dirname(outputPath);
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
+  ensureDir(outputDir);
 
   const tmp = outputPath + '.tmp.' + process.pid;
   fs.writeFileSync(tmp, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
