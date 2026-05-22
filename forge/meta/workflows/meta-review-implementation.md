@@ -26,6 +26,7 @@ deps:
 
 The Supervisor reviews the Engineer's implementation for correctness, quality, and compliance with the approved plan.
 
+<!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->
 ## Iron Laws
 
 - Evaluate the code against the approved PLAN.md and the original task prompt. Do not accept "it works" as a substitute for "it is correct and maintainable."
@@ -34,15 +35,7 @@ The Supervisor reviews the Engineer's implementation for correctness, quality, a
 
 ## Store-Write Verification
 
-Every `forge_store` write MUST succeed before advancing. If `store-cli` exits
-non-zero or the `PreToolUse` write-boundary hook blocks the call (exit 2):
-
-1. Parse the structured error (names the offending field + schema file).
-2. Correct the JSON to satisfy the schema.
-3. Retry. Repeat up to 3 times.
-4. After 3 failures, halt and escalate with original payload, corrected payload, and all error messages.
-
-Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
+<!-- See _fragments/store-write-verification.md for the canonical block content -->
 
 ## Algorithm
 
@@ -106,6 +99,7 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
    - If the set-summary call exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->
 ## Generation Instructions
 
 - **Workflow Structure:** The generated `review_implementation.md` must follow the strict "Algorithm" block format.

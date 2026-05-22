@@ -30,6 +30,13 @@ or when `.forge/structure-versions.json` is absent (pre-T05 install detected).
 
 ---
 
+<!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->
+## Iron Laws
+
+- Migration operations are reversible and user-confirmed before any destructive writes. Do not skip the Phase 2 confirmation gate — proceed only after the user explicitly accepts the migration plan.
+- Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+
 ## Pre-conditions
 
 - `/forge:init` has run: `.forge/config.json` exists and is readable.
@@ -453,3 +460,14 @@ cd .forge && md5sum -c archive/pre-migration/MANIFEST.md5 2>/dev/null | grep -v 
 | `manage-versions.cjs init` exits non-zero | Halt. Report error. Archive is complete — rollback is available. |
 | `store-cli.cjs emit` exits non-zero | Report error. Continue — event is diagnostic only. |
 | Any unexpected error | Describe the error, point user to rollback procedure, suggest `/forge:report-bug`. |
+
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->
+## Generation Instructions
+
+- **Workflow Structure:** The generated `migrate_structural.md` must follow the strict multi-phase Algorithm block format (Phase 0 pre-flight → Phase 1 read/extract → Phase 2 confirmation gate → Phase 3 write → Phase 4 verify/emit → Rollback Procedure → Error Handling).
+- **Context Isolation:** Forbid inline execution of archival or substitution operations; use `forge_store` reads and structured `node` invocations for all store interactions.
+- **Project Specifics:**
+  - Reference the project's `paths.engineering` and `paths.forgeRoot` from `.forge/config.json` for all path resolutions.
+  - Include the project's migration path docs in the Error Handling table (e.g., expected schema files, archive paths).
+- **Token Reporting:** See `_fragments/finalize.md` — wire via `file_ref:`. Token reporting is diagnostic only (migration is not an orchestrated phase — it emits its own record via `store-cli emit` in Phase 4).
+- **Event Emission:** Migration emits its own completion event directly via `store-cli emit` in Phase 4 (orchestrator-exception; this is not a task phase). The "do NOT emit yourself" rule does not apply here.

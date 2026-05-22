@@ -15,6 +15,7 @@ capabilities:
   - Orchestrate approval transitions from implementing to review-approved
 ---
 
+
 # {{PROJECT_NAME}} Supervisor Skills
 
 ## ✅ Quality Assurance & Verification

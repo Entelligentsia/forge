@@ -12,7 +12,14 @@ deps:
   config_fields: [project.prefix, paths.engineering]
 ---
 
+
 # Sprint Intake
+## Iron Laws
+
+- Capture requirements accurately; do not editorialize or pre-select options on the user's behalf. The product manager documents what the user says, not what the agent thinks is best.
+- Read `.forge/personas/product-manager.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+
 ## Algorithm
 
 ```
@@ -47,3 +54,5 @@ deps:
    - Update sprint status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status planning`
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 ```
+
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->

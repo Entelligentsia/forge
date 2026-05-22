@@ -1,4 +1,34 @@
 {
+  "0.47.2": {
+    "version": "0.48.0",
+    "date": "2026-05-22",
+    "notes": "FORGE-S25-T10 — extract _fragments/{store-write-verification,iron-laws,generation-instructions}.md + backfills. Closes CM-1, CM-2, CM-3, CM-4, CM-6, N-CM-4, N-CM-5. Three new canonical fragment files added to meta/workflows/_fragments/ and mirrored to init/base-pack/workflows/_fragments/. The 9-line Store-Write Verification block (byte-identical across 9 workflows) replaced with a single comment marker; 3 variant workflows (sprint-plan, collate, enhance) retain inline text with inline note. iron-laws.md and generation-instructions.md are template-guide fragments (CM-2/CM-3/CM-6 closed-as-documented, not closed-as-deduplicated — duplication stays inline, fragments document the canonical structure; see doc/decisions/meta-fragment-includes.md). Iron Laws backfilled into 3 previously missing workflows (meta-migrate, meta-retrospective, meta-sprint-intake). Generation Instructions backfilled into 2 missing workflows (meta-enhance, meta-migrate). meta-review-plan: ## Generation Notes renamed to ## Generation Instructions. Intentional-omission comments added for meta-quiz-agent and meta-review-sprint-completion. FRAGMENT_MAP in build-manifest.cjs updated with 3 new entries (now 9 total). Byte budgets in phase-frontmatter.test.cjs lowered for files where SWV block was removed: meta-validate (5888→5376), meta-update-plan (3584→3072), meta-update-implementation (4096→3584); other 6 files remain within existing budgets. All 1513 plugin tests pass. Regeneration required: workflows and _fragments.",
+    "regenerate": [
+      "workflows:_fragments",
+      "workflows:commit_task",
+      "workflows:implement_plan",
+      "workflows:review_plan",
+      "workflows:update_implementation",
+      "workflows:approve_task",
+      "workflows:update_plan",
+      "workflows:review_implementation",
+      "workflows:validate_task",
+      "workflows:plan_task",
+      "workflows:architect_sprint_plan",
+      "workflows:collator_agent",
+      "workflows:enhance",
+      "workflows:fix_bug",
+      "workflows:orchestrate_task",
+      "workflows:migrate_structural",
+      "workflows:sprint_retrospective",
+      "workflows:architect_sprint_intake"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update to receive the 3 new _fragments/ files and updated workflow files that now carry fragment reference markers instead of verbatim Store-Write Verification blocks.",
+      "CM-2/CM-3/CM-6 (Iron Laws and Generation Instructions duplication) are closed-as-documented via the template-guide pattern — the prose remains inline in each workflow. No manual deduplication needed."
+    ]
+  },
   "0.47.1": {
     "version": "0.47.2",
     "date": "2026-05-22",

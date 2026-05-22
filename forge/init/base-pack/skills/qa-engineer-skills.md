@@ -14,6 +14,7 @@ capabilities:
   - Detect flaky tests and enforce quality gates
 ---
 
+
 # {{PROJECT_NAME}} Qa Engineer Skills
 
 ## 🧪 Test Strategy & Design

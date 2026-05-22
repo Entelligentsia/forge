@@ -18,6 +18,13 @@ deps:
 
 Close a sprint by reviewing learnings, updating the knowledge base, and improving workflows.
 
+<!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->
+## Iron Laws
+
+- Never mutate JSON records during retrospective; the store is the source of truth and retrospective flows downstream from it. Retrospective operations read store data and write markdown views only.
+- Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+
 ## Algorithm
 
 ```
@@ -49,6 +56,7 @@ Close a sprint by reviewing learnings, updating the knowledge base, and improvin
      going forward)
 ```
 
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->
 ## Generation Instructions
 
 - **Persona Self-Load:** The generated workflow MUST begin by reading `.forge/personas/architect.md` as its first step (before any other tool use). This replaces the former inline `## Persona` section. The persona identity line (emoji, name, tagline) should be printed to stdout after reading the file.

@@ -12,7 +12,14 @@ deps:
   config_fields: [paths.engineering]
 ---
 
+
 # Retrospective
+## Iron Laws
+
+- Never mutate JSON records during retrospective; the store is the source of truth and retrospective flows downstream from it. Retrospective operations read store data and write markdown views only.
+- Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+
 ## Algorithm
 
 ```
@@ -43,3 +50,5 @@ deps:
      (tombstone — written after the purge; the only event in the directory
      going forward)
 ```
+
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->

@@ -20,6 +20,7 @@ deps:
   config_fields: [paths.engineering]
 ---
 
+
 # Approve Task
 ## Iron Laws
 
@@ -29,15 +30,7 @@ deps:
 
 ## Store-Write Verification
 
-Every `forge_store` write MUST succeed before advancing. If `store-cli` exits
-non-zero or the `PreToolUse` write-boundary hook blocks the call (exit 2):
-
-1. Parse the structured error (names the offending field + schema file).
-2. Correct the JSON to satisfy the schema.
-3. Retry. Repeat up to 3 times.
-4. After 3 failures, halt and escalate with original payload, corrected payload, and all error messages.
-
-Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
+<!-- See _fragments/store-write-verification.md for the canonical block content -->
 
 ## Algorithm
 
@@ -101,3 +94,5 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
      ```
    - In bug mode, if the set-bug-summary call exits non-zero, fix the sidecar JSON and retry. Do not return without a valid summary — the downstream commit gate has no other way to read the approval verdict.
 ```
+
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->

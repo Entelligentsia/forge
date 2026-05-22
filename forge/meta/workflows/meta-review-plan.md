@@ -22,6 +22,7 @@ deps:
 
 # 🌿 Meta-Workflow: Review Plan
 
+<!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->
 ## Iron Laws
 
 - Evaluate the plan against what the task actually requires, not against what the plan claims to deliver. Plans routinely understate complexity, omit edge cases, or skip security steps. Your job is adversarial review, not approval.
@@ -30,15 +31,7 @@ deps:
 
 ## Store-Write Verification
 
-Every `forge_store` write MUST succeed before advancing. If `store-cli` exits
-non-zero or the `PreToolUse` write-boundary hook blocks the call (exit 2):
-
-1. Parse the structured error (names the offending field + schema file).
-2. Correct the JSON to satisfy the schema.
-3. Retry. Repeat up to 3 times.
-4. After 3 failures, halt and escalate with original payload, corrected payload, and all error messages.
-
-Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
+<!-- See _fragments/store-write-verification.md for the canonical block content -->
 
 ## Algorithm
 
@@ -100,7 +93,8 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
    - If the set-summary call exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 
-## Generation Notes
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->
+## Generation Instructions
 
 - Enforce `**Verdict:** [Approved | Revision Required]` format exactly — orchestrator branches on this.
 - **Markers (required by `/forge:run-task` kickoff shim):** Generated workflow MUST include the "Iron Laws" section, the "Store-Write Verification" section, the literal `forge_store` token, and the `.forge/personas/supervisor.md` persona path. Missing any → kickoff shim refuses to dispatch.

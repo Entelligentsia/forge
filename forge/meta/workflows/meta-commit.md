@@ -26,6 +26,7 @@ deps:
 
 Seal a completed and approved task by committing its artifacts to the VCS and updating the store.
 
+<!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->
 ## Iron Laws
 
 - Commit only the artifacts produced for this task; do not sweep unrelated working-tree changes into the commit. The commit boundary mirrors the task boundary.
@@ -34,15 +35,7 @@ Seal a completed and approved task by committing its artifacts to the VCS and up
 
 ## Store-Write Verification
 
-Every `forge_store` write MUST succeed before advancing. If `store-cli` exits
-non-zero or the `PreToolUse` write-boundary hook blocks the call (exit 2):
-
-1. Parse the structured error (names the offending field + schema file).
-2. Correct the JSON to satisfy the schema.
-3. Retry. Repeat up to 3 times.
-4. After 3 failures, halt and escalate with original payload, corrected payload, and all error messages.
-
-Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
+<!-- See _fragments/store-write-verification.md for the canonical block content -->
 
 ## Algorithm
 
@@ -83,6 +76,7 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 ```
 
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->
 ## Generation Instructions
 
 - **Workflow Structure:** The generated `commit_task.md` must follow the strict "Algorithm" block format.

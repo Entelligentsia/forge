@@ -18,12 +18,16 @@ deps:
 
 Regenerate markdown views from the JSON store. This is a deterministic operation — prefer the generated tool, fall back to manual collation.
 
+<!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->
 ## Iron Laws
 
 - Collation is a read-and-rewrite of generated markdown. Do not mutate any JSON record under `.forge/store/`; the store is the source of truth and collation flows downstream from it.
 - Read `.forge/personas/collator.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
 - All store reads via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
 
+<!-- See _fragments/store-write-verification.md — NOTE: this file uses an intentionally modified
+     Store-Write Verification variant: collation typically writes markdown views (not JSON records),
+     so the preamble explains when `forge_store` calls apply. Canonical fragment is reference only. -->
 ## Store-Write Verification
 
 Collation typically writes markdown views, not JSON records. If a remediation
@@ -75,6 +79,7 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
      ```
 ```
 
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->
 ## Generation Instructions
 
 - **Persona Self-Load:** The generated workflow MUST begin by reading `.forge/personas/collator.md` as its first step (before any other tool use). This replaces the former inline `## Persona` section. The persona identity line (emoji, name, tagline) should be printed to stdout after reading the file.

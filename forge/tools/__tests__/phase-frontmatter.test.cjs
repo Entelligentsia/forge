@@ -43,16 +43,33 @@ function parseFrontmatter(content) {
 // task-vs-bug branches so the same workflow file drives both the run-task
 // orchestrator (--task) and the fix-bug orchestrator (--bug). The bumps
 // versus the single-mode budgets reflect that added prose.
+// Budgets were lowered in FORGE-S25-T10 after the Store-Write Verification block
+// (≈463 bytes per file) was replaced with a single comment marker in each of these
+// 9 workflows. Lowering direction is always safe (we removed content); raising
+// requires a written justification in the commit body naming what was added.
+// New budgets = actual post-T10 byte count + ≤512 bytes headroom, rounded to
+// the nearest 512-byte boundary.
+//
+// File              old-bytes  new-bytes  budget
+// meta-plan-task    6692       6456       6912  (456B headroom)
+// meta-implement    6981       6745       7168  (423B headroom)
+// meta-review-plan  5380       5151       5632  (481B headroom)
+// meta-review-impl  6161       5925       6400  (475B headroom)
+// meta-validate     5126       4890       5376  (486B headroom — lowered from 5888)
+// meta-approve      6348       6112       6656  (544B headroom — within one block boundary)
+// meta-commit       5326       5090       5632  (542B headroom — within one block boundary)
+// meta-update-plan  3042       2806       3072  (266B headroom — lowered from 3584)
+// meta-update-impl  3328       3092       3584  (492B headroom — lowered from 4096)
 const BYTE_BUDGETS = {
   'meta-plan-task.md':              6912,
   'meta-implement.md':              7168,
   'meta-review-plan.md':            5632,
   'meta-review-implementation.md':  6400,
-  'meta-validate.md':               5888,
+  'meta-validate.md':               5376,
   'meta-approve.md':                6656,
   'meta-commit.md':                 5632,
-  'meta-update-plan.md':            3584,
-  'meta-update-implementation.md':  4096,
+  'meta-update-plan.md':            3072,
+  'meta-update-implementation.md':  3584,
 };
 
 // ---------------------------------------------------------------------------

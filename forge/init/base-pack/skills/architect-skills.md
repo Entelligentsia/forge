@@ -15,6 +15,7 @@ capabilities:
   - Review implementations for architectural drift
 ---
 
+
 # {{PROJECT_NAME}} Architect Skills
 
 ## 🏗️ System Design & Modeling

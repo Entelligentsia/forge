@@ -15,6 +15,7 @@ capabilities:
   - Monitor logs and events for triggers
 ---
 
+
 # {{PROJECT_NAME}} Generic Skills
 
 ## 🔄 Coordination & Orchestration

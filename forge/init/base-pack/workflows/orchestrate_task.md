@@ -14,6 +14,7 @@ deps:
   config_fields: [paths.engineering]
 ---
 
+
 # Orchestrate Task
 ## Pipeline Phases
 
@@ -809,6 +810,7 @@ route you take.
 write through and append an audit line to the affected sprint's
 `progress.log`.
 
+<!-- See _fragments/iron-laws.md for Iron Laws section structure guidance (orchestrate uses orchestrator-special deferral to generic-skills.md § Orchestrator Iron Laws) -->
 ## Iron Laws
 
 <!-- Shared orchestrator laws live in generic-skills.md § Orchestrator Iron Laws. -->
@@ -869,6 +871,8 @@ subagent returns, the orchestrator:
 Do not include hardcoded example `model` or `provider` strings in the
 generated orchestrator prose — they are the seed of LLM hallucination.
 Refer subagents to `.forge/schemas/event.schema.json` instead.
+
+<!-- See _fragments/generation-instructions.md for Generation Instructions template (orchestrate uses orchestrator-special long-form prose — cannot be reduced to standard subsections) -->
 ## Friction Emit
 
 When the Orchestrator detects skill friction during orchestrate-task — a referenced skill is unused, fails on invocation, is missing from the registry, has gone stale relative to current architecture, or is redundant with another skill — emit a `friction` event so `/forge:enhance --phase 2` can act on the signal. This is the writer side of the channel whose reader landed in S13-T08; the reader is empty without these emits.

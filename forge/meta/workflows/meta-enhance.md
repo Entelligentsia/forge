@@ -15,6 +15,7 @@ deps:
 
 # Meta-Workflow: Enhancement Agent
 
+<!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->
 ## Iron Laws
 
 - Orchestrator-only: this workflow runs with full tool access in the orchestrator session. NEVER delegate it to a subagent.
@@ -22,6 +23,9 @@ deps:
 - All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
 - Phase 1 only touches `{{KEY}}` token text; never rewrite persona prose, algorithm steps, or role definitions.
 
+<!-- See _fragments/store-write-verification.md — NOTE: this file uses an intentionally abbreviated
+     Store-Write Verification variant (4-line condensed form for orchestrator-only workflow).
+     Canonical fragment is reference only. -->
 ## Store-Write Verification
 
 Every `forge_store` write MUST succeed before advancing. If `store-cli` exits
@@ -610,3 +614,14 @@ Invoked by `/forge:enhance --phase 3` (default when no phase given), or delegate
 If any step fails unexpectedly, describe what went wrong and offer:
 
 > "This looks like a Forge bug. Would you like to file a report? Run `/forge:report-bug`."
+
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->
+## Generation Instructions
+
+- **Workflow Structure:** This is an `audience: orchestrator-only` workflow (not a subagent-targeted phase workflow). The generated `enhance.md` must follow the strict multi-phase Algorithm block format (Phase 1 / Phase 2 / Phase 3 routing).
+- **Context Isolation:** All proposal application steps that modify `.forge/` structural elements must run in the orchestrator session (full tool access required). Do NOT delegate to a subagent.
+- **Project Specifics:**
+  - Reference the project's `commands.test` and `commands.build` from `.forge/config.json` when verifying stack-command fills in Phase 1.
+  - Reference `forge/tools/queue-drain.cjs`, `forge/tools/replay-scoring.cjs`, `forge/tools/compression-gate.cjs`, `forge/tools/judge-proposal.cjs`, and `forge/tools/delete-candidate-detector.cjs` by their resolved `$FORGE_ROOT` paths.
+- **Token Reporting:** See `_fragments/finalize.md` — wire via `file_ref:`. Enhancement runs are orchestrator-only and may be long-running; token reporting is advisory (no orchestrator composes a phase event for this workflow).
+- **Event Emission:** Emit enhancement events directly via `store-cli emit` (orchestrator-only exception to the "do NOT emit yourself" rule — this workflow IS the orchestrator for enhancement).

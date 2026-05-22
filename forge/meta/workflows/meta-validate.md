@@ -26,6 +26,7 @@ deps:
 
 The Supervisor performs a final validation of the implementation against the acceptance criteria and the technical spec.
 
+<!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->
 ## Iron Laws
 
 - Validate against the acceptance criteria as written; do not soften, expand, or reinterpret them. The validator's job is to catch what the implementer optimistically considered "done".
@@ -34,15 +35,7 @@ The Supervisor performs a final validation of the implementation against the acc
 
 ## Store-Write Verification
 
-Every `forge_store` write MUST succeed before advancing. If `store-cli` exits
-non-zero or the `PreToolUse` write-boundary hook blocks the call (exit 2):
-
-1. Parse the structured error (names the offending field + schema file).
-2. Correct the JSON to satisfy the schema.
-3. Retry. Repeat up to 3 times.
-4. After 3 failures, halt and escalate with original payload, corrected payload, and all error messages.
-
-Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
+<!-- See _fragments/store-write-verification.md for the canonical block content -->
 
 ## Algorithm
 
@@ -99,6 +92,7 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
 ## Friction Emit
 Emit `type:friction` `{workflow:validate, persona:qa-engineer, issue}` per `_fragments/friction-emit.md`.
 
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->
 ## Generation Instructions
 
 - **Workflow Structure:** The generated `validate_task.md` must follow the strict "Algorithm" block format.

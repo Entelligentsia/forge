@@ -15,6 +15,7 @@ capabilities:
   - Verify fixes across environments and under stress
 ---
 
+
 # {{PROJECT_NAME}} Bug Fixer Skills
 
 ## 🐛 Triage & Isolation

@@ -1,6 +1,6 @@
 {
-  "version": "0.47.0",
-  "generatedAt": "2026-05-22T13:17:48.905Z",
+  "version": "0.48.0",
+  "generatedAt": "2026-05-22T15:12:23.065Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -100,8 +100,11 @@
         "event-emission-schema.md",
         "finalize.md",
         "friction-emit.md",
+        "generation-instructions.md",
+        "iron-laws.md",
         "progress-reporting.md",
-        "store-cli-verbs.md"
+        "store-cli-verbs.md",
+        "store-write-verification.md"
       ]
     },
     "schemas": {

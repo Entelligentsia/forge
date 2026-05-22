@@ -23,6 +23,8 @@ refactor, a deployment, or a migration step).
 The quiz is short — 5–7 questions drawn directly from the project's own architecture
 and process docs. Vague answers fail. Pass requires specific, factual responses.
 
+<!-- No Iron Laws section: quiz-agent is a utility workflow that makes no store writes and enforces no output contract. Knowledge-check only. It is invoked inline by other workflows, not dispatched as a task phase by the orchestrator. -->
+
 ## Algorithm
 
 ```
@@ -57,6 +59,7 @@ beginning the task.
 
 ---
 
+<!-- See _fragments/generation-instructions.md for Generation Instructions template (quiz-agent: no token-reporting or event-emission — inline helper workflow) -->
 ## Generation Instructions
 
 ### Overview

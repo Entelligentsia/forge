@@ -12,6 +12,7 @@ deps:
   config_fields: [paths.engineering]
 ---
 
+
 # Collate
 ## Iron Laws
 
@@ -19,6 +20,9 @@ deps:
 - Read `.forge/personas/collator.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
 - All store reads via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
 
+<!-- See _fragments/store-write-verification.md — NOTE: this file uses an intentionally modified
+     Store-Write Verification variant: collation typically writes markdown views (not JSON records),
+     so the preamble explains when `forge_store` calls apply. Canonical fragment is reference only. -->
 ## Store-Write Verification
 
 Collation typically writes markdown views, not JSON records. If a remediation
@@ -69,3 +73,5 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
        skill: "forge:refresh-kb-links"
      ```
 ```
+
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->

@@ -12,6 +12,7 @@ deps:
   config_fields: [paths.engineering]
 ---
 
+
 # Review Sprint Completion
 ## Algorithm
 
@@ -44,3 +45,5 @@ deps:
        the orchestrator will surface the verdict to the user.
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 ```
+
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->

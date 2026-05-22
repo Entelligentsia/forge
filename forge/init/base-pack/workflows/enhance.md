@@ -13,8 +13,10 @@ deps:
   config_fields: [paths.engineering, paths.forgeRoot]
 ---
 
+
 # Enhancement Agent
 
+<!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->
 ## Iron Laws
 
 - Orchestrator-only: this workflow runs with full tool access in the orchestrator session. NEVER delegate it to a subagent.
@@ -22,6 +24,9 @@ deps:
 - All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
 - Phase 1 only touches `{{KEY}}` token text; never rewrite persona prose, algorithm steps, or role definitions.
 
+<!-- See _fragments/store-write-verification.md — NOTE: this file uses an intentionally abbreviated
+     Store-Write Verification variant (4-line condensed form for orchestrator-only workflow).
+     Canonical fragment is reference only. -->
 ## Store-Write Verification
 
 Every `forge_store` write MUST succeed before advancing. If `store-cli` exits
@@ -598,3 +603,5 @@ Invoked by `/forge:enhance --phase 3` (default when no phase given), or delegate
 If any step fails unexpectedly, describe what went wrong and offer:
 
 > "This looks like a Forge bug. Would you like to file a report? Run `/forge:report-bug`."
+
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->

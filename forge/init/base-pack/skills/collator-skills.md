@@ -14,6 +14,7 @@ capabilities:
   - Merge multi-source subagent outputs atomically
 ---
 
+
 # {{PROJECT_NAME}} Collator Skills
 
 ## 📑 Data Aggregation & Writeback

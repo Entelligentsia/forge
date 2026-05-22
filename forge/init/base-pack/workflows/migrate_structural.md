@@ -13,7 +13,14 @@ deps:
   config_fields: [paths.engineering]
 ---
 
+
 # Structural Migration (v0.x → v0.40)
+## Iron Laws
+
+- Migration operations are reversible and user-confirmed before any destructive writes. Do not skip the Phase 2 confirmation gate — proceed only after the user explicitly accepts the migration plan.
+- Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+
 ## Pre-conditions
 
 - `/forge:init` has run: `.forge/config.json` exists and is readable.
@@ -437,3 +444,5 @@ cd .forge && md5sum -c archive/pre-migration/MANIFEST.md5 2>/dev/null | grep -v 
 | `manage-versions.cjs init` exits non-zero | Halt. Report error. Archive is complete — rollback is available. |
 | `store-cli.cjs emit` exits non-zero | Report error. Continue — event is diagnostic only. |
 | Any unexpected error | Describe the error, point user to rollback procedure, suggest `/forge:report-bug`. |
+
+<!-- See _fragments/generation-instructions.md for Generation Instructions template -->

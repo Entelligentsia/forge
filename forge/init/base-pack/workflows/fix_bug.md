@@ -14,6 +14,7 @@ deps:
   config_fields: [commands.test, paths.engineering]
 ---
 
+
 # Fix Bug
 ## Pipeline Phases
 
@@ -386,6 +387,8 @@ Note: the `forbid bug.status == approved | verified` rows are defensive — no
 phase in this workflow writes those values, and a follow-up cleanup should
 drop them from `bug.schema.json` entirely. Until then, these gates halt any
 LLM-improvised attempt to land in the run-task trap (see today's regression).
+
+<!-- See _fragments/generation-instructions.md for Generation Instructions template (fix-bug uses orchestrator-special long-form prose — cannot be reduced to standard subsections) -->
 ## Iron Laws
 
 <!-- Shared orchestrator laws live in generic-skills.md § Orchestrator Iron Laws. -->

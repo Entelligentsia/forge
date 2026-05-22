@@ -815,6 +815,7 @@ route you take.
 write through and append an audit line to the affected sprint's
 `progress.log`.
 
+<!-- See _fragments/iron-laws.md for Iron Laws section structure guidance (orchestrate uses orchestrator-special deferral to generic-skills.md § Orchestrator Iron Laws) -->
 ## Iron Laws
 
 <!-- Shared orchestrator laws live in generic-skills.md § Orchestrator Iron Laws. -->
@@ -876,6 +877,7 @@ Do not include hardcoded example `model` or `provider` strings in the
 generated orchestrator prose — they are the seed of LLM hallucination.
 Refer subagents to `.forge/schemas/event.schema.json` instead.
 
+<!-- See _fragments/generation-instructions.md for Generation Instructions template (orchestrate uses orchestrator-special long-form prose — cannot be reduced to standard subsections) -->
 ## Generation Instructions
 - Fill in concrete test/build/lint commands from .forge/config.json
 - Reference generated workflows by exact filename in .forge/workflows/

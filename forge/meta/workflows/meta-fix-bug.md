@@ -396,6 +396,7 @@ phase in this workflow writes those values, and a follow-up cleanup should
 drop them from `bug.schema.json` entirely. Until then, these gates halt any
 LLM-improvised attempt to land in the run-task trap (see today's regression).
 
+<!-- See _fragments/generation-instructions.md for Generation Instructions template (fix-bug uses orchestrator-special long-form prose — cannot be reduced to standard subsections) -->
 ## Generation Instructions
 
 Mirrors `meta-orchestrate.md § Generation Instructions` with these
@@ -430,6 +431,7 @@ adjustments:
   they share the gate-and-verdict machinery with their `--task` paths via
   `BUG_PHASE_VERDICT_SOURCE` in `read-verdict.cjs`.
 
+<!-- See _fragments/iron-laws.md for Iron Laws section structure guidance (fix-bug uses orchestrator-special deferral to generic-skills.md § Orchestrator Iron Laws) -->
 ## Iron Laws
 
 <!-- Shared orchestrator laws live in generic-skills.md § Orchestrator Iron Laws. -->

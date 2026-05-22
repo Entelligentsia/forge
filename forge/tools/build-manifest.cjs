@@ -69,12 +69,15 @@ const WORKFLOW_MAP = [
 //    Sources live in meta/workflows/_fragments/, outputs in base-pack/workflows/_fragments/.
 //    These are copied verbatim (no placeholder substitution); the build script mirrors the dir.
 const FRAGMENT_MAP = [
-  ['context-injection.md',    'context-injection.md'],
-  ['progress-reporting.md',   'progress-reporting.md'],
-  ['event-emission-schema.md','event-emission-schema.md'],
-  ['finalize.md',             'finalize.md'],
-  ['store-cli-verbs.md',      'store-cli-verbs.md'],
-  ['friction-emit.md',        'friction-emit.md'],
+  ['context-injection.md',          'context-injection.md'],
+  ['progress-reporting.md',         'progress-reporting.md'],
+  ['event-emission-schema.md',      'event-emission-schema.md'],
+  ['finalize.md',                   'finalize.md'],
+  ['store-cli-verbs.md',            'store-cli-verbs.md'],
+  ['friction-emit.md',              'friction-emit.md'],
+  ['store-write-verification.md',   'store-write-verification.md'],
+  ['iron-laws.md',                  'iron-laws.md'],
+  ['generation-instructions.md',    'generation-instructions.md'],
 ];
 
 // 5. Templates — explicit mapping
