@@ -215,10 +215,43 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
 
    For each proposal capture **at minimum** the schema-required triplet
    `{op, target_path, diff_body}` plus optional `rationale` and `sourceFrictionIds`.
+   `sourceFrictionIds` MUST carry the `eventId` of every friction event that
+   contributed to the proposal — the next step depends on it to resolve the
+   originating task for the recurrence scan.
    For large committed file sets (> 5 files in the sprint), also check whether
    `engineer-skills.md` or `architect-skills.md` should be updated (`update_skill`).
    The op classification is the foundation for the downstream judge (T03),
    delete-candidate detection (T05), compression gate (T06), and queue drain (T07).
+
+5a. **Cross-task replay scoring (recurrence boost)** — before writing the
+   artifact, stamp each proposal with `recurrence_count` and
+   `recurrence_task_ids` so the T03 judge can score "this friction recurred
+   across N tasks" rather than treating every signal as a singleton:
+
+   ```sh
+   node -e "
+   const { annotateProposals } = require('./forge/tools/replay-scoring.cjs');
+   // friction = deduped friction events from step 3, each carrying eventId,
+   //            taskId, subkind, evidence.skillId (orchestrator-stamped).
+   // proposals = array built in step 5.
+   // taskOrder = task IDs of the most-recent sprint sorted by completion
+   //             order — same source as step 4.
+   const annotated = annotateProposals(proposals, friction, taskOrder);
+   process.stdout.write(JSON.stringify(annotated));
+   "
+   ```
+
+   Contract (per `forge/tools/replay-scoring.cjs`):
+   - `recurrence_count` is the number of distinct tasks (origin task + later
+     tasks in `taskOrder`) whose friction events match the proposal's
+     originating `(subkind, evidence.skillId)` pair. Always `>= 1`.
+   - `recurrence_task_ids` is the `taskOrder`-sorted list of those task IDs.
+   - Proposals whose `sourceFrictionIds` cannot be resolved (no matching
+     `eventId` in the friction set, or the resolved event lacks
+     `subkind`/`evidence.skillId`) receive `recurrence_count: 1` and an empty
+     `recurrence_task_ids: []` — neutral signal, not silent failure.
+   - The annotator returns new proposal objects; the input array is not
+     mutated.
 
 6. **Write proposal artifact**:
    ```sh
@@ -230,7 +263,8 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
      showing op + target_path + a fenced diff block.
    - `phase2-<timestamp>.json` — machine-readable array of proposal records, each
      conforming to `forge/schemas/proposal.schema.json` (required keys: `op`,
-     `target_path`, `diff_body`; `op` ∈ {insert_skill, update_skill, delete_skill}).
+     `target_path`, `diff_body`; `op` ∈ {insert_skill, update_skill, delete_skill};
+     optional `recurrence_count` ≥ 1 and `recurrence_task_ids` populated by step 5a).
 
    **Back-compat on read** — pre-0.45.2 proposal records lack `op`. Downstream
    consumers MUST route legacy records through

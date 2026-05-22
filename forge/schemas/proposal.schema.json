@@ -24,7 +24,17 @@
     "rationale":          { "type": "string" },
     "sourceFrictionIds":  { "type": "array", "items": { "type": "string" } },
     "generated_at":       { "type": "string", "format": "date-time" },
-    "sprintId":           { "type": "string" }
+    "sprintId":           { "type": "string" },
+    "recurrence_count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "FORGE-S24-T04 — count of distinct tasks within the same sprint that emitted a matching (subkind, evidence.skillId) friction event, including the originating task. Always >= 1."
+    },
+    "recurrence_task_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "FORGE-S24-T04 — taskOrder-sorted list of task IDs that contributed to recurrence_count. Empty when the originating friction event cannot be resolved from sourceFrictionIds."
+    }
   },
   "additionalProperties": false
 }

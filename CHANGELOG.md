@@ -5,6 +5,44 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.45.3] — 2026-05-22
+
+Feature: **Cross-task replay scoring — recurrence boost** (FORGE-S24-T04 — SKILL-CURATION).
+
+For each Phase 2 enrichment proposal synthesised from a friction event at
+task `t`, the new `forge/tools/replay-scoring.cjs` helper scans friction
+events in tasks `t+1..N` of the same sprint for matching
+`(subkind, evidence.skillId)` pairs and stamps `recurrence_count` (>= 1,
+includes the origin task) plus `recurrence_task_ids` (taskOrder-sorted)
+onto the proposal. The downstream T03 judge can now boost specificity
+when a friction signal recurred across multiple tasks instead of treating
+every observation as a singleton.
+
+`forge/meta/workflows/meta-enhance.md` Phase 2 gains step 5a invoking
+`annotateProposals(proposals, frictionEvents, taskOrder)` between the
+synthesis step (5) and the artifact write (6); step 5 now requires
+`sourceFrictionIds` to carry every contributing `eventId` so the
+recurrence scan can resolve provenance. `forge/schemas/proposal.schema.json`
+gains two optional fields — `recurrence_count` (integer, minimum 1) and
+`recurrence_task_ids` (array of strings) — both additive;
+`additionalProperties: false` continues to reject unknown keys.
+
+Forward-only scan: earlier tasks (before `fromTaskId` in `taskOrder`) are
+excluded. Proposals without resolvable provenance receive a neutral
+`recurrence_count: 1` and empty `recurrence_task_ids: []` — neutral
+signal, not silent failure.
+
+Test-first per Iron Law 2: `replay-scoring.test.cjs` (11 cases including
+the AC3 three-task fixture, forward-only-direction guard,
+subkind/skillId mismatch rejection, and the no-mutation invariant)
+landed before the helper. Full suite 1364/1364 (was 1353; +11).
+
+Additive, non-breaking. Users running an older version receive the
+recurrence-augmented proposal schema on `/forge:update` and re-run
+`/forge:enhance --phase 2` to take advantage of the new fields.
+
+---
+
 ## [0.45.2] — 2026-05-22
 
 Feature: **Phase 2 proposal op classification** (FORGE-S24-T02 — SKILL-CURATION).

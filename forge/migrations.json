@@ -1,4 +1,12 @@
 {
+  "0.45.2": {
+    "version": "0.45.3",
+    "date": "2026-05-22",
+    "notes": "feat: cross-task replay scoring — recurrence boost (FORGE-S24-T04). Adds `forge/tools/replay-scoring.cjs` exporting `computeRecurrence({events, subkind, skillId, fromTaskId, taskOrder})` and `annotateProposals(proposals, frictionEvents, taskOrder)`. For each Phase 2 enrichment proposal synthesised from a friction event at task `t`, the annotator scans tasks `t+1..N` in the same sprint for friction events matching the same `(subkind, evidence.skillId)` pair and stamps `recurrence_count` (>= 1, includes the origin task) and `recurrence_task_ids` (taskOrder-sorted) onto the proposal. Forward-only scan: earlier tasks before `fromTaskId` are excluded. Proposals without resolvable `sourceFrictionIds` (eventId not in the friction set, or the resolved event lacks subkind/evidence.skillId) receive a neutral `recurrence_count: 1` and empty `recurrence_task_ids: []`. `meta/workflows/meta-enhance.md` Phase 2 gains step 5a calling `annotateProposals` between synthesis (step 5) and artifact write (step 6); the step 5 contract is tightened to require `sourceFrictionIds` to carry every contributing eventId so the recurrence scan can resolve provenance. `forge/schemas/proposal.schema.json` gains optional `recurrence_count` (integer minimum:1) and `recurrence_task_ids` (array of strings) properties — additive only, both fields are optional, `additionalProperties: false` continues to reject unknown keys. Feeds T03 (judge) so specificity scoring can boost frictions that recurred across multiple tasks. Test-first per Iron Law 2: `replay-scoring.test.cjs` (11 cases — AC3 three-task recurrence, single-task baseline, forward-only-direction guard, subkind mismatch rejection, skillId mismatch rejection, intra-task dedup, fromTaskId-outside-taskOrder fallback, missing-evidence guard, full annotateProposals happy path, unresolved-provenance neutral case, no-mutation invariant) landed before the helper. Full suite 1364/1364 (was 1353; +11). Additive, non-breaking.",
+    "regenerate": ["tools:replay-scoring", "schemas:proposal", "workflows:enhance"],
+    "breaking": false,
+    "manual": []
+  },
   "0.45.1": {
     "version": "0.45.2",
     "date": "2026-05-22",
