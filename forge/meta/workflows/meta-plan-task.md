@@ -104,7 +104,7 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
 ## Iron Laws
 
 - Follow the Algorithm step by step. No code, pseudocode, or implementation sketches in the plan.
-- Read `.forge/personas/architect.md` first; print the persona identity line to stdout before any other tool use.
+- Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
 - All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
 
 ## Store-Write Verification

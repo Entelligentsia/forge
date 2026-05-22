@@ -34,10 +34,12 @@ PREFIX=$(node -e "try{console.log(require('./.forge/config.json').project.prefix
 - `approve.md` → `/{PREFIX}:approve {TASK_ID}`
 - `commit.md` → `/{PREFIX}:commit {TASK_ID}`
 - `quiz-agent.md` → `/{PREFIX}:quiz-agent $ARGUMENTS`
+- `enhance.md` → `/{PREFIX}:enhance $ARGUMENTS`
+- `validate.md` → `/{PREFIX}:validate {TASK_ID}`
 
 ## Instructions
 
-**Scope boundary:** Only ever read, write, or delete files in the explicit output list above (14 files).
+**Scope boundary:** Only ever read, write, or delete files in the explicit output list above (16 files).
 Never touch any other file in `.claude/commands/` — custom commands, project-specific
 wrappers, and unrecognised files must be left completely untouched.
 
@@ -97,6 +99,8 @@ Where:
 | `collate.md` | Regenerate KB documents from the JSON store |
 | `retrospective.md` | Produce sprint retrospective and lessons-learned document |
 | `quiz-agent.md` | Verify an agent has read and understood the project KB before high-stakes tasks |
+| `enhance.md` | Progressive project-specific enrichment of structural elements |
+| `validate.md` | Validate that a task implementation satisfies acceptance criteria |
 
 **Effort levels** — use `effort:` frontmatter (capability request, model-agnostic):
 
@@ -116,6 +120,8 @@ Where:
 | `collate.md` | `low` | Mechanical markdown regeneration |
 | `commit.md` | `low` | Staging and committing completed work |
 | `quiz-agent.md` | `medium` | Short factual quiz — moderate reasoning, no deep codebase traversal |
+| `enhance.md` | `high` | Enhancement agent — broad structural enrichment |
+| `validate.md` | `max` | Validation gate — needs deepest reasoning |
 
 Do **not** include `model:` frontmatter — that directive pins a specific model and is
 not appropriate for user command files.
@@ -129,7 +135,7 @@ node "$FORGE_ROOT/tools/generation-manifest.cjs" record {paths.commands}/{PREFIX
 
 ## Post-generation: flat-file cleanup
 
-After all 14 command files have been written and recorded, scan for pre-v0.13.0
+After all 16 command files have been written and recorded, scan for pre-v0.13.0
 flat command files that were never namespaced. These are the **13 known flat filenames**:
 
 ```

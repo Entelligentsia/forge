@@ -102,7 +102,7 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
 ## Iron Laws
 
 - Follow the Algorithm step by step. Execute the approved PLAN.md exactly; do not invent scope or skip steps without updating the plan first.
-- Read `.forge/personas/engineer.md` first; print the persona identity line to stdout before any other tool use.
+- Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
 - All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
 - Run the full test suite before declaring the task implemented. Silent continuation past test failures is never acceptable.
 

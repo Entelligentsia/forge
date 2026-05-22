@@ -98,7 +98,7 @@ List the architecture and business-domain docs that cover the question topics.
 Use the actual paths as generated (e.g. `{KB_PATH}/architecture/stack.md`).
 Include `{KB_PATH}/stack-checklist.md` always.
 
-### File structure
+## Template Output Format
 
 ```markdown
 # 🍵 Workflow: Quiz Agent — {Project Name}

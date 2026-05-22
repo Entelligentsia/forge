@@ -24,8 +24,8 @@
     "agents/store-query-validator.md": "f4c3573edcf6e28809515705362df611806a805c5269404fb17e31433cf3a81c",
     "agents/tomoshibi.md": "0112604af0856235d7f028683dbfa3f4af63355cb2dd79d26592e983a6ecec8b",
     "hooks/check-update.js": "75a70718d088b7c92ac0343908d07c2eb3bb334c427947490af1d775790859e1",
-    "hooks/forge-permissions.js": "d72fe4a7f010d363798680fa6afeb004f8747e2479ebdf653bc2200c9be073dc",
-    "hooks/triage-error.js": "b1e9c1c9a9f3e4868fff295f2caf87a2a72a817ee767af35f6334c88e45e16d4",
+    "hooks/forge-permissions.js": "94dae3075648e344d235fa2a288d232a6a631401e0e07d41cf5786e12cac3885",
+    "hooks/triage-error.js": "e6016ec41d2c450e98dea7d7d25b69d3e779ec0e6a35e4605e31f11013ce1701",
     "hooks/validate-write.js": "3ec7bbbb2cc19f22c78da5a9e7b5031066f4b669c76a10c9f8a92a1a48fcea0a",
     "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
   }
