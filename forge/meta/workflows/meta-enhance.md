@@ -204,19 +204,40 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
    `retrospective-done`), sorted by completion date. Read its task records from
    `.forge/store/tasks/` filtered by the sprint ID.
 
-5. **Synthesize enrichment proposals** — for each friction event:
-   - Identify which persona or skill file it references.
-   - Propose a targeted addition: e.g., "architect persona lacks routing pattern knowledge —
-     suggest adding `{{KB_PATH}}/routing.md` reference to deps.kb_docs."
-   - For large committed file sets (> 5 files in the sprint), also check whether
-     `engineer-skills.md` or `architect-skills.md` should reference new patterns.
+5. **Synthesize enrichment proposals** — for each friction event, classify the proposed
+   change into exactly one of three ops (see `forge/schemas/proposal.schema.json`):
+
+   | `op`            | When to use                                                                 |
+   |-----------------|-----------------------------------------------------------------------------|
+   | `insert_skill`  | A new skill / persona / kb_docs reference is needed; target file does not yet carry the guidance. |
+   | `update_skill`  | An existing skill or persona file needs revised guidance — e.g., add a routing pattern reference to `deps.kb_docs`, replace a stale instruction. |
+   | `delete_skill`  | A skill is unused, redundant, or stale (`skill_unused` / `skill_redundant` / `skill_stale` friction subkinds); target file or section should be removed. |
+
+   For each proposal capture **at minimum** the schema-required triplet
+   `{op, target_path, diff_body}` plus optional `rationale` and `sourceFrictionIds`.
+   For large committed file sets (> 5 files in the sprint), also check whether
+   `engineer-skills.md` or `architect-skills.md` should be updated (`update_skill`).
+   The op classification is the foundation for the downstream judge (T03),
+   delete-candidate detection (T05), compression gate (T06), and queue drain (T07).
 
 6. **Write proposal artifact**:
    ```sh
    mkdir -p "$PROJECT_ROOT/.forge/enhancement-proposals"
    ```
-   Write to `$PROJECT_ROOT/.forge/enhancement-proposals/phase2-<timestamp>.md`. Format:
-   one section per proposed change, with a fenced diff block showing before/after text.
+   Write **two** outputs for each Phase 2 run:
+
+   - `phase2-<timestamp>.md` — human-readable markdown, one section per proposal,
+     showing op + target_path + a fenced diff block.
+   - `phase2-<timestamp>.json` — machine-readable array of proposal records, each
+     conforming to `forge/schemas/proposal.schema.json` (required keys: `op`,
+     `target_path`, `diff_body`; `op` ∈ {insert_skill, update_skill, delete_skill}).
+
+   **Back-compat on read** — pre-0.45.2 proposal records lack `op`. Downstream
+   consumers MUST route legacy records through
+   `forge/tools/proposal-normalize.cjs:normaliseProposal()` which defaults the
+   missing `op` to `insert_skill` (the only op the prior insert-biased flow
+   could produce). Do NOT silently coerce — call the helper explicitly so the
+   normalisation is auditable.
 
 7. **Present to user**:
    ```

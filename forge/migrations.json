@@ -1,4 +1,12 @@
 {
+  "0.45.1": {
+    "version": "0.45.2",
+    "date": "2026-05-22",
+    "notes": "feat: Phase 2 proposal op classification (FORGE-S24-T02). Adds `forge/schemas/proposal.schema.json` and `forge/tools/proposal-normalize.cjs`. The new schema enumerates `op` ∈ {insert_skill, update_skill, delete_skill} with required `target_path` + `diff_body`; `additionalProperties: false` rejects unknown fields. `meta/workflows/meta-enhance.md` Phase 2 (steps 5–6) now requires every enrichment proposal to carry this triplet and writes a machine-readable `phase2-<timestamp>.json` alongside the existing markdown artifact. Back-compat: legacy proposals without `op` are normalised to `insert_skill` via `proposal-normalize.cjs:normaliseProposal()` — downstream consumers route through the helper explicitly so normalisation is auditable. Foundation for T03 (judge), T05 (delete-candidate detection), T06 (compression gate), T07 (queue drain). Test-first per Iron Law 2: `proposal-schema.test.cjs` (6 cases including missing-op rejection, unknown-op rejection, additionalProperties:false, and the legacy normalisation contract) landed before the schema. Full suite 1353/1353. Additive, non-breaking.",
+    "regenerate": ["schemas:proposal"],
+    "breaking": false,
+    "manual": []
+  },
   "0.45.0": {
     "version": "0.45.1",
     "date": "2026-05-22",

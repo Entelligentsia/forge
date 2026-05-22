@@ -5,6 +5,34 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.45.2] — 2026-05-22
+
+Feature: **Phase 2 proposal op classification** (FORGE-S24-T02 — SKILL-CURATION).
+
+Replaces the insert-biased Phase 2 enrichment-proposal vocabulary with an
+explicit three-op classification. New `forge/schemas/proposal.schema.json`
+enumerates `op` ∈ `{insert_skill, update_skill, delete_skill}` and requires
+`target_path` + `diff_body` per record; `additionalProperties: false` rejects
+unknown fields.
+
+`meta/workflows/meta-enhance.md` Phase 2 (steps 5–6) now:
+
+- Routes every friction event through the three-op classifier when synthesising proposals.
+- Emits a machine-readable `phase2-<timestamp>.json` artifact alongside the existing markdown — each entry conforms to `proposal.schema.json`.
+- References `proposal-normalize.cjs:normaliseProposal()` as the **explicit** read-side back-compat path for legacy (pre-0.45.2) proposals lacking `op`; missing `op` defaults to `insert_skill` — never silently coerced.
+
+This is the foundation for the remaining S24 work: T03 (judge), T05
+(delete-candidate detection), T06 (compression gate), T07 (queue drain).
+
+Test-first per Iron Law 2: `proposal-schema.test.cjs` (6 cases — missing op,
+unknown op, missing `target_path`, `additionalProperties:false`, and the legacy
+normalisation contract) landed before the schema. Full suite 1353/1353.
+
+Additive, non-breaking: existing proposals continue to validate via the
+normaliser, and no existing schema or tool changes.
+
+---
+
 ## [0.45.1] — 2026-05-22
 
 Feature: **`skill_usage` event variant** (FORGE-S24-T01, plan 08 Phase B — SKILL-CURATION).
