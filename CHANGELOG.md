@@ -5,6 +5,22 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [0.46.1] — 2026-05-22
+
+**Build fix: ship the FORGE-S24 SKILL-CURATION Phase 2 pipeline that 0.46.0 was supposed to.**
+
+The 0.45.1–0.45.7 migration entries declared `workflows:enhance` in their `regenerate` lists, but `node tools/build-base-pack.cjs` was not re-run during the sprint. As a result the installable `init/base-pack/workflows/enhance.md` stayed at the pre-S24 algorithm, and projects migrating to 0.46.0 received a stale workflow that lacked queue-drain (step 1a), recurrence scoring, delete-candidate detection (step 5b), compression gate (step 5b.5), and the LLM-judge step (step 5c).
+
+This patch regenerates the base-pack copy from `meta/workflows/meta-enhance.md` (280 → 600 lines, 20 S24 markers landed) and forces a re-copy on any project sitting at 0.46.0 by declaring `workflows:enhance` in this entry's regenerate list. No plugin source change beyond the regenerated workflow file. Additive, non-breaking.
+
+Discovered during cartographer testbench smoke-test of `/forge:enhance` — Phase 2 ran the legacy algorithm (no op classification, no queue path, no judge rejections sidecar) because the workflow the migration copied into the project lacked the new steps.
+
+**Regenerate:** `workflows:enhance`
+
+> Manual: Run `/forge:update` to refresh `.forge/workflows/enhance.md` with the SKILL-CURATION Phase 2 pipeline.
+
+---
+
 ## [0.46.0] — 2026-05-22
 
 **FORGE-S24 SKILL-CURATION sprint completion — gated rollout marker (FORGE-S24-T12).**
