@@ -62,7 +62,7 @@ function parseFrontmatter(content) {
 // meta-update-impl  3328       3092       3584  (492B headroom — lowered from 4096)
 const BYTE_BUDGETS = {
   'meta-plan-task.md':              6912,
-  'meta-implement.md':              7168,
+  'meta-implement.md':              7680,
   'meta-review-plan.md':            5632,
   'meta-review-implementation.md':  6400,
   'meta-validate.md':               5376,

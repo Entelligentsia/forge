@@ -1,4 +1,23 @@
 {
+  "0.51.2": {
+    "version": "0.51.3",
+    "date": "2026-05-23",
+    "notes": "Workflow prose updated to reference forge_artifact tool for all phase artifact reads/writes. Eliminates manual path construction — models use typed tool calls with entity ID resolution and JSON summary schema validation.",
+    "target": "workflows:all-phase-workflows,workflows:_fragments/store-cli-verbs",
+    "regenerate": [
+      "workflows:plan_task",
+      "workflows:review_plan",
+      "workflows:implement_plan",
+      "workflows:review_code",
+      "workflows:validate_task",
+      "workflows:architect_approve",
+      "workflows:fix_bug",
+      "workflows:collator_agent",
+      "workflows:_fragments/store-cli-verbs"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.51.1": {
     "version": "0.51.2",
     "date": "2026-05-23",

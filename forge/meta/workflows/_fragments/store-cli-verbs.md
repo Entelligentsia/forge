@@ -34,6 +34,12 @@ Notes for subagents:
 - **`emit`** appends an event. There is no `append-event` / `add-event`.
 - **`set-summary`** / **`set-bug-summary`** write summary sidecars referenced
   from the entity record. Do not inline summaries into the entity via `write`.
+- **Artifact I/O:** Use `forge_artifact` for ALL phase artifact reads and writes
+  (PLAN.md, PROGRESS.md, *-SUMMARY.json, CODE_REVIEW.md, etc.). Never construct
+  artifact file paths manually — the tool resolves paths from entity IDs and
+  validates JSON summary schemas on write. After writing a summary JSON via
+  `forge_artifact`, link it to the store record via `forge_store set-summary`.
+  Example: `forge_artifact({ command:"write", entity:"task", entityId:"{taskId}", artifact:"progress", content:"..." })`
 - If you need a verb not on this list, run
   `node "$FORGE_ROOT/tools/store-cli.cjs" --help` before improvising.
 - If you supply an unknown verb, entity type, enum value, or field name,

@@ -63,7 +63,9 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
      - Docs-only changes → NOT material
 
 3. Plan:
-   - Generate PLAN.md using the project plan template
+   - Write the plan via forge_artifact:
+     `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"plan", content:"<markdown>" })`
+     where `<markdown>` follows the project plan template.
    - Ensure inclusion of: Objective, Approach, Files to Modify, Data Model Changes, Testing Strategy, Acceptance Criteria, and Operational Impact
 
 4. Knowledge Writeback:
@@ -77,7 +79,7 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
 6. Emit Summary Sidecar:
-   - Write `PLAN-SUMMARY.json` (task mode) or `BUG-FIX-PLAN-SUMMARY.json` (bug mode) to the record's directory. Shape:
+   - Write the plan summary via forge_artifact. Shape:
      ```json
      {
        "objective":   "<one sentence — what this plan sets out to build>",
@@ -87,16 +89,14 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
        "artifact_ref":"PLAN.md"
      }
      ```
-   - Call (task mode):
-     ```
-     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {taskId} plan \
-       engineering/sprints/{sprint}/{task}/PLAN-SUMMARY.json
-     ```
+     Task mode:
+     `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"plan-summary", content:"<JSON>" })`
+     Bug mode:
+     `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"plan-summary", content:"<JSON>" })`
+   - Register the summary with the store (task mode):
+     `forge_store({ command:"set-summary", args:["{record_id}", "plan"] })`
      Or (bug mode):
-     ```
-     node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bugId} plan \
-       engineering/bugs/{bugDir}/BUG-FIX-PLAN-SUMMARY.json
-     ```
+     `forge_store({ command:"set-bug-summary", args:["{record_id}", "plan"] })`
    - If the set-summary call exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```
 

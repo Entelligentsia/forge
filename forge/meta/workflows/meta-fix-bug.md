@@ -168,8 +168,12 @@ Differences are confined to the **triage** step and the **path branch**.
      • Reproduce the bug (failing test or reproduction script).
      • Confirm the root cause via codebase research.
      • Decide Path A vs Path B by the criteria above.
-     • Write TRIAGE.md and TRIAGE-SUMMARY.json (with `path` field).
-     • Call set-bug-summary {bugId} triage TRIAGE-SUMMARY.json
+     • Write triage artifact:
+       forge_artifact({ command:"write", entity:"bug", entityId:"{bugId}", artifact:"triage", content:"<markdown>" })
+     • Write triage-summary artifact (JSON shape documented in § Triage Judgement):
+       forge_artifact({ command:"write", entity:"bug", entityId:"{bugId}", artifact:"triage-summary", content:"<JSON>" })
+     • Call set-bug-summary {bugId} triage via forge_store:
+       forge_store({ command:"set-bug-summary", bugId:"{bugId}", phase:"triage", file:"TRIAGE-SUMMARY.json" })
    - On return, orchestrator transitions status:
        store-cli update-status bug {bugId} status triaged
        store-cli update-status bug {bugId} status in-progress

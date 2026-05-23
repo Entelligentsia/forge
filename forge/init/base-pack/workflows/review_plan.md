@@ -55,7 +55,8 @@ deps:
    - Identify missing edge cases or failure modes
 
 3. Verdict:
-   - Write PLAN_REVIEW.md using the format:
+   - Write the plan review via forge_artifact: forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"plan-review", content:"<markdown>" })
+     Use the format:
      **Verdict:** [Approved | Revision Required]
      - If Revision Required: provide numbered, actionable items
      - If Approved: provide any advisory notes
@@ -71,7 +72,8 @@ deps:
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
 5. Emit Summary Sidecar:
-   - Write `REVIEW-PLAN-SUMMARY.json` to the record's directory with the following shape:
+   - Write the review-plan summary via forge_artifact: forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"review-plan-summary", content:"<JSON>" })
+     The JSON must have the following shape:
      ```json
      {
        "objective":   "<one sentence — what this review assessed>",
@@ -83,13 +85,11 @@ deps:
      ```
    - Call (task mode):
      ```
-     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {taskId} review_plan \
-       engineering/sprints/{sprint}/{task}/REVIEW-PLAN-SUMMARY.json
+     forge_store({ command:"set-summary", entity:"task", id:"{record_id}", phase:"review_plan" })
      ```
      Or (bug mode):
      ```
-     node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bugId} review_plan \
-       engineering/bugs/{bugDir}/REVIEW-PLAN-SUMMARY.json
+     forge_store({ command:"set-bug-summary", entity:"bug", id:"{record_id}", phase:"review_plan" })
      ```
    - If the set-summary call exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```

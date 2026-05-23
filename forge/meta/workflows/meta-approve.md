@@ -60,7 +60,9 @@ The Architect gives final sign-off on a completed task after Supervisor approval
    - Assess operational impact (deployment changes, migrations)
 
 3. Sign Off:
-   - Write ARCHITECT_APPROVAL.md containing:
+   - Write the architect approval via:
+     `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"architect-approval", content:"<markdown>" })`
+     The markdown content must contain:
      - A canonical verdict line for human readers, on its own line, in this exact form:
        ```
        **Verdict:** [Approved | Revision Required]
@@ -77,7 +79,9 @@ The Architect gives final sign-off on a completed task after Supervisor approval
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
 5. Emit Summary Sidecar:
-   - Write `APPROVE-SUMMARY.json` to the record's directory with the following shape:
+   - Write the approve summary via:
+     `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"approve-summary", content:"<JSON>" })`
+     The JSON content must have the following shape:
      ```json
      {
        "objective":   "<one sentence — what this approval covered>",

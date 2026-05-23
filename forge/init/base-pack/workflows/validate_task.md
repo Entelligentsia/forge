@@ -56,7 +56,9 @@ deps:
    - When re-running the test suite, use the **resolved test command** from `commands.test` in `.forge/config.json` (i.e. `` `${commands.test}` ``, e.g. `.venv/bin/python -m pytest`). Template placeholder: {{TEST_COMMAND}}. Do NOT invoke bare `python` / `python3` — the project interpreter is rarely on `$PATH`.
 
 3. Verdict:
-   - Write VALIDATION_REPORT.md using the format:
+   - Write the validation report via:
+     `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"validation-report", content:"<markdown>" })`
+     The markdown content must use the format:
      **Verdict:** [Approved | Revision Required]
      - If Revision Required: list the failed criteria and required fixes
      - If Approved: confirm the task is validated
@@ -66,7 +68,9 @@ deps:
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
 5. Emit Summary Sidecar:
-   - Write `VALIDATION-SUMMARY.json` to the task directory with the following shape:
+   - Write the validation summary via:
+     `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"validation-summary", content:"<JSON>" })`
+     The JSON content must have the following shape:
      ```json
      {
        "objective":   "<one sentence — what acceptance criteria were validated>",

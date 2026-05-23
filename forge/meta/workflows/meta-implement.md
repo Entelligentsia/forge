@@ -55,10 +55,9 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
    - Run build if frontend assets modified: {BUILD_COMMAND}
 
 4. Documentation:
-   - Write PROGRESS.md containing:
-     - Summary of changes
-     - Test evidence (copy of output)
-     - Files changed manifest
+   - Write PROGRESS.md via `forge_artifact`:
+     `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"progress", content:"<markdown>" })`
+     Content must include: summary of changes, test evidence (copy of output), files changed manifest.
 
 5. Knowledge Writeback:
    - Update architecture/domain/stack-checklist if discoveries were made
@@ -80,27 +79,14 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
 7. Emit Summary Sidecar:
-   - Write `IMPLEMENTATION-SUMMARY.json` to the record's directory with the following shape:
-     ```json
-     {
-       "objective":   "<one sentence — what this implementation delivered>",
-       "key_changes": ["<up to 12 bullets, 200 chars each — files changed, key decisions>"],
-       "verdict":     "n/a",
-       "written_at":  "<current ISO 8601 timestamp>",
-       "artifact_ref":"PROGRESS.md"
-     }
-     ```
-   - Call (task mode):
-     ```
-     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {taskId} implementation \
-       engineering/sprints/{sprint}/{task}/IMPLEMENTATION-SUMMARY.json
-     ```
+   - Write `IMPLEMENTATION-SUMMARY.json` via `forge_artifact`:
+     `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"implementation-summary", content:"<JSON>" })`
+     JSON shape: `{"objective":"<one sentence>", "key_changes":["<up to 12 bullets>"], "verdict":"n/a", "written_at":"<ISO 8601>", "artifact_ref":"PROGRESS.md"}`
+     The tool validates required fields automatically — fix and retry if it rejects.
+   - Then link sidecar to store (task mode):
+     `forge_store({ command:"set-summary", args:["{taskId}", "implementation", "engineering/sprints/{sprint}/{task}/IMPLEMENTATION-SUMMARY.json"] })`
      Or (bug mode):
-     ```
-     node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bugId} implementation \
-       engineering/bugs/{bugDir}/IMPLEMENTATION-SUMMARY.json
-     ```
-   - If the set-summary call exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
+     `forge_store({ command:"set-bug-summary", args:["{bugId}", "implementation", "engineering/bugs/{bugDir}/IMPLEMENTATION-SUMMARY.json"] })`
 ```
 
 <!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->
