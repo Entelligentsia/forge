@@ -26,7 +26,11 @@ Notes for subagents:
   natural-language lookup.
 - **`update-status`** is the ONLY supported task/bug status mutation path.
   Do not `write` a task back with a new `status` field; the FSM is enforced
-  by `update-status`.
+  by `update-status`. Syntax requires the field keyword `status` as the third
+  argument — four args total:
+  `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status {value}`
+  The three-arg form `update-status task {taskId} {value}` is WRONG and will
+  error. Always include `status` between the id and the value.
 - **`emit`** appends an event. There is no `append-event` / `add-event`.
 - **`set-summary`** / **`set-bug-summary`** write summary sidecars referenced
   from the entity record. Do not inline summaries into the entity via `write`.

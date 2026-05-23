@@ -70,7 +70,12 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
        - `planned`        → `implemented` (workflow-prose path — direct)
        - `plan-approved`  → `implementing` → `implemented` (supervisor-review path)
        - Out-of-band escapes (any state): `plan-revision-required`, `code-revision-required`, `blocked`, `escalated`, `abandoned`
-       Update status: `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status implemented`
+       Update status — check current state first:
+       - If predecessor is `planned` or `implementing`:
+         `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status implemented`
+       - If predecessor is `plan-approved` (two-step mandatory — FSM forbids skipping `implementing`):
+         `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status implementing`
+         `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status implemented`
      - **Bug mode** — NO status write. The bug remains `in-progress` until the commit phase transitions it to `fixed`. Writing `bug.status` here violates `meta-fix-bug.md § Iron Laws #2`.
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 

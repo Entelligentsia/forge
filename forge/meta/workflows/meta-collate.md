@@ -24,6 +24,7 @@ Regenerate markdown views from the JSON store. This is a deterministic operation
 - Collation is a read-and-rewrite of generated markdown. Do not mutate any JSON record under `.forge/store/`; the store is the source of truth and collation flows downstream from it.
 - Read `.forge/personas/collator.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
 - All store reads via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+- Do NOT call `set-summary` or `set-bug-summary` from within collation. The collator writes markdown views and a `WRITEBACK-SUMMARY.json` disk file only. Calling `set-summary` mutates the JSON store and violates Iron Law 1 (the store is the source of truth; collation flows downstream from it, not into it). The orchestrator reads `WRITEBACK-SUMMARY.json` directly — no store write is needed.
 
 <!-- See _fragments/store-write-verification.md — NOTE: this file uses an intentionally modified
      Store-Write Verification variant: collation typically writes markdown views (not JSON records),
@@ -71,6 +72,16 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
 
 4. Finalize:
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
+   - Write `WRITEBACK-SUMMARY.json` to the sprint directory (`engineering/sprints/{sprintId}/`) with the following shape:
+     ```json
+     {
+       "objective":   "<one sentence — what views were regenerated>",
+       "key_changes": ["<up to 6 bullets — which files were written>"],
+       "verdict":     "n/a",
+       "written_at":  "<current ISO 8601 timestamp>"
+     }
+     ```
+     The orchestrator reads this file directly to compose the collation event narrative. Do NOT call `set-summary` to register it — that would mutate the store in violation of Iron Law 1.
    - Invoke Tomoshibi via Skill tool to refresh KB and workflow links in agent
      instruction files:
      ```
