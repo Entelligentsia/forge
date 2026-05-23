@@ -1,4 +1,14 @@
 {
+  "0.48.1": {
+    "version": "0.48.2",
+    "date": "2026-05-23",
+    "notes": "FORGE-S25-T13 — Release-time URL rewrite strategy for plugin.json (S-12), structure-manifest.json product-manager edge fix (S-7), additionalProperties CI gate (S-4/N-S-2), schema-evolution-policy ADR. Adds rewrite-plugin-urls.cjs tool (--target main|release) for release workflow automation. Fixes build-manifest.cjs parseMetaDeps to filter non-generated personas (product-manager, orchestrator) from workflow edges. Regenerates structure-manifest.json. Adds schema-additionalProperties.test.cjs CI gate asserting every *.schema.json has root additionalProperties:false. Sets plugin.json URLs to main-branch raw GitHub content.",
+    "regenerate": [
+      "schemas:structure-manifest"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.48.0": {
     "version": "0.48.1",
     "date": "2026-05-23",

@@ -174,6 +174,11 @@ function _parseYamlList(value) {
 
 function parseMetaDeps(metaDir, workflowMap) {
   const map = workflowMap || WORKFLOW_MAP;
+  // Only emit persona edges for personas that have a generated output file (i.e. are in PERSONA_MAP).
+  // Non-generated personas (product-manager, orchestrator) appear in some workflow frontmatter as
+  // references but have no .forge/personas/{name}.md output — emitting them would create dangling
+  // edges in structure-manifest.json (S-7 contract violation).
+  const generatedPersonaOutputs = new Set(PERSONA_MAP.map(([, out]) => out));
   const edges = {};
 
   for (const [srcFile, outFile] of map) {
@@ -188,7 +193,9 @@ function parseMetaDeps(metaDir, workflowMap) {
     const workflowId = outFile.replace(/\.md$/, '');
 
     edges[workflowId] = {
-      personas:      (rawDeps.personas      || []).map(r => `.forge/personas/${r}.md`),
+      personas:      (rawDeps.personas      || [])
+        .filter(r => generatedPersonaOutputs.has(`${r}.md`))
+        .map(r => `.forge/personas/${r}.md`),
       skills:        (rawDeps.skills        || []).map(r => `.forge/skills/${r}-skills.md`),
       templates:     (rawDeps.templates     || []).map(s => `.forge/templates/${s}.md`),
       sub_workflows: (rawDeps.sub_workflows || []).map(id => `.forge/workflows/${id}.md`),

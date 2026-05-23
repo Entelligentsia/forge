@@ -218,11 +218,15 @@ describe('build-manifest.cjs — parseMetaDeps', () => {
       `expected ≥${metaSources.length} edges, got ${Object.keys(edges).length}`);
   });
 
-  test('every meta workflow with deps: has a non-empty personas list', () => {
+  // S-7: only generated personas (those in PERSONA_MAP) appear in edges. Some workflows (e.g.
+  // architect_sprint_intake) reference non-generated personas (product-manager) which are filtered
+  // out, leaving an empty personas list. That is correct — the test must allow empty persona lists
+  // for workflows whose only persona dep is non-generated.
+  test('every meta workflow with deps: has a personas list (may be empty after non-generated-persona filter)', () => {
     const metaDir = path.join(__dirname, '..', '..', 'meta', 'workflows');
     const edges = parseMetaDeps(metaDir, WORKFLOW_MAP);
     for (const [id, dep] of Object.entries(edges)) {
-      assert.ok(dep.personas && dep.personas.length > 0, `workflow "${id}" has empty personas list`);
+      assert.ok(Array.isArray(dep.personas), `workflow "${id}" must have a personas array`);
     }
   });
 
@@ -239,5 +243,34 @@ describe('build-manifest.cjs — parseMetaDeps', () => {
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
+  });
+
+  // S-7: product-manager.md must NOT appear in any workflow's persona edges.
+  // meta-sprint-intake.md declares personas:[product-manager], which is a non-generated
+  // persona (no entry in PERSONA_MAP). Edges should only reference generated personas.
+  test('S-7: parseMetaDeps must not emit product-manager.md in persona edges (non-generated persona filter)', () => {
+    const metaDir = path.join(__dirname, '..', '..', 'meta', 'workflows');
+    const edges = parseMetaDeps(metaDir, WORKFLOW_MAP);
+    const generatedPersonaPaths = new Set(PERSONA_MAP.map(([, out]) => `.forge/personas/${out}`));
+    for (const [workflowId, dep] of Object.entries(edges)) {
+      for (const personaPath of dep.personas) {
+        assert.ok(
+          generatedPersonaPaths.has(personaPath),
+          `workflow "${workflowId}" references non-generated persona "${personaPath}" — ` +
+          `only PERSONA_MAP entries may appear in workflow edges (S-7 fix)`
+        );
+      }
+    }
+  });
+
+  // S-7: generated structure-manifest.json personas namespace must not list product-manager.md
+  test('S-7: structure-manifest.json personas.files must not include product-manager.md', () => {
+    const manifestPath = path.join(__dirname, '..', '..', 'schemas', 'structure-manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const files = manifest.namespaces.personas.files;
+    assert.ok(
+      !files.includes('product-manager.md'),
+      `personas.files must not include product-manager.md (it has no generated output) — found: ${JSON.stringify(files)}`
+    );
   });
 });
