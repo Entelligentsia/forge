@@ -46,4 +46,8 @@ function matchRegistry(absPath) {
   return null;
 }
 
-module.exports = { REGISTRY, matchRegistry };
+// REGISTRY is intentionally not exported — it is a private implementation detail
+// of this module. Callers use matchRegistry() for lookups. Exporting REGISTRY
+// would expose internal pattern structures to external consumers and create
+// coupling that makes future pattern changes harder. (H-3, FORGE-S25-T14)
+module.exports = { matchRegistry };

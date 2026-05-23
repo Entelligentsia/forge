@@ -20,6 +20,11 @@ const path = require('path');
 const os = require('os');
 const https = require('https');
 
+// Extracted lib modules (H-2a, H-2b, H-2c — FORGE-S25-T14)
+const { detectDistribution, scanPluginInstallations, isPluginEnabled } = require('./lib/plugin-detection.cjs');
+const { FALLBACK_UPDATE_URL, ALLOWED_DOMAINS, validateUpdateUrl, getUpdateUrl } = require('./lib/update-url.cjs');
+const { buildUpdateMsg, emit } = require('./lib/update-msg.cjs');
+
 const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || '.';
 const dataDir = process.env.CLAUDE_PLUGIN_DATA || path.join(os.tmpdir(), 'forge-plugin-data');
 // Plugin-level cache: throttle only (lastCheck, remoteVersion) — shared across all projects.
@@ -29,128 +34,8 @@ const forgeDir = '.forge';
 const hasForge = fs.existsSync(forgeDir) && fs.existsSync(path.join(forgeDir, 'config.json'));
 const projectCacheFile = path.join(forgeDir, 'update-check-cache.json');
 
-// Distribution detection — derived from plugin path at runtime.
-// The cache path encodes the marketplace name, making this more reliable than
-// reading fields from plugin.json (which may be stale after a switch).
-function detectDistribution(root) {
-  return root.includes('/cache/skillforge/forge/') || root.includes('/marketplaces/skillforge/forge/')
-    ? 'forge@skillforge' : 'forge@forge';
-}
 const currentDistribution = detectDistribution(pluginRoot);
 
-// --- Multi-plugin scanning ---
-// Scans all known plugin locations to detect multiple Forge installations.
-// Returns array of installation records with version, distribution, scope, enabled status.
-// Optional parameters for dependency injection (testing).
-function scanPluginInstallations(options) {
-  const installations = [];
-  const homeDir = (options && options.homeDir) || os.homedir();
-  const cwd = (options && options.cwd) || process.cwd();
-
-  // Candidate paths — user scope (global) and project scope (local)
-  // Also scan skillforge subdirectory variant (skillforge/forge/forge)
-  const basePaths = [
-    path.join(homeDir, '.claude', 'plugins'),
-    path.join(cwd, '.claude', 'plugins'),
-  ];
-  const variants = ['cache', 'marketplaces'];
-  const pluginNames = ['forge/forge', 'skillforge/forge/forge'];
-
-  const candidates = [];
-  for (const basePath of basePaths) {
-    for (const variant of variants) {
-      for (const pluginName of pluginNames) {
-        candidates.push(path.join(basePath, variant, pluginName));
-      }
-    }
-  }
-
-  for (const candidate of candidates) {
-    try {
-      const pluginJsonPath = path.join(candidate, '.claude-plugin', 'plugin.json');
-      if (!fs.existsSync(pluginJsonPath)) continue;
-
-      const manifest = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
-      // Determine scope: user-scope paths start with homeDir/.claude, project-scope start with cwd/.claude
-      // Use cwd-relative check first to avoid false positives when cwd is subdir of homeDir
-      const isProjectScope = candidate.startsWith(path.join(cwd, '.claude'));
-      const isUserScope = candidate.startsWith(path.join(homeDir, '.claude'));
-      const scope = isProjectScope ? 'project' : (isUserScope ? 'user' : 'unknown');
-      const enabled = isPluginEnabled(candidate, scope, homeDir, cwd);
-
-      // Avoid duplicates — skip if same path already recorded
-      if (installations.some(i => i.path === candidate)) continue;
-
-      installations.push({
-        path: candidate,
-        version: manifest.version || 'unknown',
-        distribution: detectDistribution(candidate),
-        scope: scope,
-        enabled: enabled,
-      });
-    } catch (e) {
-      // Non-fatal — skip broken installations silently
-    }
-  }
-
-  return installations;
-}
-
-// Check if forge plugin is enabled in settings files.
-// Returns true if no explicit disable found, false if disabled.
-function isPluginEnabled(pluginPath, scope, homeDir, cwd) {
-  try {
-    // Check user settings: ~/.claude/settings.json
-    const userSettingsPath = path.join(homeDir, '.claude', 'settings.json');
-    if (fs.existsSync(userSettingsPath)) {
-      const userSettings = JSON.parse(fs.readFileSync(userSettingsPath, 'utf8'));
-      if (userSettings.disablePlugin === true) return false;
-      // Check for per-plugin disable (if supported in future)
-      if (userSettings.plugins && userSettings.plugins.forge === false) return false;
-    }
-
-    // Check project settings: ./.claude/settings.local.json
-    const projectSettingsPath = path.join(cwd, '.claude', 'settings.local.json');
-    if (fs.existsSync(projectSettingsPath)) {
-      const projectSettings = JSON.parse(fs.readFileSync(projectSettingsPath, 'utf8'));
-      if (projectSettings.disablePlugin === true) return false;
-      if (projectSettings.plugins && projectSettings.plugins.forge === false) return false;
-    }
-
-    return true; // Default: enabled
-  } catch (e) {
-    return true; // Non-fatal — assume enabled if cannot read settings
-  }
-}
-
-// Determine the correct update-check URL for this distribution.
-// Each distribution's plugin.json carries its own updateUrl pointing at the
-// branch it was installed from (main for forge@forge, release for forge@skillforge),
-// so we read it directly — no hardcoded per-distribution URLs needed.
-const FALLBACK_UPDATE_URL = 'https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json';
-
-const ALLOWED_DOMAINS = ['raw.githubusercontent.com'];
-
-function validateUpdateUrl(url) {
-  try {
-    const parsed = new URL(url);
-    const hostname = parsed.hostname.toLowerCase();
-    if (!ALLOWED_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d))) {
-      process.stderr.write(`forge-update: rejected update URL with disallowed domain '${hostname}', falling back\n`);
-      return FALLBACK_UPDATE_URL;
-    }
-    return url;
-  } catch {
-    return FALLBACK_UPDATE_URL;
-  }
-}
-
-function getUpdateUrl() {
-  try {
-    const manifest = JSON.parse(fs.readFileSync(path.join(pluginRoot, '.claude-plugin', 'plugin.json'), 'utf8'));
-    return validateUpdateUrl(manifest.updateUrl || FALLBACK_UPDATE_URL);
-  } catch { return FALLBACK_UPDATE_URL; }
-}
 const remoteUrl = getUpdateUrl();
 const checkInterval = 86400; // 24 hours in seconds
 
@@ -185,19 +70,6 @@ function fetchRemoteVersion(cb) {
     });
   }).on('error', () => cb(''))
     .on('timeout', function() { this.destroy(); cb(''); });
-}
-
-function buildUpdateMsg(remoteVersion, local) {
-  return remoteVersion && remoteVersion !== local
-    ? `Forge ${remoteVersion} available (you have ${local}). Run /forge:update to review changes and update.`
-    : '';
-}
-
-function emit(forgeCtx, updateMsg) {
-  if (!forgeCtx && !updateMsg) return;
-  const combined = [forgeCtx, updateMsg].filter(Boolean).join(' ');
-  const escaped = combined.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, ' ');
-  process.stdout.write(`{"additionalContext":"${escaped}"}\n`);
 }
 
 // --- Main logic (only runs when executed as script, not when required as module) ---
@@ -374,5 +246,10 @@ if (elapsed < checkInterval) {
 }
 }
 
-// Export functions for testing
-module.exports = { scanPluginInstallations, isPluginEnabled, detectDistribution, validateUpdateUrl };
+// Re-export from lib modules for backward compatibility with existing tests
+// that import these functions from check-update directly.
+// Canonical sources: hooks/lib/plugin-detection.cjs and hooks/lib/update-url.cjs
+module.exports = {
+  ...require('./lib/plugin-detection.cjs'),  // detectDistribution, scanPluginInstallations, isPluginEnabled
+  ...require('./lib/update-url.cjs'),         // validateUpdateUrl, getUpdateUrl, FALLBACK_UPDATE_URL, ALLOWED_DOMAINS
+};

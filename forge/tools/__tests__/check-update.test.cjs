@@ -6,10 +6,23 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// Load the hook module to test exported functions
-const hookPath = path.join(__dirname, '..', '..', 'hooks', 'check-update.js');
+// Load the hook module to test exported functions.
+// Functions are now in lib modules; check-update.cjs re-exports them for compat.
+const hookPath = path.join(__dirname, '..', '..', 'hooks', 'check-update.cjs');
+const HOOKS_LIB_DIR = path.join(__dirname, '..', '..', 'hooks', 'lib');
 
-describe('check-update.js — Multi-plugin scanning', () => {
+// Cache clearing helper: clears check-update.cjs + all three lib modules
+// to prevent stale module-level state from bleeding across tests.
+function clearHookCache() {
+  [
+    require.resolve(hookPath),
+    require.resolve(path.join(HOOKS_LIB_DIR, 'plugin-detection.cjs')),
+    require.resolve(path.join(HOOKS_LIB_DIR, 'update-url.cjs')),
+    require.resolve(path.join(HOOKS_LIB_DIR, 'update-msg.cjs')),
+  ].forEach(k => { delete require.cache[k]; });
+}
+
+describe('check-update.cjs — Multi-plugin scanning', () => {
   let testDir;
   let originalHomedir;
   let originalCwd;
@@ -28,7 +41,7 @@ describe('check-update.js — Multi-plugin scanning', () => {
 
   describe('scanPluginInstallations()', () => {
     it('returns empty array when no installations exist', () => {
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { scanPluginInstallations } = require(hookPath);
 
       const result = scanPluginInstallations({ homeDir: testDir, cwd: testDir });
@@ -51,7 +64,7 @@ describe('check-update.js — Multi-plugin scanning', () => {
         updateUrl: 'https://example.com/plugin.json',
       }));
 
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { scanPluginInstallations } = require(hookPath);
 
       const result = scanPluginInstallations({ homeDir: userHomeDir, cwd: userCwd });
@@ -78,7 +91,7 @@ describe('check-update.js — Multi-plugin scanning', () => {
         version: '0.22.0',
       }));
 
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { scanPluginInstallations } = require(hookPath);
 
       // Pass injected paths — no need to mock os.homedir/process.cwd
@@ -100,7 +113,7 @@ describe('check-update.js — Multi-plugin scanning', () => {
         version: '0.23.0',
       }));
 
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { scanPluginInstallations } = require(hookPath);
 
       const result = scanPluginInstallations({ homeDir: testDir, cwd: testDir });
@@ -123,7 +136,7 @@ describe('check-update.js — Multi-plugin scanning', () => {
         disablePlugin: true,
       }));
 
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { scanPluginInstallations } = require(hookPath);
 
       const result = scanPluginInstallations({ homeDir: testDir, cwd: testDir });
@@ -136,7 +149,7 @@ describe('check-update.js — Multi-plugin scanning', () => {
       const brokenPath = path.join(testDir, '.claude', 'plugins', 'cache', 'forge', 'forge');
       fs.mkdirSync(brokenPath, { recursive: true });
 
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { scanPluginInstallations } = require(hookPath);
 
       const result = scanPluginInstallations({ homeDir: testDir, cwd: testDir });
@@ -151,7 +164,7 @@ describe('check-update.js — Multi-plugin scanning', () => {
         version: '0.23.0',
       }));
 
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { scanPluginInstallations } = require(hookPath);
 
       const result = scanPluginInstallations({ homeDir: testDir, cwd: testDir });
@@ -161,7 +174,7 @@ describe('check-update.js — Multi-plugin scanning', () => {
 
   describe('isPluginEnabled()', () => {
     it('returns true when no settings files exist', () => {
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { isPluginEnabled } = require(hookPath);
 
       const result = isPluginEnabled('/fake/path', 'user', testDir, testDir);
@@ -173,7 +186,7 @@ describe('check-update.js — Multi-plugin scanning', () => {
       fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
       fs.writeFileSync(settingsPath, JSON.stringify({ disablePlugin: true }));
 
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { isPluginEnabled } = require(hookPath);
 
       const result = isPluginEnabled('/fake/path', 'user', testDir, testDir);
@@ -187,7 +200,7 @@ describe('check-update.js — Multi-plugin scanning', () => {
         plugins: { forge: false },
       }));
 
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { isPluginEnabled } = require(hookPath);
 
       const result = isPluginEnabled('/fake/path', 'user', testDir, testDir);
@@ -200,7 +213,7 @@ describe('check-update.js — Multi-plugin scanning', () => {
       fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
       fs.writeFileSync(settingsPath, JSON.stringify({ disablePlugin: true }));
 
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { isPluginEnabled } = require(hookPath);
 
       const result = isPluginEnabled('/fake/path', 'project', testDir, projectDir);
@@ -212,7 +225,7 @@ describe('check-update.js — Multi-plugin scanning', () => {
       fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
       fs.writeFileSync(settingsPath, '{ invalid json');
 
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { isPluginEnabled } = require(hookPath);
 
       const result = isPluginEnabled('/fake/path', 'user', testDir, testDir);
@@ -222,21 +235,21 @@ describe('check-update.js — Multi-plugin scanning', () => {
 
   describe('detectDistribution()', () => {
     it('returns forge@forge for cache paths', () => {
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { detectDistribution } = require(hookPath);
 
       assert.strictEqual(detectDistribution('/home/user/.claude/plugins/cache/forge/forge'), 'forge@forge');
     });
 
     it('returns forge@skillforge for skillforge cache paths', () => {
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { detectDistribution } = require(hookPath);
 
       assert.strictEqual(detectDistribution('/home/user/.claude/plugins/cache/skillforge/forge/forge'), 'forge@skillforge');
     });
 
     it('returns forge@skillforge for skillforge marketplaces paths', () => {
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { detectDistribution } = require(hookPath);
 
       assert.strictEqual(detectDistribution('/home/user/.claude/plugins/marketplaces/skillforge/forge/forge'), 'forge@skillforge');
@@ -247,7 +260,7 @@ describe('check-update.js — Multi-plugin scanning', () => {
     const FALLBACK = 'https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json';
 
     it('allows raw.githubusercontent.com URLs', () => {
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { validateUpdateUrl } = require(hookPath);
 
       const url = 'https://raw.githubusercontent.com/Entelligentsia/forge/main/forge/.claude-plugin/plugin.json';
@@ -255,21 +268,21 @@ describe('check-update.js — Multi-plugin scanning', () => {
     });
 
     it('rejects URLs with non-allowed domains and returns fallback', () => {
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { validateUpdateUrl } = require(hookPath);
 
       assert.strictEqual(validateUpdateUrl('https://evil.com/payload'), FALLBACK);
     });
 
     it('rejects malformed URLs and returns fallback', () => {
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { validateUpdateUrl } = require(hookPath);
 
       assert.strictEqual(validateUpdateUrl('not-a-url'), FALLBACK);
     });
 
     it('rejects URLs with subdomains of non-allowed domains', () => {
-      delete require.cache[require.resolve(hookPath)];
+      clearHookCache();
       const { validateUpdateUrl } = require(hookPath);
 
       assert.strictEqual(validateUpdateUrl('https://evil.raw.githubusercontent.com.evil.com/steal'), FALLBACK);

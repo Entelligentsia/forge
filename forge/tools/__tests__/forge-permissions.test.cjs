@@ -9,7 +9,7 @@ const {
   WRITE_PATTERNS,
   EDIT_PATTERNS,
   WEBFETCH_PATTERNS,
-} = require('../../hooks/forge-permissions.js');
+} = require('../../hooks/forge-permissions.cjs');
 
 // ── C1: Bulk permission escalation ────────────────────────────────
 // A match should return ONLY the matched rule, not ALL_RULES.
@@ -72,7 +72,7 @@ describe('W1-W3: broad wildcards scoped', () => {
   });
 
   test('ALL_RULES constant removed from exports', () => {
-    const mod = require('../../hooks/forge-permissions.js');
+    const mod = require('../../hooks/forge-permissions.cjs');
     assert.equal(mod.ALL_RULES, undefined, 'ALL_RULES must not be exported');
   });
 });

@@ -27,7 +27,7 @@ function buildFileList(forgeRoot) {
 
   const commandFiles = globDir(path.join(forgeRoot, 'commands'), '.md');
   const agentFiles   = globDir(path.join(forgeRoot, 'agents'),   '.md');
-  const hookFiles    = globDir(path.join(forgeRoot, 'hooks'),    '.js');
+  const hookFiles    = globDir(path.join(forgeRoot, 'hooks'),    '.cjs');
   const verifierPath = path.join(forgeRoot, 'tools', 'verify-integrity.cjs');
 
   const allFiles = [

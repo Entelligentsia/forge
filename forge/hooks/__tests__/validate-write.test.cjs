@@ -6,7 +6,7 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 
-const HOOK = path.join(__dirname, '..', 'validate-write.js');
+const HOOK = path.join(__dirname, '..', 'validate-write.cjs');
 const PLUGIN_ROOT = path.join(__dirname, '..', '..');
 
 function makeTempProject() {
@@ -248,5 +248,14 @@ describe('validate-write hook — performance', () => {
     // 500ms is generous because node cold-start is ~100ms on its own. The
     // plan's 150ms target is for the hook body, not the node interpreter.
     assert.ok(dt < 500, `hook took ${dt}ms`);
+  });
+});
+
+// H-3: REGISTRY private — write-registry.js must NOT export REGISTRY
+describe('H-3: write-registry.js REGISTRY is private', () => {
+  test('exports only matchRegistry, not REGISTRY', () => {
+    const writeRegistry = require('../lib/write-registry.js');
+    assert.strictEqual(typeof writeRegistry.matchRegistry, 'function', 'matchRegistry must be exported');
+    assert.strictEqual(writeRegistry.REGISTRY, undefined, 'REGISTRY must NOT be exported (H-3)');
   });
 });

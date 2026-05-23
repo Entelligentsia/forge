@@ -40,7 +40,7 @@ describe('gen-integrity.cjs', () => {
 
     fs.writeFileSync(path.join(forgeRoot, 'commands', 'ask.md'), '# ask');
     fs.writeFileSync(path.join(forgeRoot, 'agents', 'tomoshibi.md'), '# tomoshibi');
-    fs.writeFileSync(path.join(forgeRoot, 'hooks', 'check-update.js'), '// hook');
+    fs.writeFileSync(path.join(forgeRoot, 'hooks', 'check-update.cjs'), '// hook');
     fs.writeFileSync(path.join(forgeRoot, 'tools', 'verify-integrity.cjs'), '// verify');
 
     const files = buildFileList(forgeRoot);

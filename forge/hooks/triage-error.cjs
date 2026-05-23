@@ -12,7 +12,7 @@
 // FORGE_PATTERNS — inline copy of forge command recognition patterns.
 // Canonical source: hooks/lib/common.cjs:FORGE_COMMAND_PATTERNS (H-1d, FORGE-S25-T08).
 // This file intentionally does NOT require hooks/lib/common.cjs because
-// build-payload.cjs bundles hooks/*.js but excludes hooks/lib/ (forge-cli
+// build-payload.cjs bundles hooks/*.cjs but excludes hooks/lib/ (forge-cli
 // bundle gap). When adding a new forge command, update BOTH this list AND
 // hooks/lib/common.cjs:FORGE_COMMAND_PATTERNS.
 const FORGE_PATTERNS = [

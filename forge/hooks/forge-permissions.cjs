@@ -32,7 +32,7 @@ process.on('uncaughtException', (err) => {
 // Forge-command patterns within BASH_PATTERNS overlap with FORGE_COMMAND_PATTERNS.
 // Canonical source for forge command recognition: hooks/lib/common.cjs:FORGE_COMMAND_PATTERNS
 // (H-1d, FORGE-S25-T08). This file intentionally does NOT require hooks/lib/common.cjs
-// because build-payload.cjs bundles hooks/*.js but excludes hooks/lib/ (forge-cli bundle gap).
+// because build-payload.cjs bundles hooks/*.cjs but excludes hooks/lib/ (forge-cli bundle gap).
 // When adding a new forge command, update BOTH this list AND hooks/lib/common.cjs:FORGE_COMMAND_PATTERNS.
 
 const BASH_PATTERNS = [
