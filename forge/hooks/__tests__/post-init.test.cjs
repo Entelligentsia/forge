@@ -131,11 +131,21 @@ describe('post-init hook — negative trigger discrimination', () => {
     assert.ok(!fs.existsSync(path.join(tmp, '.forge', 'cache', 'post-init-enhancement-triggered')));
   });
 
-  test('matching rm but structure-versions.json mtime > 10s old → no fire', () => {
+  test('matching rm with stale structure-versions.json (mtime > 10s) still fires — sentinel is sole idempotency guard (H-5c)', () => {
+    // After H-5c: mtime block removed. Hook fires even with old structure-versions.json.
+    // Sentinel file is the only idempotency guard.
     const tmp = makeProject({ structureVersionsAge: 60_000 });
     const r = runHook(tmp, { tool_name: 'Bash', tool_input: { command: TRIGGER_CMD }, tool_response: { exitCode: 0 } });
     assert.equal(r.status, 0);
-    assert.equal(r.stdout.trim(), '');
+    // Hook should fire: stdout should have the additionalContext JSON
+    const out = r.stdout.trim();
+    assert.ok(out.length > 0, 'hook should fire even with stale structure-versions.json after H-5c');
+    const parsed = JSON.parse(out);
+    assert.ok(parsed.hookSpecificOutput, 'output should have hookSpecificOutput');
+    assert.ok(
+      parsed.hookSpecificOutput.additionalContext.includes('/forge:enhance'),
+      'additionalContext should reference /forge:enhance'
+    );
   });
 
   test('.forge/config.json missing → exit 0, no fire', () => {

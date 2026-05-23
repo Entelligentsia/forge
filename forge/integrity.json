@@ -1,5 +1,5 @@
 {
-  "version": "0.49.0",
+  "version": "0.50.0",
   "generated": "2026-05-23",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
@@ -23,10 +23,10 @@
     "commands/update.md": "6f7be76884888b0cbbe5e60a6926bbaa368f2ee3191f2be40adc8d263ad414aa",
     "agents/store-query-validator.md": "f4c3573edcf6e28809515705362df611806a805c5269404fb17e31433cf3a81c",
     "agents/tomoshibi.md": "0112604af0856235d7f028683dbfa3f4af63355cb2dd79d26592e983a6ecec8b",
-    "hooks/check-update.cjs": "934cc8cce4f28caaeacc63908d4cb63a158216b555102968bc196d8e61355815",
-    "hooks/forge-permissions.cjs": "d0a7188fe272c2973b70b5d488491b603957e08aeb77169924ebcfd818040097",
-    "hooks/post-init.cjs": "ad0a45496a2229b9b632a13ac7d2445c22b5493d0da0de71dc1a94bfda8899f8",
-    "hooks/post-sprint.cjs": "6a75842e1b9a71db4fa8b3dc1f686edb89e91a0581697664d314c8f68d4cb117",
+    "hooks/check-update.cjs": "e66a03eeca609c7426ba7ab8502d41a10b4d740861a6f9728e8ca1e49db8c86a",
+    "hooks/forge-permissions.cjs": "8de18fe7e6c9ee1751926275a37f4bb68a5a53090d366d2aa44157c106e7857e",
+    "hooks/post-init.cjs": "c82bc76e846708a471acfbbc6839f341be843a3fb8d711e3a0f2733aa3da9b3d",
+    "hooks/post-sprint.cjs": "21099458fcde372f0f40895447ea76318de88d2a857d764f8fbbd0adab3ad74a",
     "hooks/triage-error.cjs": "57c5ae9baa8b01376e5331196e5f852b565ceffa23a659df8ae534642dbc848b",
     "hooks/validate-write.cjs": "3ec7bbbb2cc19f22c78da5a9e7b5031066f4b669c76a10c9f8a92a1a48fcea0a",
     "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"

@@ -27,5 +27,48 @@ Helper modules shared across hooks. Bundled separately from the hook entry point
 
 ## Swallowed-error log policy
 
-<!-- Placeholder: T15 will document the swallowed-error log policy here -->
-<!-- See FORGE-S25-T15 for the swallowed-error log design and hook policy. -->
+Hook files are fail-open by design: any internal error emits a warning to stderr
+and exits 0 so that the underlying Forge command is never blocked. To make these
+"swallowed" errors visible for diagnostics, hook code calls
+`logSwallowedError(tag, err, dataDir)` from `hooks/lib/common.cjs` instead of
+silently discarding the error.
+
+### Log location
+
+`$CLAUDE_PLUGIN_DATA/logs/forge-hooks.log`
+
+When `CLAUDE_PLUGIN_DATA` is not set, the helper falls back to:
+
+`$TMPDIR/forge-plugin-data/logs/forge-hooks.log`
+
+### Format
+
+One line per swallowed error:
+
+```
+<ISO-8601-timestamp> [<hook-tag>] <error message>
+```
+
+Example:
+
+```
+2026-05-23T08:30:00.000Z [post-init:emit] ENOENT: no such file or directory, open '.forge/config.json'
+```
+
+### Rotation
+
+There is no automatic rotation. The log grows indefinitely until removed or
+truncated by the user. To clear it:
+
+```bash
+truncate -s 0 "$CLAUDE_PLUGIN_DATA/logs/forge-hooks.log"
+# or
+rm "$CLAUDE_PLUGIN_DATA/logs/forge-hooks.log"
+```
+
+The file is recreated automatically on the next swallowed error.
+
+### Invariant
+
+**Hook code never reads this log.** It is append-only, diagnostic output only.
+The log is never consulted by any hook or Forge tool during normal operation.

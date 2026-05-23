@@ -108,6 +108,60 @@ describe('hooks/lib/common.cjs', () => {
     });
   });
 
+  describe('logSwallowedError(tag, err, dataDir)', () => {
+    test('creates log file with expected format when dataDir is provided', () => {
+      delete require.cache[COMMON_PATH];
+      const { logSwallowedError } = require(COMMON_PATH);
+      assert.ok(typeof logSwallowedError === 'function', 'logSwallowedError must be a function');
+      const dataDir = path.join(tmpDir, 'plugin-data');
+      const err = new Error('test error');
+      logSwallowedError('test-tag', err, dataDir);
+      const logPath = path.join(dataDir, 'logs', 'forge-hooks.log');
+      assert.ok(fs.existsSync(logPath), `log file should be created at ${logPath}`);
+      const content = fs.readFileSync(logPath, 'utf8');
+      assert.ok(content.includes('test-tag'), 'log line should include the tag');
+      assert.ok(content.includes('test error'), 'log line should include the error message');
+      // ISO timestamp format check
+      assert.match(content, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, 'log line should include ISO timestamp');
+      delete require.cache[COMMON_PATH];
+    });
+
+    test('appends multiple errors to the same log file', () => {
+      delete require.cache[COMMON_PATH];
+      const { logSwallowedError } = require(COMMON_PATH);
+      const dataDir = path.join(tmpDir, 'plugin-data-multi');
+      logSwallowedError('tag-a', new Error('first error'), dataDir);
+      logSwallowedError('tag-b', new Error('second error'), dataDir);
+      const logPath = path.join(dataDir, 'logs', 'forge-hooks.log');
+      const content = fs.readFileSync(logPath, 'utf8');
+      assert.ok(content.includes('first error'), 'log should contain first error');
+      assert.ok(content.includes('second error'), 'log should contain second error');
+      assert.ok(content.includes('tag-a'), 'log should contain tag-a');
+      assert.ok(content.includes('tag-b'), 'log should contain tag-b');
+      delete require.cache[COMMON_PATH];
+    });
+
+    test('is fail-open: does not throw when dataDir is null/undefined', () => {
+      delete require.cache[COMMON_PATH];
+      const { logSwallowedError } = require(COMMON_PATH);
+      // Should not throw
+      assert.doesNotThrow(() => {
+        logSwallowedError('tag', new Error('err'), null);
+      });
+      assert.doesNotThrow(() => {
+        logSwallowedError('tag', new Error('err'), undefined);
+      });
+      delete require.cache[COMMON_PATH];
+    });
+
+    test('module exports logSwallowedError', () => {
+      delete require.cache[COMMON_PATH];
+      const m = require(COMMON_PATH);
+      assert.ok(typeof m.logSwallowedError === 'function', 'logSwallowedError must be exported');
+      delete require.cache[COMMON_PATH];
+    });
+  });
+
   describe('readStdinJson()', () => {
     test('calls callback with parsed object on valid JSON input', (_, done) => {
       const { readStdinJson } = require(COMMON_PATH);

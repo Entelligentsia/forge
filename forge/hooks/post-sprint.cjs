@@ -24,7 +24,7 @@ process.on('uncaughtException', (err) => {
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { resolveForgePaths } = require('./lib/common.cjs');
+const { resolveForgePaths, logSwallowedError } = require('./lib/common.cjs');
 
 let raw = '';
 try { raw = fs.readFileSync(0, 'utf8'); } catch (_) { process.exit(0); }
@@ -91,9 +91,9 @@ try {
       });
     }
   }
-} catch (_) { /* fail-open */ }
+} catch (emitErr) { logSwallowedError('post-sprint:emit', emitErr, process.env.CLAUDE_PLUGIN_DATA); }
 
-try { fs.writeFileSync(sentinel, '', 'utf8'); } catch (_) {}
+try { fs.writeFileSync(sentinel, '', 'utf8'); } catch (sentinelErr) { logSwallowedError('post-sprint:sentinel', sentinelErr, process.env.CLAUDE_PLUGIN_DATA); }
 
 try {
   process.stdout.write(JSON.stringify({
@@ -103,6 +103,6 @@ try {
         `Forge: sprint ${detectedSprintId} retrospective has completed. Run /forge:enhance --phase 2 to propose KB enhancements derived from the sprint's lessons (proposals are written for review, not auto-applied).`,
     },
   }) + '\n');
-} catch (_) { /* fail-open */ }
+} catch (outputErr) { logSwallowedError('post-sprint:output', outputErr, process.env.CLAUDE_PLUGIN_DATA); }
 
 process.exit(0);

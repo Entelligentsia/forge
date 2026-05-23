@@ -62,7 +62,7 @@ function localVersion() {
 }
 
 function fetchRemoteVersion(cb) {
-  https.get(remoteUrl, { timeout: 5000 }, (res) => {
+  https.get(remoteUrl, { timeout: 2000 }, (res) => {
     let body = '';
     res.on('data', chunk => { body += chunk; });
     res.on('end', () => {

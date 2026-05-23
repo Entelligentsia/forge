@@ -76,3 +76,45 @@ describe('W1-W3: broad wildcards scoped', () => {
     assert.equal(mod.ALL_RULES, undefined, 'ALL_RULES must not be exported');
   });
 });
+
+describe('H-5d: CLAUDE_PLUGIN_ROOT interpolation in node-tool rule', () => {
+  const FP_PATH = require.resolve('../../hooks/forge-permissions.cjs');
+
+  test('node-tool rule uses CLAUDE_PLUGIN_ROOT when env var is set', () => {
+    delete require.cache[FP_PATH];
+    const origVal = process.env.CLAUDE_PLUGIN_ROOT;
+    process.env.CLAUDE_PLUGIN_ROOT = '/custom/plugin/root';
+    try {
+      const { BASH_PATTERNS } = require(FP_PATH);
+      const nodeRule = BASH_PATTERNS.find(p => /\/tools\//.test(p.rule));
+      assert.ok(nodeRule, 'a node tool rule must exist');
+      assert.ok(
+        nodeRule.rule.includes('/custom/plugin/root'),
+        `rule should reference CLAUDE_PLUGIN_ROOT path, got: ${nodeRule.rule}`
+      );
+    } finally {
+      if (origVal === undefined) delete process.env.CLAUDE_PLUGIN_ROOT;
+      else process.env.CLAUDE_PLUGIN_ROOT = origVal;
+      delete require.cache[FP_PATH];
+    }
+  });
+
+  test('node-tool rule falls back to hardcoded glob when CLAUDE_PLUGIN_ROOT is not set', () => {
+    delete require.cache[FP_PATH];
+    const origVal = process.env.CLAUDE_PLUGIN_ROOT;
+    delete process.env.CLAUDE_PLUGIN_ROOT;
+    try {
+      const { BASH_PATTERNS } = require(FP_PATH);
+      const nodeRule = BASH_PATTERNS.find(p => /\/tools\//.test(p.rule));
+      assert.ok(nodeRule, 'a node tool rule must exist');
+      assert.ok(
+        nodeRule.rule.includes('~/.claude/plugins/cache/forge/forge/'),
+        `rule should fall back to hardcoded path, got: ${nodeRule.rule}`
+      );
+    } finally {
+      if (origVal === undefined) delete process.env.CLAUDE_PLUGIN_ROOT;
+      else process.env.CLAUDE_PLUGIN_ROOT = origVal;
+      delete require.cache[FP_PATH];
+    }
+  });
+});

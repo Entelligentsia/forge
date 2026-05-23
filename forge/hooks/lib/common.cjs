@@ -21,6 +21,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 // ---------------------------------------------------------------------------
 // H-1a: resolveForgePaths
@@ -155,6 +156,44 @@ const FORGE_COMMAND_PATTERNS = [
 ];
 
 // ---------------------------------------------------------------------------
+// H-5b: logSwallowedError
+// ---------------------------------------------------------------------------
+
+/**
+ * Append a diagnostic line to the swallowed-error log at
+ * `$dataDir/logs/forge-hooks.log`. If `dataDir` is falsy, falls back to
+ * `os.tmpdir()/forge-plugin-data/logs/forge-hooks.log`.
+ *
+ * Format per line:
+ *   <ISO-timestamp> [<tag>] <err.message>
+ *
+ * Invariants:
+ *   - Append-only. No log rotation. Users can `truncate -s 0` or `rm` the
+ *     file; it will be recreated on the next swallowed error.
+ *   - Hook code NEVER reads this log.
+ *   - Fully fail-open: if the log write itself fails, we exit silently.
+ *
+ * Closes finding: H-5b (FORGE-S25-T15)
+ *
+ * @param {string} tag - Short hook identifier (e.g. 'post-init', 'post-sprint').
+ * @param {Error|*} err - The caught error. Uses err.message if available.
+ * @param {string|null|undefined} dataDir - CLAUDE_PLUGIN_DATA directory.
+ */
+function logSwallowedError(tag, err, dataDir) {
+  try {
+    const baseDir = dataDir || path.join(os.tmpdir(), 'forge-plugin-data');
+    const logsDir = path.join(baseDir, 'logs');
+    fs.mkdirSync(logsDir, { recursive: true });
+    const logPath = path.join(logsDir, 'forge-hooks.log');
+    const msg = (err && err.message) ? err.message : String(err);
+    const line = `${new Date().toISOString()} [${tag}] ${msg}\n`;
+    fs.appendFileSync(logPath, line, 'utf8');
+  } catch (_) {
+    // Fully fail-open — never re-throw
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -163,4 +202,5 @@ module.exports = {
   readStdinJson,
   formatHookOutput,
   FORGE_COMMAND_PATTERNS,
+  logSwallowedError,
 };

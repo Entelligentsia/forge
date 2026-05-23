@@ -35,9 +35,16 @@ process.on('uncaughtException', (err) => {
 // because build-payload.cjs bundles hooks/*.cjs but excludes hooks/lib/ (forge-cli bundle gap).
 // When adding a new forge command, update BOTH this list AND hooks/lib/common.cjs:FORGE_COMMAND_PATTERNS.
 
+// H-5d: Interpolate CLAUDE_PLUGIN_ROOT into node-tool rule when the env var is set.
+// Falls back to the hardcoded glob when CLAUDE_PLUGIN_ROOT is not available.
+const _nodeToolRule = process.env.CLAUDE_PLUGIN_ROOT
+  ? `node ${process.env.CLAUDE_PLUGIN_ROOT}/tools/*`
+  : 'node ~/.claude/plugins/cache/forge/forge/*/tools/*';
+
 const BASH_PATTERNS = [
   // Node tool invocations — covers $FORGE_ROOT/tools/*.cjs and $CLAUDE_PLUGIN_ROOT
-  { pattern: /^node\s+.*\/tools\/[\w-]+\.(cjs|js)\b/, rule: 'node ~/.claude/plugins/cache/forge/forge/*/tools/*' },
+  // (H-5d: rule is dynamically built from CLAUDE_PLUGIN_ROOT when set)
+  { pattern: /^node\s+.*\/tools\/[\w-]+\.(cjs|js)\b/, rule: _nodeToolRule },
   // NOTE: node -e and node -p removed — arbitrary code execution must not be auto-approved.
   // Forge workflows use node .../tools/*.cjs for tool invocations; inline node -e/p requires
   // explicit user approval each time.
