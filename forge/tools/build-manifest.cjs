@@ -238,44 +238,11 @@ function verifySources(metaDir, map, label) {
   return missing;
 }
 
-// ── Exports ────────────────────────────────────────────────────────────────────
+// ── buildManifest — testable manifest-building function ───────────────────────
+// Returns the manifest object for forgeRoot without writing any file.
+// Called by both the normal write path and the --check drift-detection path.
 
-module.exports = {
-  PERSONA_MAP,
-  SKILL_MAP,
-  WORKFLOW_MAP,
-  FRAGMENT_MAP,
-  TEMPLATE_MAP,
-  COMMAND_NAMES,
-  checkReverseDrift,
-  verifySources,
-  parseMetaDeps,
-};
-
-// ── CLI ────────────────────────────────────────────────────────────────────────
-
-if (require.main === module) {
-try {
-  // ── Parse arguments ──────────────────────────────────────────────────────────
-
-  const argv = process.argv.slice(2);
-  let forgeRoot = process.cwd();
-  let outputPath = null;
-
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--forge-root' && argv[i + 1]) {
-      forgeRoot = path.resolve(argv[++i]);
-    } else if (argv[i] === '--output' && argv[i + 1]) {
-      outputPath = path.resolve(argv[++i]);
-    }
-  }
-
-  if (!outputPath) {
-    outputPath = path.join(forgeRoot, 'schemas', 'structure-manifest.json');
-  }
-
-  // ── Read plugin version ───────────────────────────────────────────────────────
-
+function buildManifest(forgeRoot) {
   let pluginVersion = 'unknown';
   try {
     const pluginJsonPath = path.join(forgeRoot, '.claude-plugin', 'plugin.json');
@@ -284,39 +251,9 @@ try {
     }
   } catch {}
 
-  // ── Reverse-drift detection ───────────────────────────────────────────────────
-
-  const driftWarnings = [
-    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'personas'), PERSONA_MAP, 'PERSONA_MAP'),
-    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'skills'), SKILL_MAP, 'SKILL_MAP'),
-    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'workflows'), WORKFLOW_MAP, 'WORKFLOW_MAP'),
-    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'templates'), TEMPLATE_MAP, 'TEMPLATE_MAP'),
-    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'workflows', '_fragments'), FRAGMENT_MAP, 'FRAGMENT_MAP'),
-  ];
-  for (const w of driftWarnings) {
-    process.stdout.write(`△ Reverse-drift warning: ${path.relative(process.cwd(), path.join(w.dir, w.file))} found in meta/ but is not referenced by ${w.label}. Add it to the mapping table or confirm it intentionally has no generated output.\n`);
-  }
-
-  // ── Source verification ───────────────────────────────────────────────────────
-
-  const sourceMissing = [
-    ...verifySources(path.join(forgeRoot, 'meta', 'personas'), PERSONA_MAP, 'PERSONA_MAP'),
-    ...verifySources(path.join(forgeRoot, 'meta', 'skills'), SKILL_MAP, 'SKILL_MAP'),
-    ...verifySources(path.join(forgeRoot, 'meta', 'workflows'), WORKFLOW_MAP, 'WORKFLOW_MAP'),
-    ...verifySources(path.join(forgeRoot, 'meta', 'templates'), TEMPLATE_MAP, 'TEMPLATE_MAP'),
-    ...verifySources(path.join(forgeRoot, 'meta', 'workflows', '_fragments'), FRAGMENT_MAP, 'FRAGMENT_MAP'),
-  ];
-  for (const m of sourceMissing) {
-    process.stdout.write(`△ Source missing: ${m.label} entry "${m.source}" — file not found at ${path.relative(process.cwd(), path.join(m.dir, m.source))}\n`);
-  }
-
-  // ── Schema files — discover from forge/schemas/ ───────────────────────────────
-
   const schemasDir = path.join(forgeRoot, 'schemas');
   let schemaFiles = [];
   try {
-    // Recursive walk so subdir schemas (e.g. _defs/phaseSummary.schema.json,
-    // FORGE-S25-T12) appear in the manifest with their relative path.
     const walk = (dir) => {
       const out = [];
       for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -336,13 +273,9 @@ try {
     process.stderr.write(`△ Could not read schemas dir: ${e.message}\n`);
   }
 
-  // ── Parse dep edges from meta-workflow frontmatter ────────────────────────────
-
   const depEdges = parseMetaDeps(path.join(forgeRoot, 'meta', 'workflows'), WORKFLOW_MAP);
 
-  // ── Build manifest ────────────────────────────────────────────────────────────
-
-  const manifest = {
+  return {
     version: pluginVersion,
     generatedAt: new Date().toISOString(),
     generatedByTool: 'build-manifest.cjs',
@@ -388,8 +321,148 @@ try {
       workflows: depEdges,
     },
   };
+}
 
-  // ── Write output ──────────────────────────────────────────────────────────────
+// ── checkManifestDrift — compare regenerated manifest to committed file ───────
+// Returns { upToDate: boolean, diff: string[] } without writing any file.
+// diff is empty when upToDate is true; lists namespace keys with changed file
+// lists when upToDate is false.
+
+function checkManifestDrift(forgeRoot) {
+  const manifestPath = path.join(forgeRoot, 'schemas', 'structure-manifest.json');
+  if (!fs.existsSync(manifestPath)) {
+    return { upToDate: false, diff: ['structure-manifest.json not found'] };
+  }
+
+  let committed;
+  try {
+    committed = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch (e) {
+    return { upToDate: false, diff: [`could not parse committed manifest: ${e.message}`] };
+  }
+
+  const regenerated = buildManifest(forgeRoot);
+
+  // Compare namespace file lists (the stable, order-independent part of the manifest).
+  // generatedAt and version may differ from committed — don't compare those.
+  const diff = [];
+  const committedNS = committed.namespaces || {};
+  const regenNS = regenerated.namespaces || {};
+
+  for (const key of Object.keys(regenNS)) {
+    const regenFiles = JSON.stringify((regenNS[key].files || []).slice().sort());
+    const committedFiles = JSON.stringify(((committedNS[key] || {}).files || []).slice().sort());
+    if (regenFiles !== committedFiles) {
+      diff.push(key);
+    }
+  }
+  // Check for namespaces present in committed but absent in regenerated
+  for (const key of Object.keys(committedNS)) {
+    if (!regenNS[key]) {
+      diff.push(key);
+    }
+  }
+
+  return { upToDate: diff.length === 0, diff };
+}
+
+// ── Exports ────────────────────────────────────────────────────────────────────
+
+module.exports = {
+  PERSONA_MAP,
+  SKILL_MAP,
+  WORKFLOW_MAP,
+  FRAGMENT_MAP,
+  TEMPLATE_MAP,
+  COMMAND_NAMES,
+  checkReverseDrift,
+  verifySources,
+  parseMetaDeps,
+  buildManifest,
+  checkManifestDrift,
+};
+
+// ── CLI ────────────────────────────────────────────────────────────────────────
+
+if (require.main === module) {
+try {
+  // ── Parse arguments ──────────────────────────────────────────────────────────
+
+  const argv = process.argv.slice(2);
+  let forgeRoot = process.cwd();
+  let outputPath = null;
+  const checkMode = argv.includes('--check');
+
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--forge-root' && argv[i + 1]) {
+      forgeRoot = path.resolve(argv[++i]);
+    } else if (argv[i] === '--output' && argv[i + 1]) {
+      outputPath = path.resolve(argv[++i]);
+    }
+  }
+
+  if (!outputPath) {
+    outputPath = path.join(forgeRoot, 'schemas', 'structure-manifest.json');
+  }
+
+  // ── --check mode: compare regenerated manifest vs committed; exit 0/1 ────────
+
+  if (checkMode) {
+    const { upToDate, diff } = checkManifestDrift(forgeRoot);
+    if (upToDate) {
+      process.stdout.write('〇 structure-manifest.json is up to date\n');
+    } else {
+      process.stderr.write(`△ structure-manifest.json drift detected — namespaces changed: ${diff.join(', ')}\n`);
+      process.stderr.write('   Run: node forge/tools/build-manifest.cjs --forge-root forge/ then commit.\n');
+      process.exit(1);
+    }
+
+    // Also check enum-catalog drift in --check mode
+    try {
+      const { checkCatalogDrift } = require('./build-enum-catalog.cjs');
+      const catalogResult = checkCatalogDrift(forgeRoot);
+      if (catalogResult.upToDate) {
+        process.stdout.write('〇 enum-catalog.json is up to date\n');
+      } else {
+        process.stderr.write(`△ enum-catalog drift detected — files changed: ${catalogResult.diff.join(', ')}\n`);
+        process.stderr.write('   Run: node forge/tools/build-manifest.cjs --forge-root forge/ then commit.\n');
+        process.exit(1);
+      }
+    } catch (catalogErr) {
+      process.stderr.write(`△ enum-catalog check failed: ${catalogErr.message}\n`);
+      process.exit(1);
+    }
+
+    process.exit(0);
+  }
+
+  // ── Normal (write) mode ───────────────────────────────────────────────────────
+
+  // Reverse-drift and source verification (warnings, non-fatal)
+  const driftWarnings = [
+    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'personas'), PERSONA_MAP, 'PERSONA_MAP'),
+    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'skills'), SKILL_MAP, 'SKILL_MAP'),
+    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'workflows'), WORKFLOW_MAP, 'WORKFLOW_MAP'),
+    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'templates'), TEMPLATE_MAP, 'TEMPLATE_MAP'),
+    ...checkReverseDrift(path.join(forgeRoot, 'meta', 'workflows', '_fragments'), FRAGMENT_MAP, 'FRAGMENT_MAP'),
+  ];
+  for (const w of driftWarnings) {
+    process.stdout.write(`△ Reverse-drift warning: ${path.relative(process.cwd(), path.join(w.dir, w.file))} found in meta/ but is not referenced by ${w.label}. Add it to the mapping table or confirm it intentionally has no generated output.\n`);
+  }
+
+  const sourceMissing = [
+    ...verifySources(path.join(forgeRoot, 'meta', 'personas'), PERSONA_MAP, 'PERSONA_MAP'),
+    ...verifySources(path.join(forgeRoot, 'meta', 'skills'), SKILL_MAP, 'SKILL_MAP'),
+    ...verifySources(path.join(forgeRoot, 'meta', 'workflows'), WORKFLOW_MAP, 'WORKFLOW_MAP'),
+    ...verifySources(path.join(forgeRoot, 'meta', 'templates'), TEMPLATE_MAP, 'TEMPLATE_MAP'),
+    ...verifySources(path.join(forgeRoot, 'meta', 'workflows', '_fragments'), FRAGMENT_MAP, 'FRAGMENT_MAP'),
+  ];
+  for (const m of sourceMissing) {
+    process.stdout.write(`△ Source missing: ${m.label} entry "${m.source}" — file not found at ${path.relative(process.cwd(), path.join(m.dir, m.source))}\n`);
+  }
+
+  // Build and write manifest using extracted buildManifest()
+  const manifest = buildManifest(forgeRoot);
 
   const outputDir = path.dirname(outputPath);
   ensureDir(outputDir);
@@ -398,39 +471,30 @@ try {
   fs.writeFileSync(tmp, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
   fs.renameSync(tmp, outputPath);
 
-  // ── Summary ───────────────────────────────────────────────────────────────────
-
   const total = Object.values(manifest.namespaces).reduce((s, ns) => s + ns.files.length, 0);
   process.stdout.write(`〇 structure-manifest.json written to ${path.relative(process.cwd(), outputPath)}\n`);
-  process.stdout.write(`── version: ${pluginVersion}  total files: ${total}\n`);
+  process.stdout.write(`── version: ${manifest.version}  total files: ${total}\n`);
   for (const [key, ns] of Object.entries(manifest.namespaces)) {
     process.stdout.write(`   ${key}: ${ns.files.length}\n`);
   }
 
   // ── Integrity manifest (release guard) ────────────────────────────────────────
-  // Regenerate integrity.json alongside structure-manifest.json so that running
-  // build-manifest.cjs (the natural release-prep step) also refreshes file hashes.
-  // This prevents future ships from leaving stale hashes in integrity.json.
   try {
     const { generateManifest } = require('./gen-integrity.cjs');
     const integrityOut = path.join(forgeRoot, 'integrity.json');
-    generateManifest(forgeRoot, integrityOut, pluginVersion);
-    process.stdout.write(`〇 integrity.json regenerated — ${pluginVersion}\n`);
+    generateManifest(forgeRoot, integrityOut, manifest.version);
+    process.stdout.write(`〇 integrity.json regenerated — ${manifest.version}\n`);
   } catch (integrityErr) {
     process.stderr.write(`△ integrity.json regeneration failed: ${integrityErr.message}\n`);
-    // Non-fatal — structure manifest already written successfully
   }
 
   // ── Enum catalog (FORGE-S25-T26) ─────────────────────────────────────────────
-  // Emit enum-catalog.json and transitions/{task,sprint,bug}.json from canonical tables.
-  // Invoked here so a single `node build-manifest.cjs` regenerates all plugin artifacts.
   try {
     const { writeCatalog } = require('./build-enum-catalog.cjs');
     writeCatalog(forgeRoot);
-    process.stdout.write(`〇 enum-catalog.json regenerated — ${pluginVersion}\n`);
+    process.stdout.write(`〇 enum-catalog.json regenerated — ${manifest.version}\n`);
   } catch (catalogErr) {
     process.stderr.write(`△ enum-catalog.json regeneration failed: ${catalogErr.message}\n`);
-    // Non-fatal — structure manifest already written successfully
   }
 
   process.exit(0);

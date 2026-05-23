@@ -1,4 +1,16 @@
 {
+  "0.51.0": {
+    "version": "0.51.1",
+    "date": "2026-05-23",
+    "notes": "FORGE-S25-T28 — Guardrails CI consolidation. Adds --check mode to build-manifest.cjs and build-enum-catalog.cjs (non-destructive drift detection; exits 1 when structure-manifest.json or enum-catalog.json/transitions/*.json are stale). Wires manifest-drift + enum-catalog-drift gates into plugin-ci.yml. Adds forge/forge/CLAUDE.md documenting the four CI gates.",
+    "target": "tools:build-manifest",
+    "regenerate": [
+      "tools:build-manifest",
+      "tools:build-enum-catalog"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.50.0": {
     "version": "0.50.1",
     "date": "2026-05-23",

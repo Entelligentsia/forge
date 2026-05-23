@@ -208,3 +208,34 @@ describe('build-enum-catalog.cjs', () => {
     }
   });
 });
+
+describe('build-enum-catalog.cjs — --check mode (FORGE-S25-T28)', () => {
+  test('checkCatalogDrift is exported', () => {
+    const { checkCatalogDrift } = require(SCRIPT_PATH);
+    assert.equal(typeof checkCatalogDrift, 'function', 'checkCatalogDrift must be exported');
+  });
+
+  test('checkCatalogDrift returns upToDate:true when committed catalog matches regenerated', () => {
+    const { checkCatalogDrift } = require(SCRIPT_PATH);
+    const result = checkCatalogDrift(FORGE_ROOT);
+    assert.strictEqual(result.upToDate, true,
+      `enum-catalog should be up to date; diff: ${JSON.stringify(result.diff)}`);
+  });
+
+  test('checkCatalogDrift returns upToDate:false when enum-catalog.json is stale', () => {
+    const { checkCatalogDrift } = require(SCRIPT_PATH);
+    const catalogPath = path.join(FORGE_ROOT, 'schemas', 'enum-catalog.json');
+    const original = fs.readFileSync(catalogPath, 'utf8');
+    try {
+      // Mutate the committed catalog to simulate drift
+      const stale = JSON.parse(original);
+      stale.enums['task.status'].push('__fake-status');
+      fs.writeFileSync(catalogPath, JSON.stringify(stale, null, 2) + '\n', 'utf8');
+      const result = checkCatalogDrift(FORGE_ROOT);
+      assert.strictEqual(result.upToDate, false, 'should detect drift when catalog is stale');
+      assert.ok(result.diff.length > 0, 'diff should be non-empty');
+    } finally {
+      fs.writeFileSync(catalogPath, original, 'utf8');
+    }
+  });
+});

@@ -208,9 +208,65 @@ function writeCatalog(forgeRoot, opts = {}) {
   return { catalogPath, transitionPaths };
 }
 
+// ── checkCatalogDrift — compare regenerated catalog/transitions vs committed ──
+// Returns { upToDate: boolean, diff: string[] }.
+// diff lists each file (relative name) that differs from committed.
+// Never writes to disk. Used by build-manifest.cjs --check and standalone --check.
+
+function checkCatalogDrift(forgeRoot) {
+  const schemasDir = path.join(forgeRoot, 'schemas');
+  const transitionsDir = path.join(schemasDir, 'transitions');
+  const catalog = buildCatalog(forgeRoot);
+
+  const diff = [];
+
+  // Check enum-catalog.json (compare enums + commandNames; ignore version/generated timestamp)
+  const catalogPath = path.join(schemasDir, 'enum-catalog.json');
+  if (!fs.existsSync(catalogPath)) {
+    diff.push('enum-catalog.json (missing)');
+  } else {
+    try {
+      const committed = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+      if (JSON.stringify(committed.enums) !== JSON.stringify(catalog.enums)) {
+        diff.push('enum-catalog.json (enums changed)');
+      }
+      if (JSON.stringify(committed.commandNames) !== JSON.stringify(catalog.commandNames)) {
+        diff.push('enum-catalog.json (commandNames changed)');
+      }
+    } catch (e) {
+      diff.push(`enum-catalog.json (parse error: ${e.message})`);
+    }
+  }
+
+  // Check transitions/{task,sprint,bug}.json
+  const transitions = {
+    task:   tableToArray(CANONICAL_TASK_TRANSITIONS),
+    sprint: tableToArray(CANONICAL_SPRINT_TRANSITIONS),
+    bug:    tableToArray(CANONICAL_BUG_TRANSITIONS),
+  };
+  for (const [entity, table] of Object.entries(transitions)) {
+    const filePath = path.join(transitionsDir, `${entity}.json`);
+    if (!fs.existsSync(filePath)) {
+      diff.push(`transitions/${entity}.json (missing)`);
+    } else {
+      try {
+        const committed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        if (JSON.stringify(committed) !== JSON.stringify(table)) {
+          diff.push(`transitions/${entity}.json`);
+        }
+      } catch (e) {
+        diff.push(`transitions/${entity}.json (parse error: ${e.message})`);
+      }
+    }
+  }
+
+  return { upToDate: diff.length === 0, diff };
+}
+
 module.exports = {
   buildCatalog,
   writeCatalog,
+  checkCatalogDrift,
   extractStatusEnum,
   tableToArray,
   CANONICAL_TASK_TRANSITIONS,
@@ -231,11 +287,12 @@ if (require.main === module) {
       'build-enum-catalog.cjs — Enum catalog + transition table generator.',
       '',
       'Usage:',
-      '  node build-enum-catalog.cjs [--forge-root <path>] [--dry-run]',
+      '  node build-enum-catalog.cjs [--forge-root <path>] [--dry-run|--check]',
       '',
       'Options:',
       '  --forge-root <path>  Forge plugin root dir (default: process.cwd())',
       '  --dry-run            Preview output without writing files',
+      '  --check              Compare regenerated vs committed; exit 1 on drift (CI gate)',
       '  --help, -h           Show this message and exit',
     ].join('\n') + '\n');
     process.exit(0);
@@ -246,7 +303,25 @@ if (require.main === module) {
     ? path.resolve(argv[forgeRootIdx + 1])
     : process.cwd();
 
+  const checkMode = argv.includes('--check');
   const dryRun = argv.includes('--dry-run');
+
+  if (checkMode) {
+    try {
+      const result = checkCatalogDrift(forgeRoot);
+      if (result.upToDate) {
+        process.stdout.write('〇 enum-catalog.json is up to date\n');
+        process.exit(0);
+      } else {
+        process.stderr.write(`△ enum-catalog drift detected — files changed: ${result.diff.join(', ')}\n`);
+        process.stderr.write('   Run: node forge/tools/build-manifest.cjs --forge-root forge/ then commit.\n');
+        process.exit(1);
+      }
+    } catch (err) {
+      process.stderr.write(`build-enum-catalog --check fatal: ${err.message}\n`);
+      process.exit(1);
+    }
+  }
 
   try {
     const { catalogPath, transitionPaths } = writeCatalog(forgeRoot, { dryRun });

@@ -1,9 +1,8 @@
 name: plugin-ci
 
 # FORGE-S25-T01 — plugin test baseline + no-skip CI gate.
-# Single job for Stage A; T28 ("Guardrails CI consolidation") extends this
-# file additively with manifest-drift, allowlist-coverage, enum-catalog
-# drift, and ts-prune gates.
+# FORGE-S25-T28 — Guardrails CI consolidation: manifest-drift, enum-catalog-drift,
+#   schema-additionalProperties (via npm test), and skipped-test gates fully wired.
 
 on:
   push:
@@ -35,8 +34,12 @@ jobs:
       - name: Plugin test suite (tools + hooks)
         run: npm test
 
-      - name: Manifest regen sanity
-        run: node forge/tools/build-manifest.cjs --forge-root forge/
+      - name: Manifest drift check
+        # FORGE-S25-T28: --check mode exits 1 if structure-manifest.json or
+        # enum-catalog.json/transitions/*.json are stale (build-manifest.cjs
+        # also checks enum-catalog via the --check passthrough). Fix locally:
+        # node forge/tools/build-manifest.cjs --forge-root forge/ then commit.
+        run: node forge/tools/build-manifest.cjs --forge-root forge/ --check
 
       - name: Integrity verification
         run: node forge/tools/verify-integrity.cjs

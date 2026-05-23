@@ -274,3 +274,55 @@ describe('build-manifest.cjs — parseMetaDeps', () => {
     );
   });
 });
+
+describe('build-manifest.cjs — --check mode (FORGE-S25-T28)', () => {
+  const os = require('os');
+
+  function tmpDir() {
+    return fs.mkdtempSync(path.join(os.tmpdir(), 'bm-check-'));
+  }
+  function rmrf(dir) {
+    if (!fs.existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) rmrf(full);
+      else fs.unlinkSync(full);
+    }
+    fs.rmdirSync(dir);
+  }
+
+  test('buildManifest is exported and returns an object with namespaces', () => {
+    const FORGE_ROOT = path.join(__dirname, '..', '..');
+    const { buildManifest } = require('../build-manifest.cjs');
+    const manifest = buildManifest(FORGE_ROOT);
+    assert.ok(manifest && typeof manifest === 'object', 'buildManifest must return an object');
+    assert.ok(manifest.namespaces && typeof manifest.namespaces === 'object', 'must have namespaces');
+    assert.ok(manifest.namespaces.personas, 'must have personas namespace');
+  });
+
+  test('checkManifestDrift exits 0 when committed manifest matches regenerated', () => {
+    const FORGE_ROOT = path.join(__dirname, '..', '..');
+    const { checkManifestDrift } = require('../build-manifest.cjs');
+    // The committed structure-manifest.json should be up to date
+    const result = checkManifestDrift(FORGE_ROOT);
+    assert.strictEqual(result.upToDate, true, `manifest should be up to date; diff: ${JSON.stringify(result.diff)}`);
+  });
+
+  test('checkManifestDrift exits with upToDate=false when committed manifest is stale', () => {
+    const FORGE_ROOT = path.join(__dirname, '..', '..');
+    const { checkManifestDrift, buildManifest } = require('../build-manifest.cjs');
+    const manifestPath = path.join(FORGE_ROOT, 'schemas', 'structure-manifest.json');
+    const original = fs.readFileSync(manifestPath, 'utf8');
+    try {
+      // Mutate the committed manifest to simulate drift
+      const stale = JSON.parse(original);
+      stale.namespaces.personas.files.push('__fake-persona.md');
+      fs.writeFileSync(manifestPath, JSON.stringify(stale, null, 2) + '\n', 'utf8');
+      const result = checkManifestDrift(FORGE_ROOT);
+      assert.strictEqual(result.upToDate, false, 'should detect drift when committed manifest is stale');
+      assert.ok(result.diff.length > 0, 'diff should be non-empty');
+    } finally {
+      fs.writeFileSync(manifestPath, original, 'utf8');
+    }
+  });
+});
