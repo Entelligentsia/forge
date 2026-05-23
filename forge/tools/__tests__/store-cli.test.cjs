@@ -85,8 +85,11 @@ describe('store-cli.cjs — isLegalTransition', () => {
     assert.equal(isLegalTransition('task', 'status', 'draft', 'planned'), true);
   });
 
-  test('planned -> implemented is legal for tasks (workflows emit this directly)', () => {
-    assert.equal(isLegalTransition('task', 'status', 'planned', 'implemented'), true);
+  test('planned -> implemented is REJECTED (T25 ADR D-T-2: must go through plan-approved → implementing → implemented)', () => {
+    // FORGE-S25-T26: T25 ADR D-T-2 canonicalization — planned does not allow
+    // skipping the plan-approval gate. Workflows must pass through plan-approved
+    // before implementing. The old behavior (allowed) was incorrect.
+    assert.equal(isLegalTransition('task', 'status', 'planned', 'implemented'), false);
   });
 
   test('terminal state committed cannot transition out', () => {
@@ -252,8 +255,10 @@ describe('store-cli.cjs — TERMINAL_STATES', () => {
 });
 
 describe('store-cli.cjs — FAILED_STATES', () => {
-  test('contains blocked', () => {
-    assert.ok(FAILED_STATES.has('blocked'), 'should contain blocked');
+  test('does NOT contain blocked (T25 ADR: blocked is an explicit table entry, not a bypass state)', () => {
+    // FORGE-S25-T26: blocked removed from FAILED_STATES so isLegalTransition
+    // enforces the explicit table for transitions into/out of blocked.
+    assert.ok(!FAILED_STATES.has('blocked'), 'blocked must NOT be in FAILED_STATES (T25 ADR)');
   });
 
   test('contains escalated', () => {
@@ -264,12 +269,16 @@ describe('store-cli.cjs — FAILED_STATES', () => {
     assert.ok(FAILED_STATES.has('abandoned'), 'should contain abandoned');
   });
 
-  test('contains plan-revision-required', () => {
-    assert.ok(FAILED_STATES.has('plan-revision-required'), 'should contain plan-revision-required');
+  test('does NOT contain plan-revision-required (T25 ADR: explicit table entry, not a bypass state)', () => {
+    // FORGE-S25-T26: plan-revision-required removed from FAILED_STATES so that
+    // D-T-1 is enforced: draft must not allow plan-revision-required.
+    assert.ok(!FAILED_STATES.has('plan-revision-required'), 'plan-revision-required must NOT be in FAILED_STATES (T25 ADR)');
   });
 
-  test('contains code-revision-required', () => {
-    assert.ok(FAILED_STATES.has('code-revision-required'), 'should contain code-revision-required');
+  test('does NOT contain code-revision-required (T25 ADR: explicit table entry, not a bypass state)', () => {
+    // FORGE-S25-T26: code-revision-required removed from FAILED_STATES so that
+    // D-T-2/D-T-3/D-T-4 are enforced properly via the transition table.
+    assert.ok(!FAILED_STATES.has('code-revision-required'), 'code-revision-required must NOT be in FAILED_STATES (T25 ADR)');
   });
 
   test('contains partially-completed (sprint)', () => {

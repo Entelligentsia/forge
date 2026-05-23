@@ -87,32 +87,45 @@ const PHASE_SUMMARY_SCHEMA = {
 // Transition tables
 // ---------------------------------------------------------------------------
 
+// Canonical transition tables — reconciled by T25 ADR (doc/decisions/state-machine-reconciliation.md).
+// Authoritative source: forge/tools/build-enum-catalog.cjs (CANONICAL_*_TRANSITIONS).
+// These tables are kept in sync with enum-catalog.json via the drift detection test.
+// Task: FORGE-S25-T26 (closes N-E-2 on the plugin side; T27 closes it on forge-cli side).
+
 const TASK_TRANSITIONS = {
-  draft:                 ['planned', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
-  planned:               ['plan-approved', 'implemented', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
-  'plan-approved':       ['implementing', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
-  implementing:          ['implemented', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
-  implemented:           ['review-approved', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
-  'review-approved':     ['approved', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
-  approved:              ['committed', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
+  draft:                    ['planned', 'blocked', 'escalated', 'abandoned'],
+  planned:                  ['plan-approved', 'plan-revision-required', 'blocked', 'escalated', 'abandoned'],
+  'plan-approved':          ['implementing', 'plan-revision-required', 'blocked', 'escalated', 'abandoned'],
+  implementing:             ['implemented', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
+  implemented:              ['review-approved', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
+  'review-approved':        ['approved', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
+  approved:                 ['committed', 'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned'],
   'plan-revision-required': ['planned', 'blocked', 'escalated', 'abandoned'],
   'code-revision-required': ['implementing', 'blocked', 'escalated', 'abandoned'],
-  // Terminal: committed, abandoned — no transitions out
+  // Explicit terminal/sink entries — prevents FAILED_STATES bypass from allowing illegal re-opens.
+  committed:                [],
+  blocked:                  [],
+  escalated:                [],
+  abandoned:                [],
 };
 
 const SPRINT_TRANSITIONS = {
-  planning:    ['active', 'blocked', 'partially-completed', 'abandoned'],
-  active:      ['completed', 'blocked', 'partially-completed', 'abandoned'],
-  completed:   ['retrospective-done', 'blocked', 'partially-completed', 'abandoned'],
-  // Terminal: retrospective-done, abandoned
+  planning:              ['active', 'blocked', 'abandoned'],
+  active:                ['completed', 'partially-completed', 'blocked', 'abandoned'],
+  completed:             ['retrospective-done'],
+  'partially-completed': ['retrospective-done'],
+  'retrospective-done':  [],
+  blocked:               ['active', 'abandoned'],
+  abandoned:             [],
 };
 
 const BUG_TRANSITIONS = {
-  reported:      ['triaged'],
-  triaged:       ['in-progress'],
-  'in-progress': ['fixed'],
-  // Terminal: fixed
-  //
+  reported:      ['triaged', 'abandoned'],
+  triaged:       ['in-progress', 'abandoned'],
+  'in-progress': ['fixed', 'abandoned'],
+  // Explicit terminal entries.
+  fixed:         [],
+  abandoned:     [],
   // The `approved` and `verified` enum members were removed (forge#GH-NNN).
   // The architect-approve verdict signal for bugs travels through
   // `bug.summaries.approve.verdict` (see read-verdict.cjs §
@@ -145,10 +158,22 @@ const TERMINAL_STATES = new Set([
   'shipped', 'retired'               // feature
 ]);
 
-// Failed states that may be entered from any non-terminal state
+// Failed/escape states that may be entered from any non-terminal state via the
+// FAILED_STATES bypass in isLegalTransition.
+//
+// FORGE-S25-T26 (T25 ADR canonicalization):
+// - `blocked` REMOVED — now has explicit table entries; removing prevents `committed → blocked`
+//   and `bug → blocked` (neither in canonical tables).
+// - `plan-revision-required`, `code-revision-required` REMOVED — now fully explicit in
+//   TASK_TRANSITIONS; removing prevents `draft → plan-revision-required` (D-T-1).
+//   All legitimate transitions to these states are covered by explicit table entries.
+// - `escalated`, `abandoned` RETAINED — not in every entity's explicit table (e.g.,
+//   FEATURE_TRANSITIONS has no escalated/abandoned entries). Universal escape remains.
+// - `partially-completed` RETAINED — sprint-only escape.
+// See: doc/decisions/state-machine-reconciliation.md; FORGE-S25-T26.
 const FAILED_STATES = new Set([
-  'plan-revision-required', 'code-revision-required', 'blocked', 'escalated', 'abandoned',  // task
-  'blocked', 'partially-completed'  // sprint
+  'escalated', 'abandoned',   // universal escapes (task explicit + feature bypass)
+  'partially-completed'       // sprint
 ]);
 
 function isLegalTransition(entityType, field, currentValue, newValue) {

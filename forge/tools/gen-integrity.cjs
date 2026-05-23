@@ -25,16 +25,20 @@ function buildFileList(forgeRoot) {
   const files = {};
   const warnings = [];
 
-  const commandFiles = globDir(path.join(forgeRoot, 'commands'), '.md');
-  const agentFiles   = globDir(path.join(forgeRoot, 'agents'),   '.md');
-  const hookFiles    = globDir(path.join(forgeRoot, 'hooks'),    '.cjs');
-  const verifierPath = path.join(forgeRoot, 'tools', 'verify-integrity.cjs');
+  const commandFiles    = globDir(path.join(forgeRoot, 'commands'),              '.md');
+  const agentFiles      = globDir(path.join(forgeRoot, 'agents'),                '.md');
+  const hookFiles       = globDir(path.join(forgeRoot, 'hooks'),                 '.cjs');
+  const transitionFiles = globDir(path.join(forgeRoot, 'schemas', 'transitions'), '.json');
+  const verifierPath    = path.join(forgeRoot, 'tools', 'verify-integrity.cjs');
+  const catalogPath     = path.join(forgeRoot, 'schemas', 'enum-catalog.json');
 
   const allFiles = [
-    ...commandFiles.map(f => ['commands/' + path.basename(f), f]),
-    ...agentFiles.map(f   => ['agents/'   + path.basename(f), f]),
-    ...hookFiles.map(f    => ['hooks/'    + path.basename(f), f]),
-    ['tools/verify-integrity.cjs', verifierPath],
+    ...commandFiles.map(f    => ['commands/'              + path.basename(f), f]),
+    ...agentFiles.map(f      => ['agents/'                + path.basename(f), f]),
+    ...hookFiles.map(f       => ['hooks/'                 + path.basename(f), f]),
+    ...transitionFiles.map(f => ['schemas/transitions/'  + path.basename(f), f]),
+    ['schemas/enum-catalog.json',    catalogPath],
+    ['tools/verify-integrity.cjs',   verifierPath],
   ];
 
   for (const [rel, abs] of allFiles) {

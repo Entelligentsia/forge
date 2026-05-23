@@ -421,6 +421,18 @@ try {
     // Non-fatal — structure manifest already written successfully
   }
 
+  // ── Enum catalog (FORGE-S25-T26) ─────────────────────────────────────────────
+  // Emit enum-catalog.json and transitions/{task,sprint,bug}.json from canonical tables.
+  // Invoked here so a single `node build-manifest.cjs` regenerates all plugin artifacts.
+  try {
+    const { writeCatalog } = require('./build-enum-catalog.cjs');
+    writeCatalog(forgeRoot);
+    process.stdout.write(`〇 enum-catalog.json regenerated — ${pluginVersion}\n`);
+  } catch (catalogErr) {
+    process.stderr.write(`△ enum-catalog.json regeneration failed: ${catalogErr.message}\n`);
+    // Non-fatal — structure manifest already written successfully
+  }
+
   process.exit(0);
 
 } catch (err) {

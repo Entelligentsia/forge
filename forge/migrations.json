@@ -1,4 +1,23 @@
 {
+  "0.50.0": {
+    "version": "0.50.1",
+    "date": "2026-05-23",
+    "notes": "FORGE-S25-T26 — Catalog generator + plugin consumers. Adds build-enum-catalog.cjs emitting forge/schemas/enum-catalog.json + forge/schemas/transitions/{task,sprint,bug}.json from T25 ADR canonical FSM tables. Canonicalizes store-cli.cjs TASK_TRANSITIONS/SPRINT_TRANSITIONS/BUG_TRANSITIONS to T25 ADR (D-T-1..D-T-9, D-S-1..D-S-4, D-B-1). Narrows FAILED_STATES: removes blocked, plan-revision-required, code-revision-required (all transitions are now explicit in the tables). Extends substitute-placeholders.cjs with {{ENUM:entity.field}} placeholder support (resolves to comma-separated schema enum values). Adds @catalogSync annotation to hooks/lib/common.cjs:FORGE_COMMAND_PATTERNS + fills 15 missing command patterns; syncs inline copy in hooks/triage-error.cjs. build-manifest.cjs gains post-step to regenerate enum-catalog on every manifest rebuild. gen-integrity.cjs tracks new catalog + transition files. New tests: build-enum-catalog.test.cjs (14 cases), store-cli-transitions.test.cjs (9 regression cases, D-T-* / D-S-* / D-B-*). integrity.json regenerated.",
+    "target": "schemas:enum-catalog",
+    "regenerate": [
+      "schemas:enum-catalog",
+      "schemas:transitions",
+      "tools:build-enum-catalog",
+      "tools:store-cli",
+      "tools:substitute-placeholders",
+      "tools:build-manifest",
+      "tools:gen-integrity",
+      "hooks:triage-error",
+      "hooks:lib/common"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.49.0": {
     "version": "0.50.0",
     "date": "2026-05-23",

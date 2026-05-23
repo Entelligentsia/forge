@@ -1303,3 +1303,35 @@ describe('--target pi: warning for --config / --context', () => {
     }
   });
 });
+
+// ── Test Group 20: ENUM placeholder substitution (FORGE-S25-T26) ──────────────
+
+const _SUBSTITUTIONS_PATH_ENUM = path.join(__dirname, '..', 'substitute-placeholders.cjs');
+const { resolveEnumCatalog: _resolveEnumCatalog } = require(_SUBSTITUTIONS_PATH_ENUM);
+const _FORGE_ROOT_ENUM = path.join(__dirname, '..', '..');
+
+describe('ENUM placeholder substitution (FORGE-S25-T26)', () => {
+  test('buildSubstitutionMap with enumCatalog resolves {{ENUM:task.status}} to comma-separated values', () => {
+    const enumCatalog = _resolveEnumCatalog(_FORGE_ROOT_ENUM) || {
+      enums: { 'task.status': ['draft', 'planned', 'committed'] },
+    };
+    const map = buildSubstitutionMap(MINIMAL_CONFIG, null, null, { enumCatalog });
+    assert.ok(map.has('ENUM:task.status'), 'map must have ENUM:task.status key');
+    const value = map.get('ENUM:task.status');
+    assert.ok(typeof value === 'string', 'value must be string');
+    assert.ok(value.includes('draft'), 'value must include draft');
+    assert.ok(!value.includes('.md'), 'value must not include .md');
+  });
+
+  test('unknown ENUM key {{ENUM:nonexistent.field}} is left unreplaced without throwing', () => {
+    const fakeEnumCatalog = {
+      enums: { 'task.status': ['draft', 'planned'] },
+    };
+    const map = buildSubstitutionMap(MINIMAL_CONFIG, null, null, { enumCatalog: fakeEnumCatalog });
+    let result;
+    assert.doesNotThrow(() => {
+      result = applySubstitutions('{{ENUM:nonexistent.field}}', map);
+    }, 'must not throw for unknown ENUM key');
+    assert.equal(result, '{{ENUM:nonexistent.field}}', 'unknown ENUM key must be left unreplaced');
+  });
+});

@@ -1,0 +1,31 @@
+[
+  {
+    "from": "reported",
+    "to": [
+      "triaged",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "triaged",
+    "to": [
+      "in-progress",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "in-progress",
+    "to": [
+      "fixed",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "fixed",
+    "to": []
+  },
+  {
+    "from": "abandoned",
+    "to": []
+  }
+]

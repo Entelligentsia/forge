@@ -120,14 +120,20 @@ function formatHookOutput(hookEventName, payload) {
 /**
  * Canonical array of RegExp patterns that identify forge-related commands.
  *
- * This is the single source of truth for forge command recognition (the seam
- * that Sprint E's enum catalog will later consume). Two .js hooks maintain
- * inline copies of subsets of this list:
- *   - hooks/triage-error.js: FORGE_PATTERNS (13 regexes — subset for error triage)
- *   - hooks/forge-permissions.js: part of BASH_PATTERNS (forge-command subset)
+ * @catalogSync forge/schemas/enum-catalog.json#commandNames (FORGE-S25-T26)
  *
- * When adding a new forge command, update this array AND the inline copies in
- * those .js hooks. The .js hooks cannot require() this file — see file header.
+ * Build-time drift detection: forge/tools/__tests__/build-enum-catalog.test.cjs
+ * verifies that every `forge:*` entry in enum-catalog.json commandNames has at
+ * least one matching regex here. Run `node --test forge/tools/__tests__/*.test.cjs`
+ * to check. Drift will cause the drift-detection test to fail.
+ *
+ * Runtime: this array is the single source of truth for forge command recognition.
+ * hooks/triage-error.cjs and hooks/forge-permissions.cjs maintain inline copies
+ * of subsets; those files cannot require() this module due to the forge-cli bundle
+ * gap (build-payload.cjs bundles hooks/*.cjs but excludes hooks/lib/).
+ *
+ * When adding a new forge command: update this array, the inline copies in
+ * triage-error.cjs and forge-permissions.cjs, AND build-enum-catalog.cjs COMMAND_NAMES.
  */
 const FORGE_COMMAND_PATTERNS = [
   /manage-config/,
@@ -141,16 +147,31 @@ const FORGE_COMMAND_PATTERNS = [
   /forge:regenerate/,
   /forge:update/,
   /forge:add-pipeline/,
+  /forge:add-task/,
   /forge:plan/,
   /forge:implement/,
   /forge:approve/,
   /forge:commit/,
   /forge:review/,
   /forge:sprint/,
+  /forge:run-task/,
+  /forge:run-sprint/,
+  /forge:fix-bug/,
+  /forge:retrospective/,
+  /forge:quiz-agent/,
   /forge:report-bug/,
   /forge:enhance/,
   /forge:collate/,
   /forge:validate/,
+  /forge:calibrate/,
+  /forge:materialize/,
+  /forge:remove/,
+  /forge:store-query/,
+  /forge:store-repair/,
+  /forge:store-custodian/,
+  /forge:config/,
+  /forge:ask/,
+  /forge:refresh-kb-links/,
   /store-cli\.cjs/,
   /validate-store\.cjs/,
 ];

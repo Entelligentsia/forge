@@ -1,5 +1,5 @@
 {
-  "version": "0.50.0",
+  "version": "0.50.1",
   "generated": "2026-05-23",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
@@ -27,8 +27,12 @@
     "hooks/forge-permissions.cjs": "8de18fe7e6c9ee1751926275a37f4bb68a5a53090d366d2aa44157c106e7857e",
     "hooks/post-init.cjs": "c82bc76e846708a471acfbbc6839f341be843a3fb8d711e3a0f2733aa3da9b3d",
     "hooks/post-sprint.cjs": "21099458fcde372f0f40895447ea76318de88d2a857d764f8fbbd0adab3ad74a",
-    "hooks/triage-error.cjs": "57c5ae9baa8b01376e5331196e5f852b565ceffa23a659df8ae534642dbc848b",
+    "hooks/triage-error.cjs": "f33e4fd67168c437d55d059f67cf893f1d11b59df4c712153a1dfd7d9bb55930",
     "hooks/validate-write.cjs": "3ec7bbbb2cc19f22c78da5a9e7b5031066f4b669c76a10c9f8a92a1a48fcea0a",
+    "schemas/transitions/bug.json": "27b17da42d1cebffbd4f61ab3dcd432a0017aa71997d548ed80d22c2fc3fad6a",
+    "schemas/transitions/sprint.json": "2e0a629396e687b0ca88e1814ac3e35d84533a5d55b25237ab67feddce3c9deb",
+    "schemas/transitions/task.json": "4c71849747baa0d585756e57c56325ff6219c078178374e60815dff91e25e3e7",
+    "schemas/enum-catalog.json": "4584e100f0ba97afe5d2bbfedade9267e23f234f32e7a798154f39a5451e8f82",
     "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
   }
 }

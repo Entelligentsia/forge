@@ -35,20 +35,47 @@
  *     [--dry-run]
  *
  * Exported API (for unit testing):
- *   buildSubstitutionMap(config, context, rules?)
+ *   buildSubstitutionMap(config, context, rules?, { enumCatalog }?)
  *   applySubstitutions(text, map)
  *   extractFrontmatter(content)
  *   substituteFile(content, map)
  *   walkBasePackPi(src, outRoot, dryRun, io)
+ *   resolveEnumCatalog(forgeRoot)
  *   PI_TARGET_SUBDIRS
  *   REQUIRED_KEYS
  *   RUNTIME_PASSTHROUGH_KEYS
+ *
+ * ENUM placeholder syntax (added FORGE-S25-T26):
+ *   {{ENUM:task.status}} → expands to comma-separated enum values from enum-catalog.json
+ *   Requires enumCatalog to be passed to buildSubstitutionMap (4th arg: { enumCatalog }).
+ *   Fail-open: unreplaced + stderr warning when catalog absent or key not found.
  */
 
 const fs = require('node:fs');
 const path = require('node:path');
 const { getCommandsSubdir } = require('./lib/paths.cjs');
 const { extractFrontmatter: _extractFrontmatter } = require('./lib/frontmatter.cjs');
+
+// ── Enum catalog loader (FORGE-S25-T26) ──────────────────────────────────────
+
+/**
+ * Load the enum catalog from <forgeRoot>/schemas/enum-catalog.json.
+ * Returns the parsed catalog object, or null if absent or unparseable.
+ * Fail-open: never throws. Used by buildSubstitutionMap and by tests.
+ *
+ * @param {string} forgeRoot - absolute path to the forge plugin root directory
+ * @returns {object|null}
+ */
+function resolveEnumCatalog(forgeRoot) {
+  if (!forgeRoot) return null;
+  const catalogPath = path.join(forgeRoot, 'schemas', 'enum-catalog.json');
+  if (!fs.existsSync(catalogPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+  } catch (_) {
+    return null;
+  }
+}
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -128,15 +155,31 @@ function extractFrontmatter(content) {
  * Apply substitution map to a string. Keys in RUNTIME_PASSTHROUGH_KEYS are
  * left intact. Unknown keys are also left intact (missing optional keys).
  *
+ * Two pass strategy:
+ *   Pass 1: ENUM placeholders ({{ENUM:entity.field}}) — resolved via enumCatalog
+ *           entries pre-loaded into the map by buildSubstitutionMap.
+ *   Pass 2: Standard {{KEY}} placeholders — flat alphanumeric/hyphen keys.
+ *
  * @param {string} text
  * @param {Map<string, string>} map
  * @returns {string}
  */
 function applySubstitutions(text, map) {
-  // Only match placeholders whose keys are ALL_CAPS_WITH_UNDERSCORES or
-  // lowercase-with-hyphens (for skill names). Dot-notation is intentionally
-  // NOT matched — T03 uses flat keys only.
-  return text.replace(/\{\{([A-Za-z][A-Za-z0-9_-]*)\}\}/g, (full, key) => {
+  // Pass 1: ENUM placeholders — {{ENUM:entity.field}} (added FORGE-S25-T26).
+  // Resolved via map entries with keys like 'ENUM:task.status'.
+  // Fail-open: unknown ENUM key emits warning to stderr and leaves placeholder unreplaced.
+  let result = text.replace(/\{\{ENUM:([a-z]+\.[a-z]+)\}\}/g, (full, enumKey) => {
+    const mapKey = 'ENUM:' + enumKey;
+    if (map.has(mapKey)) return map.get(mapKey);
+    // Warn but leave unreplaced — do not throw.
+    process.stderr.write(`substitute-placeholders: unknown ENUM key '${enumKey}' — leaving unreplaced\n`);
+    return full;
+  });
+
+  // Pass 2: Standard {{KEY}} placeholders.
+  // Only match flat keys (ALL_CAPS_WITH_UNDERSCORES or lowercase-with-hyphens).
+  // Dot-notation and colon-notation are intentionally NOT matched — handled above.
+  return result.replace(/\{\{([A-Za-z][A-Za-z0-9_-]*)\}\}/g, (full, key) => {
     if (RUNTIME_PASSTHROUGH_KEYS.has(key)) return full;
     if (map.has(key)) return map.get(key);
     // Unknown key — leave intact (missing optional)
@@ -172,7 +215,11 @@ function substituteFile(content, map) {
  * @returns {Map<string, string>}
  * @throws {Error} if PROJECT_NAME or PREFIX is missing
  */
-function buildSubstitutionMap(config, context, rules) {
+function buildSubstitutionMap(config, context, rules, opts) {
+  // opts: optional 4th arg — { enumCatalog?: object }
+  // enumCatalog, if provided, is used to expand {{ENUM:entity.field}} placeholders.
+  // (FORGE-S25-T26)
+  const enumCatalog = (opts && opts.enumCatalog) || null;
   const project = (config && config.project) || {};
   const commands = (config && config.commands) || {};
   const paths = (config && config.paths) || {};
@@ -289,6 +336,20 @@ function buildSubstitutionMap(config, context, rules) {
     const raw = lines.join('\n');
     const substituted = applySubstitutions(raw, map);
     map.set(placeholder, substituted);
+  }
+
+  // ── ENUM catalog keys (FORGE-S25-T26) ────────────────────────────────────────
+  // Pre-expand ENUM placeholders into the map as 'ENUM:entity.field' keys.
+  // applySubstitutions() pass 1 uses these to resolve {{ENUM:task.status}}.
+  // Fail-open: if enumCatalog is null, no ENUM keys are added and the
+  // applySubstitutions ENUM pass will leave placeholders unreplaced with a warning.
+  if (enumCatalog && enumCatalog.enums && typeof enumCatalog.enums === 'object') {
+    for (const [enumKey, enumValues] of Object.entries(enumCatalog.enums)) {
+      if (Array.isArray(enumValues)) {
+        // Format: comma + space, schema-definition order (values in catalog order, not sorted).
+        map.set('ENUM:' + enumKey, enumValues.join(', '));
+      }
+    }
   }
 
   return map;
@@ -647,8 +708,9 @@ module.exports = {
   applySubstitutions,
   extractFrontmatter,
   substituteFile,
-  walkBasePackPi,        // NEW — layout-reshape walker for --target pi
-  PI_TARGET_SUBDIRS,     // NEW — exported constant for tests
+  walkBasePackPi,        // layout-reshape walker for --target pi
+  resolveEnumCatalog,    // FORGE-S25-T26 — load enum-catalog.json; pass to buildSubstitutionMap
+  PI_TARGET_SUBDIRS,
   REQUIRED_KEYS,
   RUNTIME_PASSTHROUGH_KEYS,
 };
