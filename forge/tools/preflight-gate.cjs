@@ -113,12 +113,48 @@ function describePredicate(pred) {
   return `${pred.field} ${pred.op} ${pred.value}`;
 }
 
-module.exports = { preflight, resolveTaskArtifactDir };
+module.exports = { preflight, resolveTaskArtifactDir, resolveSprintArtifactDir };
 
 // CLI shim: `node preflight-gate.cjs --phase <name> --task <taskId> [--bug <bugId>] [--workflow <name>]`
 // exit codes: 0 ok, 1 gate(s) failed, 2 invalid args / missing definitions
-// Scan the sprint directory for a subdirectory matching the task ID prefix.
-// Returns the directory name (e.g. "FORGE-S12-T06-model-discovery") or null.
+
+// Scan the sprints root for a directory matching sprintId exactly or as a prefix slug.
+//
+// Two patterns supported (in order of preference):
+//   1. <sprintId>          — exact match (no slug)
+//   2. <sprintId>-<slug>   — slug suffix (e.g. "FORGE-S25-foundation-refactor")
+//
+// Returns the directory name (e.g. "FORGE-S25-foundation-refactor") or null.
+function resolveSprintArtifactDir(sprintId, engineeringRoot, cwd) {
+  if (!sprintId) return null;
+  const base = cwd || process.cwd();
+  const sprintsRoot = path.resolve(base, engineeringRoot, 'sprints');
+  let entries;
+  try {
+    entries = fs.readdirSync(sprintsRoot);
+  } catch (_) {
+    return null;
+  }
+  const isDir = (entry) => {
+    try {
+      return fs.statSync(path.join(sprintsRoot, entry)).isDirectory();
+    } catch (_) {
+      return false;
+    }
+  };
+  // Pass 1: exact match
+  for (const entry of entries) {
+    if (!isDir(entry)) continue;
+    if (entry === sprintId) return entry;
+  }
+  // Pass 2: slug match — dir starts with "<sprintId>-"
+  for (const entry of entries) {
+    if (!isDir(entry)) continue;
+    if (entry.startsWith(sprintId + '-')) return entry;
+  }
+  return null;
+}
+
 // Scan the sprint directory for a subdirectory matching the task.
 //
 // Two patterns supported (in order of preference, to avoid false positives):
@@ -129,10 +165,14 @@ module.exports = { preflight, resolveTaskArtifactDir };
 //                                  prefix explicitly (e.g., "S003-T-C1-1-...").
 //
 // Returns the directory name or null.
-function resolveTaskArtifactDir(taskRecord, engineeringRoot, cwd) {
+// The optional resolvedSprintDir parameter allows the caller to pass a pre-resolved
+// sprint directory name (e.g. "FORGE-S25-foundation-refactor") so the task scan
+// happens inside the correct on-disk directory rather than the bare sprintId dir.
+function resolveTaskArtifactDir(taskRecord, engineeringRoot, cwd, resolvedSprintDir) {
   if (!taskRecord || !taskRecord.sprintId || !taskRecord.taskId) return null;
   const base = cwd || process.cwd();
-  const sprintDir = path.resolve(base, engineeringRoot, 'sprints', taskRecord.sprintId);
+  const sprintDirName = resolvedSprintDir || taskRecord.sprintId;
+  const sprintDir = path.resolve(base, engineeringRoot, 'sprints', sprintDirName);
   let entries;
   try {
     entries = fs.readdirSync(sprintDir);
@@ -201,7 +241,15 @@ if (require.main === module) {
     const parts = String(p || '').split('/').filter(Boolean);
     return parts[parts.length - 1] || '';
   }
-  const taskArtifactDir = resolveTaskArtifactDir(taskRecord, engineeringRoot);
+  // Resolve the sprint directory name first (may have a slug suffix, e.g.
+  // "FORGE-S25-foundation-refactor" for sprintId "FORGE-S25"). This resolved
+  // name is used both as the {sprint} substitution and as the directory in
+  // which resolveTaskArtifactDir scans for task subdirectories.
+  const sprintId = taskRecord ? taskRecord.sprintId : undefined;
+  const resolvedSprintDir = sprintId
+    ? (resolveSprintArtifactDir(sprintId, engineeringRoot) || sprintId)
+    : undefined;
+  const taskArtifactDir = resolveTaskArtifactDir(taskRecord, engineeringRoot, undefined, resolvedSprintDir);
   // Fallback: if task.path points to a file (e.g., TASK_PROMPT.md) we want
   // the *directory* segment, not the filename. Without this, a project that
   // stores task.path as the prompt file would propagate "TASK_PROMPT.md" as
@@ -216,7 +264,7 @@ if (require.main === module) {
 
   const substitutions = {
     engineering: engineeringRoot,
-    sprint: taskRecord ? taskRecord.sprintId : undefined,
+    sprint: resolvedSprintDir,
     task: taskDir,
     bug: bugDir,
   };

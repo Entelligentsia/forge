@@ -1,4 +1,12 @@
 {
+  "0.48.0": {
+    "version": "0.48.1",
+    "date": "2026-05-23",
+    "notes": "Fix preflight-gate sprint directory slug resolution. When a sprint directory has a slug suffix (e.g. 'FORGE-S25-foundation-refactor' for sprintId 'FORGE-S25'), the gate was using the bare sprintId as the directory path, causing artifact-not-found failures even when the artifact existed under the slugged directory. Adds resolveSprintArtifactDir() (exported) that scans engineering/sprints/ for an exact match then a '<sprintId>-*' prefix match, analogous to resolveTaskArtifactDir(). resolveTaskArtifactDir() gains an optional resolvedSprintDir parameter. CLI shim resolves the sprint dir before resolving the task dir and uses it for the {sprint} substitution.",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "0.47.2": {
     "version": "0.48.0",
     "date": "2026-05-22",

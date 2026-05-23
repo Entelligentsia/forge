@@ -655,6 +655,121 @@ describe('preflight-gate.cjs :: resolveTaskArtifactDir()', () => {
   });
 });
 
+// Regression: sprint directory slug resolution — when a sprint has a slugged
+// directory name (e.g. "FORGE-S25-foundation-refactor" for sprintId "FORGE-S25"),
+// the gate must resolve {sprint} to the slugged dir name, not the bare sprintId.
+describe('preflight-gate.cjs :: resolveSprintArtifactDir()', () => {
+  const { resolveSprintArtifactDir } = require('../preflight-gate.cjs');
+
+  function makeSprints(root, dirs) {
+    const sprintsDir = path.join(root, 'engineering', 'sprints');
+    fs.mkdirSync(sprintsDir, { recursive: true });
+    for (const d of dirs) fs.mkdirSync(path.join(sprintsDir, d), { recursive: true });
+    return sprintsDir;
+  }
+
+  test('resolves slugged sprint dir: FORGE-S25 → FORGE-S25-foundation-refactor', () => {
+    const root = tmpdir();
+    makeSprints(root, ['FORGE-S25-foundation-refactor', 'FORGE-S24']);
+    const got = resolveSprintArtifactDir('FORGE-S25', 'engineering', root);
+    assert.equal(got, 'FORGE-S25-foundation-refactor');
+  });
+
+  test('resolves exact-match sprint dir (no slug): FORGE-S24 → FORGE-S24', () => {
+    const root = tmpdir();
+    makeSprints(root, ['FORGE-S25-foundation-refactor', 'FORGE-S24']);
+    const got = resolveSprintArtifactDir('FORGE-S24', 'engineering', root);
+    assert.equal(got, 'FORGE-S24');
+  });
+
+  test('returns null when no sprint dir matches', () => {
+    const root = tmpdir();
+    makeSprints(root, ['FORGE-S24', 'FORGE-S25-foundation-refactor']);
+    const got = resolveSprintArtifactDir('FORGE-S99', 'engineering', root);
+    assert.equal(got, null);
+  });
+
+  test('exact match preferred over slugged match when both exist', () => {
+    const root = tmpdir();
+    makeSprints(root, ['FORGE-S25', 'FORGE-S25-foundation-refactor']);
+    const got = resolveSprintArtifactDir('FORGE-S25', 'engineering', root);
+    assert.equal(got, 'FORGE-S25');
+  });
+
+  test('returns null for null/undefined sprintId', () => {
+    const root = tmpdir();
+    assert.equal(resolveSprintArtifactDir(null, 'engineering', root), null);
+    assert.equal(resolveSprintArtifactDir(undefined, 'engineering', root), null);
+  });
+});
+
+describe('preflight-gate.cjs :: CLI sprint slug resolution (end-to-end)', () => {
+  test('[sprint-slug] CLI resolves {sprint} to slugged dir and finds artifact under it', () => {
+    // Reproduce the FORGE-S25 failure: sprintId is FORGE-S25, but the sprint
+    // directory on disk is FORGE-S25-foundation-refactor/. Without slug
+    // resolution, the gate builds engineering/sprints/FORGE-S25/FORGE-S25-T13/PLAN.md
+    // (wrong) and exits 1. With the fix, it builds
+    // engineering/sprints/FORGE-S25-foundation-refactor/FORGE-S25-T13/PLAN.md (correct).
+    const { spawnSync } = require('node:child_process');
+    const tool = path.resolve(__dirname, '..', 'preflight-gate.cjs');
+
+    const dir = tmpdir();
+
+    // Sprint directory uses a slug (not just the bare sprintId)
+    const sprintSlugDir = path.join(dir, 'engineering', 'sprints', 'FORGE-S25-foundation-refactor');
+    const taskArtifactDir = path.join(sprintSlugDir, 'FORGE-S25-T13-some-task');
+    fs.mkdirSync(taskArtifactDir, { recursive: true });
+    fs.writeFileSync(path.join(taskArtifactDir, 'PLAN.md'), 'x'.repeat(300));
+
+    // .forge structure
+    const configDir = path.join(dir, '.forge');
+    fs.mkdirSync(path.join(configDir, 'workflows'), { recursive: true });
+    fs.mkdirSync(path.join(configDir, 'store', 'tasks'), { recursive: true });
+    fs.mkdirSync(path.join(configDir, 'store', 'sprints'), { recursive: true });
+
+    fs.writeFileSync(path.join(configDir, 'config.json'), JSON.stringify({
+      paths: { engineering: 'engineering', store: '.forge/store' },
+    }));
+
+    fs.writeFileSync(path.join(configDir, 'store', 'tasks', 'FORGE-S25-T13.json'), JSON.stringify({
+      taskId: 'FORGE-S25-T13',
+      sprintId: 'FORGE-S25',
+      title: 'Test sprint-slug task',
+      status: 'plan-approved',
+      path: 'engineering/sprints/FORGE-S25-foundation-refactor/FORGE-S25-T13-some-task',
+      summaries: { review_plan: { verdict: 'approved' } },
+    }));
+
+    fs.writeFileSync(path.join(configDir, 'store', 'sprints', 'FORGE-S25.json'), JSON.stringify({
+      sprintId: 'FORGE-S25',
+      title: 'Foundation Refactor Sprint',
+      status: 'active',
+      taskIds: ['FORGE-S25-T13'],
+      path: 'engineering/sprints/FORGE-S25-foundation-refactor',
+    }));
+
+    fs.writeFileSync(path.join(configDir, 'workflows', 'orchestrate_task.md'), [
+      '# Orchestrate Task',
+      '',
+      '```gates phase=implement',
+      'artifact {engineering}/sprints/{sprint}/{task}/PLAN.md min=100',
+      'require task.status in [plan-approved, implementing]',
+      'after review-plan = approved',
+      '```',
+    ].join('\n'));
+
+    const r = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'implement', '--task', 'FORGE-S25-T13'],
+      { encoding: 'utf8', cwd: dir },
+    );
+
+    // Without the fix: {sprint} = "FORGE-S25" → path not found → exit 1
+    // With the fix:    {sprint} = "FORGE-S25-foundation-refactor" → found → exit 0
+    assert.equal(r.status, 0, `Expected exit 0 (slugged sprint resolved), got ${r.status}. stderr: ${r.stderr}`);
+  });
+});
+
 // Regression: FORGE-BUG-034 — preflight gate for review-plan fails when
 // bug engineering directory does not exist. The bug record can be pre-created
 // by the orchestrator without creating the directory, causing all downstream
