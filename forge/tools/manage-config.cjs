@@ -8,6 +8,7 @@
 //        manage-config pipeline add <name> --description <text> --phases <json>
 //        manage-config pipeline get <name>
 //        manage-config pipeline remove <name>
+//        manage-config backfill [--forge-root <path>] [--dry-run]
 //        manage-config resolve-forge-root
 //        manage-config set <key.path> <json-value>
 
@@ -106,8 +107,13 @@ function validatePhases(phases) {
 function parseArgs(argv) {
   const result = {};
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i].startsWith('--') && i + 1 < argv.length) {
-      result[argv[i].slice(2)] = argv[++i];
+    if (argv[i].startsWith('--')) {
+      const key = argv[i].slice(2);
+      if (i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
+        result[key] = argv[++i];
+      } else {
+        result[key] = 'true'; // boolean flag
+      }
     }
   }
   return result;
@@ -129,6 +135,7 @@ if (!subcmd) {
     '  pipeline get <name>                                Print a pipeline in full',
     '  pipeline remove <name>',
     '  pipeline backfill-models                           Backfill model fields from role defaults',
+    '  backfill [--forge-root <path>] [--dry-run]                Backfill missing config fields from schema defaults',
     '  resolve-forge-root                                 Resolve Forge plugin root path',
     '  set <key.path> <json-value>                        Set an arbitrary value',
   ].join('\n'));
@@ -279,6 +286,117 @@ if (subcmd === 'set') {
 // FR-010: resolve-forge-root — resolve the Forge plugin root path using
 // three-tier priority: (1) CLAUDE_PLUGIN_ROOT env var, (2) cache/marketplace
 // scan by forgeRef, (3) paths.forgeRoot fallback.
+if (subcmd === 'backfill') {
+  // backfill-schema: write defaults for missing config fields per the config schema.
+  // Reads $FORGE_ROOT/schemas/config.schema.json (or .schemas/ fallback).
+  // Writes schema-defined defaults for any missing required or optional path fields.
+  // Also writes the top-level `version` field from the bundled plugin version.
+  // Usage: manage-config backfill [--forge-root <path>] [--dry-run]
+  const flags = parseArgs(args);
+  const forgeRoot = flags['forge-root'] || process.env.FORGE_ROOT || path.resolve(__dirname, '..');
+  const dryRun = !!flags['dry-run'];
+
+  // Locate config schema
+  let schemaPath = path.join(forgeRoot, 'schemas', 'config.schema.json');
+  if (!fs.existsSync(schemaPath)) {
+    schemaPath = path.join(forgeRoot, '.schemas', 'config.schema.json');
+  }
+  if (!fs.existsSync(schemaPath)) {
+    console.error('× config.schema.json not found in schemas/ or .schemas/ under forge-root:', forgeRoot);
+    process.exit(1);
+  }
+
+  let schema;
+  try { schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8')); } catch (e) {
+    console.error(`× reading config schema: ${e.message}`); process.exit(1);
+  }
+
+  if (!fs.existsSync(CONFIG_PATH)) {
+    console.error('× .forge/config.json not found. Run /forge:init first.');
+    process.exit(1);
+  }
+  const { config, raw } = readConfig();
+
+  const backfilled = [];
+  const still = [];
+
+  // 1. Top-level `version` — write bundled plugin version if absent
+  if (!config.version) {
+    const pluginJsonPath = path.join(forgeRoot, '.claude-plugin', 'plugin.json');
+    if (fs.existsSync(pluginJsonPath)) {
+      try {
+        const plugin = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
+        if (plugin.version) {
+          config.version = plugin.version;
+          backfilled.push('version = ' + plugin.version);
+        }
+      } catch { /* skip */ }
+    }
+    if (!config.version) {
+      still.push('version (no plugin.json found)');
+    }
+  }
+
+  // 2. Walk schema properties, apply defaults for any missing nested fields
+  //    Covers: paths.*, commands.*
+  const walkDefaults = (obj, schemaProps, prefix) => {
+    if (!schemaProps || typeof schemaProps !== 'object') return;
+    for (const [key, spec] of Object.entries(schemaProps)) {
+      const dotPath = prefix ? prefix + '.' + key : key;
+      if (spec.type === 'object' && spec.properties) {
+        // Nested object — ensure container exists, then recurse
+        if (obj[key] == null || typeof obj[key] !== 'object') obj[key] = {};
+        walkDefaults(obj[key], spec.properties, dotPath);
+      } else if (obj[key] === undefined && spec.default !== undefined) {
+        obj[key] = spec.default;
+        backfilled.push(dotPath + ' = ' + JSON.stringify(spec.default));
+      } else if (obj[key] === undefined && spec.default === undefined) {
+        // Track that it's still missing (informational only)
+        const isRequired = Array.isArray(schema.required) && schema.required.includes(key);
+        if (isRequired || (prefix === 'paths' && spec.description)) {
+          still.push(dotPath + ' (no default in schema)');
+        }
+      }
+    }
+  };
+
+  // Walk top-level properties
+  for (const [key, spec] of Object.entries(schema.properties || {})) {
+    if (key === 'version') continue; // handled above
+    if (spec.type === 'object' && spec.properties) {
+      if (config[key] == null || typeof config[key] !== 'object') config[key] = {};
+      walkDefaults(config[key], spec.properties, key);
+    } else if (config[key] === undefined && spec.default !== undefined) {
+      config[key] = spec.default;
+      backfilled.push(key + ' = ' + JSON.stringify(spec.default));
+    } else if (config[key] === undefined && spec.default === undefined) {
+      if (Array.isArray(schema.required) && schema.required.includes(key)) {
+        still.push(key + ' (required, no default)');
+      }
+    }
+  }
+
+  if (backfilled.length > 0) {
+    if (dryRun) {
+      console.log('Would backfill:');
+      for (const b of backfilled) console.log('  + ' + b);
+    } else {
+      writeConfig(config, detectIndent(raw));
+      console.log('〇 Backfilled ' + backfilled.length + ' field(s):');
+      for (const b of backfilled) console.log('  + ' + b);
+    }
+  } else {
+    console.log('〇 No missing fields to backfill.');
+  }
+
+  if (still.length > 0) {
+    console.log('△ Still missing (no schema default):');
+    for (const s of still) console.log('  - ' + s);
+  }
+
+  process.exit(0);
+}
+
 if (subcmd === 'resolve-forge-root') {
   // Priority 1: CLAUDE_PLUGIN_ROOT env var (if set and directory exists)
   const envRoot = process.env.CLAUDE_PLUGIN_ROOT;

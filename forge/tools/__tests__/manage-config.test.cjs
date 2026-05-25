@@ -174,8 +174,8 @@ describe('manage-config.cjs', () => {
     test('parses --key value pairs', () => {
       const result = parseArgs(['--phases', '[...]', '--dry-run']);
       assert.equal(result.phases, '[...]');
-      // --dry-run has no value following it so it is not captured
-      assert.equal(result['dry-run'], undefined);
+      // --dry-run has no value following it so it is treated as boolean flag
+      assert.equal(result['dry-run'], 'true');
     });
 
     test('parses multiple --key value pairs', () => {
@@ -188,9 +188,9 @@ describe('manage-config.cjs', () => {
       assert.deepEqual(parseArgs([]), {});
     });
 
-    test('skips a dangling flag with no value', () => {
+    test('treats a dangling flag with no value as boolean true', () => {
       const result = parseArgs(['--verbose']);
-      assert.equal(result.verbose, undefined);
+      assert.equal(result.verbose, 'true');
     });
 
     test('does not treat a non-flag as a key', () => {
@@ -438,6 +438,109 @@ describe('manage-config.cjs', () => {
         }
         fs.rmSync(tmp, { recursive: true, force: true });
       }
+    });
+  });
+
+  // ── CLI: backfill ────────────────────────────────────────────────────
+
+  describe('backfill (CLI)', () => {
+    const { spawnSync } = require('child_process');
+    const forgeRoot = path.resolve(__dirname, '..', '..');
+    const schemaPath = path.join(forgeRoot, 'schemas', 'config.schema.json');
+
+    function makeTmpProject(config) {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-backfill-test-'));
+      fs.mkdirSync(path.join(dir, '.forge'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, '.forge', 'config.json'),
+        JSON.stringify(config, null, 2) + '\n',
+        'utf8'
+      );
+      return dir;
+    }
+
+    test('backfills missing paths.* defaults from schema', () => {
+      const tmp = makeTmpProject({ project: { name: 'test', prefix: 't' }, paths: { engineering: 'eng', forgeRoot: '/tmp/f' } });
+      const result = spawnSync(
+        process.execPath,
+        [path.join(__dirname, '..', 'manage-config.cjs'), 'backfill', '--forge-root', forgeRoot],
+        { cwd: tmp, encoding: 'utf8' },
+      );
+      assert.strictEqual(result.status, 0, `backfill must exit 0. stderr: ${result.stderr}`);
+      assert.ok(result.stdout.includes('Backfilled'), `should report backfills: ${result.stdout}`);
+
+      // Read the updated config
+      const cfg = JSON.parse(fs.readFileSync(path.join(tmp, '.forge', 'config.json'), 'utf8'));
+      assert.ok(cfg.paths.store, 'paths.store should be set');
+      assert.ok(cfg.paths.workflows, 'paths.workflows should be set');
+      assert.ok(cfg.paths.commands, 'paths.commands should be set');
+      assert.ok(cfg.paths.templates, 'paths.templates should be set');
+      // Version should be set from plugin.json
+      assert.ok(cfg.version, 'version should be set');
+
+      fs.rmSync(tmp, { recursive: true, force: true });
+    });
+
+    test('dry-run does not write config', () => {
+      const tmp = makeTmpProject({ project: { name: 'test', prefix: 't' }, paths: { engineering: 'eng', forgeRoot: '/tmp/f' } });
+      const before = fs.readFileSync(path.join(tmp, '.forge', 'config.json'), 'utf8');
+      const result = spawnSync(
+        process.execPath,
+        [path.join(__dirname, '..', 'manage-config.cjs'), 'backfill', '--forge-root', forgeRoot, '--dry-run'],
+        { cwd: tmp, encoding: 'utf8' },
+      );
+      assert.strictEqual(result.status, 0, `backfill --dry-run must exit 0. stderr: ${result.stderr}`);
+      assert.ok(result.stdout.includes('Would backfill'), `should say 'Would backfill': ${result.stdout}`);
+
+      const after = fs.readFileSync(path.join(tmp, '.forge', 'config.json'), 'utf8');
+      assert.strictEqual(before, after, 'dry-run should not modify config');
+
+      fs.rmSync(tmp, { recursive: true, force: true });
+    });
+
+    test('no-ops when all fields present', () => {
+      const fullConfig = {
+        version: '1.0',
+        project: { name: 'test', prefix: 't' },
+        paths: {
+          engineering: 'eng',
+          store: '.forge/store',
+          workflows: '.forge/workflows',
+          commands: '.claude/commands',
+          templates: '.forge/templates',
+          forgeRoot: '/tmp/f',
+          customCommands: 'engineering/commands',
+        },
+        pipeline: { maxReviewIterations: 3 },
+        sprint: { execution: { mode: 'sequential', maxConcurrentAgents: 3 } },
+        stack: {},
+        commands: {},
+      };
+      const tmp = makeTmpProject(fullConfig);
+      const result = spawnSync(
+        process.execPath,
+        [path.join(__dirname, '..', 'manage-config.cjs'), 'backfill', '--forge-root', forgeRoot],
+        { cwd: tmp, encoding: 'utf8' },
+      );
+      assert.strictEqual(result.status, 0, `backfill must exit 0. stderr: ${result.stderr}`);
+      assert.ok(result.stdout.includes('No missing fields'), `should say no missing fields: ${result.stdout}`);
+
+      fs.rmSync(tmp, { recursive: true, force: true });
+    });
+
+    test('reports still-missing fields without schema defaults', () => {
+      // Minimal config missing fields that have no defaults (e.g. commands.test)
+      const tmp = makeTmpProject({ project: { name: 'test', prefix: 't' }, paths: { engineering: 'eng', forgeRoot: '/tmp/f' } });
+      const result = spawnSync(
+        process.execPath,
+        [path.join(__dirname, '..', 'manage-config.cjs'), 'backfill', '--forge-root', forgeRoot, '--dry-run'],
+        { cwd: tmp, encoding: 'utf8' },
+      );
+      assert.strictEqual(result.status, 0, `backfill must exit 0. stderr: ${result.stderr}`);
+      // Should backfill paths defaults and version, but commands.test has no default
+      assert.ok(result.stdout.includes('Backfilled') || result.stdout.includes('Would backfill'), `should report backfills: ${result.stdout}`);
+
+      fs.rmSync(tmp, { recursive: true, force: true });
     });
   });
 

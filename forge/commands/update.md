@@ -485,6 +485,21 @@ LOCAL_VERSION=$(node -e "console.log(require('$FORGE_ROOT/.claude-plugin/plugin.
 node "$FORGE_ROOT/tools/manage-config.cjs" set paths.forgeRef "$LOCAL_VERSION"
 ```
 
+**Backfill missing config fields:** Config schema evolves across versions — new
+required or recommended fields may have been added since the project was last
+initialized. `manage-config backfill` reads the config schema, compares it
+against the current `.forge/config.json`, and writes defaults for any missing
+fields with schema-defined defaults. It also stamps the top-level `version`
+field from the bundled plugin version. Run after setting forgeRoot/forgeRef:
+
+```sh
+node "$FORGE_ROOT/tools/manage-config.cjs" backfill --forge-root "$FORGE_ROOT"
+```
+
+If the project was recently initialized and all fields are already present, the
+command prints `〇 No missing fields to backfill.` and exits cleanly —
+no changes, no side effects.
+
 Determine the baseline version:
 - Use `migratedFrom` from `CACHE_FILE` (set in Step 1)
 - Or the `--from <version>` argument if provided
