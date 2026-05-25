@@ -244,7 +244,7 @@ Now evaluate — **stop at the first matching row and follow only that row's act
 
 | # | Condition | Action |
 |---|-----------|--------|
-| 1 | `REMOTE_VERSION` == `LOCAL_VERSION` and `LOCAL_VERSION` == baseline | Print "Forge {LOCAL_VERSION} — up to date. No pending migrations." and **exit**. |
+| 1 | `REMOTE_VERSION` == `LOCAL_VERSION` and `LOCAL_VERSION` == baseline | Print "Forge {LOCAL_VERSION} — up to date. No pending migrations." Then execute **Step 4 config refresh** (paths.forgeRoot, paths.forgeRef, backfill) and proceed to **Step 5**. |
 | 2 | `REMOTE_VERSION` == `LOCAL_VERSION` and `LOCAL_VERSION` != baseline | Jump to **Step 2B** (project migration — no install needed). |
 | 3 | `IS_CANARY` is true | Jump to **Step 2B** (canary — no install needed). |
 | 4 | `LOCAL_VERSION` > `REMOTE_VERSION` | Print "Local version ({LOCAL_VERSION}) is ahead of the release channel ({REMOTE_VERSION}). No install needed — applying any pending project migrations." then jump to **Step 2B**. |
@@ -469,6 +469,13 @@ node "$FORGE_ROOT/tools/banners.cjs" --phase 4 7 "Apply migrations" forge \
 > before any migration targets or regeneration commands execute. This ensures all
 > subsequent tool invocations in Step 4 (including `build-init-context.cjs` called
 > by regeneration sub-steps) use the current, correct plugin path.
+>
+> **Config refresh always runs.** The Step 4 header section (forgeRoot, forgeRef,
+> backfill) executes regardless of whether migrations are pending — even Row 1
+> ("up to date") proceeds through this section before skipping to Step 5. The
+> "skip to Step 5" directive skips only the migration chain walk and regeneration.
+> Missing config fields can accumulate across version boundaries; backfill ensures
+> the config stays structurally complete after every `/forge:update` invocation.
 
 **Refresh `paths.forgeRoot` before applying migrations:**
 
