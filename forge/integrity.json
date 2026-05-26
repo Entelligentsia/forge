@@ -1,6 +1,6 @@
 {
-  "version": "0.51.1",
-  "generated": "2026-05-23",
+  "version": "0.51.3",
+  "generated": "2026-05-26",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
     "commands/add-pipeline.md": "402c1deb6f19ad99561b48548ad89e3e1f625b827dce633eb84317556c0a1a4a",
@@ -20,7 +20,7 @@
     "commands/store-query.md": "28925bd257ceb6645254628abf0e76524481460382192ea00081b17310b88fed",
     "commands/store-repair.md": "9317be65deb400953b8642b4d353d5583d3b032546c0b8f73d6c3a9b3445ebdd",
     "commands/update-tools.md": "768c0d7ec07a17055c3d4b1b31370812f4292e03b1496723ba36f8caf596a609",
-    "commands/update.md": "6f7be76884888b0cbbe5e60a6926bbaa368f2ee3191f2be40adc8d263ad414aa",
+    "commands/update.md": "a7317f919e79cab165ab05b477f0f6a919ea12b159ddd6c06bec103cf85c4337",
     "agents/store-query-validator.md": "f4c3573edcf6e28809515705362df611806a805c5269404fb17e31433cf3a81c",
     "agents/tomoshibi.md": "0112604af0856235d7f028683dbfa3f4af63355cb2dd79d26592e983a6ecec8b",
     "hooks/check-update.cjs": "e66a03eeca609c7426ba7ab8502d41a10b4d740861a6f9728e8ca1e49db8c86a",
@@ -32,7 +32,7 @@
     "schemas/transitions/bug.json": "27b17da42d1cebffbd4f61ab3dcd432a0017aa71997d548ed80d22c2fc3fad6a",
     "schemas/transitions/sprint.json": "2e0a629396e687b0ca88e1814ac3e35d84533a5d55b25237ab67feddce3c9deb",
     "schemas/transitions/task.json": "4c71849747baa0d585756e57c56325ff6219c078178374e60815dff91e25e3e7",
-    "schemas/enum-catalog.json": "db3ae83b313b5cea9186b3e28f8290daa1f562afd610d4ce9d1e52abbd0b13a4",
+    "schemas/enum-catalog.json": "7030d3e4b9c55a9cf0487ec1531a9ae7c1d37cd23526129b7c871d34ed808233",
     "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
   }
 }

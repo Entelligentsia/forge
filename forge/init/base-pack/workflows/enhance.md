@@ -365,7 +365,20 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
    usage telemetry, not friction, so recurrence is neutral by construction).
 
 5b.5. **Compression gate (reject >20% growth without 3+ frictions)** — a cheap
-   deterministic filter that runs BEFORE the LLM judge (step 5c). Any
+   deterministic filter that runs BEFORE the LLM judge (step 5c).
+
+   **Before writing any rejections**, ensure the target directory exists:
+   ```sh
+   mkdir -p "$PROJECT_ROOT/.forge/enhancement-proposals"
+   ```
+
+   All gate and judge rejections MUST be written to:
+   ```
+   $PROJECT_ROOT/.forge/enhancement-proposals/phase2-<timestamp>-rejections.json
+   ```
+   NEVER write a bare `rejections.json` to the project root or any other location.
+
+   Any
    `update_skill` proposal that would grow the target file by more than 20%
    (byte-wise, UTF-8) must be backed by at least 3 supporting friction events;
    otherwise it is rejected here and never reaches the judge. `insert_skill`
@@ -405,9 +418,10 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
    "
    ```
 
-   **Logging gate rejections.** Append every rejection from this step to the
-   same `phase2-<timestamp>-rejections.json` sibling that step 5c uses, with
-   the rejection record carrying `{ proposal, admit: false,
+   **Logging gate rejections.** Append every rejection from this step to
+   `$PROJECT_ROOT/.forge/enhancement-proposals/phase2-<timestamp>-rejections.json`
+   (the same file the LLM-judge gate in step 5c writes to). The rejection
+   record carries `{ proposal, admit: false,
    reason: 'compression_gate_growth_unsupported', growthRatio, currentBytes,
    newBytes, supportingFrictionCount, threshold, minSupportingFrictions }`.
    This keeps every drop — gate or judge — traceable in one place.
@@ -508,6 +522,22 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
    history may simply be new or temporarily idle. Operators should treat
    delete proposals from short-history runs as advisory until the full
    window is populated.
+
+   **Verification (after steps 5b.5 + 5c).** If any proposals were
+   rejected by either gate, verify the rejections file landed at the
+   contracted path:
+   ```sh
+   ls "$PROJECT_ROOT/.forge/enhancement-proposals/phase2-"*"-rejections.json"
+   ```
+   If the file is missing but rejections were recorded, the write targeted
+   the wrong path. Check for a stray `rejections.json` at the project root
+   and move it:
+   ```sh
+   [ -f "$PROJECT_ROOT/rejections.json" ] && \
+     mv "$PROJECT_ROOT/rejections.json" \
+        "$PROJECT_ROOT/.forge/enhancement-proposals/phase2-${TIMESTAMP}-rejections.json"
+   ```
+   NEVER leave a bare `rejections.json` at the project root.
 
 6. **Write proposal artifact**:
    ```sh
