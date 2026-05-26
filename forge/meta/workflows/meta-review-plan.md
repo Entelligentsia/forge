@@ -56,23 +56,41 @@ deps:
      Print the following and HALT (do not proceed):
      `× Task {record_id} is in state '{status}' — /forge:plan must complete first. To run the full pipeline: /forge:run-task {record_id}`
 
-1. Load Context:
+1. Read Review Loop Context:
+   - Check the spawning prompt for a `### Review Loop Context` block.
+   - If present, extract:
+     - `Iteration: N of M` — current attempt number and the configured limit
+     - `Is final iteration: true/false`
+   - If absent (user-invoked, not orchestrated): treat as iteration 1 of M, where M is
+     read from `.forge/config.json` → `maxReviewIterations` (default 3 if field absent).
+   - Include `(iteration N of M)` in the opening line of the `PLAN_REVIEW.md` artifact.
+   - If this is the final iteration (`N == M`) and the verdict is `Revision Required`,
+     append a `### Next Steps` section to the artifact showing:
+     ```
+     ### Next Steps
+     - Force-approve (bypass remaining reviews): `/forge:approve --force {task_id}`
+     - Increase iteration limit: edit `config.pipelines.{pipeline}.phases[review-plan].maxIterations`
+     - Restart from review: `/forge:review-plan {task_id}`
+     ```
+
+2. Load Context:
    - Read task prompt (source of truth)
    - Read PLAN.md (subject of review)
    - Read stack checklist if available
 
-2. Review:
+3. Review:
    - Evaluate feasibility, completeness, security, architecture alignment, and testing strategy
    - Identify missing edge cases or failure modes
 
-3. Verdict:
+4. Verdict:
    - Write the plan review via forge_artifact: forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"plan-review", content:"<markdown>" })
      Use the format:
      **Verdict:** [Approved | Revision Required]
      - If Revision Required: provide numbered, actionable items
      - If Approved: provide any advisory notes
+     - See step 1 for iteration header and final-iteration Next Steps requirements.
 
-4. Finalize:
+5. Finalize:
    - Transitions:
      - **Task mode** — predecessor must be `planned`.
        - Approved          → `plan-approved`
@@ -82,7 +100,7 @@ deps:
      - **Bug mode** — NO status write. The bug remains `in-progress`. The verdict signal travels through `summaries.review_plan.verdict` (read by `read-verdict.cjs § BUG_PHASE_VERDICT_SOURCE`), not `bug.status`. Writing `bug.status` here violates `meta-fix-bug.md § Iron Laws #2`.
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
-5. Emit Summary Sidecar:
+6. Emit Summary Sidecar:
    - Write the review-plan summary via forge_artifact: forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"review-plan-summary", content:"<JSON>" })
      The JSON must have the following shape:
      ```json

@@ -60,31 +60,49 @@ The Supervisor performs a final validation of the implementation against the acc
      Print the following and HALT (do not proceed):
      `× Task {record_id} is in state '{status}' — /forge:implement must complete first. To run the full pipeline: /forge:run-task {record_id}`
 
-1. Load Context:
+1. Read Review Loop Context:
+   - Check the spawning prompt for a `### Review Loop Context` block.
+   - If present, extract:
+     - `Iteration: N of M` — current attempt number and the configured limit
+     - `Is final iteration: true/false`
+   - If absent (user-invoked, not orchestrated): treat as iteration 1 of M, where M is
+     read from `.forge/config.json` → `maxReviewIterations` (default 3 if field absent).
+   - Include `(iteration N of M)` in the opening line of the `VALIDATION_REPORT.md` artifact.
+   - If this is the final iteration (`N == M`) and the verdict is `Revision Required`,
+     append a `### Next Steps` section to the artifact showing:
+     ```
+     ### Next Steps
+     - Force-approve (bypass remaining reviews): `/forge:approve --force {task_id}`
+     - Increase iteration limit: edit `config.pipelines.{pipeline}.phases[validate].maxIterations`
+     - Restart from validation: `/forge:validate {task_id}`
+     ```
+
+2. Load Context:
    - Read task prompt
    - Read approved PLAN.md
    - Read the implementation
    - Read PROGRESS.md
 
-2. Validation:
+3. Validation:
    - Execute the "Acceptance Criteria" checklist from the plan
    - Verify that all technical constraints (e.g., performance, security) are met
    - Check for any regressions in related functionality
    - When re-running the test suite, use the **resolved test command** from `commands.test` in `.forge/config.json` (i.e. `` `${commands.test}` ``, e.g. `.venv/bin/python -m pytest`). Template placeholder: {{TEST_COMMAND}}. Do NOT invoke bare `python` / `python3` — the project interpreter is rarely on `$PATH`.
 
-3. Verdict:
+4. Verdict:
    - Write the validation report via:
      `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"validation-report", content:"<markdown>" })`
      The markdown content must use the format:
      **Verdict:** [Approved | Revision Required]
      - If Revision Required: list the failed criteria and required fixes
      - If Approved: confirm the task is validated
+     - See step 1 for iteration header and final-iteration Next Steps requirements.
 
-4. Finalize:
+5. Finalize:
    - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status review-approved` (if Approved) or `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status code-revision-required` (if Revision Required)
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
-5. Emit Summary Sidecar:
+6. Emit Summary Sidecar:
    - Write the validation summary via:
      `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"validation-summary", content:"<JSON>" })`
      The JSON content must have the following shape:

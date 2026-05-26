@@ -57,6 +57,44 @@ describe('phase-workflow-guards :: preflight invocation invariant', () => {
   });
 });
 
+describe('review-loop-context :: iteration context marker present in review workflows', () => {
+  // AC #7: each review workflow (and the orchestrator) must contain the Review Loop Context
+  // marker so orchestrated runs can surface iteration N of M to the reviewer.
+  const REVIEW_WORKFLOWS = [
+    'meta-review-plan.md',
+    'meta-review-implementation.md',
+    'meta-validate.md',
+  ];
+
+  for (const file of REVIEW_WORKFLOWS) {
+    test(`${file} contains Review Loop Context step`, () => {
+      const p = path.join(WORKFLOWS_DIR, file);
+      assert.ok(fs.existsSync(p), `expected workflow file at ${p}`);
+      const contents = fs.readFileSync(p, 'utf8');
+      assert.match(
+        contents,
+        /Review Loop Context/,
+        `${file} is missing the "Review Loop Context" marker — AC-7 violation`,
+      );
+    });
+  }
+
+  test('meta-orchestrate.md injects review_loop_context block for review-role phases', () => {
+    const p = path.join(WORKFLOWS_DIR, 'meta-orchestrate.md');
+    const contents = fs.readFileSync(p, 'utf8');
+    assert.match(
+      contents,
+      /review_loop_context/,
+      'meta-orchestrate.md is missing the review_loop_context injection — AC-3 violation',
+    );
+    assert.match(
+      contents,
+      /Review Loop Context/,
+      'meta-orchestrate.md is missing the "### Review Loop Context" block template — AC-3 violation',
+    );
+  });
+});
+
 describe('pipeline-step-guard :: user-visible guard block present', () => {
   // AC #1: each workflow must contain the canonical error message template
   // AC #2: each workflow must mention the --force bypass
