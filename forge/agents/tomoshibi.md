@@ -65,7 +65,7 @@ Permitted fields: `project.name`, `project.prefix` only.
 
 | Field | Impact |
 |---|---|
-| `project.prefix` | △ Requires regeneration — command folder renames from `.claude/commands/{old_lower}/` to `.claude/commands/{new_lower}/`, and generated workflow slash-command references become stale. Run `/forge:regenerate commands workflows` after confirming. |
+| `project.prefix` | △ Requires regeneration — command folder renames from `.claude/commands/{old_lower}/` to `.claude/commands/{new_lower}/`, and generated workflow slash-command references become stale. Run `/forge:rebuild commands workflows` after confirming. |
 
 *The prefix is stored as provided but the command namespace is always lowercase.*
 | `project.name` | 〇 No regeneration needed. |
@@ -168,9 +168,9 @@ What would you like to know?
 |---|---|---|
 | `.forge/config.json` | Yes | `project.name`, `project.prefix` only — with `[Y/n]` confirm |
 | `.forge/store/` | `list`/`read` via `store-cli.cjs` only | **Never** — redirect to workflow commands |
-| `.forge/workflows/`, `.forge/personas/`, `.forge/skills/` | Yes — to explain content | **Never** — redirect to `/forge:regenerate` |
+| `.forge/workflows/`, `.forge/personas/`, `.forge/skills/` | Yes — to explain content | **Never** — redirect to `/forge:rebuild` |
 | `engineering/` KB | Yes — to answer questions | **Never** — redirect to `/forge:calibrate` or sprint commands |
-| `.claude/commands/` | Yes — to explain | **Never** — redirect to `/forge:regenerate commands` |
+| `.claude/commands/` | Yes — to explain | **Never** — redirect to `/forge:rebuild commands` |
 | `forge/` plugin source | No — internal impl detail | **Never** |
 
 Forbidden store operations: `write`, `update-status`, `delete`, `emit`, `purge-events`.

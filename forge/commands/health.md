@@ -101,7 +101,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
    If any modified or missing files are reported, include them in the health
    report under **Modified generated files** with the note:
    > These files were manually edited after generation. Regeneration will warn
-   > before overwriting them. Run `/forge:regenerate` to review and update.
+   > before overwriting them. Run `/forge:rebuild` to review and update.
    If all files are pristine (or the tool is absent), omit this section.
 8. Check generated file structure:
    ```sh
@@ -110,7 +110,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
    If missing files are reported, include them in the health report under
    **Generated file structure** with note:
    > N expected file(s) are missing from generated output. Run `/forge:update` to
-   > regenerate missing files, or `/forge:regenerate <namespace>` for targeted repair.
+   > regenerate missing files, or `/forge:rebuild <namespace>` for targeted repair.
    If all files are present (exit 0), emit:
    > 〇 Generated file structure — all expected files present.
    If the tool is absent (file not found), skip this check silently.
@@ -134,7 +134,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
     - If any concept doc is older than the newest schema change, emit a notice that it may be stale.
 12. Check persona pack freshness:
     - If `$PROJECT_ROOT/.forge/cache/persona-pack.json` does not exist, emit:
-      > △ Persona pack missing — run `/forge:regenerate` to build it.
+      > △ Persona pack missing — run `/forge:rebuild` to build it.
       (The pack is consumed by `meta-orchestrate` and `meta-fix-bug` when `FORGE_PROMPT_MODE=reference`.)
     - Otherwise read the pack's `source_hash`, then compute the current hash:
       ```sh
@@ -142,7 +142,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
       STORED=$(node -e "console.log(require('$PROJECT_ROOT/.forge/cache/persona-pack.json').source_hash)")
       ```
       If `CURRENT != STORED`, emit:
-      > △ Persona pack stale — meta/ has changed since last build. Run `/forge:regenerate` to refresh.
+      > △ Persona pack stale — meta/ has changed since last build. Run `/forge:rebuild` to refresh.
       Otherwise emit:
       > 〇 Persona pack fresh.
 13. Check context pack freshness:
@@ -156,14 +156,14 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
       ```
     - If `engineering/architecture/` does not exist, skip this check silently.
     - If `.forge/cache/context-pack.json` does not exist, emit:
-      > △ Context pack missing — run `/forge:regenerate` to build it.
+      > △ Context pack missing — run `/forge:rebuild` to build it.
       (The pack is injected by `meta-orchestrate` and `meta-fix-bug` to reduce per-phase architecture reads.)
     - Otherwise read `source_hash` from `.forge/cache/context-pack.json` and compare:
       ```sh
       STORED=$(node -e "console.log(require('$PROJECT_ROOT/.forge/cache/context-pack.json').source_hash)")
       ```
       If `CURRENT != STORED` (and `CURRENT != 'n/a'`), emit:
-      > △ Context pack stale — architecture docs have changed since last build. Run `/forge:regenerate` or `/forge:collate` to rebuild.
+      > △ Context pack stale — architecture docs have changed since last build. Run `/forge:rebuild` or `/forge:collate` to rebuild.
       Otherwise emit:
       > 〇 Context pack fresh.
 14. Check plugin integrity:

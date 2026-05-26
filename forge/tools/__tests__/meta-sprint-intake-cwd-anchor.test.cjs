@@ -1,42 +1,6 @@
 'use strict';
-// Regression guard for forge#83 — meta-sprint-intake.md must give the
-// subagent a Project Orientation block so it knows where it is and what is
-// in scope. Philosophy: context, not enforcement. Weaker non-Claude models
-// improvised paths and ran fs-wide searches when cwd context was implicit.
-// The orientation block restores that context up front.
-const { test, describe } = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-
-const META = path.resolve(
-  __dirname, '..', '..', 'meta', 'workflows', 'meta-sprint-intake.md',
-);
-
-describe('meta-sprint-intake.md :: Project Orientation regression guard (forge#83)', () => {
-  const contents = fs.readFileSync(META, 'utf8');
-
-  test('declares the current working directory is the project root', () => {
-    assert.match(
-      contents,
-      /current working directory is the project root/i,
-      'sprint-intake workflow no longer orients the subagent to cwd',
-    );
-  });
-
-  test('points at .forge/config.json and forge_config MCP for config', () => {
-    assert.match(
-      contents,
-      /\.forge\/config\.json[\s\S]{0,200}forge_config/i,
-      'sprint-intake workflow no longer points at .forge/config.json + forge_config MCP',
-    );
-  });
-
-  test('points at engineering/ for project knowledge', () => {
-    assert.match(
-      contents,
-      /Engineering knowledge lives under `engineering\/`/,
-      'sprint-intake workflow no longer points at engineering/ as the knowledge root',
-    );
-  });
-});
+// Renamed in v1.0: meta-sprint-intake → meta-new-sprint
+// This file is kept as a no-op stub so git history is preserved.
+// Active tests live in meta-new-sprint-cwd-anchor.test.cjs.
+const { describe } = require('node:test');
+describe('meta-sprint-intake-cwd-anchor (stub — renamed to meta-new-sprint-cwd-anchor)', () => {});

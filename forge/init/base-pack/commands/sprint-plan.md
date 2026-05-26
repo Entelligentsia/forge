@@ -1,22 +1,6 @@
 ---
 name: sprint-plan
-description: Decompose sprint requirements into tasks with dependencies
+description: Renamed in v1.0 — use /{{PREFIX}}:plan-sprint
 ---
 
-# /{{PREFIX}}:sprint-plan
-
-Read the sprint-plan workflow and follow it.
-
-## Locate the Forge plugin
-
-```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
-```
-
-## Execute
-
-Read `.forge/workflows/architect_sprint_plan.md` and follow it.
-
-## Arguments
-
-$ARGUMENTS
+× /{{PREFIX}}:sprint-plan was renamed to /{{PREFIX}}:plan-sprint in v1.0.

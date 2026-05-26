@@ -172,7 +172,7 @@ and what capabilities it has. Two modes are supported, selected by the
 | `reference` | Compact summary from `.forge/cache/persona-pack.json`, plus a file_ref pointer to the full persona/skill definitions. | ✅ |
 | `inline` | Legacy: inject the full verbatim persona and skill file contents. Kept for one version as a rollback path. | |
 
-The pack is built by `/forge:regenerate` and `/forge:materialize` via
+The pack is built by `/forge:rebuild` and `/forge:materialize` via
 `forge/tools/build-persona-pack.cjs`. It compiles YAML frontmatter from
 `$FORGE_ROOT/meta/personas/meta-*.md` and `$FORGE_ROOT/meta/skills/meta-*.md`
 into `.forge/cache/persona-pack.json`.
@@ -199,7 +199,7 @@ def compose_role_block(persona_noun):
         # regeneration bug and should be reported via /forge:report-bug.
         raise OrchestratorError(
             f"persona '{persona_noun}' not in persona-pack. "
-            "Run /forge:regenerate to rebuild the pack."
+            "Run /forge:rebuild to rebuild the pack."
         )
 
     lines = [

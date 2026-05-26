@@ -1,6 +1,6 @@
 {
-  "version": "0.52.0",
-  "generatedAt": "2026-05-26T09:07:57.541Z",
+  "version": "0.52.1",
+  "generatedAt": "2026-05-26T11:10:13.549Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -75,20 +75,20 @@
       "prefixed": true,
       "files": [
         "approve.md",
+        "check-agent.md",
         "collate.md",
         "commit.md",
         "enhance.md",
         "fix-bug.md",
         "implement.md",
+        "new-sprint.md",
+        "plan-sprint.md",
         "plan.md",
-        "quiz-agent.md",
-        "retrospective.md",
+        "retro.md",
         "review-code.md",
         "review-plan.md",
         "run-sprint.md",
         "run-task.md",
-        "sprint-intake.md",
-        "sprint-plan.md",
         "validate.md"
       ]
     },

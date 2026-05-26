@@ -20,20 +20,20 @@ PREFIX=$(node -e "try{console.log(require('./.forge/config.json').project.prefix
 ```
 
 `.claude/commands/{PREFIX}/` with namespaced commands:
-- `sprint-intake.md` → `/{PREFIX}:sprint-intake`
+- `new-sprint.md` → `/{PREFIX}:new-sprint`
 - `plan.md` → `/{PREFIX}:plan {TASK_ID}`
 - `review-plan.md` → `/{PREFIX}:review-plan {TASK_ID}`
 - `implement.md` → `/{PREFIX}:implement {TASK_ID}`
 - `review-code.md` → `/{PREFIX}:review-code {TASK_ID}`
 - `fix-bug.md` → `/{PREFIX}:fix-bug {BUG_ID}`
-- `sprint-plan.md` → `/{PREFIX}:sprint-plan`
+- `plan-sprint.md` → `/{PREFIX}:plan-sprint`
 - `run-task.md` → `/{PREFIX}:run-task {TASK_ID}`
 - `run-sprint.md` → `/{PREFIX}:run-sprint {SPRINT_ID} [--parallel]`
 - `collate.md` → `/{PREFIX}:collate [SPRINT_ID]`
-- `retrospective.md` → `/{PREFIX}:retrospective {SPRINT_ID}`
+- `retro.md` → `/{PREFIX}:retro {SPRINT_ID}`
 - `approve.md` → `/{PREFIX}:approve {TASK_ID}`
 - `commit.md` → `/{PREFIX}:commit {TASK_ID}`
-- `quiz-agent.md` → `/{PREFIX}:quiz-agent $ARGUMENTS`
+- `check-agent.md` → `/{PREFIX}:check-agent $ARGUMENTS`
 - `enhance.md` → `/{PREFIX}:enhance $ARGUMENTS`
 - `validate.md` → `/{PREFIX}:validate {TASK_ID}`
 
@@ -94,11 +94,11 @@ Where:
 | `commit.md` | Stage and commit completed task artifacts |
 | `run-task.md` | Orchestrate the full plan→implement→review→approve pipeline for a task |
 | `run-sprint.md` | Execute all tasks in a sprint (sequential or parallel) |
-| `sprint-intake.md` | Elicit and structure requirements for a new sprint |
-| `sprint-plan.md` | Decompose sprint requirements into tasks with dependencies |
+| `new-sprint.md` | Elicit and structure requirements for a new sprint |
+| `plan-sprint.md` | Decompose sprint requirements into tasks with dependencies |
 | `collate.md` | Regenerate KB documents from the JSON store |
-| `retrospective.md` | Produce sprint retrospective and lessons-learned document |
-| `quiz-agent.md` | Verify an agent has read and understood the project KB before high-stakes tasks |
+| `retro.md` | Produce sprint retrospective and lessons-learned document |
+| `check-agent.md` | Verify an agent has read and understood the project KB before high-stakes tasks |
 | `enhance.md` | Progressive project-specific enrichment of structural elements |
 | `validate.md` | Validate that a task implementation satisfies acceptance criteria |
 
@@ -112,14 +112,14 @@ Where:
 | `plan.md` | `high` | Design work with broad codebase context |
 | `implement.md` | `high` | Non-trivial code generation |
 | `fix-bug.md` | `high` | Diagnosis + fix |
-| `sprint-plan.md` | `high` | Decomposition and dependency analysis |
+| `plan-sprint.md` | `high` | Decomposition and dependency analysis |
 | `run-task.md` | `high` | Full task orchestration |
 | `run-sprint.md` | `high` | Multi-task orchestration |
-| `sprint-intake.md` | `high` | Structured requirements elicitation |
-| `retrospective.md` | `medium` | Reflection and summary |
+| `new-sprint.md` | `high` | Structured requirements elicitation |
+| `retro.md` | `medium` | Reflection and summary |
 | `collate.md` | `low` | Mechanical markdown regeneration |
 | `commit.md` | `low` | Staging and committing completed work |
-| `quiz-agent.md` | `medium` | Short factual quiz — moderate reasoning, no deep codebase traversal |
+| `check-agent.md` | `medium` | Short factual quiz — moderate reasoning, no deep codebase traversal |
 | `enhance.md` | `high` | Enhancement agent — broad structural enrichment |
 | `validate.md` | `max` | Validation gate — needs deepest reasoning |
 
@@ -139,9 +139,9 @@ After all 16 command files have been written and recorded, scan for pre-v0.13.0
 flat command files that were never namespaced. These are the **13 known flat filenames**:
 
 ```
-sprint-intake.md  sprint-plan.md  run-task.md   run-sprint.md  plan.md
+new-sprint.md  plan-sprint.md  run-task.md   run-sprint.md  plan.md
 review-plan.md    implement.md    review-code.md fix-bug.md     approve.md
-commit.md         collate.md      retrospective.md
+commit.md         collate.md      retro.md
 ```
 
 Check for each at `.claude/commands/{filename}.md` (the flat path, NOT the namespaced

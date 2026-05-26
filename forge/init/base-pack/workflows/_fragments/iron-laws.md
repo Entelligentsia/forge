@@ -52,7 +52,7 @@ into the standard three-bullet structure.
 
 Some workflows have no `## Iron Laws` section by design:
 
-- `meta-quiz-agent.md` — utility workflow; no store writes; no output contract.
+- `meta-check-agent.md` — utility workflow; no store writes; no output contract.
 - `meta-review-sprint-completion.md` — read-only verification; no state transitions.
 
 Intentional omissions are documented with an inline comment before the `## Algorithm`

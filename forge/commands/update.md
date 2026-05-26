@@ -317,7 +317,7 @@ Present the update summary:
 ```
 
 If no migration path can be constructed, show available notes and recommend
-`/forge:regenerate workflows`.
+`/forge:rebuild workflows`.
 
 Ask the user to choose. If they choose **[2]**, exit.
 
@@ -534,7 +534,7 @@ Walk the migration chain from baseline forward to `LOCAL_VERSION`:
 - Collect the ordered list of migration steps that bridge baseline → current.
 - If no path exists, warn:
   > No migration path found from {baseline} to {LOCAL_VERSION}. Running
-  > `/forge:regenerate workflows` is recommended.
+  > `/forge:rebuild workflows` is recommended.
   Then exit.
 
 Aggregate across all steps in the path, applying the dominance rule:
@@ -644,16 +644,16 @@ If the user declines, exit without modifying anything.
 If `breaking: true`, require the user to confirm they have completed the manual
 steps before proceeding.
 
-For each category in the aggregated result, invoke `/forge:regenerate` by
+For each category in the aggregated result, invoke `/forge:rebuild` by
 reading and following `$FORGE_ROOT/commands/regenerate.md`:
-- If flagged for full rebuild: invoke `/forge:regenerate <category>`
-- If sub-targets collected: invoke `/forge:regenerate <category> <sub-target>`
+- If flagged for full rebuild: invoke `/forge:rebuild <category>`
+- If sub-targets collected: invoke `/forge:rebuild <category> <sub-target>`
   for each sub-target in order
 
 **Category-to-command mapping:** most categories are handled by
-`/forge:regenerate`, but the `tools` category is special. When `tools`
+`/forge:rebuild`, but the `tools` category is special. When `tools`
 appears in the aggregated result, invoke `/forge:update-tools` instead of
-`/forge:regenerate tools`. The update-tools command copies JSON schemas from
+`/forge:rebuild tools`. The update-tools command copies JSON schemas from
 `$FORGE_ROOT/schemas/` to `.forge/schemas/` and validates the store. It does
 not use the regeneration framework — tools ship with the plugin and are invoked
 directly via `$FORGE_ROOT/tools/`.
@@ -679,9 +679,9 @@ If exit 1 (gaps remain):
 > △ Structure check: N file(s) still missing after migration:
 >   (list missing files)
 >
-> This may indicate a failed regeneration step. Re-run `/forge:regenerate <namespace>`
-> for each affected namespace, or `/forge:regenerate` to rebuild all targets.
-> Note: skills entries require an explicit `/forge:regenerate skills` — they are not
+> This may indicate a failed regeneration step. Re-run `/forge:rebuild <namespace>`
+> for each affected namespace, or `/forge:rebuild` to rebuild all targets.
+> Note: skills entries require an explicit `/forge:rebuild skills` — they are not
 > included in the default regenerate run.
 
 Do NOT block migration success on gaps — surface them as a warning only. The user
@@ -828,7 +828,7 @@ pass:
      only performs operations that can be completed without any user prompts.
    - **Deterministic file copies from base-pack:** if
      `structure-versions.json` already exists (post-T05 install), the
-     deterministic path is simply running any remaining `/forge:regenerate`
+     deterministic path is simply running any remaining `/forge:rebuild`
      targets that were not already applied in the main Step 4 regeneration
      sequence.
 
@@ -1000,7 +1000,7 @@ For each file containing legacy `model:` fields, add item:
 `type: legacy-model-field`, `required: false`,
 `path: .forge/workflows/{filename}`,
 `label: ".forge/workflows/{filename} — legacy model: field detected"`,
-`action: "Will be auto-migrated by /forge:regenerate workflows"`
+`action: "Will be auto-migrated by /forge:rebuild workflows"`
 
 **5b-rename — Retired command names in pipeline config.** Scan every configured
 pipeline for phases that use retired built-in command names.
@@ -1146,7 +1146,7 @@ and emit:
   [1] △ .claude/commands/supervisor.md — retired name, user edits detected.
          Merge into review-plan.md before deleting. Delete old file?
   [2] 〇 .forge/workflows/architect_sprint_plan.md — legacy model: field detected.
-         Will be auto-migrated by /forge:regenerate workflows. No action needed.
+         Will be auto-migrated by /forge:rebuild workflows. No action needed.
   [3] 〇 pipeline "main" phase 3 — no workflow field.
          Add: "workflow": "engineering/commands/qa.md"
   [4] 〇 pipeline "main" phase 4 — command file missing.

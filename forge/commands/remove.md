@@ -13,7 +13,7 @@ nothing is deleted until you confirm explicitly.
 | Location | Contents | Safe to remove? |
 |---|---|---|
 | `.forge/` | Config, workflows, templates, task/sprint/bug store | Yes — regeneratable via `/forge:init` |
-| `.claude/commands/` | Generated slash commands (sprint-plan, run-task, etc.) | Yes — regeneratable via `/forge:init` |
+| `.claude/commands/` | Generated slash commands (plan-sprint, run-task, etc.) | Yes — regeneratable via `/forge:init` |
 | `{KB_PATH}/` | Knowledge base, sprint history, bug history, tools | **Caution** — represents accumulated project learning |
 
 ## Step 1 — Inventory what exists
@@ -90,8 +90,8 @@ Summarise exactly what will be deleted, then ask:
 ```
 About to delete:
   ✗ .forge/
-  ✗ .claude/commands/{PREFIX}/sprint-intake.md
-  ✗ .claude/commands/{PREFIX}/sprint-plan.md
+  ✗ .claude/commands/{PREFIX}/new-sprint.md
+  ✗ .claude/commands/{PREFIX}/plan-sprint.md
   ✗ .claude/commands/{PREFIX}/run-task.md
   ✗ .claude/commands/{PREFIX}/run-sprint.md
   ✗ .claude/commands/{PREFIX}/plan.md
@@ -102,7 +102,7 @@ About to delete:
   ✗ .claude/commands/{PREFIX}/approve.md
   ✗ .claude/commands/{PREFIX}/commit.md
   ✗ .claude/commands/{PREFIX}/collate.md
-  ✗ .claude/commands/{PREFIX}/retrospective.md
+  ✗ .claude/commands/{PREFIX}/retro.md
   [✗ {KB_PATH}/]   ← only if option 3 confirmed
 
 Type "confirm" to proceed, or anything else to cancel.
@@ -122,8 +122,8 @@ rm -rf .forge/
 **Option 2 (standard):**
 ```bash
 rm -rf .forge/
-rm -f ".claude/commands/${PREFIX}/sprint-intake.md" \
-      ".claude/commands/${PREFIX}/sprint-plan.md" \
+rm -f ".claude/commands/${PREFIX}/new-sprint.md" \
+      ".claude/commands/${PREFIX}/plan-sprint.md" \
       ".claude/commands/${PREFIX}/run-task.md" \
       ".claude/commands/${PREFIX}/run-sprint.md" \
       ".claude/commands/${PREFIX}/plan.md" \
@@ -134,15 +134,15 @@ rm -f ".claude/commands/${PREFIX}/sprint-intake.md" \
       ".claude/commands/${PREFIX}/approve.md" \
       ".claude/commands/${PREFIX}/commit.md" \
       ".claude/commands/${PREFIX}/collate.md" \
-      ".claude/commands/${PREFIX}/retrospective.md"
+      ".claude/commands/${PREFIX}/retro.md"
 rmdir ".claude/commands/${PREFIX}" 2>/dev/null || true
 ```
 
 **Option 3 (full):**
 ```bash
 rm -rf .forge/ "{KB_PATH}/"
-rm -f ".claude/commands/${PREFIX}/sprint-intake.md" \
-      ".claude/commands/${PREFIX}/sprint-plan.md" \
+rm -f ".claude/commands/${PREFIX}/new-sprint.md" \
+      ".claude/commands/${PREFIX}/plan-sprint.md" \
       ".claude/commands/${PREFIX}/run-task.md" \
       ".claude/commands/${PREFIX}/run-sprint.md" \
       ".claude/commands/${PREFIX}/plan.md" \
@@ -153,7 +153,7 @@ rm -f ".claude/commands/${PREFIX}/sprint-intake.md" \
       ".claude/commands/${PREFIX}/approve.md" \
       ".claude/commands/${PREFIX}/commit.md" \
       ".claude/commands/${PREFIX}/collate.md" \
-      ".claude/commands/${PREFIX}/retrospective.md"
+      ".claude/commands/${PREFIX}/retro.md"
 rmdir ".claude/commands/${PREFIX}" 2>/dev/null || true
 ```
 

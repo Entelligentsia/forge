@@ -329,7 +329,7 @@ On success, print next steps:
       and fill in any {PLACEHOLDER} sections before running a task.
    2. Assign this pipeline to a task: set "pipeline": "{NAME}" in the task's
       .forge/store/tasks/{TASK_ID}.json, or let the sprint planner auto-assign it.
-   3. Run /forge:regenerate to update the orchestrator's pipeline routing.
+   3. Run /forge:rebuild to update the orchestrator's pipeline routing.
 ```
 
 ---

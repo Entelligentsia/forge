@@ -619,12 +619,12 @@ function buildBasePack({ forgeRoot, outRoot }) {
     ['meta-migrate.md',                  'migrate_structural.md'],
     ['meta-orchestrate.md',              'orchestrate_task.md'],
     ['meta-plan-task.md',                'plan_task.md'],
-    ['meta-retrospective.md',            'sprint_retrospective.md'],
+    ['meta-retro.md',                    'sprint_retrospective.md'],
     ['meta-review-implementation.md',    'review_code.md'],
     ['meta-review-plan.md',              'review_plan.md'],
     ['meta-review-sprint-completion.md', 'architect_review_sprint_completion.md'],
-    ['meta-sprint-intake.md',            'architect_sprint_intake.md'],
-    ['meta-sprint-plan.md',              'architect_sprint_plan.md'],
+    ['meta-new-sprint.md',               'architect_sprint_intake.md'],
+    ['meta-plan-sprint.md',              'architect_sprint_plan.md'],
     ['meta-update-implementation.md',    'update_implementation.md'],
     ['meta-update-plan.md',              'update_plan.md'],
     ['meta-validate.md',                 'validate_task.md'],
@@ -758,10 +758,10 @@ function buildBasePack({ forgeRoot, outRoot }) {
     'templates/SPRINT_REQUIREMENTS_TEMPLATE.md', 'templates/TASK_PROMPT_TEMPLATE.md',
     // Commands (16)
     'commands/approve.md', 'commands/collate.md', 'commands/commit.md', 'commands/enhance.md',
-    'commands/fix-bug.md', 'commands/implement.md', 'commands/plan.md', 'commands/quiz-agent.md',
-    'commands/retrospective.md', 'commands/review-code.md', 'commands/review-plan.md',
-    'commands/run-sprint.md', 'commands/run-task.md', 'commands/sprint-intake.md',
-    'commands/sprint-plan.md', 'commands/validate.md',
+    'commands/fix-bug.md', 'commands/implement.md', 'commands/plan.md', 'commands/check-agent.md',
+    'commands/retro.md', 'commands/review-code.md', 'commands/review-plan.md',
+    'commands/run-sprint.md', 'commands/run-task.md', 'commands/new-sprint.md',
+    'commands/plan-sprint.md', 'commands/validate.md',
   ];
 
   const missing = expectedFiles.filter(f => !fs.existsSync(path.join(outRoot, f)));

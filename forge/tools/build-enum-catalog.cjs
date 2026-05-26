@@ -73,21 +73,21 @@ const CANONICAL_BUG_TRANSITIONS = {
 // Per-project commands — derived from build-manifest.cjs COMMAND_NAMES by
 // strip(.md) + prepend('forge:')
 const PER_PROJECT_COMMANDS = [
-  'forge:sprint-intake',
+  'forge:new-sprint',
   'forge:plan',
   'forge:review-plan',
   'forge:implement',
   'forge:review-code',
   'forge:fix-bug',
-  'forge:sprint-plan',
+  'forge:plan-sprint',
   'forge:run-task',
   'forge:run-sprint',
   'forge:collate',
-  'forge:retrospective',
+  'forge:retro',
   'forge:approve',
   'forge:commit',
   'forge:enhance',
-  'forge:quiz-agent',
+  'forge:check-agent',
   'forge:validate',
 ];
 
@@ -95,7 +95,7 @@ const PER_PROJECT_COMMANDS = [
 const PLUGIN_RESERVED_COMMANDS = [
   'forge:init',
   'forge:health',
-  'forge:regenerate',
+  'forge:rebuild',
   'forge:update',
   'forge:add-task',
   'forge:add-pipeline',
@@ -103,8 +103,8 @@ const PLUGIN_RESERVED_COMMANDS = [
   'forge:materialize',
   'forge:remove',
   'forge:report-bug',
-  'forge:store-query',
-  'forge:store-repair',
+  'forge:search',
+  'forge:repair',
   'forge:config',
   'forge:ask',
   'forge:store-custodian',

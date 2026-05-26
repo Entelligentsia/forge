@@ -59,14 +59,14 @@
     { "file": "fix-bug.md",       "description": "Triage, diagnose, and fix a bug",                                           "workflow": "fix_bug.md" },
     { "file": "implement.md",     "description": "Execute the approved implementation plan for a task",                       "workflow": "implement_plan.md" },
     { "file": "plan.md",          "description": "Design and document the implementation plan for a task",                    "workflow": "plan_task.md" },
-    { "file": "quiz-agent.md",    "description": "Verify an agent has loaded and understood the project knowledge base",      "workflow": "quiz_agent.md" },
-    { "file": "retrospective.md", "description": "Produce sprint retrospective and lessons-learned document",                  "workflow": "sprint_retrospective.md" },
+    { "file": "check-agent.md",   "description": "Verify an agent has loaded and understood the project knowledge base",      "workflow": "quiz_agent.md" },
+    { "file": "retro.md",         "description": "Produce sprint retrospective and lessons-learned document",                  "workflow": "sprint_retrospective.md" },
     { "file": "review-code.md",   "description": "Code quality review of a completed task implementation",                    "workflow": "review_code.md" },
     { "file": "review-plan.md",   "description": "Architectural review of a task implementation plan",                        "workflow": "review_plan.md" },
     { "file": "run-sprint.md",    "description": "Execute all tasks in a sprint (sequential or parallel)",                    "workflow": "run_sprint.md" },
     { "file": "run-task.md",      "description": "Orchestrate the full plan→implement→review→approve pipeline for a task",    "workflow": "orchestrate_task.md" },
-    { "file": "sprint-intake.md", "description": "Elicit and structure requirements for a new sprint",                        "workflow": "architect_sprint_intake.md" },
-    { "file": "sprint-plan.md",   "description": "Decompose sprint requirements into tasks with dependencies",                 "workflow": "architect_sprint_plan.md" },
+    { "file": "new-sprint.md",    "description": "Elicit and structure requirements for a new sprint",                        "workflow": "architect_sprint_intake.md" },
+    { "file": "plan-sprint.md",   "description": "Decompose sprint requirements into tasks with dependencies",                 "workflow": "architect_sprint_plan.md" },
     { "file": "validate.md",      "description": "Validate that a task implementation satisfies acceptance criteria",          "workflow": "validate_task.md" },
     { "file": "enhance.md",       "description": "Progressive project-specific enrichment of structural elements",             "workflow": "ENHANCE_AGENT_SENTINEL" }
   ]

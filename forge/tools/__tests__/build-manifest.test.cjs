@@ -80,10 +80,10 @@ describe('build-manifest.cjs — mapping tables', () => {
     assert.equal(entry[0], null, 'PLAN_SUMMARY_TEMPLATE.json must have null source');
   });
 
-  test('COMMAND_NAMES has 16 entries (including enhance.md, quiz-agent.md, validate.md)', () => {
+  test('COMMAND_NAMES has 16 entries (including enhance.md, check-agent.md, validate.md)', () => {
     assert.equal(COMMAND_NAMES.length, 16);
     assert.ok(COMMAND_NAMES.includes('enhance.md'), 'COMMAND_NAMES must include enhance.md');
-    assert.ok(COMMAND_NAMES.includes('quiz-agent.md'), 'COMMAND_NAMES must include quiz-agent.md');
+    assert.ok(COMMAND_NAMES.includes('check-agent.md'), 'COMMAND_NAMES must include check-agent.md');
     assert.ok(COMMAND_NAMES.includes('validate.md'), 'COMMAND_NAMES must include validate.md');
   });
 
@@ -246,7 +246,7 @@ describe('build-manifest.cjs — parseMetaDeps', () => {
   });
 
   // S-7: product-manager.md must NOT appear in any workflow's persona edges.
-  // meta-sprint-intake.md declares personas:[product-manager], which is a non-generated
+  // meta-new-sprint.md declares personas:[product-manager], which is a non-generated
   // persona (no entry in PERSONA_MAP). Edges should only reference generated personas.
   test('S-7: parseMetaDeps must not emit product-manager.md in persona edges (non-generated persona filter)', () => {
     const metaDir = path.join(__dirname, '..', '..', 'meta', 'workflows');

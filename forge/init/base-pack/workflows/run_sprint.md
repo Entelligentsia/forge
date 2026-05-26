@@ -181,7 +181,7 @@ Once all tasks have reached a terminal status:
    ── Carried over / abandoned: N tasks
    ```
 3. Update sprint `status` to `completed` or `partially-completed`
-4. Suggest: "Run `/forge:retrospective {SPRINT_ID}` to close out the sprint."
+4. Suggest: "Run `/forge:retro {SPRINT_ID}` to close out the sprint."
 
 ## Sprint Lifecycle Hooks
 
@@ -189,7 +189,7 @@ Once all tasks have reached a terminal status:
 |---|---|---|
 | `collate` | After all tasks terminal | Run `node "$FORGE_ROOT/tools/collate.cjs"` |
 | `report` | After collation | Print outcome summary (committed/escalated/carried-over counts) |
-| `suggest` | After report | Suggest `/forge:retrospective {SPRINT_ID}` |
+| `suggest` | After report | Suggest `/forge:retro {SPRINT_ID}` |
 
 ## Resume Semantics
 
