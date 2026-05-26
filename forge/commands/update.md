@@ -95,8 +95,7 @@ node "$FORGE_ROOT/tools/banners.cjs" --subtitle "Updating Forge — checking rem
 At the start of each step, emit a step header via `banners.cjs --phase`:
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase {N} 7 "{Step Name}" {bannerKey} \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase {N} 7 "{Step Name}" {bannerKey}
 ```
 
 Step ↔ banner key map:
@@ -147,8 +146,7 @@ If `updateStatus !== "pending"` (or field absent): proceed normally with Step 1.
 ## Step 1 — Check for updates
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 1 7 "Check for updates" north \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 1 7 "Check for updates" north
 ```
 
 Read `$FORGE_ROOT/.claude-plugin/plugin.json`. Extract `"version"` → `LOCAL_VERSION`.
@@ -263,8 +261,7 @@ Now evaluate — **stop at the first matching row and follow only that row's act
 ## Step 2A — Plugin update available
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 2 7 "Plugin update available" rift \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 2 7 "Plugin update available" rift
 ```
 
 > **Only reached when `REMOTE_VERSION` != `LOCAL_VERSION` (row 4 above).**
@@ -359,8 +356,7 @@ Wait for the user to confirm the install completed.
 ## Step 2B — Project migration pending (plugin already current)
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 2 7 "Apply project migrations" drift \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 2 7 "Apply project migrations" drift
 ```
 
 > **Only reached from rows 2 or 3 — the plugin is already at the right version.**
@@ -420,8 +416,7 @@ Then jump to **Step 4** to execute the regeneration.
 ## Step 3 — Verify installation
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 3 7 "Verify installation" lumen \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 3 7 "Verify installation" lumen
 ```
 
 After the user confirms the install:
@@ -461,8 +456,7 @@ path) — skip the re-derivation and keep the original value.
 ## Step 4 — Apply migrations
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 4 7 "Apply migrations" forge \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 4 7 "Apply migrations" forge
 ```
 
 > **Sequencing note:** `paths.forgeRoot` is written at the very start of Step 4,
@@ -890,8 +884,7 @@ On the "Update Complete" path (all migrations applied,
 ## Step 5 — Pipeline and configuration audit
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 5 7 "Pipeline audit" oracle \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 5 7 "Pipeline audit" oracle
 ```
 
 Runs on every update. Collects all findings first, then presents a single
@@ -1287,8 +1280,7 @@ Proceed to **Step 6**.
 ## Step 6 — Record state and summarise
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 6 7 "Record state" drift \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 6 7 "Record state" drift
 ```
 
 > **Note:** `paths.forgeRoot` and `paths.forgeRef` were already written at the start
@@ -1347,29 +1339,12 @@ Print the final summary:
   Subagent isolation: {used | bypassed (inline)}
 ```
 
-**Fast-mode promotion hint.** After printing the summary, read
-`.forge/config.json` `mode`:
-
-```sh
-CURRENT_MODE=$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo "unset")
-```
-
-If `CURRENT_MODE == "fast"`, also emit:
-
-```
-〇 Migration applied in fast mode. Materialized artifacts refreshed; stubs will pick up changes on first use.
-〇 To fully promote: /forge:config mode full
-```
-
-This is informational only — no behavioural change. Do not block on it.
-
 ---
 
 ## Step 7 — Link KB to Agent Instruction Files
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 7 7 "Tomoshibi" lumen \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 7 7 "Tomoshibi" lumen
 ```
 
 Invoke Tomoshibi to ensure every coding-agent instruction file in the project

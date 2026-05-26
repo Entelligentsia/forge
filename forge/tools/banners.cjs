@@ -31,7 +31,7 @@
 //   node banners.cjs --plain forge
 //   node banners.cjs --subtitle "Forging your SDLC"
 //   node banners.cjs --progress 5 12 "Templates"
-//   node banners.cjs --phase 7 12 "Workflows" ember fast
+//   node banners.cjs --phase 7 12 "Workflows" ember
 
 // ─── Plain-mode detection ─────────────────────────────────────────────────────
 // Resolved at call-time so tests can flip env vars dynamically.
@@ -61,14 +61,13 @@ const f = (r, g, b) => `\x1b[38;2;${r};${g};${b}m`;
 // ─── Mode tints ───────────────────────────────────────────────────────────────
 // Mode-aware accent colour for progress bars and subtitles. Used by phaseHeader.
 const MODE_TINTS = {
-  fast: [255, 208, 122],   // lantern yellow
   full: [255, 138, 60],    // ember orange
 };
 
 // ─── Zen blue ─────────────────────────────────────────────────────────────────
 // System-wide horizontal-rule tint. Applied to em-dash separators in
-// phaseHeader, ruleLine, and ensure-ready.cjs --announce framing. Picked to
-// read calm and cool without competing with banner colours.
+// phaseHeader and ruleLine. Picked to read calm and cool without competing
+// with banner colours.
 const ZEN_BLUE = [100, 140, 200];
 
 // ─── Banner registry ───────────────────────────────────────────────────────────
