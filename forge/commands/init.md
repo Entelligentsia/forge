@@ -1,6 +1,6 @@
 ---
 name: init
-description: Use when the current project has no Forge SDLC instance and you need to bootstrap one from scratch
+description: Use when the current project has no Forge SDLC instance and you need to bootstrap one from scratch. Use --migrate to migrate an existing store to Forge format (replaces the removed /forge:migrate command).
 ---
 
 # /forge:init
@@ -86,7 +86,26 @@ just emit the phase banner for the resume target phase.
 scripts and CI pipelines. Both flags proceed with the standard 4-phase base-pack
 init. The fast/full distinction was removed in v0.40.0.
 
-**Proceed directly to Pre-flight Plan.** There is no interactive mode prompt —
+**`--migrate` flag:** When `$ARGUMENTS` contains `--migrate`, run the store migration
+workflow instead of the standard init. This is the v1.0 replacement for the removed
+`/forge:migrate` command.
+
+1. Check that `.forge/config.json` exists. If it does not, stop and tell the user:
+   > "Forge has not been initialised in this project. Run `/forge:init` first, then come back to `/forge:init --migrate`."
+
+2. Check for `--structural` sub-flag in `$ARGUMENTS`:
+   - If present, load and run the structural migration workflow:
+     Read `"$FORGE_ROOT/meta/workflows/meta-migrate.md"` and follow it.
+   - If absent, run the standard store schema migration (Steps 1–7 of the former `migrate.md`):
+     Read `"$FORGE_ROOT/meta/workflows/meta-migrate.md"` and follow it, passing
+     `--store-schema` so it runs the schema migration path (Steps 2–7).
+
+3. If `--dry-run` is also present, pass it through so the migration runs Steps 1–4
+   only (no writes).
+
+4. Do NOT proceed to the Pre-flight Plan when `--migrate` is present.
+
+**Proceed directly to Pre-flight Plan** for all other invocations. There is no interactive mode prompt —
 the 4-phase flow is the only flow.
 
 ### Pre-flight Plan

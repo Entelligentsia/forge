@@ -1,6 +1,6 @@
 {
   "version": "0.52.1",
-  "generatedAt": "2026-05-26T11:10:13.549Z",
+  "generatedAt": "2026-05-26T11:32:23.259Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -76,9 +76,7 @@
       "files": [
         "approve.md",
         "check-agent.md",
-        "collate.md",
         "commit.md",
-        "enhance.md",
         "fix-bug.md",
         "implement.md",
         "new-sprint.md",

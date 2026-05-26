@@ -107,12 +107,13 @@ const TEMPLATE_MAP = [
 //     repair, config). They register via the plugin's own command surface, not
 //     via per-project regeneration. They are NOT in COMMAND_NAMES.
 //
-// COMMAND_NAMES has 16 entries. See doc/decisions/command-model.md for the ADR.
+// COMMAND_NAMES has 14 entries (v1.0: collate and enhance removed from user-facing surface — T03).
+// See doc/decisions/command-model.md for the ADR.
 const COMMAND_NAMES = [
   'new-sprint.md', 'plan.md', 'review-plan.md', 'implement.md',
   'review-code.md', 'fix-bug.md', 'plan-sprint.md', 'run-task.md',
-  'run-sprint.md', 'collate.md', 'retro.md', 'approve.md', 'commit.md',
-  'enhance.md', 'check-agent.md', 'validate.md',
+  'run-sprint.md', 'retro.md', 'approve.md', 'commit.md',
+  'check-agent.md', 'validate.md',
 ];
 
 // ── parseMetaDeps ─────────────────────────────────────────────────────────────

@@ -82,11 +82,11 @@ const PER_PROJECT_COMMANDS = [
   'forge:plan-sprint',
   'forge:run-task',
   'forge:run-sprint',
-  'forge:collate',
+  // forge:collate removed from user-facing surface in v1.0 (T03) — kept as internal tool only
   'forge:retro',
   'forge:approve',
   'forge:commit',
-  'forge:enhance',
+  // forge:enhance removed in v1.0 (T03) — absorbed into forge:rebuild --enrich
   'forge:check-agent',
   'forge:validate',
 ];
@@ -99,8 +99,8 @@ const PLUGIN_RESERVED_COMMANDS = [
   'forge:update',
   'forge:add-task',
   'forge:add-pipeline',
-  'forge:calibrate',
-  'forge:materialize',
+  // forge:calibrate removed in v1.0 (T03) — absorbed into forge:health --fix (T04)
+  // forge:materialize removed in v1.0 (T03) — fast-mode eliminated in T01
   'forge:remove',
   'forge:report-bug',
   'forge:search',

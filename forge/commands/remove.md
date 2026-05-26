@@ -101,7 +101,6 @@ About to delete:
   ✗ .claude/commands/{PREFIX}/fix-bug.md
   ✗ .claude/commands/{PREFIX}/approve.md
   ✗ .claude/commands/{PREFIX}/commit.md
-  ✗ .claude/commands/{PREFIX}/collate.md
   ✗ .claude/commands/{PREFIX}/retro.md
   [✗ {KB_PATH}/]   ← only if option 3 confirmed
 
@@ -133,7 +132,6 @@ rm -f ".claude/commands/${PREFIX}/new-sprint.md" \
       ".claude/commands/${PREFIX}/fix-bug.md" \
       ".claude/commands/${PREFIX}/approve.md" \
       ".claude/commands/${PREFIX}/commit.md" \
-      ".claude/commands/${PREFIX}/collate.md" \
       ".claude/commands/${PREFIX}/retro.md"
 rmdir ".claude/commands/${PREFIX}" 2>/dev/null || true
 ```
@@ -152,7 +150,6 @@ rm -f ".claude/commands/${PREFIX}/new-sprint.md" \
       ".claude/commands/${PREFIX}/fix-bug.md" \
       ".claude/commands/${PREFIX}/approve.md" \
       ".claude/commands/${PREFIX}/commit.md" \
-      ".claude/commands/${PREFIX}/collate.md" \
       ".claude/commands/${PREFIX}/retro.md"
 rmdir ".claude/commands/${PREFIX}" 2>/dev/null || true
 ```

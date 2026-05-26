@@ -86,7 +86,7 @@ describe('post-init hook — happy path', () => {
     assert.notEqual(r.stdout.trim(), '');
     const out = JSON.parse(r.stdout);
     assert.equal(out.hookSpecificOutput.hookEventName, 'PostToolUse');
-    assert.match(out.hookSpecificOutput.additionalContext, /\/forge:enhance --phase 1 --auto/);
+    assert.match(out.hookSpecificOutput.additionalContext, /\/forge:rebuild --enrich --phase 1 --auto/);
   });
 
   test('sentinel file is created at .forge/cache/post-init-enhancement-triggered', () => {
@@ -143,8 +143,8 @@ describe('post-init hook — negative trigger discrimination', () => {
     const parsed = JSON.parse(out);
     assert.ok(parsed.hookSpecificOutput, 'output should have hookSpecificOutput');
     assert.ok(
-      parsed.hookSpecificOutput.additionalContext.includes('/forge:enhance'),
-      'additionalContext should reference /forge:enhance'
+      parsed.hookSpecificOutput.additionalContext.includes('/forge:rebuild --enrich'),
+      'additionalContext should reference /forge:rebuild --enrich'
     );
   });
 

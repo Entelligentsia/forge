@@ -129,7 +129,7 @@ If `updateStatus === "pending"`:
    △ Previous update is incomplete — pending migration(s): {pendingMigrations}
      Reason: {pendingReason}
 
-     Run /forge:migrate to complete the pending migration, then re-run
+     Run /forge:init --migrate to complete the pending migration, then re-run
      /forge:update to verify.
    ```
 
@@ -137,7 +137,7 @@ If `updateStatus === "pending"`:
    were completed in the previous run. The project already has the correct
    plugin version installed; only the migration chain remains.
 
-3. Exit. The user runs `/forge:migrate` to complete, then re-runs `/forge:update`.
+3. Exit. The user runs `/forge:init --migrate` to complete, then re-runs `/forge:update`.
 
 If `updateStatus !== "pending"` (or field absent): proceed normally with Step 1.
 
@@ -562,7 +562,7 @@ Execute regeneration targets in this order:
 | 4 | `personas` | — (independent) | — |
 | 5 | `commands` | Must run after `workflows` | — |
 | 6 | `knowledge-base` sub-targets | — (independent) | — |
-| 7 | `schemas` | — (independent) | **Delegate to `/forge:update-tools`.** Emit: `Delegating schemas regeneration to /forge:update-tools…` then read and follow `$FORGE_ROOT/commands/update-tools.md`. |
+| 7 | `schemas` | — (independent) | **Run schema refresh inline** (see Schema Refresh below). Emit: `〇 Refreshing schemas…` |
 
 > **Known special targets — note for migration authors:** `hooks` and `schemas` are
 > special-cased here. Future `migrations.json` entries should only use recognised
@@ -651,12 +651,30 @@ reading and following `$FORGE_ROOT/commands/regenerate.md`:
   for each sub-target in order
 
 **Category-to-command mapping:** most categories are handled by
-`/forge:rebuild`, but the `tools` category is special. When `tools`
-appears in the aggregated result, invoke `/forge:update-tools` instead of
-`/forge:rebuild tools`. The update-tools command copies JSON schemas from
-`$FORGE_ROOT/schemas/` to `.forge/schemas/` and validates the store. It does
-not use the regeneration framework — tools ship with the plugin and are invoked
-directly via `$FORGE_ROOT/tools/`.
+`/forge:rebuild`, but the `tools` and `schemas` categories are special.
+
+When `tools` appears in the aggregated result, run the schema refresh inline
+(see **Schema Refresh** section below) instead of invoking `/forge:rebuild tools`.
+Tools ship with the plugin and are invoked directly via `$FORGE_ROOT/tools/`.
+
+When `schemas` appears in the aggregated result, run the schema refresh inline
+(same **Schema Refresh** section). Do NOT delegate to the removed `/forge:update-tools` command.
+
+### Schema Refresh
+
+When the migration chain includes a `schemas` or `tools` target, refresh schemas inline:
+
+```sh
+mkdir -p .forge/schemas
+cp "$FORGE_ROOT/schemas/"*.schema.json .forge/schemas/
+for f in .forge/schemas/*.schema.json; do
+  node "$FORGE_ROOT/tools/generation-manifest.cjs" record "$f"
+done
+node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run
+```
+
+Emit `〇 Schemas updated and store validation passed.` on success.
+Emit `× Validation failed — {output}` on non-zero exit from `validate-store.cjs`.
 
 Run non-knowledge-base targets first (workflows, templates, commands, tools),
 then knowledge-base sub-targets if present.
@@ -792,7 +810,7 @@ ADR-S14-01 decision criteria to determine the update outcome:
 - No changes to `calibrationBaseline` semantics
 
 Concretely, a low-risk step is one where the only actions are: schema-only
-changes (`/forge:update-tools` for schemas), file-copy from base-pack
+changes (inline schema refresh for schemas), file-copy from base-pack
 (templates, workflows, personas), or config-key additions with deterministic
 defaults.
 
@@ -844,7 +862,7 @@ pass:
    - Write `updateStatus: "pending"`, `pendingReason: "Auto-invoke failed:
      {error description}"`, and `pendingMigrations: [list]` to
      `.forge/update-check-cache.json`.
-   - Print: "Update Pending — auto-invoke failed. Run `/forge:migrate` to
+   - Print: "Update Pending — auto-invoke failed. Run `/forge:init --migrate` to
      complete" with the failure details.
    - Exit without proceeding to Steps 5-7.
 
@@ -859,7 +877,7 @@ If any step is user-affecting (and the chain was NOT auto-invoked), enter the
 - Do NOT bump `calibrationBaseline.version`.
 - Write `updateStatus: "pending"`, `pendingReason`, and `pendingMigrations` to
   `.forge/update-check-cache.json`.
-- Print: "Update Pending — run `/forge:migrate` to complete" with the list of
+- Print: "Update Pending — run `/forge:init --migrate` to complete" with the list of
   pending migrations and next steps.
 - Exit without proceeding to Steps 5-7.
 

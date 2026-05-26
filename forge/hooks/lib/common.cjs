@@ -161,11 +161,11 @@ const FORGE_COMMAND_PATTERNS = [
   /forge:retro/,
   /forge:check-agent/,
   /forge:report-bug/,
-  /forge:enhance/,
-  /forge:collate/,
+  // forge:enhance removed in v1.0 (T03) — absorbed into forge:rebuild --enrich
+  // forge:collate removed from user-facing surface in v1.0 (T03) — internal tool only
   /forge:validate/,
-  /forge:calibrate/,
-  /forge:materialize/,
+  // forge:calibrate removed in v1.0 (T03) — absorbed into forge:health --fix (T04)
+  // forge:materialize removed in v1.0 (T03) — fast-mode eliminated in T01
   /forge:remove/,
   /forge:search/,
   /forge:repair/,

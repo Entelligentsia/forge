@@ -1,11 +1,11 @@
 ---
 name: rebuild
-description: Use when the engineering knowledge base has been enriched by sprints and you want to refresh the generated workflows, templates, tools, or knowledge-base docs
+description: Use when the engineering knowledge base has been enriched by sprints and you want to refresh the generated workflows, templates, tools, or knowledge-base docs. Use --enrich to run the enhancement agent (KB enrichment + drift detection).
 ---
 
 # /forge:rebuild
 
-Re-run generation phases using the current state of the project.
+Re-run generation phases using the current state of the project. Use `--enrich` to run the enhancement agent (replaces the removed `forge:enhance` command).
 
 ## Locate the Forge plugin
 
@@ -73,6 +73,7 @@ with a colon delimiter (both forms are equivalent).
 
 ```
 /forge:rebuild                              # workflows + commands + templates + personas (default)
+/forge:rebuild --enrich                    # run enhancement agent (KB enrichment + drift detection)
 /forge:rebuild personas                    # .forge/personas/ — all persona files
 /forge:rebuild personas engineer           # single persona file only
 /forge:rebuild personas:engineer           # same — colon form (from migration entries)
@@ -573,6 +574,31 @@ Run all five categories respecting dependencies — with maximum parallelism:
 
 This runs in 4 serial steps instead of 5 sequential category passes, with all
 fan-outs parallelised within each step.
+
+## Flag: `--enrich`
+
+When `$ARGUMENTS` contains `--enrich`, run the enhancement workflow instead of regeneration.
+This is the v1.0 replacement for the removed `/forge:enhance` command.
+
+```
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+```
+
+1. Check that `$FORGE_ROOT/meta/workflows/meta-enhance.md` exists. If absent:
+
+   > △ meta-enhance.md not found — your installed Forge version may predate the enhancement agent. Run `/forge:update` to upgrade.
+
+   Exit.
+
+2. Pass `$ARGUMENTS` (minus the `--enrich` flag) through to the enhancement workflow so any phase flags (`--phase 1`, `--phase 2`, `--phase 3`, `--auto`) are forwarded:
+
+   Read `$FORGE_ROOT/meta/workflows/meta-enhance.md` and follow it with the forwarded arguments.
+
+   If no phase flag is provided with `--enrich`, the enhancement workflow defaults to `--phase 3` (drift detection).
+
+3. Do NOT run any regeneration steps from the categories above — `--enrich` is a standalone mode.
+
+---
 
 ## On error
 

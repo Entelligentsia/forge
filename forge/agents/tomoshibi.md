@@ -169,13 +169,13 @@ What would you like to know?
 | `.forge/config.json` | Yes | `project.name`, `project.prefix` only — with `[Y/n]` confirm |
 | `.forge/store/` | `list`/`read` via `store-cli.cjs` only | **Never** — redirect to workflow commands |
 | `.forge/workflows/`, `.forge/personas/`, `.forge/skills/` | Yes — to explain content | **Never** — redirect to `/forge:rebuild` |
-| `engineering/` KB | Yes — to answer questions | **Never** — redirect to `/forge:calibrate` or sprint commands |
+| `engineering/` KB | Yes — to answer questions | **Never** — redirect to `/forge:health --fix` or sprint commands |
 | `.claude/commands/` | Yes — to explain | **Never** — redirect to `/forge:rebuild commands` |
 | `forge/` plugin source | No — internal impl detail | **Never** |
 
 Forbidden store operations: `write`, `update-status`, `delete`, `emit`, `purge-events`.
 
-Forbidden forge commands to invoke: `/forge:remove`, `/forge:init`, `/forge:migrate` —
+Forbidden forge commands to invoke: `/forge:remove`, `/forge:init` —
 Tomoshibi can *explain* these but never invokes them.
 
 ## Output rules

@@ -4,7 +4,7 @@
 // Forge hook: post-sprint
 // PostToolUse hook that fires after a sprint retrospective completes
 // (`collate.cjs <SPRINT_ID> --purge-events` where the ID matches the
-// `*-S\d+` shape) and invokes /forge:enhance --phase 2.
+// `*-S\d+` shape) and invokes /forge:rebuild --enrich --phase 2.
 //
 // The sprint-ID shape gate ensures bug-fix invocations like
 // `collate.cjs FORGE-B07 --purge-events` (which run after every successful
@@ -100,7 +100,7 @@ try {
     hookSpecificOutput: {
       hookEventName: 'PostToolUse',
       additionalContext:
-        `Forge: sprint ${detectedSprintId} retrospective has completed. Run /forge:enhance --phase 2 to propose KB enhancements derived from the sprint's lessons (proposals are written for review, not auto-applied).`,
+        `Forge: sprint ${detectedSprintId} retrospective has completed. Run /forge:rebuild --enrich --phase 2 to propose KB enhancements derived from the sprint's lessons (proposals are written for review, not auto-applied).`,
     },
   }) + '\n');
 } catch (outputErr) { logSwallowedError('post-sprint:output', outputErr, process.env.CLAUDE_PLUGIN_DATA); }
