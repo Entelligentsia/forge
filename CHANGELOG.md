@@ -5,6 +5,124 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.0.0] — 2026-05-26
+
+**v1.0 DevX Overhaul (FORGE-S26) — coordinated release with forge-cli v1.0.0.**
+
+△ **Breaking** — 7 command renames + 6 command removals. Run `/forge:update` to apply migration.
+
+### Removed commands (6)
+
+| Removed | Replacement |
+|---------|-------------|
+| `/forge:update-tools` | Folded into `/forge:update` (runs automatically) |
+| `/forge:materialize` | Deleted — no replacement (internal-only) |
+| `/forge:enhance` | `/forge:rebuild --enrich` |
+| `/forge:calibrate` | `/forge:health --fix` |
+| `/forge:collate` | Internal-only; removed from user-facing surface |
+| `/forge:migrate` | `/forge:init --migrate` |
+
+Old command names show a deprecation message and redirect. They will be removed in a future version.
+
+### Renamed commands (7)
+
+| Old name | New name |
+|----------|----------|
+| `/forge:sprint-intake` | `/forge:new-sprint` |
+| `/forge:sprint-plan` | `/forge:plan-sprint` |
+| `/forge:retrospective` | `/forge:retro` |
+| `/forge:regenerate` | `/forge:rebuild` |
+| `/forge:store-query` | `/forge:search` |
+| `/forge:store-repair` | `/forge:repair` |
+| `/forge:quiz-agent` | `/forge:check-agent` |
+
+Old command names show a deprecation message and redirect. They will be removed in a future version.
+
+### New features
+
+- **`/forge:status`** — new plugin command showing sprint/task status overview (T09)
+- **`/forge:health --fix`** — health-driven maintenance with pass/fail grid and recommended actions (T04)
+- **`/forge:rebuild --enrich`** — runs the full enhancement pipeline (replaces `/forge:enhance`) (T03)
+- **`/forge:init --migrate`** — runs migration workflow inline (replaces `/forge:migrate`) (T03)
+- **Pipeline step guards** — pre-flight guards on 7 orchestration meta-workflows preventing out-of-order phase execution (T06)
+- **Revision loop visibility** — iteration counter in orchestrator phase announcements (T07)
+- **Post-init welcome** — dynamic welcome block after `/forge:init` listing active commands and next steps (T05)
+- **Tomoshibi enhancements** — "What now?", "Commands", and "KB summary" intent handlers in `/forge:ask` (T08)
+- **v1.0 documentation restructure** — updated README, command reference, and architecture docs (T14)
+
+### Technical
+
+- Fast-mode dead code fully removed: `ensure-ready.cjs`, `FAST_STUB_SENTINEL`, `lazy-materialize.md`, `--fast`/`--full` flags (T01)
+- `mode` field removed from `config.schema.json` (T01)
+- Backported from forge-cli: `artifact.cjs`, `verify-apply.cjs`, `tool-discipline.md` fragment, `store-cli` projection flags (`--no-summaries`, `--fields`, `--limit`, `--count`) (T16)
+- Zombie sprint closure: FORGE-S14, FORGE-S22 closed in store (T13)
+
+---
+
+## [0.52.1] — 2026-05-26
+
+Fix(tool-discipline): add `forge_artifact` and `forge_verify_apply` discipline lines to `meta/fragments/tool-discipline.md`. Fragment was missing two bullet points present in the `FORGE_TOOL_DISCIPLINE` TypeScript constant.
+
+---
+
+## [0.52.0] — 2026-05-26
+
+New tools: `artifact.cjs`, `verify-apply.cjs`; `tool-discipline.md` canonical fragment; `store-cli` projection flags (`--no-summaries`, `--fields`, `--limit`, `--count`).
+
+**Regenerate:** `tools`
+
+---
+
+## [0.51.4] — 2026-05-26
+
+Fix(meta-enhance): Phase 2 rejections sidecar path fix. `mkdir -p` before gates write, explicit `$PROJECT_ROOT` path in step 5b.5, verification assertion after 5b.5+5c. Also includes `update.md` Step 4 config refresh fix and `manage-config backfill` subcommand.
+
+**Regenerate:** `workflows:enhance`
+
+---
+
+## [0.51.3] — 2026-05-26
+
+Fix: workflow prose references `forge_artifact` for all phase artifact I/O. Additive, non-breaking.
+
+---
+
+## [0.51.2] — 2026-05-26
+
+Fix(v0.51.2): S25 regression fixes — `update-status` syntax, two-step transition, collator `WRITEBACK-SUMMARY`. Additive, non-breaking.
+
+---
+
+## [0.51.1] — 2026-05-26
+
+Feat(FORGE-S25-T28): guardrails CI consolidation — manifest-drift + enum-catalog-drift `--check` gates. Additive, non-breaking.
+
+---
+
+## [0.50.1] — 2026-05-26
+
+Feat(FORGE-S25-T26): catalog generator + T25 ADR FSM canonicalization. Additive, non-breaking.
+
+---
+
+## [0.50.0] — 2026-05-26
+
+Feat(hooks): hook polish H-5a–d — mtime sentinel, swallowed-error log, `CLAUDE_PLUGIN_ROOT`, timeout. Additive, non-breaking.
+
+---
+
+## [0.48.2] — 2026-05-26
+
+Feat(hooks): hooks `.js` → `.cjs` rename + extract lib modules + REGISTRY private. Additive, non-breaking.
+
+---
+
+## [0.47.0] — 2026-05-22
+
+Feat(FORGE-S25): S25 Guardrails & Foundations sprint — schema ADR FSM, store consolidation, manifest drift check, integrity verification, enum catalog, lib modules, fragment extraction, URL rewrite tool.
+
+---
+
 ## [0.46.1] — 2026-05-22
 
 **Build fix: ship the FORGE-S24 SKILL-CURATION Phase 2 pipeline that 0.46.0 was supposed to.**
