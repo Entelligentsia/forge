@@ -9,11 +9,11 @@ Forge follows one process. This page documents every step, who drives it, what g
 ```mermaid
 flowchart LR
     A["/forge:init"] --> B["Review KB"]
-    B --> C["/quiz"]
-    C --> D["/sprint-intake"]
-    D --> E["/sprint-plan"]
-    E --> F["/run-sprint"]
-    F --> G["/retrospective"]
+    B --> C["/forge:ask"]
+    C --> D["/forge:new-sprint"]
+    D --> E["/forge:plan-sprint"]
+    E --> F["/forge:run-sprint"]
+    F --> G["/forge:retro"]
     G -->|KB updates\nchecklist additions| B
 ```
 
@@ -23,7 +23,7 @@ Each sprint follows this path. The retrospective feeds the knowledge base, which
 
 ## Step 1: Initialize
 
-**Command:** `/forge:init` or `/forge:init --fast`
+**Command:** `/forge:init`
 
 **Who:** Forge (automated)
 
@@ -31,7 +31,7 @@ Each sprint follows this path. The retrospective feeds the knowledge base, which
 
 **Output:** A complete SDLC instance — knowledge base, personas, workflows, commands, tools, store.
 
-Forge runs 12 automated phases:
+Forge runs automated phases:
 
 | Phase | What happens |
 |-------|-------------|
@@ -48,11 +48,7 @@ Forge runs 12 automated phases:
 | 11. Smoke Test | Validates everything connects; self-corrects if needed |
 | 12. Tomoshibi | Generates the concierge agent for project queries |
 
-**Fast mode** (`--fast`) skips heavy generation phases and writes stubs instead. Stubs self-materialize on first use. Use fast mode when you want to start working immediately and let Forge build out as you go.
-
-**Full mode** (`--full`) runs all 12 phases. This takes 10–15 minutes and requires no interaction.
-
-**Time budget:** Full mode: 10–15 min (unattended). Fast mode: 2–3 min.
+**Time budget:** 10–15 min (unattended).
 
 **Gate:** Smoke test must pass. If it fails, Forge self-corrects and re-runs.
 
@@ -78,9 +74,9 @@ Review in this order:
 
 ---
 
-## Step 3: Quiz
+## Step 3: Ask Forge
 
-**Command:** `/quiz` or `/forge:quiz-agent`
+**Command:** `/forge:ask` or `/forge:check-agent`
 
 **Who:** You and Forge
 
@@ -88,28 +84,27 @@ Review in this order:
 
 **Output:** A corrected knowledge base. Forge patches it on the spot.
 
-The quiz is a structured interview. You ask Forge about your project. If an answer is wrong or incomplete, say so. Forge uses that feedback to patch the knowledge base immediately.
+Ask Forge about your project. If an answer is wrong or incomplete, say so. Forge uses that feedback to patch the knowledge base immediately.
 
 ```
-/quiz
-> What are the main entities in this project?
-> How does authentication work?
-> What does a typical API request flow look like?
+/forge:ask what are the main entities in this project?
+/forge:ask how does authentication work?
+/forge:ask what does a typical API request flow look like?
 ```
 
 This is the fastest way to validate and sharpen what Forge knows about your project.
 
-After the quiz session, regenerate workflows so they reflect the corrected KB:
+After the session, rebuild workflows so they reflect the corrected KB:
 
 ```bash
-/forge:regenerate workflows
+/forge:rebuild workflows
 ```
 
 ---
 
 ## Step 4: Sprint Intake
 
-**Command:** `/sprint-intake`
+**Command:** `/forge:new-sprint`
 
 **Who:** Product Manager persona
 
@@ -125,7 +120,7 @@ The Product Manager interviews you. It asks clarifying questions about scope, de
 
 ## Step 5: Sprint Plan
 
-**Command:** `/sprint-plan`
+**Command:** `/forge:plan-sprint`
 
 **Who:** Architect persona
 
@@ -139,7 +134,7 @@ The Architect breaks the requirements into tasks. Each task gets an estimate, a 
 
 ## Step 6: Run Sprint
 
-**Command:** `/run-sprint SPRINT-ID`
+**Command:** `/forge:run-sprint SPRINT-ID`
 
 **Who:** Orchestrator persona
 
@@ -216,7 +211,7 @@ Tasks that need a different flow can use custom pipelines defined via `/forge:ad
 
 ## Step 7: Retrospective
 
-**Command:** `/retrospective SPRINT-ID`
+**Command:** `/forge:retro SPRINT-ID`
 
 **Who:** Architect persona
 
@@ -256,7 +251,7 @@ flowchart LR
     R --> B["Richer KB"]
     B --> S
 
-    B -.->|every few sprints| RG["/forge:regenerate\nworkflows"]
+    B -.->|every few sprints| RG["/forge:rebuild\nworkflows"]
     RG -.-> WF["Sharper workflows\nand review criteria"]
     WF -.-> S
 
@@ -267,30 +262,6 @@ flowchart LR
 Two things evolve: the **knowledge base** and the **generated workflows**. They update through different mechanisms.
 
 - **Knowledge base:** updates automatically after every sprint. The Supervisor adds review patterns. The Bug Fixer tags root causes. The Retrospective promotes and prunes.
-- **Generated workflows:** update only when you explicitly run `/forge:regenerate workflows`. Regenerate every few sprints, or after a retrospective that revealed significant patterns.
+- **Generated workflows:** update only when you explicitly run `/forge:rebuild workflows`. Rebuild every few sprints, or after a retrospective that revealed significant patterns.
 
-By Sprint 3–4, the KB is substantially richer than at init. A workflow regeneration at that point produces review criteria and pipelines that reflect what Forge has learned about your project.
-
----
-
-## Fast Mode vs Full Mode
-
-| | Full mode | Fast mode |
-|---|---|---|
-| **When to use** | First init on a real project | Quick start, prototypes, experimentation |
-| **Phases** | All 12 | Phases 1–3 (skeleton), 7–12 (stubs) |
-| **KB** | Full docs with confidence ratings | Minimal skeleton |
-| **Workflows** | Full workflow files | Stub files (self-materialize on first use) |
-| **Time** | 10–15 min | 2–3 min |
-| **After init** | Review `[?]` markers, then sprint | Run `/forge:materialize` when you need full docs |
-
-Fast mode is a valid starting point. Stubs are not a degraded state — they are workflows waiting to be born. When you invoke a stubbed workflow for the first time, Forge materializes it from the meta-definitions, using the KB as it exists at that moment (which is richer than what existed at init time).
-
-You can promote from fast to full at any time:
-
-```bash
-/forge:config mode full
-/forge:materialize
-```
-
-This is a one-way operation. There is no `full` → `fast` downgrade.
+By Sprint 3–4, the KB is substantially richer than at init. A workflow rebuild at that point produces review criteria and pipelines that reflect what Forge has learned about your project.

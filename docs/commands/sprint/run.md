@@ -1,7 +1,7 @@
-# /run-sprint
+# /forge:run-sprint
 
 **Role:** Orchestrator  
-**Lifecycle position:** After `/sprint-plan`; tasks must have manifests in the store.
+**Lifecycle position:** After `/forge:plan-sprint`; tasks must have manifests in the store.
 
 ---
 
@@ -14,8 +14,8 @@ Executes all tasks in a sprint, respecting the dependency graph computed during 
 ## Invocation
 
 ```bash
-/run-sprint S01           # execute sprint S01
-/run-sprint S01 --resume  # resume from the last incomplete task
+/forge:run-sprint S01           # execute sprint S01
+/forge:run-sprint S01 --resume  # resume from the last incomplete task
 ```
 
 The sprint ID matches the directory under `engineering/sprints/` and the manifest in `.forge/store/sprints/`.
@@ -112,7 +112,7 @@ engineering/sprints/{SPRINT_ID}/{TASK_ID}/
 ## Hands off to
 
 ```
-/retrospective {SPRINT_ID}
+/forge:retro {SPRINT_ID}
 ```
 
 All tasks committed. The Orchestrator reports the sprint summary and directs the user to run the retrospective.
@@ -123,9 +123,9 @@ All tasks committed. The Orchestrator reports the sprint summary and directs the
 
 ```mermaid
 flowchart LR
-    A([sprint-intake]) --> B([sprint-plan])
+    A([new-sprint]) --> B([plan-sprint])
     B -->|task manifests| C([run-sprint\n← you are here])
-    C -->|committed code + artifacts| D([retrospective])
+    C -->|committed code + artifacts| D([retro])
 
     style C fill:#2ecc71,color:#fff
 ```

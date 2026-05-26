@@ -128,14 +128,14 @@ describe('base-pack commands contain {{PREFIX}} placeholder', () => {
     'commands/fix-bug.md',
     'commands/implement.md',
     'commands/plan.md',
-    'commands/quiz-agent.md',
-    'commands/retrospective.md',
+    'commands/check-agent.md',
+    'commands/retro.md',
     'commands/review-code.md',
     'commands/review-plan.md',
     'commands/run-sprint.md',
     'commands/run-task.md',
-    'commands/sprint-intake.md',
-    'commands/sprint-plan.md',
+    'commands/new-sprint.md',
+    'commands/plan-sprint.md',
     'commands/validate.md',
   ];
 

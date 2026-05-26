@@ -1,6 +1,6 @@
 ---
 name: init
-description: Use when the current project has no Forge SDLC instance and you need to bootstrap one from scratch
+description: Use when the current project has no Forge SDLC instance and you need to bootstrap one from scratch. Use --migrate to migrate an existing store to Forge format (replaces the removed /forge:migrate command).
 ---
 
 # /forge:init
@@ -82,21 +82,31 @@ just emit the phase banner for the resume target phase.
 
 ### Flag handling
 
-**Conflict check first:** if `$ARGUMENTS` contains BOTH `--fast` AND `--full`, halt
-immediately with:
-```
-× Conflicting flags: --fast and --full cannot be combined.
-```
-Do not write `.forge/init-progress.json`. Do not proceed.
+`--fast` and `--full` are accepted as no-ops for backwards compatibility with
+scripts and CI pipelines. Both flags proceed with the standard 4-phase base-pack
+init. The fast/full distinction was removed in v0.40.0.
 
-**Single flag present (`--fast` or `--full`):** accept with a one-line acknowledgement
-and continue to **Pre-flight Plan** — both flags run the identical new 4-phase flow:
+**`--migrate` flag:** When `$ARGUMENTS` contains `--migrate`, run the store migration
+workflow instead of the standard init. This is the v1.0 replacement for the removed
+`/forge:migrate` command.
 
-- `--fast` present → emit `〇 --fast accepted — running 4-phase base-pack init (fast and full are now equivalent)`
-- `--full` present → emit `〇 --full accepted — running 4-phase base-pack init`
+1. Check that `.forge/config.json` exists. If it does not, stop and tell the user:
+   > "Forge has not been initialised in this project. Run `/forge:init` first, then come back to `/forge:init --migrate`."
 
-**No flags:** proceed directly to **Pre-flight Plan**. There is no interactive mode
-prompt — the 4-phase flow is the only flow.
+2. Check for `--structural` sub-flag in `$ARGUMENTS`:
+   - If present, load and run the structural migration workflow:
+     Read `"$FORGE_ROOT/meta/workflows/meta-migrate.md"` and follow it.
+   - If absent, run the standard store schema migration (Steps 1–7 of the former `migrate.md`):
+     Read `"$FORGE_ROOT/meta/workflows/meta-migrate.md"` and follow it, passing
+     `--store-schema` so it runs the schema migration path (Steps 2–7).
+
+3. If `--dry-run` is also present, pass it through so the migration runs Steps 1–4
+   only (no writes).
+
+4. Do NOT proceed to the Pre-flight Plan when `--migrate` is present.
+
+**Proceed directly to Pre-flight Plan** for all other invocations. There is no interactive mode prompt —
+the 4-phase flow is the only flow.
 
 ### Pre-flight Plan
 
@@ -123,9 +133,8 @@ Start from Phase 1? [Y] or specify phase (1–4): ___
 If the user specifies a valid phase (1–4), jump there directly.
 Any other input (including 0, 5+, or non-numeric text) re-prompts with the same table.
 
-If a `$ARGUMENTS` phase number was combined with a flag (e.g. `--fast 3`),
-skip both the flag acknowledgement and the pre-flight table and go straight
-to the specified phase.
+If a `$ARGUMENTS` phase number is provided (e.g. `3`), skip the pre-flight
+table and go straight to the specified phase.
 
 Read `$FORGE_ROOT/init/sdlc-init.md` — that document is your complete orchestration.
 Follow it exactly. It defines 4 phases:
@@ -142,21 +151,6 @@ in the project.
 ## Arguments
 
 $ARGUMENTS
-
-### Mode flags (backwards compatibility)
-
-`--fast` and `--full` are accepted for scripted and CI use. Both flags select the
-new 4-phase base-pack init — the distinction between fast and full mode is
-obsolete because base-pack template substitution is instant and always produces
-fully functional (non-stub) workflows.
-
-#### Conflicting flags
-
-`--fast` and `--full` together halt the run before any write:
-
-```
-× Conflicting flags: --fast and --full cannot be combined.
-```
 
 ## On error
 

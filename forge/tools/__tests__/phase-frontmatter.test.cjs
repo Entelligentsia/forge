@@ -60,14 +60,24 @@ function parseFrontmatter(content) {
 // meta-commit       5326       5090       5632  (542B headroom — within one block boundary)
 // meta-update-plan  3042       2806       3072  (266B headroom — lowered from 3584)
 // meta-update-impl  3328       3092       3584  (492B headroom — lowered from 4096)
+//
+// FORGE-S26-T07: Revision Loop Visibility — budgets raised for review workflows.
+// Added "Read Review Loop Context" step (step 1) to meta-review-plan.md,
+// meta-review-implementation.md, and meta-validate.md. Each step adds ~600-900B
+// of prose for the iteration context injection, graceful fallback, and final-
+// iteration Next Steps block. New budgets = actual byte count + ~600B headroom,
+// rounded to nearest 512-byte boundary.
+// meta-review-plan  5151 → 7080  budget 7680  (600B headroom)
+// meta-review-impl  5925 → 7825  budget 8448  (623B headroom — raised from 7168)
+// meta-validate     4890 → 7277  budget 7808  (531B headroom — raised from 6656)
 const BYTE_BUDGETS = {
-  'meta-plan-task.md':              6912,
-  'meta-implement.md':              7680,
-  'meta-review-plan.md':            5632,
-  'meta-review-implementation.md':  6400,
-  'meta-validate.md':               5376,
-  'meta-approve.md':                6656,
-  'meta-commit.md':                 5632,
+  'meta-plan-task.md':              7680,
+  'meta-implement.md':              8192,
+  'meta-review-plan.md':            7680,
+  'meta-review-implementation.md':  8448,
+  'meta-validate.md':               7808,
+  'meta-approve.md':                7168,
+  'meta-commit.md':                 6144,
   'meta-update-plan.md':            3072,
   'meta-update-implementation.md':  3584,
 };

@@ -431,10 +431,10 @@ describe('COMMAND_METADATA', () => {
     assert.equal(planEntry.workflow, 'plan_task.md');
   });
 
-  test('quiz-agent.md entry maps to quiz_agent.md workflow', () => {
+  test('check-agent.md entry maps to quiz_agent.md workflow', () => {
     mod = mod || require(SCRIPT_PATH);
-    const quizEntry = mod.COMMAND_METADATA.find(c => c.file === 'quiz-agent.md');
-    assert.ok(quizEntry, 'must have quiz-agent.md entry');
+    const quizEntry = mod.COMMAND_METADATA.find(c => c.file === 'check-agent.md');
+    assert.ok(quizEntry, 'must have check-agent.md entry');
     assert.equal(quizEntry.workflow, 'quiz_agent.md');
   });
 

@@ -1,6 +1,6 @@
 [
-  {"id": "architect_sprint_intake",            "meta": "meta-sprint-intake.md",           "persona": "product-manager"},
-  {"id": "architect_sprint_plan",              "meta": "meta-sprint-plan.md",             "persona": "architect"},
+  {"id": "architect_sprint_intake",            "meta": "meta-new-sprint.md",              "persona": "product-manager"},
+  {"id": "architect_sprint_plan",              "meta": "meta-plan-sprint.md",             "persona": "architect"},
   {"id": "architect_approve",                  "meta": "meta-approve.md",                 "persona": "architect"},
   {"id": "architect_review_sprint_completion", "meta": "meta-review-sprint-completion.md","persona": "architect"},
   {"id": "plan_task",                          "meta": "meta-plan-task.md",               "persona": "architect"},
@@ -12,7 +12,7 @@
   {"id": "review_plan",                        "meta": "meta-review-plan.md",             "persona": "supervisor"},
   {"id": "review_code",                        "meta": "meta-review-implementation.md",   "persona": "supervisor"},
   {"id": "collator_agent",                     "meta": "meta-collate.md",                 "persona": "collator"},
-  {"id": "sprint_retrospective",               "meta": "meta-retrospective.md",           "persona": "architect"},
+  {"id": "sprint_retrospective",               "meta": "meta-retro.md",                   "persona": "architect"},
   {"id": "validate_task",                      "meta": "meta-validate.md",               "persona": "qa-engineer"},
-  {"id": "quiz_agent",                         "meta": "meta-quiz-agent.md",              "persona": "qa-engineer"}
+  {"id": "quiz_agent",                         "meta": "meta-check-agent.md",             "persona": "qa-engineer"}
 ]

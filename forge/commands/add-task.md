@@ -48,7 +48,7 @@ If no `--sprint` argument:
 - Filter to sprints with status `active` or `planning` (these are the only
   states where adding tasks makes sense).
 - If no active/planning sprints exist:
-  > △ No active or planning sprints found. Create a sprint first using sprint-intake.
+  > △ No active or planning sprints found. Create a sprint first using new-sprint.
   > Exit without making changes.
 - If only one active/planning sprint: auto-select it and tell the user:
   > 〇 Auto-selected sprint: **{SPRINT_ID}** — {title}

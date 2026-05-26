@@ -1,4 +1,37 @@
 {
+  "0.52.1": {
+    "version": "1.0.0",
+    "date": "2026-05-26",
+    "notes": "v1.0.0 — v1.0 DevX Overhaul (FORGE-S26). 7 command renames, 6 command removals, fast-mode dead code removal, health --fix, rebuild --enrich, init --migrate, pipeline step guards, revision loop visibility, post-init welcome, Tomoshibi enhancements, forge:status plugin command, v1.0 documentation restructure.",
+    "target": "commands:new-sprint,commands:plan-sprint,commands:retro,commands:rebuild,commands:search,commands:repair,commands:check-agent,commands:calibrate,commands:enhance,commands:migrate,commands:materialize,commands:update-tools,commands:collate,commands:status,workflows:orchestrate_task,workflows:plan_task,workflows:implement_plan,workflows:fix_bug,config:mode",
+    "regenerate": ["commands", "workflows", "tools"],
+    "breaking": true,
+    "manual": [
+      "Removed commands: /forge:update-tools, /forge:materialize, /forge:enhance, /forge:calibrate, /forge:migrate, /forge:collate (user surface). Use /forge:update for schema refresh, /forge:rebuild --enrich for enhancement, /forge:health --fix for calibration, /forge:init --migrate for migration.",
+      "Renamed commands: /forge:sprint-intake → /forge:new-sprint, /forge:sprint-plan → /forge:plan-sprint, /forge:retrospective → /forge:retro, /forge:regenerate → /forge:rebuild, /forge:store-query → /forge:search, /forge:store-repair → /forge:repair, /forge:quiz-agent → /forge:check-agent. Old names redirect with deprecation notice.",
+      "Config: 'mode' field removed from .forge/config.json schema. Remove it manually from existing projects or run /forge:update."
+    ]
+  },
+  "0.52.0": {
+    "version": "0.52.1",
+    "date": "2026-05-26",
+    "notes": "fix(tool-discipline): add forge_artifact and forge_verify_apply discipline lines to meta/fragments/tool-discipline.md — fragment was missing two bullet points present in the FORGE_TOOL_DISCIPLINE TypeScript constant, causing subagents to receive incomplete discipline text when the fragment was present.",
+    "target": "fragments:tool-discipline",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.51.4": {
+    "version": "0.52.0",
+    "date": "2026-05-26",
+    "notes": "New tools: artifact.cjs, verify-apply.cjs; tool-discipline.md canonical fragment; store-cli list/read --no-summaries, --fields, --limit, --count flags.",
+    "target": "tools:artifact,tools:verify-apply,tools:store-cli",
+    "regenerate": [
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.51.3": {
     "version": "0.51.4",
     "date": "2026-05-26",

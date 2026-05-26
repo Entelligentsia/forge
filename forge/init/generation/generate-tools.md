@@ -78,7 +78,7 @@ node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/config.json
 
 - `paths.forgeRoot` is refreshed by `/forge:update` at each upgrade, so the
   stored path stays current even after plugin reinstallation.
-- `/forge:update-tools` also copies schemas and should be run after upgrades
+- `/forge:update` automatically refreshes schemas as part of its normal flow — run it after upgrades
   to refresh `.forge/schemas/` with any schema changes from the new version.
 - Generated workflow files reference tools using a runtime read pattern:
   ```

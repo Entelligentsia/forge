@@ -33,8 +33,8 @@
 **`Persona Self-Load`** — *conditional*. Required when the generated workflow uses the
 Persona Self-Load pattern (the generated file must begin by reading a persona `.md` file
 before any other tool use). Specify the exact persona path. Used in: `meta-collate.md`,
-`meta-retrospective.md`, `meta-review-sprint-completion.md`, `meta-sprint-intake.md`,
-`meta-sprint-plan.md`. Omit for subagent-targeted workflows where the persona is loaded
+`meta-retro.md`, `meta-review-sprint-completion.md`, `meta-new-sprint.md`,
+`meta-plan-sprint.md`. Omit for subagent-targeted workflows where the persona is loaded
 by the orchestrator before dispatch.
 
 **`Workflow Structure`** — *required*. Names the generated file slug and asserts the
@@ -51,8 +51,8 @@ run inline, and mandates the `Agent` tool for sub-tasks.
 substitutions the generator must embed (stack commands, KB paths, template references,
 task ID format, etc.).
 
-**`Token Reporting`** — *required* (with one exception: `meta-quiz-agent.md` omits it
-because quiz-agent is an inline helper, not an orchestrated phase). Standard form: `See
+**`Token Reporting`** — *required* (with one exception: `meta-check-agent.md` omits it
+because check-agent is an inline helper, not an orchestrated phase). Standard form: `See
 \`_fragments/finalize.md\` — wire via \`file_ref:\`.` Expanded token-reporting prose is
 used in workflows where the generated file must mandate a specific sidecar-emit sequence
 (retrospective, sprint-intake, sprint-plan, review-sprint-completion) — in those cases,

@@ -65,7 +65,7 @@ Permitted fields: `project.name`, `project.prefix` only.
 
 | Field | Impact |
 |---|---|
-| `project.prefix` | △ Requires regeneration — command folder renames from `.claude/commands/{old_lower}/` to `.claude/commands/{new_lower}/`, and generated workflow slash-command references become stale. Run `/forge:regenerate commands workflows` after confirming. |
+| `project.prefix` | △ Requires regeneration — command folder renames from `.claude/commands/{old_lower}/` to `.claude/commands/{new_lower}/`, and generated workflow slash-command references become stale. Run `/forge:rebuild commands workflows` after confirming. |
 
 *The prefix is stored as provided but the command namespace is always lowercase.*
 | `project.name` | 〇 No regeneration needed. |
@@ -138,6 +138,147 @@ Use the Skill tool:
 
 ---
 
+### What now?
+
+Triggered by (fuzzy, case-insensitive, substring match): "what now", "what should i do", "what's next", "where do i start", "next steps", "get started", "how do i begin"
+
+State detection — run in order, stop at first match:
+
+**1. No config:**
+
+If `HAS_CONFIG` env is false or `manage-config.cjs get project` returns an error:
+
+```
+灯 No Forge project found here.
+Run /forge:init to create one, then come back and ask again.
+```
+
+**2. No sprints:**
+
+```sh
+node "$FORGE_ROOT/tools/store-cli.cjs" list sprint status=active
+node "$FORGE_ROOT/tools/store-cli.cjs" list sprint status=planning
+```
+
+If both are empty:
+
+```
+灯 Project initialized, no sprints yet.
+Next step: /forge:new-sprint — start your first sprint by describing what you want to build.
+```
+
+**3. Active sprint — inspect tasks:**
+
+```sh
+node "$FORGE_ROOT/tools/store-cli.cjs" list task status=planned
+node "$FORGE_ROOT/tools/store-cli.cjs" list task status=implementing
+node "$FORGE_ROOT/tools/store-cli.cjs" list task status=committed
+```
+
+Determine sub-state from results:
+
+- **All tasks committed** (no planned, no implementing):
+  ```
+  灯 Sprint {id} complete — all tasks committed.
+  Next step: /forge:retro — capture lessons learned and close the sprint.
+  ```
+
+- **Any tasks implementing** (n implementing, m planned, k committed):
+  ```
+  灯 Sprint {id} in progress — {n} tasks implementing, {m} planned, {k} committed.
+  Next step: /forge:run-task {next-planned-task-id} — continue the pipeline.
+  ```
+
+- **All tasks planned** (none started):
+  ```
+  灯 Sprint {id} ready — {n} tasks planned, none started.
+  Next step: /forge:run-task {first-task-id} — kick off the first task.
+  ```
+
+---
+
+### Commands
+
+Triggered by (fuzzy, case-insensitive, substring match): "commands", "help", "available commands", "what commands", "command list", "what can you do", "list commands", "show commands"
+
+Respond with this static reference (no shell commands needed):
+
+```
+灯 Forge v1.0 command reference:
+
+Tier 1 — Start here:
+  /forge:ask         Ask anything — this command
+  /forge:init        Create a new Forge project
+  /forge:new-sprint  Start a new sprint (intake)
+  /forge:status      Current sprint and task overview
+  /forge:health      Project health check and diagnostics
+
+Tier 2 — Sprint workflow:
+  /forge:plan-sprint  Decompose sprint into tasks
+  /forge:run-sprint   Run all sprint tasks (automated)
+  /forge:run-task     Run a single task through the pipeline
+  /forge:retro        Sprint retrospective
+  /forge:rebuild      Regenerate workflows, personas, commands
+
+Tier 3 — Advanced:
+  /forge:search       Query the task/sprint/bug store
+  /forge:repair       Repair store integrity issues
+  /forge:check-agent  Quiz an agent on project knowledge
+  /forge:config       View or change project configuration
+  /forge:update       Check for and install Forge updates
+  /forge:remove       Remove a task or sprint
+  /forge:add-task     Add a task to an active sprint
+  /forge:add-pipeline Register a custom pipeline
+  /forge:report-bug   File a Forge bug report
+```
+
+---
+
+### KB summary
+
+Triggered by (fuzzy, case-insensitive, substring match): "what did you find", "show me", "kb summary", "knowledge base", "what's in the kb", "findings", "what do you know", "show kb", "summarize"
+
+**1. No config:**
+
+If `HAS_CONFIG` is false:
+
+```
+灯 No project config found — KB summary requires an initialized project.
+Run /forge:init first.
+```
+
+**2. Check calibration baseline:**
+
+```sh
+node "$FORGE_ROOT/tools/manage-config.cjs" get calibrationBaseline 2>/dev/null
+```
+
+- If absent or null → `calibration_status = "× No baseline — run /forge:health --fix to establish one."`
+- If present → `calibration_status = "〇 Baseline established."`
+
+**3. Read KB index:**
+
+```sh
+cat "$PROJECT_ROOT/engineering/MASTER_INDEX.md" 2>/dev/null
+```
+
+**4. Present compact summary:**
+
+```
+灯 Knowledge base summary:
+
+KB freshness: {calibration_status}
+
+Architecture: {n} sections — {list key architecture topics found}
+Business domain: {n} entities — {list key entities found}
+Features: {n} total — {n} active, {n} completed
+Sprints: {n} total — {n} active, {n} completed, {n} abandoned
+
+To explore further: /forge:search — query the store directly.
+```
+
+---
+
 ### Anything else
 
 Ask one clarifying question. Do not guess.
@@ -149,6 +290,9 @@ Ask one clarifying question. Do not guess.
 ```
 🏮 灯 Tomoshibi — I can help you with:
 
+  · What now?          — context-aware next step based on your current project state
+  · Commands           — full Forge v1.0 command reference, tiered by use case
+  · KB summary         — what's in your knowledge base and how fresh it is
   · Project status     — active sprint, open bugs, active features, in-progress tasks
   · Config queries     — show or change project.name / project.prefix
   · Version           — locally installed Forge version
@@ -168,14 +312,14 @@ What would you like to know?
 |---|---|---|
 | `.forge/config.json` | Yes | `project.name`, `project.prefix` only — with `[Y/n]` confirm |
 | `.forge/store/` | `list`/`read` via `store-cli.cjs` only | **Never** — redirect to workflow commands |
-| `.forge/workflows/`, `.forge/personas/`, `.forge/skills/` | Yes — to explain content | **Never** — redirect to `/forge:regenerate` |
-| `engineering/` KB | Yes — to answer questions | **Never** — redirect to `/forge:calibrate` or sprint commands |
-| `.claude/commands/` | Yes — to explain | **Never** — redirect to `/forge:regenerate commands` |
+| `.forge/workflows/`, `.forge/personas/`, `.forge/skills/` | Yes — to explain content | **Never** — redirect to `/forge:rebuild` |
+| `engineering/` KB | Yes — to answer questions | **Never** — redirect to `/forge:health --fix` or sprint commands |
+| `.claude/commands/` | Yes — to explain | **Never** — redirect to `/forge:rebuild commands` |
 | `forge/` plugin source | No — internal impl detail | **Never** |
 
 Forbidden store operations: `write`, `update-status`, `delete`, `emit`, `purge-events`.
 
-Forbidden forge commands to invoke: `/forge:remove`, `/forge:init`, `/forge:migrate` —
+Forbidden forge commands to invoke: `/forge:remove`, `/forge:init` —
 Tomoshibi can *explain* these but never invokes them.
 
 ## Output rules

@@ -67,7 +67,7 @@ The review steps are deliberate. They are not bureaucratic overhead. They are th
 
 Following Forge's default process flow produces software that ships on the first pass. Not because LLMs are perfect, but because the review loops catch problems before they reach the commit. The Engineer writes a plan. The Supervisor catches the gaps. The Engineer revises. The Engineer implements. The Supervisor catches the deviations. The Engineer revises again. By the time the Architect approves and the commit lands, the code has survived adversarial review.
 
-This is the design intent. If your default flow is not producing shippable software, the knowledge base needs calibration — run `/forge:calibrate` or `/forge:health` to find the gaps.
+This is the design intent. If your default flow is not producing shippable software, the knowledge base needs calibration — run `/forge:health --fix` to find the gaps.
 
 ---
 
@@ -92,7 +92,7 @@ Forge learns about your project as you work with it. Every sprint adds to the kn
 
 By Sprint 3, the system understands your project better than any static prompt could. It keeps improving.
 
-Forge also self-heals. When agents make mistakes, the review loops catch them. When the knowledge base drifts from the codebase, `/forge:health` detects it. When workflows need updating, `/forge:regenerate` refreshes them.
+Forge also self-heals. When agents make mistakes, the review loops catch them. When the knowledge base drifts from the codebase, `/forge:health` detects it. When workflows need updating, `/forge:rebuild` refreshes them.
 
 ---
 

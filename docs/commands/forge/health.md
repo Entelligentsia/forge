@@ -75,8 +75,8 @@ Forge Health Report
 〇 Plugin integrity: 30 files verified
 
 Recommended actions:
-  /forge:regenerate knowledge-base business-domain
-  /forge:regenerate workflows
+  /forge:rebuild knowledge-base business-domain
+  /forge:rebuild workflows
 ```
 
 Symbols: 〇 = pass, △ = warning, × = failure.
@@ -89,16 +89,17 @@ If `config.installedSkills` differs from the live installed skill list, health u
 
 | Health finding | Command to run |
 |----------------|----------------|
-| Orphaned entities | `/forge:regenerate knowledge-base business-domain` |
-| New subsystems not in architecture | `/forge:regenerate knowledge-base architecture` |
-| New libraries not in checklist | `/forge:regenerate knowledge-base stack-checklist` |
-| Stale workflows after KB changes | `/forge:regenerate workflows` |
-| Stale persona pack | `/forge:regenerate personas` |
-| Stale context pack | `/forge:regenerate knowledge-base architecture` |
-| Modified generated files | Review changes; run `/forge:regenerate` to reset |
+| Orphaned entities | `/forge:rebuild knowledge-base business-domain` |
+| New subsystems not in architecture | `/forge:rebuild knowledge-base architecture` |
+| New libraries not in checklist | `/forge:rebuild knowledge-base stack-checklist` |
+| Stale workflows after KB changes | `/forge:rebuild workflows` |
+| Stale persona pack | `/forge:rebuild personas` |
+| Stale context pack | `/forge:rebuild knowledge-base architecture` |
+| Modified generated files | Review changes; run `/forge:rebuild` to reset |
 | Skill gap | `/plugin install {skill}@{marketplace}` |
 | Plugin integrity failure | `/forge:update` to restore plugin files |
-| Store integrity errors | `/forge:store-repair` |
+| Store integrity errors | `/forge:repair` |
+| KB drift | `/forge:health --fix` (runs drift detection + patch application) |
 
 ---
 
@@ -114,7 +115,6 @@ If `config.installedSkills` differs from the live installed skill list, health u
 
 | Command | Purpose |
 |---------|---------|
-| [`/forge:regenerate`](regenerate.md) | Act on health findings |
-| [`/forge:calibrate`](calibrate.md) | Detect drift and propose targeted patches |
+| [`/forge:rebuild`](rebuild.md) | Act on health findings — rebuild workflows, personas, KB |
 | [`/forge:update`](update.md) | Apply a plugin version upgrade |
-| [`/forge:store-repair`](store-repair.md) | Repair corrupted store records |
+| [`/forge:repair`](repair.md) | Repair corrupted store records |

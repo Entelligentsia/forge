@@ -164,7 +164,7 @@ flowchart TD
 
 The orchestrator reads `task.pipeline` from the task JSON manifest. Two ways to set it:
 
-**Automatic (during sprint planning):** `/sprint-plan` matches each task description against named pipeline `description` fields in `config.json` and stamps `pipeline` into the task JSON when there is a clear match.
+**Automatic (during sprint planning):** `/forge:plan-sprint` matches each task description against named pipeline `description` fields in `config.json` and stamps `pipeline` into the task JSON when there is a clear match.
 
 **Manual (after planning):** Edit the task JSON directly:
 

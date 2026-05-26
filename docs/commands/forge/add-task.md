@@ -42,5 +42,5 @@ Adds a new task to an active or planning sprint. Conducts a focused mini-intake 
 
 ## Related
 
-- [`/sprint-plan`](../sprint/plan.md) — plan an entire sprint from requirements
+- [`/forge:plan-sprint`](../sprint/plan-sprint.md) — plan an entire sprint from requirements
 - [`/run-task`](../task-pipeline/run-task.md) — execute the task through the pipeline

@@ -43,9 +43,9 @@ node "$FORGE_ROOT/tools/banners.cjs" --subtitle "Reading the project's pulse —
 
 `banners.cjs` strips ANSI in `NO_COLOR` / non-tty / `--plain` contexts.
 
-Parse `$ARGUMENTS` for a `--path <dir>` argument:
-- If present, `PROJECT_ROOT = <dir>` (absolute or relative to the current working directory — resolve to absolute).
-- If absent, `PROJECT_ROOT = .` (current working directory).
+Parse `$ARGUMENTS` for:
+- `--path <dir>` → `PROJECT_ROOT = <dir>` (absolute or relative to the current working directory — resolve to absolute). If absent, `PROJECT_ROOT = .` (current working directory).
+- `--fix` → `FIX_MODE=true`. When present, run the Fix Phase (drift detection and patch application) after the standard diagnostics. Prompts for confirmation before applying any changes.
 
 All file paths below are relative to `PROJECT_ROOT`. All shell tool invocations must be run from `PROJECT_ROOT`:
 ```sh
@@ -70,7 +70,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
      Do **not** cascade into subsequent checks that may fail on incomplete config.
 2. **KB freshness check** — Read `calibrationBaseline` from `$PROJECT_ROOT/.forge/config.json`.
    - If `calibrationBaseline` is absent, emit:
-     > △ No calibration baseline found — run `/forge:calibrate` to establish one.
+     > △ No calibration baseline found — run `/forge:health --fix` to establish one.
      Skip the freshness check and proceed to step 3.
    - If `calibrationBaseline` exists, compute the current hash of `MASTER_INDEX.md` using the same algorithm as `/forge:init`:
      ```sh
@@ -85,7 +85,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
        If changes are only in technical sections: emit "technical". If only in business sections: emit "business". If in both: emit "technical + business".
        Emit:
        > △ KB drifted — <category> changes detected since last calibration (last calibrated: `calibrationBaseline.lastCalibrated`)
-       >   Run `/forge:calibrate` to re-align the knowledge base.
+       >   Run `/forge:health --fix` to re-align the knowledge base.
 3. Read the knowledge base files in `$PROJECT_ROOT/engineering/`
 4. Read the store in `$PROJECT_ROOT/.forge/store/` for sprint/task history
 5. Scan the codebase for entities not in the knowledge base (Grep for model/type definitions)
@@ -101,7 +101,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
    If any modified or missing files are reported, include them in the health
    report under **Modified generated files** with the note:
    > These files were manually edited after generation. Regeneration will warn
-   > before overwriting them. Run `/forge:regenerate` to review and update.
+   > before overwriting them. Run `/forge:rebuild` to review and update.
    If all files are pristine (or the tool is absent), omit this section.
 8. Check generated file structure:
    ```sh
@@ -110,7 +110,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
    If missing files are reported, include them in the health report under
    **Generated file structure** with note:
    > N expected file(s) are missing from generated output. Run `/forge:update` to
-   > regenerate missing files, or `/forge:regenerate <namespace>` for targeted repair.
+   > regenerate missing files, or `/forge:rebuild <namespace>` for targeted repair.
    If all files are present (exit 0), emit:
    > 〇 Generated file structure — all expected files present.
    If the tool is absent (file not found), skip this check silently.
@@ -134,7 +134,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
     - If any concept doc is older than the newest schema change, emit a notice that it may be stale.
 12. Check persona pack freshness:
     - If `$PROJECT_ROOT/.forge/cache/persona-pack.json` does not exist, emit:
-      > △ Persona pack missing — run `/forge:regenerate` to build it.
+      > △ Persona pack missing — run `/forge:rebuild` to build it.
       (The pack is consumed by `meta-orchestrate` and `meta-fix-bug` when `FORGE_PROMPT_MODE=reference`.)
     - Otherwise read the pack's `source_hash`, then compute the current hash:
       ```sh
@@ -142,7 +142,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
       STORED=$(node -e "console.log(require('$PROJECT_ROOT/.forge/cache/persona-pack.json').source_hash)")
       ```
       If `CURRENT != STORED`, emit:
-      > △ Persona pack stale — meta/ has changed since last build. Run `/forge:regenerate` to refresh.
+      > △ Persona pack stale — meta/ has changed since last build. Run `/forge:rebuild` to refresh.
       Otherwise emit:
       > 〇 Persona pack fresh.
 13. Check context pack freshness:
@@ -156,14 +156,14 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
       ```
     - If `engineering/architecture/` does not exist, skip this check silently.
     - If `.forge/cache/context-pack.json` does not exist, emit:
-      > △ Context pack missing — run `/forge:regenerate` to build it.
+      > △ Context pack missing — run `/forge:rebuild` to build it.
       (The pack is injected by `meta-orchestrate` and `meta-fix-bug` to reduce per-phase architecture reads.)
     - Otherwise read `source_hash` from `.forge/cache/context-pack.json` and compare:
       ```sh
       STORED=$(node -e "console.log(require('$PROJECT_ROOT/.forge/cache/context-pack.json').source_hash)")
       ```
       If `CURRENT != STORED` (and `CURRENT != 'n/a'`), emit:
-      > △ Context pack stale — architecture docs have changed since last build. Run `/forge:regenerate` or `/forge:collate` to rebuild.
+      > △ Context pack stale — architecture docs have changed since last build. Run `/forge:rebuild` or `/forge:collate` to rebuild.
       Otherwise emit:
       > 〇 Context pack fresh.
 14. Check plugin integrity:
@@ -188,9 +188,150 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
     If `--path` was used, open the report with: `Health report for: $PROJECT_ROOT`
 16. Close the report with: `If you've found a bug in Forge itself, run /forge:report-bug`
 
+## Health Summary
+
+After step 16, emit a pass/fail summary grid. One row per check category; substitute actual check result for status. Omit rows for checks that were skipped (not applicable to the project).
+
+| Check                          | Status |
+|--------------------------------|--------|
+| Config completeness            |   〇   |
+| KB freshness                   |   △   |
+| Store integrity                |   〇   |
+| Modified generated files       |   〇   |
+| Generated file structure       |   〇   |
+| Plugin integrity               |   〇   |
+| Persona pack freshness         |   △   |
+| Context pack freshness         |   〇   |
+| Skill gaps                     |   〇   |
+| Feature test coverage          |   〇   |
+| Stale docs / orphaned entities |   〇   |
+| Writeback backlog              |   〇   |
+| Concepts freshness             |   〇   |
+
+(Replace each status symbol with the actual result observed: 〇 = pass, △ = warning, × = failure.)
+
+## Recommended Actions
+
+After the summary grid, emit a "Recommended Actions" section only if one or more checks have a non-passing result (△ or ×). Each finding maps to exactly one command. Use v1.0 command names only.
+
+| Finding                        | Recommended Command                                          |
+|--------------------------------|--------------------------------------------------------------|
+| No calibration baseline        | `/forge:health --fix`                                        |
+| KB drifted                     | `/forge:health --fix`                                        |
+| Store integrity errors         | `/forge:store-repair`                                        |
+| Modified generated files       | `/forge:rebuild`                                             |
+| Missing generated files        | `/forge:update`                                              |
+| Plugin integrity modified      | `/forge:update`                                              |
+| Persona pack missing / stale   | `/forge:rebuild`                                             |
+| Context pack missing / stale   | `/forge:rebuild`                                             |
+| Skill gaps                     | `/plugin install <name>`                                     |
+| Features with zero tests       | *(no command — note: add tests for the listed FEAT-NNN IDs)* |
+| Stale docs                     | `/forge:collate`                                             |
+| Stale concepts                 | `/forge:rebuild knowledge-base`                              |
+| Config incomplete              | `/forge:init`                                                |
+
+Only emit rows for non-passing findings actually observed. If all checks pass, omit this section entirely.
+
+## Fix Phase
+
+When `FIX_MODE=true` (i.e. `--fix` was passed), run the following Fix Phase after the standard diagnostics and summary grid. The Fix Phase detects KB drift and applies surgical regeneration patches with user confirmation.
+
+**Step 1 — Structural-element readiness check:**
+Verify that the required structural elements for calibration exist:
+- `engineering/MASTER_INDEX.md`
+- `.forge/config.json` with `calibrationBaseline` section (or ready to create it)
+- `$FORGE_ROOT` accessible
+
+If any required element is missing, emit an error and stop the Fix Phase:
+> × Fix Phase aborted — required structural elements missing. Run `/forge:init` to set up the project first.
+
+**Step 2 — Establish or verify calibration baseline:**
+Read `calibrationBaseline` from `.forge/config.json`.
+- If absent, compute the current `MASTER_INDEX.md` hash (same algorithm as the KB freshness check in step 2 of diagnostics) and write it as the baseline. Emit:
+  > ✓ Calibration baseline established.
+- If present and hash matches current, emit:
+  > 〇 Calibration baseline is current — no drift detected.
+  Skip to Step 9.
+- If present and hash differs, proceed to Step 3.
+
+**Step 3 — Detect drift:**
+Compute the diff between the current `MASTER_INDEX.md` content and the version reflected by `calibrationBaseline.masterIndexHash`. Identify which sections have changed.
+
+**Step 4 — Categorize drift:**
+Categorize changed sections into four categories:
+- **Technical** — stack, routing, database, deployment, processes, architecture, schemas, conventions, stack-checklist
+- **Business** — entity-model, domain, features, acceptance criteria, business-domain
+- **Retrospective** — sprint retrospectives, lessons learned
+- **Acceptance criteria** — AC definitions, task prompts
+
+**Step 5 — Propose patches:**
+Print a **Calibration Drift Report**:
+```
+── Calibration Drift Report ──────────────────────────────
+Drift category:  <Technical | Business | Retrospective | Acceptance criteria | (combination)>
+Sections changed: <list>
+
+Proposed patches:
+  1. Regenerate <target> — <reason>
+  2. ...
+
+Skipped (no change detected):
+  - <targets with no relevant drift>
+──────────────────────────────────────────────────────────
+```
+
+Offer the enhancement agent opt-in:
+> Would you like to run the enhancement agent on the regenerated targets? It detects skill gaps and proposes improvements based on the new content. (Optional — recommended for large drift sets.)
+> [Y] Yes, run enhancement agent after patching  [n] Skip
+
+**Step 6 — Confirmation gate:**
+Prompt the user before applying any changes:
+```
+Apply patches? [Y] Apply all  [r] Review individually  [n] Skip
+```
+- `Y` → apply all proposed patches
+- `r` → walk through each patch individually, prompting `[Y/n]` per patch
+- `n` → skip all patches and exit the Fix Phase without modifying any files
+
+**Step 7 — Execute approved patches:**
+For each approved patch, run:
+```sh
+/forge:rebuild <target>
+```
+where `<target>` is the regeneration target identified in Step 5 (e.g. `knowledge-base`, `workflows`, `personas`).
+
+Report each patch as it is applied:
+> ✓ Rebuilt <target>
+
+**Step 8 — Update calibration state:**
+After all patches are applied, update `.forge/config.json`:
+- Recompute the current `MASTER_INDEX.md` hash
+- Write the new hash to `calibrationBaseline.masterIndexHash`
+- Update `calibrationBaseline.lastCalibrated` to today's date (ISO 8601, date only)
+- Update `calibrationBaseline.version` to the current Forge plugin version (from `plugin.json`)
+- Append a new entry to `calibrationHistory` with: `{ "date": "<today>", "drift": "<category>", "patchesApplied": <N> }`
+
+```sh
+# Use manage-config.cjs for atomic field writes:
+cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/manage-config.cjs" set calibrationBaseline.masterIndexHash "<new-hash>"
+node "$FORGE_ROOT/tools/manage-config.cjs" set calibrationBaseline.lastCalibrated "<today>"
+```
+
+**Step 9 — Summary:**
+Print the Calibration Complete block:
+```
+── Calibration Complete ──────────────────────────────────
+Patches applied:  <N>
+Drift resolved:   <category>
+Baseline updated: <today>
+─────────────────────────────────────────────────────────
+```
+Close with:
+> ── Run `/forge:health` to verify knowledge base currency.
+
 ## Output
 
-A health report to stdout — no files modified.
+A health report to stdout — no files modified, unless `--fix` is passed and patches are approved.
 
 After the report's findings, close with a single status line that
 reflects the overall verdict (synthesized from check 12's findings):
@@ -217,6 +358,7 @@ $ARGUMENTS
 | Argument | Purpose |
 |----------|---------|
 | `--path <dir>` | Run health check against a different project directory instead of the current working directory. Accepts an absolute path or a path relative to the current directory. |
+| `--fix` | Run KB drift detection and patch application after diagnostics. Prompts for confirmation before applying any changes. |
 
 ## On error
 

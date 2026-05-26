@@ -158,6 +158,6 @@ If `migratedFrom` equals the current version, the command reports "Already up to
 
 | Command | Purpose |
 |---|---|
-| [`/forge:regenerate`](regenerate.md) | Manual regeneration by category |
+| [`/forge:rebuild`](rebuild.md) | Manual regeneration by category |
 | [`/forge:health`](health.md) | Check for remaining drift after update |
 | [`/forge:add-pipeline`](add-pipeline.md) | Add pipelines (audit may reference these) |

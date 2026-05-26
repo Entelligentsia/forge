@@ -196,7 +196,7 @@ function buildContextPack({ archDir, existingPackPath }) {
   if (realLineCount > PACK_LINE_LIMIT) {
     // Keep PACK_LINE_LIMIT - 1 lines so the marker fits within the cap
     const truncated = splitLines.slice(0, PACK_LINE_LIMIT - 1);
-    truncated.push('<!-- TRUNCATED: pack exceeded 400 lines. Architecture KB has grown beyond summary capacity. Run /forge:regenerate after pruning docs. -->');
+    truncated.push('<!-- TRUNCATED: pack exceeded 400 lines. Architecture KB has grown beyond summary capacity. Run /forge:rebuild after pruning docs. -->');
     markdown = truncated.join('\n') + '\n';
   }
 

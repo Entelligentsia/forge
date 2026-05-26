@@ -61,7 +61,7 @@ describe('post-sprint hook — pass-through', () => {
 });
 
 describe('post-sprint hook — happy path', () => {
-  test('matching collate.cjs FORGE-S13 --purge-events fires with /forge:enhance --phase 2', () => {
+  test('matching collate.cjs FORGE-S13 --purge-events fires with /forge:rebuild --enrich --phase 2', () => {
     const tmp = makeProject();
     const r = runHook(tmp, {
       tool_name: 'Bash',
@@ -70,7 +70,7 @@ describe('post-sprint hook — happy path', () => {
     });
     assert.equal(r.status, 0, r.stderr);
     const out = JSON.parse(r.stdout);
-    assert.match(out.hookSpecificOutput.additionalContext, /\/forge:enhance --phase 2/);
+    assert.match(out.hookSpecificOutput.additionalContext, /\/forge:rebuild --enrich --phase 2/);
     assert.doesNotMatch(out.hookSpecificOutput.additionalContext, /--auto/);
   });
 

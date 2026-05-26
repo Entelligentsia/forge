@@ -4,7 +4,7 @@
 // Forge hook: post-init
 // PostToolUse hook that fires once at the END of a successful /forge:init
 // Phase 4 (NOT on Resume "start over" or stale-checkpoint cleanup) and
-// invokes /forge:enhance --phase 1 --auto.
+// invokes /forge:rebuild --enrich --phase 1 --auto.
 //
 // Trigger detection uses a positive end-of-flow signal: the hook matches
 // `rm -f .forge/init-progress.json` AND requires `.forge/structure-versions.json`
@@ -112,7 +112,7 @@ try {
     hookSpecificOutput: {
       hookEventName: 'PostToolUse',
       additionalContext:
-        'Forge: /forge:init has completed Phase 4. Run /forge:enhance --phase 1 --auto to materialise project-specific starter-pack content from the freshly captured structural snapshot.',
+        'Forge: /forge:init has completed Phase 4. Run /forge:rebuild --enrich --phase 1 --auto to materialise project-specific starter-pack content from the freshly captured structural snapshot.',
     },
   }) + '\n');
 } catch (outputErr) { logSwallowedError('post-init:output', outputErr, process.env.CLAUDE_PLUGIN_DATA); }

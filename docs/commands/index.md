@@ -1,45 +1,48 @@
 # Command Reference
 
-Forge commands fall into four categories. Choose the section that matches what you need.
+Forge commands fall into three tiers. Tier 1 covers daily use; Tier 2 covers sprint operations; Tier 3 covers advanced maintenance and customization. Task pipeline commands are a separate group used by the orchestrator and for manual phase invocation.
 
 ---
 
-## Forge plugin commands
+## Tier 1 — Daily use
 
-Manage the Forge installation and project-level generated artifacts. Run from any project directory.
+Run from any Forge-initialized project directory.
 
 | Command | Purpose |
 |---|---|
-| [`/forge:init`](forge/init.md) | Bootstrap a complete SDLC instance from a codebase (12 phases, fast or full mode) |
-| [`/forge:health`](forge/health.md) | Detect stale docs, orphaned entities, missing skills, and 14 other health checks |
-| [`/forge:regenerate`](forge/regenerate.md) | Refresh generated workflows, templates, tools, KB docs, personas, skills, or commands |
-| [`/forge:update`](forge/update.md) | Propagate a plugin version upgrade into project artifacts (7 steps) |
-| [`/forge:calibrate`](forge/calibrate.md) | Detect drift, propose regeneration patches, and apply approved patches |
-| [`/forge:add-pipeline`](forge/add-pipeline.md) | Add, customize, view, or remove custom task pipelines |
+| [`/forge:init`](forge/init.md) | Bootstrap a complete SDLC instance from a codebase |
+| [`/forge:new-sprint`](sprint/new-sprint.md) | Interview you and produce structured sprint requirements |
+| [`/forge:status`](forge/status.md) | Show current sprint, task statuses, and recent activity |
+| [`/forge:health`](forge/health.md) | Detect stale docs, orphaned entities, missing skills; `--fix` for maintenance |
+| [`/forge:ask`](forge/ask.md) | Ask Tomoshibi about project status, config, workflows, or what to do next |
+
+---
+
+## Tier 2 — Sprint operations
+
+| Command | Purpose |
+|---|---|
+| [`/forge:plan-sprint`](sprint/plan-sprint.md) | Break requirements into tasks with estimates and a dependency graph |
+| [`/forge:run-sprint SPRINT-ID`](sprint/run.md) | Execute all sprint tasks through the pipeline in dependency waves |
+| [`/forge:run-task TASK-ID`](task-pipeline/run-task.md) | Drive a single task through the complete pipeline end-to-end |
+| [`/forge:retro SPRINT-ID`](sprint/retro.md) | Close a sprint and feed learnings back into the knowledge base |
+| [`/forge:rebuild [target]`](forge/rebuild.md) | Refresh generated workflows, templates, tools, or knowledge-base docs |
+
+---
+
+## Tier 3 — Maintenance and customization
+
+| Command | Purpose |
+|---|---|
+| [`/forge:search`](forge/search.md) | Query the Forge store by natural language or exact flags |
+| [`/forge:repair`](forge/repair.md) | Diagnose and repair corrupted store records |
+| [`/forge:check-agent`](forge/check-agent.md) | Verify an agent has loaded and understood the project KB |
+| [`/forge:config`](forge/config.md) | Inspect project config |
+| [`/forge:update`](forge/update.md) | Propagate a plugin version upgrade into project artifacts |
+| [`/forge:add-pipeline [name]`](forge/add-pipeline.md) | Add, customize, view, or remove custom task pipelines |
 | [`/forge:add-task`](forge/add-task.md) | Add a task to an existing sprint mid-flight |
-| [`/forge:ask`](forge/ask.md) | Ask Tomoshibi about project status, config, workflows, or version |
-| [`/forge:config`](forge/config.md) | Inspect or change project config; promote fast mode to full |
-| [`/forge:materialize`](forge/materialize.md) | Fill stubs from fast-mode init without overwriting pristine files |
-| [`/forge:migrate`](forge/migrate.md) | Migrate a pre-existing AI-SDLC store to Forge format |
-| [`/forge:quiz-agent`](forge/quiz-agent.md) | Verify an agent has loaded and understood the project KB |
 | [`/forge:remove`](forge/remove.md) | Remove Forge artifacts from the current project (3 levels) |
 | [`/forge:report-bug`](forge/report-bug.md) | File a bug against Forge — gathers context and opens a GitHub issue |
-| [`/forge:store-query`](forge/store-query.md) | Query the Forge store by natural language or exact flags |
-| [`/forge:store-repair`](forge/store-repair.md) | Diagnose and repair corrupted store records |
-| [`/forge:update-tools`](forge/update-tools.md) | Refresh JSON schemas from the installed plugin |
-
----
-
-## Sprint commands
-
-Drive the sprint lifecycle — from requirements capture through retrospective.
-
-| Command | Purpose |
-|---|---|
-| [`/sprint-intake`](sprint/intake.md) | Interview the user and produce structured sprint requirements |
-| [`/sprint-plan`](sprint/plan.md) | Break requirements into tasks with estimates and a dependency graph |
-| [`/run-sprint`](sprint/run.md) | Execute all sprint tasks through the pipeline in dependency waves |
-| [`/retrospective`](sprint/retrospective.md) | Close a sprint and feed learnings back into the knowledge base |
 
 ---
 
@@ -49,14 +52,13 @@ Each command handles one phase of the task lifecycle. The orchestrator calls the
 
 | Command | Role | Purpose |
 |---|---|---|
-| [`/run-task`](task-pipeline/run-task.md) | Orchestrator | Drive a single task through the complete pipeline end-to-end |
-| [`/plan-task`](task-pipeline/plan.md) | Engineer | Research the codebase and write an implementation plan |
-| [`/review-plan`](task-pipeline/review-plan.md) | Supervisor | Adversarially review the plan for feasibility and completeness |
-| [`/implement`](task-pipeline/implement.md) | Engineer | Implement the approved plan; run tests; document |
-| [`/review-code`](task-pipeline/review-code.md) | Supervisor | Review the implementation against plan, checklist, and security criteria |
-| [`/approve`](task-pipeline/approve.md) | Architect | Final architectural sign-off before commit |
-| [`/commit`](task-pipeline/commit.md) | Engineer | Stage artifacts and code; create a formatted commit |
-| [`/fix-bug`](task-pipeline/fix-bug.md) | Engineer | Triage, root-cause, fix, and classify a bug |
+| [`/forge:plan`](task-pipeline/plan.md) | Engineer | Research the codebase and write an implementation plan |
+| [`/forge:review-plan`](task-pipeline/review-plan.md) | Supervisor | Adversarially review the plan for feasibility and completeness |
+| [`/forge:implement`](task-pipeline/implement.md) | Engineer | Implement the approved plan; run tests; document |
+| [`/forge:review-code`](task-pipeline/review-code.md) | Supervisor | Review the implementation against plan, checklist, and security criteria |
+| [`/forge:approve`](task-pipeline/approve.md) | Architect | Final architectural sign-off before commit |
+| [`/forge:commit`](task-pipeline/commit.md) | Engineer | Stage artifacts and code; create a formatted commit |
+| [`/forge:fix-bug BUG-ID`](task-pipeline/fix-bug.md) | Engineer | Triage, root-cause, fix, and classify a bug |
 
 ---
 
@@ -66,9 +68,9 @@ Each command handles one phase of the task lifecycle. The orchestrator calls the
 
 ```mermaid
 flowchart LR
-    A([sprint-intake]) -->|SPRINT_REQUIREMENTS.md| B([sprint-plan])
+    A([new-sprint]) -->|SPRINT_REQUIREMENTS.md| B([plan-sprint])
     B -->|task manifests\ndependency graph| C([run-sprint])
-    C -->|committed code\nartifacts| D([retrospective])
+    C -->|committed code\nartifacts| D([retro])
     D -->|KB updates\nchecklist additions| E[(Knowledge Base)]
     E -.->|richer next sprint| A
 
@@ -84,7 +86,7 @@ flowchart LR
 flowchart TD
     RT([run-task]) --> P
 
-    P["plan-task\nEngineer"] --> RP{review-plan\nSupervisor}
+    P["plan\nEngineer"] --> RP{review-plan\nSupervisor}
     RP -->|Revision Required\nmax 3 loops| P
     RP -->|Approved| I["implement\nEngineer"]
 

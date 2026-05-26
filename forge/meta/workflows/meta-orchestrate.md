@@ -172,7 +172,7 @@ and what capabilities it has. Two modes are supported, selected by the
 | `reference` | Compact summary from `.forge/cache/persona-pack.json`, plus a file_ref pointer to the full persona/skill definitions. | ✅ |
 | `inline` | Legacy: inject the full verbatim persona and skill file contents. Kept for one version as a rollback path. | |
 
-The pack is built by `/forge:regenerate` and `/forge:materialize` via
+The pack is built by `/forge:rebuild` and `/forge:materialize` via
 `forge/tools/build-persona-pack.cjs`. It compiles YAML frontmatter from
 `$FORGE_ROOT/meta/personas/meta-*.md` and `$FORGE_ROOT/meta/skills/meta-*.md`
 into `.forge/cache/persona-pack.json`.
@@ -199,7 +199,7 @@ def compose_role_block(persona_noun):
         # regeneration bug and should be reported via /forge:report-bug.
         raise OrchestratorError(
             f"persona '{persona_noun}' not in persona-pack. "
-            "Run /forge:regenerate to rebuild the pack."
+            "Run /forge:rebuild to rebuild the pack."
         )
 
     lines = [
@@ -435,6 +435,20 @@ for each task in dependency_sorted(tasks):
     # --- Load finalize fragment (token reporting contract) ---
     finalize_fragment = read_file(f"{FORGE_ROOT}/meta/workflows/_fragments/finalize.md") if file_exists(f"{FORGE_ROOT}/meta/workflows/_fragments/finalize.md") else ""
 
+    # --- Compose review loop context block (review-role phases only) ---
+    # Injected between summary_block and role_block so reviewers know their
+    # position in the revision loop at the moment they are spawned.
+    # `iteration` is the current attempt number (pre-spawn, not post-increment).
+    # `phase.maxIterations` is the configured limit (default 3).
+    if phase.role in ("review-plan", "review-code", "validate"):
+      review_loop_context = (
+        f"### Review Loop Context\n"
+        f"- Iteration: {iteration} of {phase.maxIterations}\n"
+        f"- Is final iteration: {iteration >= phase.maxIterations}\n\n"
+      )
+    else:
+      review_loop_context = ""
+
     spawn_kwargs = dict(
       prompt=(
         f"Append progress entries to {progress_log_path} via store-cli "
@@ -442,6 +456,7 @@ for each task in dependency_sorted(tasks):
         f"---\n\n"
         f"{architecture_block}"
         f"{summary_block}"
+        f"{review_loop_context}"
         f"{role_block}\n\n"
         f"### Project Context\n"
         f"{overlay_md}\n\n"
@@ -490,6 +505,7 @@ for each task in dependency_sorted(tasks):
           f"- Banner key: {banner_name}\n\n"
           f"Append progress entries as you work.\n\n"
           f"---\n\n"
+          f"{review_loop_context}"
           f"{role_block}\n\n"
           f"### Current Working Context\n"
           f"- Sprint Root: {sprint_root_path}\n"

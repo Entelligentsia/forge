@@ -73,21 +73,21 @@ const CANONICAL_BUG_TRANSITIONS = {
 // Per-project commands — derived from build-manifest.cjs COMMAND_NAMES by
 // strip(.md) + prepend('forge:')
 const PER_PROJECT_COMMANDS = [
-  'forge:sprint-intake',
+  'forge:new-sprint',
   'forge:plan',
   'forge:review-plan',
   'forge:implement',
   'forge:review-code',
   'forge:fix-bug',
-  'forge:sprint-plan',
+  'forge:plan-sprint',
   'forge:run-task',
   'forge:run-sprint',
-  'forge:collate',
-  'forge:retrospective',
+  // forge:collate removed from user-facing surface in v1.0 (T03) — kept as internal tool only
+  'forge:retro',
   'forge:approve',
   'forge:commit',
-  'forge:enhance',
-  'forge:quiz-agent',
+  // forge:enhance removed in v1.0 (T03) — absorbed into forge:rebuild --enrich
+  'forge:check-agent',
   'forge:validate',
 ];
 
@@ -95,16 +95,16 @@ const PER_PROJECT_COMMANDS = [
 const PLUGIN_RESERVED_COMMANDS = [
   'forge:init',
   'forge:health',
-  'forge:regenerate',
+  'forge:rebuild',
   'forge:update',
   'forge:add-task',
   'forge:add-pipeline',
-  'forge:calibrate',
-  'forge:materialize',
+  // forge:calibrate removed in v1.0 (T03) — absorbed into forge:health --fix (T04)
+  // forge:materialize removed in v1.0 (T03) — fast-mode eliminated in T01
   'forge:remove',
   'forge:report-bug',
-  'forge:store-query',
-  'forge:store-repair',
+  'forge:search',
+  'forge:repair',
   'forge:config',
   'forge:ask',
   'forge:store-custodian',

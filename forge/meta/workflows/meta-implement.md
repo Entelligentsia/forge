@@ -30,13 +30,25 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
 
 ```
 
-0. Pre-flight Gate Check:
+0a. Pre-flight Gate Check:
    - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
    - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
    - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase implement --{entity_kind} {record_id}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
+
+0b. Pipeline Step Guard (user-invoked state check):
+   - If `--force` is present in the invocation arguments, skip this step entirely.
+   - If `entity_kind == "bug"`, skip this step entirely (bug state is managed by meta-fix-bug.md).
+   - Read current task state:
+     `node "$FORGE_ROOT/tools/store-cli.cjs" read task {record_id} --json`
+   - Extract the `status` field from the JSON output.
+   - Allowed states for this phase: `plan-approved`.
+   - If the current status is NOT in the allowed set:
+     Print the following and HALT (do not proceed):
+     `× Task {record_id} is in state '{status}' — /forge:review-plan must complete first. To run the full pipeline: /forge:run-task {record_id}`
+
 1. Load Context:
    - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
    - store-cli verbs: `read` | `list` | `write` | `emit` | `update-status` | `set-summary` | `describe` | `nlp` | `query` | `delete` — there is no `get`/`set`/`find`. See `_fragments/store-cli-verbs.md` for full notes; run `--help` before improvising.

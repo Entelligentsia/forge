@@ -95,8 +95,7 @@ node "$FORGE_ROOT/tools/banners.cjs" --subtitle "Updating Forge — checking rem
 At the start of each step, emit a step header via `banners.cjs --phase`:
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase {N} 7 "{Step Name}" {bannerKey} \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase {N} 7 "{Step Name}" {bannerKey}
 ```
 
 Step ↔ banner key map:
@@ -130,7 +129,7 @@ If `updateStatus === "pending"`:
    △ Previous update is incomplete — pending migration(s): {pendingMigrations}
      Reason: {pendingReason}
 
-     Run /forge:migrate to complete the pending migration, then re-run
+     Run /forge:init --migrate to complete the pending migration, then re-run
      /forge:update to verify.
    ```
 
@@ -138,7 +137,7 @@ If `updateStatus === "pending"`:
    were completed in the previous run. The project already has the correct
    plugin version installed; only the migration chain remains.
 
-3. Exit. The user runs `/forge:migrate` to complete, then re-runs `/forge:update`.
+3. Exit. The user runs `/forge:init --migrate` to complete, then re-runs `/forge:update`.
 
 If `updateStatus !== "pending"` (or field absent): proceed normally with Step 1.
 
@@ -147,8 +146,7 @@ If `updateStatus !== "pending"` (or field absent): proceed normally with Step 1.
 ## Step 1 — Check for updates
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 1 7 "Check for updates" north \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 1 7 "Check for updates" north
 ```
 
 Read `$FORGE_ROOT/.claude-plugin/plugin.json`. Extract `"version"` → `LOCAL_VERSION`.
@@ -263,8 +261,7 @@ Now evaluate — **stop at the first matching row and follow only that row's act
 ## Step 2A — Plugin update available
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 2 7 "Plugin update available" rift \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 2 7 "Plugin update available" rift
 ```
 
 > **Only reached when `REMOTE_VERSION` != `LOCAL_VERSION` (row 4 above).**
@@ -320,7 +317,7 @@ Present the update summary:
 ```
 
 If no migration path can be constructed, show available notes and recommend
-`/forge:regenerate workflows`.
+`/forge:rebuild workflows`.
 
 Ask the user to choose. If they choose **[2]**, exit.
 
@@ -359,8 +356,7 @@ Wait for the user to confirm the install completed.
 ## Step 2B — Project migration pending (plugin already current)
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 2 7 "Apply project migrations" drift \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 2 7 "Apply project migrations" drift
 ```
 
 > **Only reached from rows 2 or 3 — the plugin is already at the right version.**
@@ -420,8 +416,7 @@ Then jump to **Step 4** to execute the regeneration.
 ## Step 3 — Verify installation
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 3 7 "Verify installation" lumen \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 3 7 "Verify installation" lumen
 ```
 
 After the user confirms the install:
@@ -461,8 +456,7 @@ path) — skip the re-derivation and keep the original value.
 ## Step 4 — Apply migrations
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 4 7 "Apply migrations" forge \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 4 7 "Apply migrations" forge
 ```
 
 > **Sequencing note:** `paths.forgeRoot` is written at the very start of Step 4,
@@ -540,7 +534,7 @@ Walk the migration chain from baseline forward to `LOCAL_VERSION`:
 - Collect the ordered list of migration steps that bridge baseline → current.
 - If no path exists, warn:
   > No migration path found from {baseline} to {LOCAL_VERSION}. Running
-  > `/forge:regenerate workflows` is recommended.
+  > `/forge:rebuild workflows` is recommended.
   Then exit.
 
 Aggregate across all steps in the path, applying the dominance rule:
@@ -568,7 +562,7 @@ Execute regeneration targets in this order:
 | 4 | `personas` | — (independent) | — |
 | 5 | `commands` | Must run after `workflows` | — |
 | 6 | `knowledge-base` sub-targets | — (independent) | — |
-| 7 | `schemas` | — (independent) | **Delegate to `/forge:update-tools`.** Emit: `Delegating schemas regeneration to /forge:update-tools…` then read and follow `$FORGE_ROOT/commands/update-tools.md`. |
+| 7 | `schemas` | — (independent) | **Run schema refresh inline** (see Schema Refresh below). Emit: `〇 Refreshing schemas…` |
 
 > **Known special targets — note for migration authors:** `hooks` and `schemas` are
 > special-cased here. Future `migrations.json` entries should only use recognised
@@ -650,19 +644,37 @@ If the user declines, exit without modifying anything.
 If `breaking: true`, require the user to confirm they have completed the manual
 steps before proceeding.
 
-For each category in the aggregated result, invoke `/forge:regenerate` by
+For each category in the aggregated result, invoke `/forge:rebuild` by
 reading and following `$FORGE_ROOT/commands/regenerate.md`:
-- If flagged for full rebuild: invoke `/forge:regenerate <category>`
-- If sub-targets collected: invoke `/forge:regenerate <category> <sub-target>`
+- If flagged for full rebuild: invoke `/forge:rebuild <category>`
+- If sub-targets collected: invoke `/forge:rebuild <category> <sub-target>`
   for each sub-target in order
 
 **Category-to-command mapping:** most categories are handled by
-`/forge:regenerate`, but the `tools` category is special. When `tools`
-appears in the aggregated result, invoke `/forge:update-tools` instead of
-`/forge:regenerate tools`. The update-tools command copies JSON schemas from
-`$FORGE_ROOT/schemas/` to `.forge/schemas/` and validates the store. It does
-not use the regeneration framework — tools ship with the plugin and are invoked
-directly via `$FORGE_ROOT/tools/`.
+`/forge:rebuild`, but the `tools` and `schemas` categories are special.
+
+When `tools` appears in the aggregated result, run the schema refresh inline
+(see **Schema Refresh** section below) instead of invoking `/forge:rebuild tools`.
+Tools ship with the plugin and are invoked directly via `$FORGE_ROOT/tools/`.
+
+When `schemas` appears in the aggregated result, run the schema refresh inline
+(same **Schema Refresh** section). Do NOT delegate to the removed `/forge:update-tools` command.
+
+### Schema Refresh
+
+When the migration chain includes a `schemas` or `tools` target, refresh schemas inline:
+
+```sh
+mkdir -p .forge/schemas
+cp "$FORGE_ROOT/schemas/"*.schema.json .forge/schemas/
+for f in .forge/schemas/*.schema.json; do
+  node "$FORGE_ROOT/tools/generation-manifest.cjs" record "$f"
+done
+node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run
+```
+
+Emit `〇 Schemas updated and store validation passed.` on success.
+Emit `× Validation failed — {output}` on non-zero exit from `validate-store.cjs`.
 
 Run non-knowledge-base targets first (workflows, templates, commands, tools),
 then knowledge-base sub-targets if present.
@@ -685,9 +697,9 @@ If exit 1 (gaps remain):
 > △ Structure check: N file(s) still missing after migration:
 >   (list missing files)
 >
-> This may indicate a failed regeneration step. Re-run `/forge:regenerate <namespace>`
-> for each affected namespace, or `/forge:regenerate` to rebuild all targets.
-> Note: skills entries require an explicit `/forge:regenerate skills` — they are not
+> This may indicate a failed regeneration step. Re-run `/forge:rebuild <namespace>`
+> for each affected namespace, or `/forge:rebuild` to rebuild all targets.
+> Note: skills entries require an explicit `/forge:rebuild skills` — they are not
 > included in the default regenerate run.
 
 Do NOT block migration success on gaps — surface them as a warning only. The user
@@ -798,7 +810,7 @@ ADR-S14-01 decision criteria to determine the update outcome:
 - No changes to `calibrationBaseline` semantics
 
 Concretely, a low-risk step is one where the only actions are: schema-only
-changes (`/forge:update-tools` for schemas), file-copy from base-pack
+changes (inline schema refresh for schemas), file-copy from base-pack
 (templates, workflows, personas), or config-key additions with deterministic
 defaults.
 
@@ -834,7 +846,7 @@ pass:
      only performs operations that can be completed without any user prompts.
    - **Deterministic file copies from base-pack:** if
      `structure-versions.json` already exists (post-T05 install), the
-     deterministic path is simply running any remaining `/forge:regenerate`
+     deterministic path is simply running any remaining `/forge:rebuild`
      targets that were not already applied in the main Step 4 regeneration
      sequence.
 
@@ -850,7 +862,7 @@ pass:
    - Write `updateStatus: "pending"`, `pendingReason: "Auto-invoke failed:
      {error description}"`, and `pendingMigrations: [list]` to
      `.forge/update-check-cache.json`.
-   - Print: "Update Pending — auto-invoke failed. Run `/forge:migrate` to
+   - Print: "Update Pending — auto-invoke failed. Run `/forge:init --migrate` to
      complete" with the failure details.
    - Exit without proceeding to Steps 5-7.
 
@@ -865,7 +877,7 @@ If any step is user-affecting (and the chain was NOT auto-invoked), enter the
 - Do NOT bump `calibrationBaseline.version`.
 - Write `updateStatus: "pending"`, `pendingReason`, and `pendingMigrations` to
   `.forge/update-check-cache.json`.
-- Print: "Update Pending — run `/forge:migrate` to complete" with the list of
+- Print: "Update Pending — run `/forge:init --migrate` to complete" with the list of
   pending migrations and next steps.
 - Exit without proceeding to Steps 5-7.
 
@@ -890,8 +902,7 @@ On the "Update Complete" path (all migrations applied,
 ## Step 5 — Pipeline and configuration audit
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 5 7 "Pipeline audit" oracle \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 5 7 "Pipeline audit" oracle
 ```
 
 Runs on every update. Collects all findings first, then presents a single
@@ -1007,7 +1018,7 @@ For each file containing legacy `model:` fields, add item:
 `type: legacy-model-field`, `required: false`,
 `path: .forge/workflows/{filename}`,
 `label: ".forge/workflows/{filename} — legacy model: field detected"`,
-`action: "Will be auto-migrated by /forge:regenerate workflows"`
+`action: "Will be auto-migrated by /forge:rebuild workflows"`
 
 **5b-rename — Retired command names in pipeline config.** Scan every configured
 pipeline for phases that use retired built-in command names.
@@ -1153,7 +1164,7 @@ and emit:
   [1] △ .claude/commands/supervisor.md — retired name, user edits detected.
          Merge into review-plan.md before deleting. Delete old file?
   [2] 〇 .forge/workflows/architect_sprint_plan.md — legacy model: field detected.
-         Will be auto-migrated by /forge:regenerate workflows. No action needed.
+         Will be auto-migrated by /forge:rebuild workflows. No action needed.
   [3] 〇 pipeline "main" phase 3 — no workflow field.
          Add: "workflow": "engineering/commands/qa.md"
   [4] 〇 pipeline "main" phase 4 — command file missing.
@@ -1287,8 +1298,7 @@ Proceed to **Step 6**.
 ## Step 6 — Record state and summarise
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 6 7 "Record state" drift \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 6 7 "Record state" drift
 ```
 
 > **Note:** `paths.forgeRoot` and `paths.forgeRef` were already written at the start
@@ -1347,29 +1357,12 @@ Print the final summary:
   Subagent isolation: {used | bypassed (inline)}
 ```
 
-**Fast-mode promotion hint.** After printing the summary, read
-`.forge/config.json` `mode`:
-
-```sh
-CURRENT_MODE=$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo "unset")
-```
-
-If `CURRENT_MODE == "fast"`, also emit:
-
-```
-〇 Migration applied in fast mode. Materialized artifacts refreshed; stubs will pick up changes on first use.
-〇 To fully promote: /forge:config mode full
-```
-
-This is informational only — no behavioural change. Do not block on it.
-
 ---
 
 ## Step 7 — Link KB to Agent Instruction Files
 
 ```sh
-node "$FORGE_ROOT/tools/banners.cjs" --phase 7 7 "Tomoshibi" lumen \
-  "$(node "$FORGE_ROOT/tools/manage-config.cjs" get mode 2>/dev/null || echo full)"
+node "$FORGE_ROOT/tools/banners.cjs" --phase 7 7 "Tomoshibi" lumen
 ```
 
 Invoke Tomoshibi to ensure every coding-agent instruction file in the project

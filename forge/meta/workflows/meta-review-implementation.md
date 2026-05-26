@@ -41,43 +41,73 @@ The Supervisor reviews the Engineer's implementation for correctness, quality, a
 
 ```
 
-0. Pre-flight Gate Check:
+0a. Pre-flight Gate Check:
    - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
    - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
    - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase review-code --{entity_kind} {record_id}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
-1. Load Context:
+
+0b. Pipeline Step Guard (user-invoked state check):
+   - If `--force` is present in the invocation arguments, skip this step entirely.
+   - If `entity_kind == "bug"`, skip this step entirely (bug state is managed by meta-fix-bug.md).
+   - Read current task state:
+     `node "$FORGE_ROOT/tools/store-cli.cjs" read task {record_id} --json`
+   - Extract the `status` field from the JSON output.
+   - Allowed states for this phase: `implemented`, `implementing`.
+   - If the current status is NOT in the allowed set:
+     Print the following and HALT (do not proceed):
+     `× Task {record_id} is in state '{status}' — /forge:implement must complete first. To run the full pipeline: /forge:run-task {record_id}`
+
+1. Read Review Loop Context:
+   - Check the spawning prompt for a `### Review Loop Context` block.
+   - If present, extract:
+     - `Iteration: N of M` — current attempt number and the configured limit
+     - `Is final iteration: true/false`
+   - If absent (user-invoked, not orchestrated): treat as iteration 1 of M, where M is
+     read from `.forge/config.json` → `maxReviewIterations` (default 3 if field absent).
+   - Include `(iteration N of M)` in the opening line of the `CODE_REVIEW.md` artifact.
+   - If this is the final iteration (`N == M`) and the verdict is `Revision Required`,
+     append a `### Next Steps` section to the artifact showing:
+     ```
+     ### Next Steps
+     - Force-approve (bypass remaining reviews): `/forge:approve --force {task_id}`
+     - Increase iteration limit: edit `config.pipelines.{pipeline}.phases[review-code].maxIterations`
+     - Restart from review: `/forge:review-code {task_id}`
+     ```
+
+2. Load Context:
    - Read task prompt
    - Read approved PLAN.md
    - Read PROGRESS.md
 
    **Read mode: diff-first.** Read `git diff $(git merge-base HEAD origin/main)..HEAD -- <files-listed-in-PLAN>` first. Read full source files only when the diff context is insufficient to judge a finding (e.g., the change is an inversion of an invariant defined elsewhere). Do not pre-load full source — tool calls earn their tokens.
 
-2. Review:
+3. Review:
    - Verify all plan steps were executed
    - Review code for quality, security, and architecture alignment
    - Verify test evidence in PROGRESS.md is authentic and complete
 
-3. Verdict:
+4. Verdict:
    - Write the code review via forge_artifact:
      `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"code-review", content:"<markdown>" })`
      Use the format:
      **Verdict:** [Approved | Revision Required]
      - If Revision Required: provide numbered, actionable items
      - If Approved: provide any advisory notes
+     - See step 1 for iteration header and final-iteration Next Steps requirements.
 
-4. Knowledge Writeback:
+5. Knowledge Writeback:
    - Update stack-checklist.md if new patterns or pitfalls were discovered
 
-5. Finalize:
+6. Finalize:
    - Transitions:
      - **Task mode** — Update status: `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status review-approved` (if Approved) or `... status code-revision-required` (if Revision Required).
      - **Bug mode** — NO status write. The bug remains `in-progress`. The verdict signal travels through `summaries.code_review.verdict` (read by `read-verdict.cjs § BUG_PHASE_VERDICT_SOURCE`), not `bug.status`. Writing `bug.status` here violates `meta-fix-bug.md § Iron Laws #2`.
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
-6. Emit Summary Sidecar:
+7. Emit Summary Sidecar:
    - Write the review summary via forge_artifact:
      `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"review-impl-summary", content:"<JSON>" })`
      The JSON shape:
