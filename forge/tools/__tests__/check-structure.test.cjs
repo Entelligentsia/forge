@@ -1,12 +1,12 @@
 'use strict';
-const { test, describe, beforeEach, afterEach } = require('node:test');
+const { test, describe, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
 const { checkNamespaces, validateManifest } = require('../check-structure.cjs');
-const { getCommandsSubdir } = require('../lib/paths.cjs');
+
 
 // Helper: create a temp directory structure, return cleanup function
 function createTempProject(structure) {
