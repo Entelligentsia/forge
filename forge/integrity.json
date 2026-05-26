@@ -20,6 +20,7 @@
     "commands/repair.md": "22e21614eee31ee630ead3f587b0b948b8c537e54ecef3b65e7d819c55c0ebd4",
     "commands/report-bug.md": "af8a54bf8887b35e5c880898dd45783f6c2e80d3dc031d6479a6be613ac43053",
     "commands/search.md": "befc4ba9f3146e7599308b35b95ec315e16895c0c18c9c2bab7549619d79bf1c",
+    "commands/status.md": "02c1895cf57466f16ddf7cc203ad42324ff302c99a20d6c99efa063fc35c6eaa",
     "commands/store-query.md": "079d459ba4dafba0c8c7780aa02ba16e87136638c1270ad9c88132e1f1c19e19",
     "commands/store-repair.md": "faecb17647f41ac22a3f7f9f4ef9ab57d32305e4ffb3439ac4a5387747f25868",
     "commands/update-tools.md": "26926ca6e8430843ff3a451f98634ea76064a23c4102e6e4b0402e67fa44a6bf",
