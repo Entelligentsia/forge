@@ -56,3 +56,37 @@ describe('phase-workflow-guards :: preflight invocation invariant', () => {
     assert.match(contents, /preflight-gate\.cjs/);
   });
 });
+
+describe('pipeline-step-guard :: user-visible guard block present', () => {
+  // AC #1: each workflow must contain the canonical error message template
+  // AC #2: each workflow must mention the --force bypass
+  for (const file of Object.keys(PHASE_WORKFLOWS)) {
+    test(`${file} contains AC #1 error message template`, () => {
+      const p = path.join(WORKFLOWS_DIR, file);
+      assert.ok(fs.existsSync(p), `expected workflow file at ${p}`);
+      const contents = fs.readFileSync(p, 'utf8');
+
+      assert.match(
+        contents,
+        /is in state/,
+        `${file} is missing the pipeline-step guard error message ("is in state")`,
+      );
+      assert.match(
+        contents,
+        /must complete first/,
+        `${file} is missing the pipeline-step guard error message ("must complete first")`,
+      );
+    });
+
+    test(`${file} mentions --force bypass`, () => {
+      const p = path.join(WORKFLOWS_DIR, file);
+      const contents = fs.readFileSync(p, 'utf8');
+
+      assert.match(
+        contents,
+        /--force/,
+        `${file} is missing the --force bypass mention in the pipeline-step guard`,
+      );
+    });
+  }
+});
