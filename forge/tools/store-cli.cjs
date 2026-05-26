@@ -558,10 +558,17 @@ function cmdWrite() {
 function cmdRead() {
   const entity = args[1];
   const id = args[2];
-  const asJson = args.includes('--json');
+  const asJson      = args.includes('--json');
+  const noSummaries = args.includes('--no-summaries');
+
+  let fieldsProjection = null;
+  const fieldsIdx = args.indexOf('--fields');
+  if (fieldsIdx !== -1 && args[fieldsIdx + 1] && !args[fieldsIdx + 1].startsWith('--')) {
+    fieldsProjection = args[fieldsIdx + 1].split(',').map((f) => f.trim()).filter(Boolean);
+  }
 
   if (!entity || !id) {
-    console.error('Usage: store-cli.cjs read <entity> <id> [--json]');
+    console.error('Usage: store-cli.cjs read <entity> <id> [--json] [--no-summaries] [--fields <comma-list>]');
     process.exit(1);
   }
 
@@ -590,10 +597,19 @@ function cmdRead() {
     process.exit(1);
   }
 
+  // Apply projection before formatting
+  let projected = record;
+  if (noSummaries) {
+    projected = Object.fromEntries(Object.entries(projected).filter(([k]) => k !== 'summaries'));
+  }
+  if (fieldsProjection) {
+    projected = Object.fromEntries(fieldsProjection.map((f) => [f, projected[f]]).filter(([, v]) => v !== undefined));
+  }
+
   if (asJson) {
-    console.log(JSON.stringify(record));
+    console.log(JSON.stringify(projected));
   } else {
-    console.log(JSON.stringify(record, null, 2));
+    console.log(JSON.stringify(projected, null, 2));
   }
 }
 
@@ -601,7 +617,7 @@ function cmdList() {
   const entity = args[1];
 
   if (!entity) {
-    console.error('Usage: store-cli.cjs list <entity> [key=value ...]');
+    console.error('Usage: store-cli.cjs list <entity> [key=value ...] [--no-summaries] [--fields <comma-list>] [--limit N] [--count]');
     process.exit(1);
   }
 
@@ -610,9 +626,27 @@ function cmdList() {
     process.exit(1);
   }
 
-  // Parse key=value filter pairs from remaining args
+  // Parse projection flags and key=value filter pairs from remaining args
+  const noSummaries = args.includes('--no-summaries');
+  const countOnly   = args.includes('--count');
+
+  let fieldsProjection = null;
+  const fieldsIdx = args.indexOf('--fields');
+  if (fieldsIdx !== -1 && args[fieldsIdx + 1] && !args[fieldsIdx + 1].startsWith('--')) {
+    fieldsProjection = args[fieldsIdx + 1].split(',').map((f) => f.trim()).filter(Boolean);
+  }
+
+  let limitN = null;
+  const limitIdx = args.indexOf('--limit');
+  if (limitIdx !== -1 && args[limitIdx + 1] && !args[limitIdx + 1].startsWith('--')) {
+    const n = parseInt(args[limitIdx + 1], 10);
+    if (!isNaN(n) && n >= 0) limitN = n;
+  }
+
   const filter = {};
   for (let i = 2; i < args.length; i++) {
+    // Skip flag arguments and their value arguments
+    if (args[i].startsWith('--')) { i++; continue; }
     const eqIdx = args[i].indexOf('=');
     if (eqIdx > 0) {
       const key = args[i].slice(0, eqIdx);
@@ -623,7 +657,33 @@ function cmdList() {
     }
   }
 
-  const records = listEntities(entity, Object.keys(filter).length > 0 ? filter : undefined);
+  let records = listEntities(entity, Object.keys(filter).length > 0 ? filter : undefined);
+
+  // --count: emit bare integer and exit (mutually exclusive with other flags)
+  if (countOnly) {
+    console.log(String(records.length));
+    return;
+  }
+
+  // --limit: truncate after filtering
+  if (limitN !== null) {
+    records = records.slice(0, limitN);
+  }
+
+  // Apply projection
+  if (fieldsProjection || noSummaries) {
+    records = records.map((rec) => {
+      let projected = rec;
+      if (noSummaries) {
+        projected = Object.fromEntries(Object.entries(projected).filter(([k]) => k !== 'summaries'));
+      }
+      if (fieldsProjection) {
+        projected = Object.fromEntries(fieldsProjection.map((f) => [f, projected[f]]).filter(([, v]) => v !== undefined));
+      }
+      return projected;
+    });
+  }
+
   console.log(JSON.stringify(records, null, 2));
 }
 

@@ -1,4 +1,24 @@
 {
+  "0.52.0": {
+    "version": "0.52.1",
+    "date": "2026-05-26",
+    "notes": "fix(tool-discipline): add forge_artifact and forge_verify_apply discipline lines to meta/fragments/tool-discipline.md — fragment was missing two bullet points present in the FORGE_TOOL_DISCIPLINE TypeScript constant, causing subagents to receive incomplete discipline text when the fragment was present.",
+    "target": "fragments:tool-discipline",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "0.51.4": {
+    "version": "0.52.0",
+    "date": "2026-05-26",
+    "notes": "New tools: artifact.cjs, verify-apply.cjs; tool-discipline.md canonical fragment; store-cli list/read --no-summaries, --fields, --limit, --count flags.",
+    "target": "tools:artifact,tools:verify-apply,tools:store-cli",
+    "regenerate": [
+      "tools"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.51.3": {
     "version": "0.51.4",
     "date": "2026-05-26",

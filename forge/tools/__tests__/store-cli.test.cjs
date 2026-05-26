@@ -2439,3 +2439,181 @@ describe('store-cli.cjs — list event traverses all subdirectories (Defect D)',
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// store-cli.cjs — list/read projection flags (FORGE-S26-T16)
+// ---------------------------------------------------------------------------
+
+describe('store-cli.cjs — list --no-summaries flag', () => {
+  test('list task --no-summaries excludes summaries key', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', {
+        ...MINIMAL_TASK,
+        summaries: { plan: { objective: 'x', written_at: new Date().toISOString() } }
+      });
+      const r = spawnSync(process.execPath, [STORE_CLI, 'list', 'task', '--no-summaries'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      const records = JSON.parse(r.stdout);
+      assert.ok(Array.isArray(records) && records.length > 0, 'expected at least one record');
+      for (const rec of records) {
+        assert.ok(!('summaries' in rec), `summaries key should be absent: ${JSON.stringify(rec)}`);
+      }
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('store-cli.cjs — list --fields flag', () => {
+  test('list task --fields taskId,status only includes those fields', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const r = spawnSync(process.execPath, [STORE_CLI, 'list', 'task', '--fields', 'taskId,status'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      const records = JSON.parse(r.stdout);
+      assert.ok(Array.isArray(records) && records.length > 0, 'expected at least one record');
+      for (const rec of records) {
+        const keys = Object.keys(rec);
+        assert.ok(keys.includes('taskId'), 'expected taskId field');
+        assert.ok(keys.includes('status'), 'expected status field');
+        assert.ok(!keys.includes('title'), `unexpected title field: ${JSON.stringify(rec)}`);
+        assert.ok(!keys.includes('path'), `unexpected path field: ${JSON.stringify(rec)}`);
+      }
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('store-cli.cjs — list --limit flag', () => {
+  test('list task --limit 1 returns at most 1 record', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', { ...MINIMAL_TASK, taskId: 'T01' });
+      writeTaskFile(tmpDir, 'T02', { ...MINIMAL_TASK, taskId: 'T02' });
+      writeTaskFile(tmpDir, 'T03', { ...MINIMAL_TASK, taskId: 'T03' });
+      const r = spawnSync(process.execPath, [STORE_CLI, 'list', 'task', '--limit', '1'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      const records = JSON.parse(r.stdout);
+      assert.ok(records.length <= 1, `expected at most 1 record, got ${records.length}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('list task --limit 2 returns at most 2 records from 3', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', { ...MINIMAL_TASK, taskId: 'T01' });
+      writeTaskFile(tmpDir, 'T02', { ...MINIMAL_TASK, taskId: 'T02' });
+      writeTaskFile(tmpDir, 'T03', { ...MINIMAL_TASK, taskId: 'T03' });
+      const r = spawnSync(process.execPath, [STORE_CLI, 'list', 'task', '--limit', '2'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      const records = JSON.parse(r.stdout);
+      assert.ok(records.length <= 2, `expected at most 2 records, got ${records.length}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('store-cli.cjs — list --count flag', () => {
+  test('list task --count returns bare integer output', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', { ...MINIMAL_TASK, taskId: 'T01' });
+      writeTaskFile(tmpDir, 'T02', { ...MINIMAL_TASK, taskId: 'T02' });
+      const r = spawnSync(process.execPath, [STORE_CLI, 'list', 'task', '--count'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      const trimmed = r.stdout.trim();
+      assert.match(trimmed, /^\d+$/, `expected bare integer, got: ${r.stdout}`);
+      assert.equal(parseInt(trimmed, 10), 2, `expected count 2, got ${trimmed}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('list task --count ignores --fields and --no-summaries when present', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', { ...MINIMAL_TASK, taskId: 'T01' });
+      const r = spawnSync(process.execPath, [STORE_CLI, 'list', 'task', '--count', '--fields', 'taskId', '--no-summaries'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      const trimmed = r.stdout.trim();
+      assert.match(trimmed, /^\d+$/, `expected bare integer, got: ${r.stdout}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('store-cli.cjs — read --no-summaries flag', () => {
+  test('read task X --no-summaries excludes summaries key', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', {
+        ...MINIMAL_TASK,
+        summaries: { plan: { objective: 'y', written_at: new Date().toISOString() } }
+      });
+      const r = spawnSync(process.execPath, [STORE_CLI, 'read', 'task', 'T01', '--no-summaries'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      const rec = JSON.parse(r.stdout);
+      assert.ok(!('summaries' in rec), `summaries key should be absent: ${JSON.stringify(rec)}`);
+      assert.ok('taskId' in rec, 'taskId should still be present');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('store-cli.cjs — read --fields flag', () => {
+  test('read task X --fields taskId,status only includes those fields', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const r = spawnSync(process.execPath, [STORE_CLI, 'read', 'task', 'T01', '--fields', 'taskId,status'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      const rec = JSON.parse(r.stdout);
+      const keys = Object.keys(rec);
+      assert.ok(keys.includes('taskId'), 'expected taskId field');
+      assert.ok(keys.includes('status'), 'expected status field');
+      assert.ok(!keys.includes('title'), `unexpected title field: ${JSON.stringify(rec)}`);
+      assert.ok(!keys.includes('path'), `unexpected path field: ${JSON.stringify(rec)}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('read --fields projection applies before --json serialization', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const r = spawnSync(process.execPath, [STORE_CLI, 'read', 'task', 'T01', '--fields', 'taskId', '--json'], {
+        cwd: tmpDir, encoding: 'utf8',
+      });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      const rec = JSON.parse(r.stdout);
+      assert.deepEqual(Object.keys(rec), ['taskId'], `expected only taskId: ${JSON.stringify(rec)}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
