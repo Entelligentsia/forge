@@ -67,13 +67,13 @@ A 45% confidence doc is not a failure — it's Forge telling you exactly where i
 
 ## Bootstrapping the knowledge base manually
 
-On a greenfield project, `entity-model.md` and the architecture docs will have significant `[?]` coverage. The fastest way to fill those gaps is `/quiz`:
+On a greenfield project, `entity-model.md` and the architecture docs will have significant `[?]` coverage. The fastest way to fill those gaps is `/forge:ask`:
 
 ```bash
-/quiz
+/forge:ask what are the main entities in this project?
 ```
 
-Treat it as a structured interview where you correct Forge's assumptions:
+Or use `/forge:check-agent` as a structured interview where you correct Forge's assumptions:
 
 ```
 Forge: The entity model shows User with fields: id, email, password_hash, created_at.
@@ -94,15 +94,15 @@ Work through the knowledge base systematically in this order:
 
 **Time budget:** 60–90 minutes for a typical greenfield project with minimal scaffolding.
 
-### Regenerate workflows after the quiz session
+### Rebuild workflows after the review session
 
-The workflows generated at init reflect the KB *as it was at that moment* — sparse, low-confidence discovery output. Once the quiz session has corrected the entity model, architecture, and checklist, the workflows should be regenerated to reflect what you actually told Forge:
+The workflows generated at init reflect the KB *as it was at that moment* — sparse, low-confidence discovery output. Once you've corrected the entity model, architecture, and checklist, rebuild the workflows to reflect what you actually told Forge:
 
 ```bash
-/forge:regenerate workflows
+/forge:rebuild workflows
 ```
 
-This produces workflows where the Supervisor's review criteria know about your actual entities, your auth patterns, and your stack conventions — not the guesses from the initial scan. Do this once after the quiz session, before Sprint 1.
+This produces workflows where the Supervisor's review criteria know about your actual entities, your auth patterns, and your stack conventions — not the guesses from the initial scan. Do this once after the review session, before Sprint 1.
 
 ---
 
@@ -111,20 +111,20 @@ This produces workflows where the Supervisor's review criteria know about your a
 Before your first sprint, you can use Forge to think through architectural decisions — not just execute them.
 
 ```bash
-/sprint-intake
+/forge:new-sprint
 ```
 
 The Architect doesn't just capture requirements — it asks clarifying questions about scope, dependencies, and risk. On a greenfield project this is especially useful: Sprint 1 requirements often reveal missing architectural decisions.
 
 ```mermaid
 flowchart LR
-    A([/sprint-intake]) -->|requirements doc + open questions| B([Review with team])
+    A([/forge:new-sprint]) -->|requirements doc + open questions| B([Review with team])
     B -->|decisions made| C([Update entity-model.md\nstack.md])
-    C --> D([/sprint-plan])
-    D --> E([/run-sprint S01])
+    C --> D([/forge:plan-sprint])
+    D --> E([/forge:run-sprint S01])
 ```
 
-Update `entity-model.md` and `stack.md` with any decisions made during intake before running `/sprint-plan`. The Architect reads those docs when creating task estimates.
+Update `entity-model.md` and `stack.md` with any decisions made during intake before running `/forge:plan-sprint`. The Architect reads those docs when creating task estimates.
 
 ---
 
@@ -144,7 +144,7 @@ The orchestrator runs each task through the full plan → review → implement �
 After Sprint 1:
 
 ```bash
-/retrospective S01
+/forge:retro S01
 ```
 
 The retrospective agent reads what was built and updates the knowledge base with what it learned. By the end of Sprint 1, the KB is significantly richer than at init — even on a greenfield project.
@@ -165,7 +165,18 @@ Knowledge Base accuracy
  20% ┤──────╯
      │
      └───────────────────────────────────────────────────
-     Init   Quiz   S01    S02    S03    S04   Steady state
+     Init   Ask    S01    S02    S03    S04   Steady state
 ```
 
-Greenfield projects start lower but converge to the same steady state as existing projects. The quiz session and Sprint 1 retrospective are the two biggest jumps.
+Greenfield projects start lower but converge to the same steady state as existing projects. The `/forge:ask` session and Sprint 1 retrospective are the two biggest jumps.
+
+---
+
+## What next?
+
+| Goal | Command |
+|---|---|
+| Check what's happening in the current sprint | `/forge:status` |
+| Ask Forge about your project | `/forge:ask "what should I do next?"` |
+| See all available commands | `/forge:ask "what commands are available?"` |
+| Full command reference | [docs/commands/index.md](commands/index.md) |

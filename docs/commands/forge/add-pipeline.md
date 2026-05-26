@@ -140,10 +140,10 @@ All config writes are delegated to `manage-config` — the config file is never 
 ## After adding a pipeline
 
 ```bash
-/forge:regenerate workflows
+/forge:rebuild workflows
 ```
 
-The orchestrator is only updated on explicit regeneration — adding a pipeline to `config.json` alone is not sufficient.
+The orchestrator is only updated on explicit rebuild — adding a pipeline to `config.json` alone is not sufficient.
 
 ---
 
@@ -153,7 +153,7 @@ Requires `engineering/tools/manage-config` to exist. If not yet generated:
 
 ```
 The manage-config tool has not been generated yet.
-Run /forge:init (phase 10) or /forge:regenerate tools to generate it first.
+Run /forge:init (phase 10) or /forge:rebuild tools to generate it first.
 ```
 
 ---
@@ -162,6 +162,5 @@ Run /forge:init (phase 10) or /forge:regenerate tools to generate it first.
 
 | Command | Purpose |
 |---|---|
-| [`/forge:regenerate workflows`](regenerate.md) | Wire new pipeline into the orchestrator |
-| [`/forge:materialize`](materialize.md) | Materialize stubs if in fast mode |
+| [`/forge:rebuild workflows`](rebuild.md) | Wire new pipeline into the orchestrator |
 | [`/run-task`](../task-pipeline/run-task.md) | See how pipelines are resolved at task execution time |

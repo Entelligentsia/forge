@@ -6,13 +6,13 @@ Forge is discovery-driven. The more code there is to read, the more accurate the
 
 ## What happens during `/forge:init`
 
-Forge runs 12 automated phases. Full mode takes 10–15 minutes. Fast mode (`--fast`) takes 2–3 minutes and writes stubs that self-materialize on first use.
+Forge runs automated phases (10–15 minutes, unattended):
 
 ```mermaid
 flowchart TD
     A([/forge:init]) --> B
 
-    subgraph gen["Generation  (full mode: ~10–15 min, unattended)"]
+    subgraph gen["Generation  (~10–15 min, unattended)"]
         B[Discover\nstack · processes · database · routing · tests] --> B2
         B2[Marketplace Skills\nrecommend + install relevant skills] --> C
         C[Knowledge Base\narchitecture/ · entity-model · checklist] --> D
@@ -21,7 +21,7 @@ flowchart TD
         E[Templates\nplan · review · retrospective] --> F
         F[Workflows\n16 project-specific .md files] --> G
         G[Orchestration\norchestrate_task · run_sprint] --> H
-        H[Commands\n/sprint-plan · /run-task · /implement …] --> I
+        H[Commands\n/new-sprint · /plan-sprint · /run-task · /implement …] --> I
         I[Tools\ncollate · validate-store · seed-store · manage-config] --> J
         J[Smoke Test\nvalidate + self-correct] --> T
         T[Tomoshibi\nconcierge agent for project queries]
@@ -39,8 +39,6 @@ flowchart TD
 | Database | ORM model files, schema files, migration directories | Entity inventory, relationships, field types |
 | Routing | Route definitions, middleware, auth decorators | API surface, auth strategy |
 | Testing | Test directories, CI config, test scripts | Test command, build command, lint command |
-
-**Fast mode** (`/forge:init --fast`) skips heavy generation phases and writes stubs instead. Stubs self-materialize on first use. Use `/forge:materialize` or `/forge:config mode full` to promote to full mode later.
 
 ---
 
@@ -69,13 +67,12 @@ Each doc includes a confidence header:
      Lines marked [?] need human verification. -->
 ```
 
-Use `/quiz` to interactively interrogate what Forge knows. If an answer is wrong or incomplete, say so — Forge patches the knowledge base on the spot.
+Use `/forge:ask` to interactively interrogate what Forge knows. If an answer is wrong or incomplete, say so — Forge patches the knowledge base on the spot.
 
 ```
-/quiz
-> What are the main entities in this project?
-> How does authentication work?
-> What does a typical API request flow look like?
+/forge:ask what are the main entities in this project?
+/forge:ask how does authentication work?
+/forge:ask what does a typical API request flow look like?
 ```
 
 **Time budget:** 30–45 minutes of human review is typical. Projects with complex entity models or non-standard auth patterns take longer.
@@ -88,18 +85,18 @@ Once the knowledge base looks accurate:
 
 ```mermaid
 flowchart LR
-    A([/sprint-intake]) -->|requirements doc| B([/sprint-plan])
-    B -->|task manifests + dependency graph| C([/run-sprint S01])
-    C -->|committed code + artifacts| D([/retrospective S01])
+    A([/forge:new-sprint]) -->|requirements doc| B([/forge:plan-sprint])
+    B -->|task manifests + dependency graph| C([/forge:run-sprint S01])
+    C -->|committed code + artifacts| D([/forge:retro S01])
     D -->|KB updates + checklist additions| E[(Knowledge\nBase)]
     E -.->|richer next sprint| A
 ```
 
 ```bash
-/sprint-intake       # Architect interviews you; produces SPRINT_REQUIREMENTS.md
-/sprint-plan         # Breaks requirements into tasks with estimates and dependencies
-/run-sprint S01      # Executes all tasks in dependency waves
-/retrospective S01   # Closes the sprint; agents write back what they learned
+/forge:new-sprint        # Architect interviews you; produces SPRINT_REQUIREMENTS.md
+/forge:plan-sprint       # Breaks requirements into tasks with estimates and dependencies
+/forge:run-sprint S01    # Executes all tasks in dependency waves
+/forge:retro S01         # Closes the sprint; agents write back what they learned
 ```
 
 Each task in the sprint runs through the full pipeline automatically:
@@ -125,14 +122,14 @@ flowchart LR
 If you prefer to drive individual tasks manually:
 
 ```bash
-/run-task PROJ-S01-T03
+/forge:run-task PROJ-S01-T03
 ```
 
 ---
 
 ## The knowledge flywheel
 
-The knowledge base updates automatically after every sprint. The generated workflows do not — they are a snapshot generated at a point in time and only update when you explicitly run `/forge:regenerate workflows`.
+The knowledge base updates automatically after every sprint. The generated workflows do not — they are a snapshot generated at a point in time and only update when you explicitly run `/forge:rebuild workflows`.
 
 ```mermaid
 flowchart LR
@@ -142,7 +139,7 @@ flowchart LR
     R --> B[Richer KB]
     B --> S
 
-    B -.->|manual, every few sprints| RG["/forge:regenerate workflows"]
+    B -.->|manual, every few sprints| RG["/forge:rebuild workflows"]
     RG -.-> WF[Sharper workflows<br/>and review criteria]
     WF -.-> S
 
@@ -156,13 +153,13 @@ Specifically, after each sprint the KB updates automatically:
 - The **Bug Fixer** tags root causes and builds preventive checks
 - The **Retrospective agent** promotes what worked and retires what didn't
 
-The workflows absorb that enrichment only when regenerated. Run `regenerate workflows` every few sprints, or after a retrospective that revealed significant new patterns:
+The workflows absorb that enrichment only when rebuilt. Run `rebuild workflows` every few sprints, or after a retrospective that revealed significant new patterns:
 
 ```bash
-/forge:regenerate workflows
+/forge:rebuild workflows
 ```
 
-By Sprint 3–4 the KB is substantially richer than at init. A workflow regeneration at that point produces review criteria and pipelines that reflect what the system has actually learned about your project.
+By Sprint 3–4 the KB is substantially richer than at init. A workflow rebuild at that point produces review criteria and pipelines that reflect what the system has actually learned about your project.
 
 ---
 
@@ -171,15 +168,16 @@ By Sprint 3–4 the KB is substantially richer than at init. A workflow regenera
 Run `/forge:health` periodically — after major feature additions or architectural changes:
 
 ```bash
-/forge:health        # Detects stale docs, orphaned entities, coverage gaps
+/forge:health           # Detects stale docs, orphaned entities, coverage gaps
+/forge:health --fix     # Detect drift and apply approved patches
 ```
 
 When health flags drift, refresh the affected knowledge base category:
 
 ```bash
-/forge:regenerate knowledge-base business-domain   # New entities added
-/forge:regenerate knowledge-base architecture      # New subsystems or services
-/forge:regenerate knowledge-base stack-checklist   # New libraries adopted
+/forge:rebuild knowledge-base business-domain   # New entities added
+/forge:rebuild knowledge-base architecture      # New subsystems or services
+/forge:rebuild knowledge-base stack-checklist   # New libraries adopted
 ```
 
 When a new Forge version is available (you'll see a nudge at session start):
@@ -188,3 +186,14 @@ When a new Forge version is available (you'll see a nudge at session start):
 /plugin install forge@skillforge
 /forge:update        # Propagates plugin changes into your project's generated artifacts
 ```
+
+---
+
+## What next?
+
+| Goal | Command |
+|---|---|
+| Check what's happening in the current sprint | `/forge:status` |
+| Ask Forge about your project | `/forge:ask "what's my architecture?"` |
+| See all available commands | `/forge:ask "what commands are available?"` |
+| Full command reference | [docs/commands/index.md](commands/index.md) |

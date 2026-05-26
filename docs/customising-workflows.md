@@ -15,7 +15,7 @@ flowchart TD
     subgraph plugin["Plugin layer  (~/.claude/plugins/forge/)"]
         M[Meta-definitions\npersona specs · workflow specs · tool specs]
         S[Schema\nsdlc-config.schema.json]
-        C[Commands\n/forge:init · /forge:regenerate · /forge:update …]
+        C[Commands\n/forge:init · /forge:rebuild · /forge:update …]
     end
 
     subgraph project[".forge/  (your project — git-tracked)"]
@@ -27,14 +27,14 @@ flowchart TD
     end
 
     plugin -->|/forge:init generates| project
-    plugin -->|/forge:regenerate refreshes| GW
-    plugin -->|/forge:regenerate tools| GT
+    plugin -->|/forge:rebuild refreshes| GW
+    plugin -->|/forge:rebuild tools| GT
 
     style plugin fill:#2c3e50,color:#fff
     style project fill:#27ae60,color:#fff
 ```
 
-**Plugin layer:** owned by Forge. Updated by `/plugin install`. Changes flow down when you run `/forge:regenerate` or `/forge:update`.
+**Plugin layer:** owned by Forge. Updated by `/plugin install`. Changes flow down when you run `/forge:rebuild` or `/forge:update`.
 
 **Project layer:** owned by you. Git-tracked in your repo. You can edit these files directly — Forge will show diffs and ask before overwriting them.
 
@@ -88,7 +88,7 @@ This writes the pipeline into `.forge/config.json`:
 }
 ```
 
-Then run `/forge:regenerate workflows` to wire the routing into the generated orchestrator.
+Then run `/forge:rebuild workflows` to wire the routing into the generated orchestrator.
 
 ```mermaid
 flowchart LR
@@ -100,7 +100,7 @@ flowchart LR
     style DP fill:#4a90e2,color:#fff
 ```
 
-Tasks can be assigned a pipeline explicitly (in the JSON manifest) or automatically — the sprint planner matches task descriptions against pipeline `description` fields during `/sprint-plan`.
+Tasks can be assigned a pipeline explicitly (in the JSON manifest) or automatically — the sprint planner matches task descriptions against pipeline `description` fields during `/forge:plan-sprint`.
 
 To manage pipelines:
 

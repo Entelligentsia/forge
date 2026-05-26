@@ -33,12 +33,13 @@ If the question is unclear, Tomoshibi asks one clarifying question. It never gue
 
 ## Guardrails
 
-Tomoshibi is read-only on the store. It can list and read entities, but never writes, deletes, or mutates store data. It never invokes `/forge:remove`, `/forge:init`, or `/forge:migrate`. It can explain these commands but never runs them.
+Tomoshibi is read-only on the store. It can list and read entities, but never writes, deletes, or mutates store data. It never invokes `/forge:remove` or `/forge:init`. It can explain commands but never runs them.
 
 The only writes Tomoshibi performs are `project.name` and `project.prefix` changes in config, with explicit user confirmation.
 
 ## Related
 
-- [`/forge:config`](config.md) — direct config inspection and mode management
-- [`/forge:store-query`](store-query.md) — structured store queries
+- [`/forge:config`](config.md) — direct config inspection
+- [`/forge:search`](search.md) — structured store queries
+- [`/forge:status`](status.md) — current sprint and task status
 - [Tomoshibi guide](../../tomoshibi.md) — full Tomoshibi documentation

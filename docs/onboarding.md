@@ -39,10 +39,10 @@ The `hello/` project is the simplest entry point — 26 lines of Python with a C
 
 ```bash
 cd hello
-/forge:init --fast
+/forge:init
 ```
 
-Fast mode runs in 2–3 minutes. It generates the directory structure, config, stubs, and commands without the full knowledge base generation.
+Forge runs in 10–15 minutes and generates the complete knowledge base, workflows, and commands.
 
 **What you get:**
 
@@ -50,16 +50,16 @@ Fast mode runs in 2–3 minutes. It generates the directory structure, config, s
 hello/
 ├── .forge/
 │   ├── config.json                  ← auto-detected: Python 3.11+, click, hatchling
-│   ├── workflows/                   ← 18 workflows (stubs → full on first use)
+│   ├── workflows/                   ← 18 project-specific workflows
 │   ├── schemas/                     ← JSON schemas for store validation
-│   ├── personas/                    ← (stubs, materialize on first use)
-│   ├── skills/                      ← (stubs, materialize on first use)
+│   ├── personas/                    ← Engineer, Supervisor, Architect, etc.
+│   ├── skills/                      ← skill definitions wired to Python/Click
 │   └── store/                       ← empty store (sprints, tasks, bugs, events)
 ├── .claude/commands/hello/          ← 14 project-scoped slash commands
 └── hello-project-knowledge/
-    ├── MASTER_INDEX.md              ← KB index (skeleton — grows with sprints)
+    ├── MASTER_INDEX.md              ← KB index
     ├── architecture/
-    │   └── stack.md                  ← generated from pyproject.toml + hello.py
+    │   └── stack.md                 ← generated from pyproject.toml + hello.py
     └── business-domain/
         └── entity-model.md
 ```
@@ -72,30 +72,29 @@ hello/
 
 Check that the auto-detected stack matches your project. Forge reads `pyproject.toml` and `hello.py` to determine the language, framework, and test commands. If anything is wrong, correct it now — every downstream agent reads this config.
 
-### Step 3: Quiz the knowledge base
+### Step 3: Ask Forge about the project
 
 ```bash
-/hello:quiz-agent
+/forge:ask what are the main commands in this project?
+/forge:ask how does the hello CLI work?
 ```
 
-The quiz asks 5–7 questions about your project, drawn from the KB docs. Answer them. If Forge gets something wrong, say so — it patches the KB immediately.
-
-This step is short on `hello/` because the project is small. On a real project, the quiz takes 10–20 minutes and substantially sharpens the KB.
+If Forge gets something wrong, say so — it patches the KB immediately. This is the fastest way to sharpen what the system knows before your first sprint.
 
 ### Step 4: Sprint intake
 
 ```bash
-/hello:sprint-intake
+/hello:new-sprint
 ```
 
-The Product Manager persona interviews you. It asks about scope, dependencies, and risk. It produces a `SPRINT_REQUIREMENTS.md` document with acceptance criteria, edge cases, and out-of-scope items.
+The Architect persona interviews you. It asks about scope, dependencies, and risk. It produces a `SPRINT_REQUIREMENTS.md` document with acceptance criteria, edge cases, and out-of-scope items.
 
 For `hello/`, try a simple sprint: adding a `--goodbye` flag to the CLI.
 
 ### Step 5: Sprint plan
 
 ```bash
-/hello:sprint-plan
+/hello:plan-sprint
 ```
 
 The Architect breaks the requirements into tasks. Each task gets an estimate and dependency edges. Independent tasks are grouped for parallel execution.
@@ -145,9 +144,9 @@ flowchart LR
 Initialize each project to compare how Forge generates different knowledge bases, personas, and review criteria:
 
 ```bash
-cd cartographer && /forge:init --fast
-cd ../emberglow && /forge:init --fast
-cd ../spectral && /forge:init --fast
+cd cartographer && /forge:init
+cd ../emberglow && /forge:init
+cd ../spectral && /forge:init
 ```
 
 Compare the generated `.forge/config.json`, `engineering/stack-checklist.md`, and `.forge/workflows/` across projects. The review criteria, persona knowledge, and workflow details all change based on the stack.
@@ -161,7 +160,7 @@ The testbench repo has two branches:
 | Branch | What it shows |
 |--------|--------------|
 | `main` | Clean starting state. Onboarding guide. All projects un-initialized. |
-| `forge-initialized` | Reference snapshot after `/forge:init --fast` + first sprint intake on `hello/`. |
+| `forge-initialized` | Reference snapshot after `/forge:init` + first sprint intake on `hello/`. |
 
 Switch to `forge-initialized` to see what Forge produces without running init yourself:
 
@@ -173,10 +172,10 @@ This branch shows the artifact structure, generated files, and sprint state afte
 
 ---
 
-## Next Steps
+## What next?
 
-- **Try full mode:** `/forge:init --full` on any project. Compare the output with fast mode. Full mode generates the complete knowledge base in one pass.
 - **Customize workflows:** Edit `.forge/workflows/` files to match your team's review criteria. See [Customising Workflows](customising-workflows.md).
 - **Read the philosophy:** Understand why Forge enforces the verification chain. See [Philosophy](philosophy.md).
 - **Follow the default flow:** See the complete sprint lifecycle with all verification gates. See [Default Flow](default-flow.md).
 - **Command reference:** Every command documented with inputs, outputs, and gate checks. See [Commands](commands/index.md).
+- **Ask Forge anything:** `/forge:ask "what should I do next?"` — Tomoshibi will guide you based on your project state.

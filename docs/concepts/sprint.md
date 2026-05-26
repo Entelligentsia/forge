@@ -73,8 +73,8 @@ flowchart TD
         T3[After Forge<br/>plugin update]
     end
 
-    T1 --> RW["/forge:regenerate workflows"]
-    T2 --> RK["/forge:regenerate knowledge-base"]
-    RK --> RW2["follow up: forge:regenerate workflows<br/>if changes are substantial"]
+    T1 --> RW["/forge:rebuild workflows"]
+    T2 --> RK["/forge:rebuild knowledge-base"]
+    RK --> RW2["follow up: forge:rebuild workflows<br/>if changes are substantial"]
     T3 --> FU["/forge:update — runs right targets automatically"]
 ```

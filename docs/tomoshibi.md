@@ -44,9 +44,9 @@ Tomoshibi is read-only by design. It can only:
 It **cannot**:
 
 - Write to the store (`write`, `update-status`, `delete`, `emit`, `purge-events`)
-- Invoke destructive commands (`/forge:remove`, `/forge:init`, `/forge:migrate`)
-- Edit workflows, personas, skills, or commands (redirects to `/forge:regenerate` instead)
-- Edit the knowledge base (redirects to `/forge:calibrate` or sprint commands)
+- Invoke destructive commands (`/forge:remove`, `/forge:init`)
+- Edit workflows, personas, skills, or commands (redirects to `/forge:rebuild` instead)
+- Edit the knowledge base (redirects to `/forge:health --fix` or sprint commands)
 
 ---
 
@@ -56,7 +56,7 @@ When you change `project.prefix`, Tomoshibi shows the regeneration impact before
 
 | Field | Impact |
 |-------|--------|
-| `project.prefix` | △ Requires regeneration — command folder renames from `.claude/commands/{old}/` to `.claude/commands/{new}/`, and generated workflow references become stale. Run `/forge:regenerate commands workflows` after confirming. |
+| `project.prefix` | △ Requires regeneration — command folder renames from `.claude/commands/{old}/` to `.claude/commands/{new}/`, and generated workflow references become stale. Run `/forge:rebuild commands workflows` after confirming. |
 | `project.name` | 〇 No regeneration needed. |
 
 ---
@@ -90,7 +90,7 @@ When invoked for KB link refresh, Tomoshibi calls the `forge:refresh-kb-links` s
 
 - Renaming or moving KB documents
 - Adding new architecture docs
-- Running `/forge:regenerate` that changes file paths
+- Running `/forge:rebuild` that changes file paths
 
 ---
 
@@ -100,4 +100,4 @@ When invoked for KB link refresh, Tomoshibi calls the `forge:refresh-kb-links` s
 |---------|---------|
 | [`/forge:config`](commands/forge/config.md) | Direct config inspection and mode management |
 | [`/forge:health`](commands/forge/health.md) | Detect stale docs, orphaned entities, and skill gaps |
-| [`/forge:regenerate`](commands/forge/regenerate.md) | Refresh generated artifacts |
+| [`/forge:rebuild`](commands/forge/rebuild.md) | Refresh generated artifacts |

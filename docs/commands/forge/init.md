@@ -9,39 +9,18 @@
 
 Bootstraps a complete, project-specific SDLC instance from the codebase in the current directory. Runs 12 automated phases to produce a knowledge base, agent personas, workflows, templates, tools, slash commands, and the Tomoshibi concierge — all tailored to the actual project, not a template.
 
-Run once per project. Use `/forge:regenerate` to refresh individual categories later.
+Run once per project. Use `/forge:rebuild` to refresh individual categories later.
 
 ---
 
 ## Invocation
 
 ```bash
-/forge:init                # full run, all 12 phases
-/forge:init --fast         # fast mode — stubs, self-materialize on first use
-/forge:init --full         # full mode (default) — all phases
+/forge:init                # run all phases
 /forge:init 6              # resume from phase 6
 /forge:init orchestration   # resume from the named phase
+/forge:init --migrate      # migrate a legacy store to current Forge format
 ```
-
-### Fast mode vs Full mode
-
-| | Full mode (`--full`) | Fast mode (`--fast`) |
-|---|---|---|
-| Phases | All 12 | 1–3 (skeleton), 7–12 (stubs) |
-| KB | Full docs with confidence ratings | Minimal skeleton |
-| Workflows | Full workflow files | Stub files (self-materialize on first use) |
-| Time | 10–15 min | 2–3 min |
-| After init | Review `[?]` markers, then sprint | Run `/forge:materialize` when you need full docs |
-
-Fast mode skips heavy LLM generation (Phases 3 full KB, 4 personas, 5 skills, 6 templates, 8 orchestration) and writes stub workflow files that self-materialize on first use.
-
-Promote from fast to full at any time:
-```bash
-/forge:config mode full
-/forge:materialize
-```
-
-This is a one-way operation. There is no full → fast downgrade.
 
 ---
 
@@ -57,7 +36,7 @@ flowchart TD
     P6["Phase 6 — Templates\nplan · review · retrospective formats"] --> P7
     P7["Phase 7 — Workflows\n16 project-specific .md files"] --> P8
     P8["Phase 8 — Orchestration\norchestrate_task · run_sprint"] --> P9
-    P9["Phase 9 — Commands\n/sprint-plan · /run-task · /implement …"] --> P10
+    P9["Phase 9 — Commands\n/new-sprint · /plan-sprint · /run-sprint · /run-task · /implement …"] --> P10
     P10["Phase 10 — Tools\ncollate · validate-store · seed-store · manage-config"] --> P11
     P11["Phase 11 — Smoke Test\nvalidate + self-correct"] --> P12
     P12["Phase 12 — Tomoshibi\nconcierge agent for project queries"]
@@ -114,9 +93,9 @@ Generated docs include confidence ratings and `[?]` markers:
 
 Review `engineering/` before the first sprint. Use `/quiz` to correct errors interactively. See [Onboarding an existing project](../../existing-project.md) for a full walkthrough.
 
-After the quiz session, regenerate workflows so they reflect the corrected KB:
+After the quiz session, rebuild workflows so they reflect the corrected KB:
 ```bash
-/forge:regenerate workflows
+/forge:rebuild workflows
 ```
 
 ---
@@ -133,9 +112,7 @@ After the quiz session, regenerate workflows so they reflect the corrected KB:
 
 | If you want to… | Run |
 |---|---|
-| Refresh workflows after KB enrichment | [`/forge:regenerate workflows`](regenerate.md) |
-| Fill stubs from fast mode | [`/forge:materialize`](materialize.md) |
+| Refresh workflows after KB enrichment | [`/forge:rebuild workflows`](rebuild.md) |
 | Add a new pipeline | [`/forge:add-pipeline`](add-pipeline.md) |
 | Check for drift after codebase changes | [`/forge:health`](health.md) |
-| Change init mode | [`/forge:config`](config.md) |
 | Ask about project status | [`/forge:ask`](ask.md) |

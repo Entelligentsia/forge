@@ -56,20 +56,21 @@ Forge is a Claude Code plugin that turns your codebase into a self-improving AI 
 **2. Bootstrap your project:**
 ```
 cd /path/to/your/project
-/forge:init            # Full mode: ~10–15 min, generates everything
-/forge:init --fast     # Fast mode: ~2–3 min, writes stubs that materialize on first use
+/forge:init
 ```
 No config files to fill in. Review lines marked `[?]` in `engineering/` before your first sprint.
 
 **3. Run your first sprint:**
 ```
-/sprint-intake      # Capture sprint requirements in a structured interview
-/sprint-plan        # Break requirements into tasks with estimates and dependencies
-/run-sprint S01     # Execute — Plan → Review → Implement → Review → Approve → Commit
-/retrospective S01  # Close the sprint and feed learnings back
+/forge:new-sprint    # Capture sprint requirements in a structured interview
+/forge:plan-sprint   # Break requirements into tasks with estimates and dependencies
+/forge:run-sprint S01     # Execute — Plan → Review → Implement → Review → Approve → Commit
+/forge:retro S01          # Close the sprint and feed learnings back
 ```
 
 That's it. Forge handles the rest.
+
+→ [Full command reference](docs/commands/index.md) · [Getting started guides](#get-started)
 
 ---
 
@@ -132,8 +133,8 @@ Forge agents don't load your entire codebase into context on every task. They wo
 
 <img align="left" width="256" style="margin-right: 25px; margin-bottom: 15px;" src="assets/forge_quiz.png" alt="The Quiz illustration">
 
-### The Quiz — interview Forge about your own project
-`/quiz` is a lightweight tool that turns the knowledge base into an interactive Q&A. Ask Forge about your architecture, your entities, your conventions — and if an answer is incomplete or wrong, say so. Forge uses that feedback as a guided session to patch the knowledge base on the spot. It's the fastest way to validate and sharpen what the system knows about your project.
+### Ask Forge anything about your project
+`/forge:ask` is Forge's concierge agent — answer questions about your architecture, your entities, your conventions, or what to do next. Ask "what now?" after init and it responds with context-aware next steps based on your project state.
 
 <br clear="both"/>
 
@@ -169,7 +170,7 @@ During init, Forge checks the Claude Code marketplace for skills relevant to you
 /plugin install forge@forge
 ```
 
-`/forge:init`, `/forge:health`, `/forge:regenerate`, `/forge:update-tools`, and `/forge:report-bug` are now available in any project.
+`/forge:init`, `/forge:health`, `/forge:rebuild`, and `/forge:report-bug` are now available in any project.
 
 ---
 
@@ -187,6 +188,7 @@ Choose the guide that matches your situation:
 | Follow the recommended flow step by step | [Default flow →](docs/default-flow.md) |
 | Learn how the orchestrator, store, and collation work | [Architecture →](docs/architecture/orchestrator.md) |
 | Adapt Forge pipelines and workflows to my team's process | [Customising workflows →](docs/customising-workflows.md) |
+| Migrate from v0.x to v1.0 | [Migration guide →](docs/migration/v0-to-v1.md) |
 
 ---
 
@@ -207,10 +209,10 @@ graph TD
 The general lifecycle is:
 
 ```
-/forge:init  →  review engineering/  →  /sprint-intake  →  /sprint-plan  →  /run-sprint  →  /retrospective
+/forge:init  →  review engineering/  →  /forge:new-sprint  →  /forge:plan-sprint  →  /forge:run-sprint  →  /forge:retro
 ```
 
-`/forge:init` scans your codebase and runs 12 automated phases (~10–15 min for full mode, ~2–3 min for fast mode):
+`/forge:init` scans your codebase and runs automated phases (~10–15 min):
 
 | Phase | What happens |
 |---|---|
@@ -222,7 +224,7 @@ The general lifecycle is:
 | 6. Templates | Generates plan, review, and retrospective document formats |
 | 7. Workflows | Generates 16 agent workflows wired to your actual commands and paths |
 | 8. Orchestration | Assembles the task pipeline and sprint scheduler |
-| 9. Commands | Creates `/sprint-intake`, `/sprint-plan`, `/run-sprint`, `/run-task`, etc. in `.claude/commands/` |
+| 9. Commands | Creates `/new-sprint`, `/plan-sprint`, `/run-sprint`, `/run-task`, etc. in `.claude/commands/` |
 | 10. Tools | Generates `collate`, `validate-store`, `seed-store`, `manage-config` in your project's language |
 | 11. Smoke Test | Validates everything connects; self-corrects if needed |
 | 12. Tomoshibi | Generates the concierge agent for project queries |
@@ -252,7 +254,7 @@ flowchart LR
 ```
 .forge/               Config, workflows, templates, task/sprint/bug store
 engineering/          Architecture docs, entity model, stack checklist, sprint history
-.claude/commands/     Slash commands: /sprint-intake, /sprint-plan, /run-sprint, /run-task…
+.claude/commands/     Slash commands: /new-sprint, /plan-sprint, /run-sprint, /run-task…
 engineering/tools/    collate, validate-store, seed-store, manage-config (in your language)
 ```
 
@@ -268,38 +270,35 @@ Full lifecycle documentation — inputs, outputs, gate checks, revision loops, a
 
 | Command | What it does | Reference |
 |---|---|---|
-| `/sprint-intake` | Architect interviews you and produces structured sprint requirements | [→](docs/commands/sprint/intake.md) |
-| `/sprint-plan` | Breaks requirements into tasks with estimates and a dependency graph | [→](docs/commands/sprint/plan.md) |
-| `/run-sprint SPRINT-ID` | Executes all sprint tasks in dependency waves | [→](docs/commands/sprint/run.md) |
-| `/retrospective SPRINT-ID` | Closes a sprint and feeds learnings back into the knowledge base | [→](docs/commands/sprint/retrospective.md) |
+| `/forge:new-sprint` | Architect interviews you and produces structured sprint requirements | [→](docs/commands/sprint/new-sprint.md) |
+| `/forge:plan-sprint` | Breaks requirements into tasks with estimates and a dependency graph | [→](docs/commands/sprint/plan-sprint.md) |
+| `/forge:run-sprint SPRINT-ID` | Executes all sprint tasks in dependency waves | [→](docs/commands/sprint/run.md) |
+| `/forge:retro SPRINT-ID` | Closes a sprint and feeds learnings back into the knowledge base | [→](docs/commands/sprint/retro.md) |
 
 ### Task pipeline commands
 
 | Command | What it does | Reference |
 |---|---|---|
-| `/run-task TASK-ID` | Drives a single task through the full pipeline end-to-end | [→](docs/commands/task-pipeline/run-task.md) |
-| `/fix-bug BUG-ID` | Triage, root-cause, and fix a bug with knowledge base writeback | [→](docs/commands/task-pipeline/fix-bug.md) |
+| `/forge:run-task TASK-ID` | Drives a single task through the full pipeline end-to-end | [→](docs/commands/task-pipeline/run-task.md) |
+| `/forge:fix-bug BUG-ID` | Triage, root-cause, and fix a bug with knowledge base writeback | [→](docs/commands/task-pipeline/fix-bug.md) |
 
 ### Forge plugin commands
 
 | Command | What it does | Reference |
 |---|---|---|
 | `/forge:init` | Bootstrap a complete SDLC instance from your codebase | [→](docs/commands/forge/init.md) |
-| `/forge:health` | Detect stale docs, orphaned entities, and missing skills | [→](docs/commands/forge/health.md) |
-| `/forge:calibrate` | Detect drift, propose regeneration patches, and apply approved patches | [→](docs/commands/forge/calibrate.md) |
-| `/forge:regenerate [target]` | Refresh workflows, templates, tools, or knowledge-base docs | [→](docs/commands/forge/regenerate.md) |
+| `/forge:health` | Detect stale docs, orphaned entities, missing skills, and run `--fix` for maintenance | [→](docs/commands/forge/health.md) |
+| `/forge:status` | Show current sprint, task statuses, and recent activity | [→](docs/commands/forge/status.md) |
+| `/forge:ask` | Ask Tomoshibi about project status, config, workflows, or version | [→](docs/commands/forge/ask.md) |
+| `/forge:rebuild [target]` | Refresh workflows, templates, tools, or knowledge-base docs | [→](docs/commands/forge/rebuild.md) |
 | `/forge:update` | Propagate a plugin version upgrade into project artifacts | [→](docs/commands/forge/update.md) |
 | `/forge:add-pipeline [name]` | Add or manage a custom task pipeline in `.forge/config.json` | [→](docs/commands/forge/add-pipeline.md) |
 | `/forge:add-task` | Add a task to an existing sprint mid-flight | [→](docs/commands/forge/add-task.md) |
-| `/forge:ask` | Ask Tomoshibi about project status, config, workflows, or version | [→](docs/commands/forge/ask.md) |
-| `/forge:config` | Inspect or change project config; promote fast mode to full | [→](docs/commands/forge/config.md) |
-| `/forge:materialize` | Fill stubs from fast-mode init without overwriting files | [→](docs/commands/forge/materialize.md) |
-| `/forge:migrate` | Migrate a pre-existing AI-SDLC store to Forge format | [→](docs/commands/forge/migrate.md) |
-| `/forge:quiz-agent` | Verify an agent has loaded and understood the project KB | [→](docs/commands/forge/quiz-agent.md) |
+| `/forge:search` | Query the Forge store by natural language or exact flags | [→](docs/commands/forge/search.md) |
+| `/forge:repair` | Diagnose and repair corrupted store records | [→](docs/commands/forge/repair.md) |
+| `/forge:check-agent` | Verify an agent has loaded and understood the project KB | [→](docs/commands/forge/check-agent.md) |
+| `/forge:config` | Inspect or change project config | [→](docs/commands/forge/config.md) |
 | `/forge:remove` | Remove Forge artifacts from the current project | [→](docs/commands/forge/remove.md) |
-| `/forge:store-query` | Query the Forge store by natural language or exact flags | [→](docs/commands/forge/store-query.md) |
-| `/forge:store-repair` | Diagnose and repair corrupted store records | [→](docs/commands/forge/store-repair.md) |
-| `/forge:update-tools` | Refresh JSON schemas from the installed plugin | [→](docs/commands/forge/update-tools.md) |
 | `/forge:report-bug` | File a bug against Forge — gathers context and opens a GitHub issue | [→](docs/commands/forge/report-bug.md) |
 
 ---
