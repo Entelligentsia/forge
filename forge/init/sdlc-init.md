@@ -666,7 +666,40 @@ Rules:
 - Order by confidence: High → Medium → Low.
 - Do not repeat skills that are already installed.
 
-**Next step:** review `{KB_PATH}/` docs, then run `/plan-sprint`
+**Welcome Block**
+
+Run the following node snippet to compute dynamic file counts:
+
+```sh
+node -e "
+const fs = require('fs'), path = require('path');
+const cfg = JSON.parse(fs.readFileSync('.forge/config.json', 'utf8'));
+const kbPath  = cfg.paths.engineering || 'engineering';
+const countMd = (dir) => { try { return fs.readdirSync(dir, {recursive:true}).filter(f=>f.endsWith('.md')).length } catch { return 0 } };
+const kbCount  = countMd(kbPath);
+const wfCount  = countMd('.forge/workflows');
+const cmdCount = countMd('.claude/commands/forge');
+const name   = cfg.project?.name   || cfg.projectName   || '(project)';
+const prefix = cfg.project?.prefix || cfg.projectPrefix || '?';
+console.log(\`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Welcome to Forge · \${name} [\${prefix}]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Generated
+    \${kbCount}  knowledge-base docs
+    \${wfCount}  workflows
+    \${cmdCount}  project commands
+
+  Start here
+    /forge:ask        — ask anything about the project
+    /forge:new-sprint — plan your first sprint
+    /forge:health     — check knowledge-base health
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\`);
+"
+```
+
+Print the output of the snippet above to the conversation.
 
 If you encountered any problems during this init run, file them with `/forge:report-bug` —
 it gathers context automatically and opens an issue in the Forge repository.
