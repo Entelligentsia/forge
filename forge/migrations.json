@@ -1,4 +1,15 @@
 {
+  "0.51.3": {
+    "version": "0.51.4",
+    "date": "2026-05-26",
+    "notes": "fix(meta-enhance): Phase 2 rejections sidecar path fix — mkdir -p before gates write, explicit $PROJECT_ROOT path in step 5b.5, verification assertion after 5b.5+5c. Prevents bare rejections.json landing at project root instead of .forge/enhancement-proposals/. Also includes update.md Step 4 config refresh fix and manage-config backfill subcommand.",
+    "target": "workflows:enhance",
+    "regenerate": [
+      "workflows:enhance"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "0.51.2": {
     "version": "0.51.3",
     "date": "2026-05-23",
