@@ -1,4 +1,13 @@
 {
+  "1.0.0": {
+    "version": "1.0.1",
+    "date": "2026-05-27",
+    "notes": "v1.0.1 — init phase decomposition (FORGE-S26-T17). New shared verify-phase.cjs tool; sdlc-init.md rewritten as thin orchestrator; per-phase prompt files extracted to init/phases/.",
+    "target": "tools:verify-phase,init:phases",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": []
+  },
   "0.52.1": {
     "version": "1.0.0",
     "date": "2026-05-26",
