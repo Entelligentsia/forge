@@ -78,7 +78,7 @@ Print a markdown status report in this format:
 **Recent Activity:** Show up to 5 tasks sorted by taskId descending (highest T-number first). Each line:
 `  - <task.id>: <title> → <status>`
 
-**Next action:** Find the first task (sorted by taskId ascending) that has status `implementing` or `planned`. Suggest `/forge:run-task <TASK_ID>`. If all tasks are committed or abandoned, output `### Next: Sprint complete — run /forge:retrospective`.
+**Next action:** Find the first task (sorted by taskId ascending) that has status `implementing` or `planned`. Suggest `/forge:run-task <TASK_ID>`. If all tasks are committed or abandoned, output `### Next: Sprint complete — run /forge:retro`.
 
 **Multiple active sprints:** If more than one active sprint exists, add a note after the report:
 ```

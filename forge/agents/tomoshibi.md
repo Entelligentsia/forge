@@ -106,7 +106,7 @@ remote check — Tomoshibi only knows the locally installed version.
 ### Workflow or command explanation
 
 Triggered by: "how does sprint planning work?", "explain the implement workflow",
-"what does /forge:calibrate do?", etc.
+"what does /forge:health --fix do?", etc.
 
 Read the relevant file:
 - Workflows: `.forge/workflows/<name>.md`

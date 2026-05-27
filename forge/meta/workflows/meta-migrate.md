@@ -22,7 +22,7 @@ Translate a prose-heavy v0.x `.forge/` instance into the v0.40 format:
 `structure-versions.json` snapshot tracking (T05). Every operation is
 reversible, guarded by user confirmation, and idempotent on re-run.
 
-**Trigger:** Invoked by `/forge:migrate` when the user passes `--structural`
+**Trigger:** Invoked by `/forge:init --migrate` when the user passes `--structural`
 or when `.forge/structure-versions.json` is absent (pre-T05 install detected).
 
 **Scope:** v0.x → v0.40 only. Installs older than v0.x should use
@@ -68,7 +68,7 @@ ls .forge/structure-versions.json 2>/dev/null && echo "EXISTS" || echo "ABSENT"
 
 - If `structure-versions.json` EXISTS: this is a post-T05 install. Warn the
   user that structural migration is not needed and offer to run the standard
-  store-schema migration (Steps 1–7 of `/forge:migrate`) instead. Stop.
+  store-schema migration (Steps 1–7 of `/forge:init --migrate`) instead. Stop.
 - If ABSENT: proceed (pre-T05 install confirmed).
 
 **0c. Check for in-progress sentinel (idempotency).**
