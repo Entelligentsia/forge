@@ -1,4 +1,16 @@
 {
+  "1.0.1": {
+    "version": "1.0.2",
+    "date": "2026-05-27",
+    "notes": "v1.0.2 — deprecated command cleanup + init bug fixes. Redirect stubs removed (old command names are now unknown). paths.commands uses project prefix. artifact.cjs strips trailing filenames from store path. Deprecated command references replaced across all meta sources.",
+    "target": "commands,init:phases,init:sdlc-init,tools:artifact",
+    "regenerate": ["commands"],
+    "breaking": false,
+    "manual": [
+      "Deprecated command redirect stubs removed. Old names (sprint-intake, sprint-plan, retrospective, regenerate, store-query, store-repair, quiz-agent, calibrate, update-tools, migrate, materialize) are now unknown commands. See docs/migration/v0-to-v1.md for the mapping.",
+      "If your project has .claude/commands/<prefix>/sprint-intake.md, sprint-plan.md, retrospective.md, or quiz-agent.md — these are stale and can be deleted."
+    ]
+  },
   "1.0.0": {
     "version": "1.0.1",
     "date": "2026-05-27",
