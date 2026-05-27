@@ -59,11 +59,16 @@ function checkNamespaces(manifest, projectRoot, options = {}) {
 
   for (const [nsKey, ns] of Object.entries(manifest.namespaces)) {
     const logicalKey = ns.logicalKey || nsKey;
-    let resolvedDir = (resolvedConfigPaths[logicalKey] && typeof resolvedConfigPaths[logicalKey] === 'string')
+    const configHasPath = resolvedConfigPaths[logicalKey] && typeof resolvedConfigPaths[logicalKey] === 'string';
+    let resolvedDir = configHasPath
       ? resolvedConfigPaths[logicalKey]
       : ns.dir;
-    if (ns.prefixed && projectPrefix) {
-      resolvedDir = resolvedDir + '/' + projectPrefix;
+    // When config provides the path, use it verbatim (it already includes any
+    // prefix subdirectory).  Only apply the prefixed append when falling back
+    // to the manifest's base dir.
+    if (ns.prefixed && !configHasPath) {
+      const suffix = projectPrefix || getCommandsSubdir('forge');
+      resolvedDir = resolvedDir + '/' + suffix;
     }
     const absDir = path.join(projectRoot, resolvedDir);
 

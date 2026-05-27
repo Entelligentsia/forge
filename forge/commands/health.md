@@ -139,7 +139,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
     - Otherwise read the pack's `source_hash`, then compute the current hash:
       ```sh
       CURRENT=$(node -e "const t=require('$FORGE_ROOT/tools/build-persona-pack.cjs'); console.log(t.computeSourceHash({personaDir:'$FORGE_ROOT/meta/personas', skillDir:'$FORGE_ROOT/meta/skills'}))")
-      STORED=$(node -e "console.log(require('$PROJECT_ROOT/.forge/cache/persona-pack.json').source_hash)")
+      STORED=$(node -e "try{console.log(require('$PROJECT_ROOT/.forge/cache/persona-pack.json').source_hash)}catch{console.log('MISSING')}")
       ```
       If `CURRENT != STORED`, emit:
       > △ Persona pack stale — meta/ has changed since last build. Run `/forge:rebuild` to refresh.
