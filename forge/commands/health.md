@@ -163,7 +163,7 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
       STORED=$(node -e "console.log(require('$PROJECT_ROOT/.forge/cache/context-pack.json').source_hash)")
       ```
       If `CURRENT != STORED` (and `CURRENT != 'n/a'`), emit:
-      > △ Context pack stale — architecture docs have changed since last build. Run `/forge:rebuild` or `/forge:collate` to rebuild.
+      > △ Context pack stale — architecture docs have changed since last build. Run `/forge:rebuild` to rebuild.
       Otherwise emit:
       > 〇 Context pack fresh.
 14. Check plugin integrity:
@@ -218,7 +218,7 @@ After the summary grid, emit a "Recommended Actions" section only if one or more
 |--------------------------------|--------------------------------------------------------------|
 | No calibration baseline        | `/forge:health --fix`                                        |
 | KB drifted                     | `/forge:health --fix`                                        |
-| Store integrity errors         | `/forge:store-repair`                                        |
+| Store integrity errors         | `/forge:repair`                                        |
 | Modified generated files       | `/forge:rebuild`                                             |
 | Missing generated files        | `/forge:update`                                              |
 | Plugin integrity modified      | `/forge:update`                                              |
@@ -226,7 +226,7 @@ After the summary grid, emit a "Recommended Actions" section only if one or more
 | Context pack missing / stale   | `/forge:rebuild`                                             |
 | Skill gaps                     | `/plugin install <name>`                                     |
 | Features with zero tests       | *(no command — note: add tests for the listed FEAT-NNN IDs)* |
-| Stale docs                     | `/forge:collate`                                             |
+| Stale docs                     | `/forge:rebuild`                                             |
 | Stale concepts                 | `/forge:rebuild knowledge-base`                              |
 | Config incomplete              | `/forge:init`                                                |
 

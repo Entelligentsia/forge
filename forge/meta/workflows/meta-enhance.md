@@ -104,7 +104,7 @@ Receive the phase flag from the command invocation:
 |------|------|
 | `--phase 1` or `--auto` | Auto-apply: placeholder fills only — **use after** `/forge:init` completes to fill `{{KEY}}` placeholders from project signals |
 | `--phase 2` | Propose-diffs: sprint artifact + friction scan — **use after** a sprint completes to turn friction events into persona/skill enrichments |
-| `--phase 3` | Drift detection: full codebase vs structural-element comparison — **use on-demand** or after `/forge:calibrate` to detect stale references |
+| `--phase 3` | Drift detection: full codebase vs structural-element comparison — **use on-demand** or after `/forge:health --fix` to detect stale references |
 
 Default to `--phase 3` if no phase flag is given.
 
@@ -126,7 +126,7 @@ Read `.forge/config.json`. Resolve:
 
 ### When to run
 
-Invoked by T09 post-init hook (`--auto`) or manually via `/forge:enhance --phase 1`.
+Invoked by T09 post-init hook (`--auto`) or manually via `/forge:rebuild --enrich --phase 1`.
 
 ### Algorithm
 
@@ -207,7 +207,7 @@ Invoked by T09 post-init hook (`--auto`) or manually via `/forge:enhance --phase
 
 ### When to run
 
-Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
+Invoked by T09 post-sprint hook or manually via `/forge:rebuild --enrich --phase 2`.
 
 ### Algorithm
 
@@ -595,8 +595,8 @@ Invoked by T09 post-sprint hook or manually via `/forge:enhance --phase 2`.
 
 ### When to run
 
-Invoked by `/forge:enhance --phase 3` (default when no phase given), or delegated by
-`/forge:calibrate` after its Step 4 drift categorization.
+Invoked by `/forge:rebuild --enrich --phase 3` (default when no phase given), or delegated by
+`/forge:health --fix` after its Step 4 drift categorization.
 
 ### Algorithm
 

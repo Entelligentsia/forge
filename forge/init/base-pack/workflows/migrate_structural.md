@@ -52,7 +52,7 @@ ls .forge/structure-versions.json 2>/dev/null && echo "EXISTS" || echo "ABSENT"
 
 - If `structure-versions.json` EXISTS: this is a post-T05 install. Warn the
   user that structural migration is not needed and offer to run the standard
-  store-schema migration (Steps 1–7 of `/forge:migrate`) instead. Stop.
+  store-schema migration (Steps 1–7 of `/forge:init --migrate`) instead. Stop.
 - If ABSENT: proceed (pre-T05 install confirmed).
 
 **0c. Check for in-progress sentinel (idempotency).**

@@ -109,5 +109,5 @@ node "$FORGE_ROOT/tools/verify-phase.cjs" --phase 3
 - **Exit 0:** Phase 3 complete. Proceed to Phase 4.
 - **Exit 1:** Read the JSON output. This usually means `substitute-placeholders.cjs`
   ran against an incomplete config. Fix `.forge/config.json` and run
-  `/forge:regenerate`, or delete `.forge/init-progress.json` and restart.
+  `/forge:rebuild`, or delete `.forge/init-progress.json` and restart.
   **This is a hard failure — do not continue with partial Phase 3.**

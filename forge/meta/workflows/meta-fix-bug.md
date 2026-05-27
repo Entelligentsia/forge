@@ -467,7 +467,7 @@ When the Bug Fixer, Supervisor, Architect, Engineer, or Collator detects skill
 friction during fix-bug — a referenced skill is unused, fails on invocation,
 is missing from the registry, has gone stale relative to current architecture,
 or is redundant with another skill — emit a `friction` event so
-`/forge:enhance --phase 2` can act on the signal.
+`/forge:rebuild --enrich` (phase 2) can act on the signal.
 
 **Trigger conditions** (set `issue` to the matching token):
 

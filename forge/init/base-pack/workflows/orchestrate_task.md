@@ -167,7 +167,7 @@ and what capabilities it has. Two modes are supported, selected by the
 | `reference` | Compact summary from `.forge/cache/persona-pack.json`, plus a file_ref pointer to the full persona/skill definitions. | ✅ |
 | `inline` | Legacy: inject the full verbatim persona and skill file contents. Kept for one version as a rollback path. | |
 
-The pack is built by `/forge:rebuild` and `/forge:materialize` via
+The pack is built by `/forge:rebuild` via
 `forge/tools/build-persona-pack.cjs`. It compiles YAML frontmatter from
 `$FORGE_ROOT/meta/personas/meta-*.md` and `$FORGE_ROOT/meta/skills/meta-*.md`
 into `.forge/cache/persona-pack.json`.
@@ -891,7 +891,7 @@ Refer subagents to `.forge/schemas/event.schema.json` instead.
 <!-- See _fragments/generation-instructions.md for Generation Instructions template (orchestrate uses orchestrator-special long-form prose — cannot be reduced to standard subsections) -->
 ## Friction Emit
 
-When the Orchestrator detects skill friction during orchestrate-task — a referenced skill is unused, fails on invocation, is missing from the registry, has gone stale relative to current architecture, or is redundant with another skill — emit a `friction` event so `/forge:enhance --phase 2` can act on the signal. This is the writer side of the channel whose reader landed in S13-T08; the reader is empty without these emits.
+When the Orchestrator detects skill friction during orchestrate-task — a referenced skill is unused, fails on invocation, is missing from the registry, has gone stale relative to current architecture, or is redundant with another skill — emit a `friction` event so `/forge:rebuild --enrich` (phase 2) can act on the signal. This is the writer side of the channel whose reader landed in S13-T08; the reader is empty without these emits.
 
 **Trigger conditions** (set `issue` to the matching token):
 
@@ -931,4 +931,4 @@ experimental `^x_[a-z_]+$`. Emit one record per distinct friction signal
 — do not coalesce.
 
 The generated `orchestrate_task.md` MUST carry this section verbatim —
-`/forge:enhance --phase 2` greps for it.
+`/forge:rebuild --enrich` (phase 2) greps for it.

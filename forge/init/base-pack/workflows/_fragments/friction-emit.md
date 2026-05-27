@@ -1,6 +1,6 @@
 <!-- Canonical Friction Emit fragment.
      Referenced from meta-implement.md, meta-fix-bug.md, meta-validate.md,
-     meta-plan-task.md, and meta-orchestrate.md. /forge:enhance --phase 2
+     meta-plan-task.md, and meta-orchestrate.md. /forge:rebuild --enrich (phase 2)
      greps generated workflows for `## Friction Emit` to discover the channel.
 
      PLAN-11 / SLICE-2 (2026-05-14): friction is now recorded via the
@@ -16,7 +16,7 @@ When the persona detects skill friction during the workflow — a referenced
 skill is unused, fails on invocation, is missing from the registry, has gone
 stale relative to current architecture, or is redundant with another skill —
 record a judgement-only friction signal. The orchestrator drains the
-signals and emits the corresponding events so `/forge:enhance --phase 2`
+signals and emits the corresponding events so `/forge:rebuild --enrich` (phase 2)
 can act on them.
 
 ## Trigger conditions

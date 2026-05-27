@@ -711,7 +711,7 @@ is an additional safety net.
 After the structure check, if at least one regeneration target was applied (the
 aggregated `regenerate` list was non-empty), refresh `calibrationBaseline` in
 `.forge/config.json`. This keeps the calibration baseline in sync with the newly
-materialized artifacts so `/forge:calibrate` does not report false drift.
+materialized artifacts so `/forge:health --fix` does not report false drift.
 
 Skip this step if no regeneration targets were applied (e.g. all targets were absent
 from the migration path, or Step 4 was entered with `baseline == LOCAL_VERSION`).
