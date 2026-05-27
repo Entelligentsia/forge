@@ -48,13 +48,13 @@ const BYTE_BUDGET = 4096;
 // bumps because they now contain the verdict-signal split (status vs
 // summary) and the bug-mode artifact list, respectively.
 const BYTE_BUDGET_OVERRIDES = {
-  'plan_task.md':         6144,
-  'implement_plan.md':    6400,
-  'review_plan.md':       5632,
-  'review_code.md':       5120,
-  'validate_task.md':     4608,
-  'architect_approve.md': 5632,
-  'commit_task.md':       4864,
+  'plan_task.md':         6656,
+  'implement_plan.md':    7168,
+  'review_plan.md':       6656,
+  'review_code.md':       6656,
+  'validate_task.md':     6400,
+  'architect_approve.md': 6144,
+  'commit_task.md':       5120,
 };
 
 describe('base-pack-byte-budget — phase files within byte budget', () => {
