@@ -74,11 +74,13 @@ Using your discovery findings, write `.forge/config.json` with this structure:
     "engineering": "engineering",
     "store": ".forge/store",
     "workflows": ".forge/workflows",
-    "commands": ".claude/commands/forge",
+    "commands": ".claude/commands/<prefix-lowercased>",
     "templates": ".forge/templates"
   }
 }
 ```
+
+`<prefix-lowercased>` = the `project.prefix` value you chose, lowercased. For example, if prefix is `HELLO`, write `".claude/commands/hello"`.
 
 Write using:
 ```sh

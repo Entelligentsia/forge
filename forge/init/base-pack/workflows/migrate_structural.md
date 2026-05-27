@@ -277,7 +277,7 @@ node "$FORGE_ROOT/tools/substitute-placeholders.cjs" \
 ```
 
 This overwrites `.forge/personas/`, `.forge/skills/`, `.forge/workflows/`,
-`.forge/templates/`, and `.claude/commands/forge/` with the freshly substituted
+`.forge/templates/`, and `.claude/commands/<prefix>/` with the freshly substituted
 base-pack.
 
 If `substitute-placeholders.cjs` exits non-zero: halt, report the error to the

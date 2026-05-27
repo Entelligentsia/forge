@@ -56,7 +56,8 @@ node -e "
 const fs=require('fs');const cfg=JSON.parse(fs.readFileSync('.forge/config.json','utf8'));
 const kb=cfg.paths.engineering||'engineering';
 const countMd=(d)=>{try{return fs.readdirSync(d,{recursive:true}).filter(f=>f.endsWith('.md')).length}catch{return 0}};
-console.log('  Generated\n    '+countMd(kb)+' knowledge-base docs\n    '+countMd('.forge/workflows')+' workflows\n    '+countMd('.claude/commands/forge')+' project commands');
+const cmds=cfg.paths.commands||'.claude/commands/forge';
+console.log('  Generated\n    '+countMd(kb)+' knowledge-base docs\n    '+countMd('.forge/workflows')+' workflows\n    '+countMd(cmds)+' project commands');
 "
 ```
 

@@ -9,7 +9,7 @@
  * output to the appropriate output directories.
  *
  * Output path mapping (--target claude-code, default):
- *   base-pack/commands/  → <outRoot>/.claude/commands/forge/
+ *   base-pack/commands/  → <outRoot>/.claude/commands/<prefix>/
  *   base-pack/personas/  → <outRoot>/.forge/personas/
  *   base-pack/skills/    → <outRoot>/.forge/skills/
  *   base-pack/workflows/ → <outRoot>/.forge/workflows/

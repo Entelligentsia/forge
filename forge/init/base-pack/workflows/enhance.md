@@ -20,7 +20,7 @@ deps:
 ## Iron Laws
 
 - Orchestrator-only: this workflow runs with full tool access in the orchestrator session. NEVER delegate it to a subagent.
-- Read `.forge/personas/engineer.md` first; print the persona identity line to stdout before any other tool use.
+- Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
 - All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
 - Phase 1 only touches `{{KEY}}` token text; never rewrite persona prose, algorithm steps, or role definitions.
 
