@@ -501,6 +501,19 @@ If the project was recently initialized and all fields are already present, the
 command prints `〇 No missing fields to backfill.` and exits cleanly —
 no changes, no side effects.
 
+**Fix `paths.commands` prefix (v1.0.2+):** Pre-v1.0.2 projects may have
+`paths.commands` set to `.claude/commands/forge` regardless of the project
+prefix. Correct it to use the lowercased project prefix:
+
+```sh
+PREFIX=$(node -e "try{console.log(require('./.forge/config.json').project.prefix.toLowerCase())}catch{console.log('forge')}")
+CURRENT_COMMANDS=$(node "$FORGE_ROOT/tools/manage-config.cjs" get paths.commands 2>/dev/null || echo "")
+EXPECTED_COMMANDS=".claude/commands/$PREFIX"
+if [ "$CURRENT_COMMANDS" != "$EXPECTED_COMMANDS" ]; then
+  node "$FORGE_ROOT/tools/manage-config.cjs" set paths.commands "$EXPECTED_COMMANDS"
+fi
+```
+
 Determine the baseline version:
 - Use `migratedFrom` from `CACHE_FILE` (set in Step 1)
 - Or the `--from <version>` argument if provided

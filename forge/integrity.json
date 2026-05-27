@@ -9,7 +9,7 @@
     "commands/check-agent.md": "f92121cb150d4cf601654e25c28d0c13389039518d05433f1040d727054b127e",
     "commands/config.md": "e67185f98cf0b045890398083991b9d48f32bf0d53bafda1eaca3ce0337ce49c",
     "commands/enhance.md": "d28f6414119e84973809d32900bb7245b51f565aed86112bc7a994bc6941b547",
-    "commands/health.md": "f862697045c98e144c17ded977041e3ef45b8070ff0dc4ea7b66e00f67d557c2",
+    "commands/health.md": "29c3e5f9808d996f53a432c4b3aff1c3346d7a40fff54518d8ea2ac2c6ba9d12",
     "commands/init.md": "cf7a70d55f718304820c310465071d3eea9d14a43131623f46b686499f630d4d",
     "commands/rebuild.md": "e6d1e0bc29fd21c4c9109d8f40045b782207dfa6db2d98a9bf8c7254a80f09c6",
     "commands/remove.md": "0ca5ec94d52959afaadd74910bd2c81c9872b71c9cc1ce8b89e5af69c06b304f",
@@ -17,7 +17,7 @@
     "commands/report-bug.md": "af8a54bf8887b35e5c880898dd45783f6c2e80d3dc031d6479a6be613ac43053",
     "commands/search.md": "befc4ba9f3146e7599308b35b95ec315e16895c0c18c9c2bab7549619d79bf1c",
     "commands/status.md": "2fa82a0b11d493918781aec6d95c39411f84fa923662ff3152b6de0cc830d755",
-    "commands/update.md": "393900c0a3e8912cd4e660ca2173de2ffd75ca898f6266fa9f1e4e8b9b6fc254",
+    "commands/update.md": "a7eac4362a927eae708ee3844ef8d920f3166d1eafde36323d2dd92789fbdec9",
     "agents/store-query-validator.md": "f4c3573edcf6e28809515705362df611806a805c5269404fb17e31433cf3a81c",
     "agents/tomoshibi.md": "0c1032df80dfc25a4f482b1276965b5318754d95ccde9f24820846d564e49a27",
     "hooks/check-update.cjs": "9607cc0c51bedcbc123f5ea1d7a492916f29ee1f838846eec64776d5df70bbea",
@@ -29,7 +29,7 @@
     "schemas/transitions/bug.json": "27b17da42d1cebffbd4f61ab3dcd432a0017aa71997d548ed80d22c2fc3fad6a",
     "schemas/transitions/sprint.json": "2e0a629396e687b0ca88e1814ac3e35d84533a5d55b25237ab67feddce3c9deb",
     "schemas/transitions/task.json": "4c71849747baa0d585756e57c56325ff6219c078178374e60815dff91e25e3e7",
-    "schemas/enum-catalog.json": "55c8fb8039706f9cc339e4ccb9ea7c5a3e338f56d162215418b073facc79dde8",
+    "schemas/enum-catalog.json": "af954fc219984ba9944de123867590c90c09c532b8d3d40859648a75e9010e5c",
     "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
   }
 }

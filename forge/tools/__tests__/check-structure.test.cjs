@@ -247,7 +247,7 @@ describe('checkNamespaces', () => {
     assert.equal(result.missing[0].filename, 'plan.md');
   });
 
-  test('prefixed namespace falls back to base dir when prefix unavailable', () => {
+  test('prefixed namespace falls back to .claude/commands/forge when prefix unavailable', () => {
     const manifest = {
       namespaces: {
         commands: {
@@ -259,15 +259,16 @@ describe('checkNamespaces', () => {
       },
     };
 
+    // File at the default fallback path (.claude/commands/forge/)
     const structure = {
-      '.claude/commands/plan.md': '---\neffort: high\n---\n',
+      '.claude/commands/forge/plan.md': '---\neffort: high\n---\n',
     };
 
     tmpDir = createTempProject(structure);
     const result = checkNamespaces(manifest, tmpDir, { strict: false });
 
     assert.equal(result.total, 1);
-    assert.equal(result.present, 1, 'falls back to base dir when no prefix in config');
+    assert.equal(result.present, 1, 'falls back to .claude/commands/forge when no prefix in config');
     assert.equal(result.missing.length, 0);
   });
 
