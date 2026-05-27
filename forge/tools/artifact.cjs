@@ -79,7 +79,12 @@ function readStorePath(entity, entityId, toolDir, projectRoot) {
     });
     const record = JSON.parse(result);
     if (typeof record.path === 'string' && record.path.length > 0) {
-      return record.path;
+      // Defensive: if the path ends with a file extension, the store record
+      // was written with a filename (e.g. "…/PROGRESS.md") instead of the
+      // directory. Strip the trailing filename to get the entity directory.
+      const p = record.path;
+      if (/\.(md|json)$/i.test(p)) return path.dirname(p);
+      return p;
     }
   } catch (_) {
     // Store unavailable or record not found — fall through.
