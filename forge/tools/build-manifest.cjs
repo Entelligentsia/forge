@@ -47,6 +47,7 @@ const WORKFLOW_MAP = [
   ['meta-approve.md',                  'architect_approve.md'],
   ['meta-collate.md',                  'collator_agent.md'],
   ['meta-commit.md',                   'commit_task.md'],
+  ['meta-bug-triage.md',               'triage.md'],
   ['meta-fix-bug.md',                  'fix_bug.md'],
   ['meta-implement.md',                'implement_plan.md'],
   ['meta-orchestrate.md',              'orchestrate_task.md'],

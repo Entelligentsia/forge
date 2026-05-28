@@ -1,9 +1,28 @@
 ## Forge Tool Discipline
 
 All forge_* tools wrap local .cjs scripts via direct exec — deterministic, no LLM,
-no agent loop. Prefer them over shelling out.
+no agent loop. Use them for all Forge-managed data — never bypass with god tools.
 
-- Store CRUD: call `forge_store` (named tool). Canonical write is 2-positional:
+### Data boundaries — off-limits to `read`, `cat`, `bash`, `grep`
+
+These paths contain Forge-managed data. Never access them with generic tools.
+
+| Path | Owned by | Use instead |
+|------|----------|-------------|
+| `.forge/store/**` | Store | `forge_store`, `forge_store_query` |
+| `{paths.engineering}/**/` task/bug/sprint dirs | Artifacts | `forge_artifact read` (covers all 15 artifact types) |
+| `{paths.engineering}/**/INDEX.md` | KB | `forge_store_query` or `forge_collate` |
+| `{paths.engineering}/MASTER_INDEX.md` | KB | `forge_store_query` or `forge_collate` |
+
+`{paths.engineering}` is the project's KB folder name from `.forge/config.json`
+(default: `engineering`). Never hardcode it.
+
+Source files (`.py`, `.ts`, `.js`, etc.), persona `.md`, workflow `.md`, and
+project config outside `.forge/store/` are fine to `read`/`grep` directly.
+
+### Tool routing
+
+- **Store CRUD:** call `forge_store` (named tool). Canonical write is 2-positional:
   `{command:"write", args:["<entity>","<json>"]}`. The id lives INSIDE the json
   (e.g. `{"sprintId":"X-S01","title":"...","status":"planning","taskIds":[],"createdAt":"..."}`).
   DO NOT pass id as a separate arg — `["sprint","X-S01","<json>"]` (3-arg) FAILS.

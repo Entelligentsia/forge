@@ -1,6 +1,6 @@
 {
   "version": "1.0.2",
-  "generatedAt": "2026-05-27T08:59:39.257Z",
+  "generatedAt": "2026-05-28T05:59:32.606Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -48,6 +48,7 @@
         "review_plan.md",
         "run_sprint.md",
         "sprint_retrospective.md",
+        "triage.md",
         "update_implementation.md",
         "update_plan.md",
         "validate_task.md"
@@ -175,6 +176,24 @@
         ],
         "sub_workflows": [],
         "kb_docs": [],
+        "config_fields": [
+          "commands.test",
+          "paths.engineering"
+        ]
+      },
+      "triage": {
+        "personas": [
+          ".forge/personas/bug-fixer.md"
+        ],
+        "skills": [
+          ".forge/skills/bug-fixer-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [],
+        "sub_workflows": [],
+        "kb_docs": [
+          "{KB_PATH}/architecture/stack.md"
+        ],
         "config_fields": [
           "commands.test",
           "paths.engineering"

@@ -611,6 +611,7 @@ function buildBasePack({ forgeRoot, outRoot }) {
 
   const META_BACKED_WORKFLOWS = [
     ['meta-approve.md',                  'architect_approve.md'],
+    ['meta-bug-triage.md',               'triage.md'],
     ['meta-collate.md',                  'collator_agent.md'],
     ['meta-commit.md',                   'commit_task.md'],
     ['meta-enhance.md',                  'enhance.md'],
