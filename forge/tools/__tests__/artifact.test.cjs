@@ -261,6 +261,121 @@ describe('artifact.cjs — write subcommand', () => {
   });
 });
 
+describe('artifact.cjs — per-entity filename overrides (FORGE-BUG-041)', () => {
+  test('write plan for entity=bug lands in BUG_FIX_PLAN.md (not PLAN.md)', () => {
+    const tmpDir = makeTempProject();
+    try {
+      const bugId = 'TEST-BUG-001';
+      const bugPath = `engineering/bugs/${bugId}`;
+      writeBugRecord(tmpDir, bugId, {
+        bugId, title: 'Test', severity: 'minor', status: 'reported', path: bugPath,
+        reportedAt: '2026-05-28T00:00:00.000Z',
+      });
+      const artDir = path.join(tmpDir, bugPath);
+      fs.mkdirSync(artDir, { recursive: true });
+
+      const r = runArtifact(['write', 'bug', bugId, 'plan', '# Bug fix plan'], tmpDir);
+      assert.equal(r.status, 0, `expected exit 0, got ${r.status}\n${r.stderr}`);
+      assert.ok(fs.existsSync(path.join(artDir, 'BUG_FIX_PLAN.md')),
+        'BUG_FIX_PLAN.md should exist after writing plan in bug mode');
+      assert.ok(!fs.existsSync(path.join(artDir, 'PLAN.md')),
+        'PLAN.md should NOT exist — bug-mode plan should map to BUG_FIX_PLAN.md');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('read plan for entity=bug reads BUG_FIX_PLAN.md', () => {
+    const tmpDir = makeTempProject();
+    try {
+      const bugId = 'TEST-BUG-002';
+      const bugPath = `engineering/bugs/${bugId}`;
+      writeBugRecord(tmpDir, bugId, {
+        bugId, title: 'Test', severity: 'minor', status: 'reported', path: bugPath,
+        reportedAt: '2026-05-28T00:00:00.000Z',
+      });
+      const artDir = path.join(tmpDir, bugPath);
+      fs.mkdirSync(artDir, { recursive: true });
+      fs.writeFileSync(path.join(artDir, 'BUG_FIX_PLAN.md'), '# Existing bug fix plan');
+
+      const r = runArtifact(['read', 'bug', bugId, 'plan'], tmpDir);
+      assert.equal(r.status, 0, `expected exit 0, got ${r.status}\n${r.stderr}`);
+      assert.equal(r.stdout.trim(), '# Existing bug fix plan');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('write plan-summary for entity=bug lands in BUG-FIX-PLAN-SUMMARY.json', () => {
+    const tmpDir = makeTempProject();
+    try {
+      const bugId = 'TEST-BUG-003';
+      const bugPath = `engineering/bugs/${bugId}`;
+      writeBugRecord(tmpDir, bugId, {
+        bugId, title: 'Test', severity: 'minor', status: 'reported', path: bugPath,
+        reportedAt: '2026-05-28T00:00:00.000Z',
+      });
+      const artDir = path.join(tmpDir, bugPath);
+      fs.mkdirSync(artDir, { recursive: true });
+
+      const r = runArtifact(['write', 'bug', bugId, 'plan-summary', VALID_SUMMARY], tmpDir);
+      assert.equal(r.status, 0, `expected exit 0, got ${r.status}\n${r.stderr}`);
+      assert.ok(fs.existsSync(path.join(artDir, 'BUG-FIX-PLAN-SUMMARY.json')),
+        'BUG-FIX-PLAN-SUMMARY.json should exist in bug mode');
+      assert.ok(!fs.existsSync(path.join(artDir, 'PLAN-SUMMARY.json')),
+        'PLAN-SUMMARY.json should NOT exist for bug entity');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('task-mode plan still writes PLAN.md (no regression)', () => {
+    const tmpDir = makeTempProject();
+    try {
+      const taskId = 'FORGE-S26-T16';
+      const taskPath = `engineering/sprints/FORGE-S26/FORGE-S26-T16`;
+      writeTaskRecord(tmpDir, taskId, {
+        taskId, sprintId: 'FORGE-S26', title: 'Test', status: 'implementing', path: taskPath,
+      });
+      const artDir = path.join(tmpDir, taskPath);
+      fs.mkdirSync(artDir, { recursive: true });
+
+      const r = runArtifact(['write', 'task', taskId, 'plan', '# Task plan'], tmpDir);
+      assert.equal(r.status, 0, `expected exit 0, got ${r.status}\n${r.stderr}`);
+      assert.ok(fs.existsSync(path.join(artDir, 'PLAN.md')),
+        'PLAN.md should still exist for task-mode plan');
+      assert.ok(!fs.existsSync(path.join(artDir, 'BUG_FIX_PLAN.md')),
+        'BUG_FIX_PLAN.md should NOT appear in task-mode');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('list bug-mode dir labels BUG_FIX_PLAN.md as the plan artifact', () => {
+    const tmpDir = makeTempProject();
+    try {
+      const bugId = 'TEST-BUG-004';
+      const bugPath = `engineering/bugs/${bugId}`;
+      writeBugRecord(tmpDir, bugId, {
+        bugId, title: 'Test', severity: 'minor', status: 'reported', path: bugPath,
+        reportedAt: '2026-05-28T00:00:00.000Z',
+      });
+      const artDir = path.join(tmpDir, bugPath);
+      fs.mkdirSync(artDir, { recursive: true });
+      fs.writeFileSync(path.join(artDir, 'BUG_FIX_PLAN.md'), '# x');
+
+      const r = runArtifact(['list', 'bug', bugId], tmpDir);
+      assert.equal(r.status, 0, `expected exit 0, got ${r.status}\n${r.stderr}`);
+      assert.ok(r.stdout.includes('plan → BUG_FIX_PLAN.md'),
+        `list should label BUG_FIX_PLAN.md as plan; got: ${r.stdout}`);
+      assert.ok(!r.stdout.includes('(unlisted) BUG_FIX_PLAN.md'),
+        `BUG_FIX_PLAN.md should not be marked unlisted; got: ${r.stdout}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('artifact.cjs — path resolution', () => {
   test('resolves path from store record field (slug-suffixed directory)', () => {
     const tmpDir = makeTempProject();

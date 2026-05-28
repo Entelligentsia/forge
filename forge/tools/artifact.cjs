@@ -47,6 +47,25 @@ const ARTIFACT_CATALOG = {
   'collation-summary':      { filename: 'COLLATION-SUMMARY.json',     type: 'json' },
 };
 
+// Per-entity filename overrides. Bug-mode plans and plan-summaries use the
+// BUG_FIX_PLAN prefix to match the long-standing forge convention and the
+// preflight-gate.cjs expectations for review-plan in bug mode. Without this
+// override, plan-fix (routed via plan_task.md post FORGE-BUG-040) writes
+// PLAN.md and review-plan preflight then fails "artifact missing:
+// BUG_FIX_PLAN.md" — see FORGE-BUG-041.
+const ARTIFACT_FILENAME_OVERRIDES = {
+  bug: {
+    'plan':         'BUG_FIX_PLAN.md',
+    'plan-summary': 'BUG-FIX-PLAN-SUMMARY.json',
+  },
+};
+
+function resolveArtifactFilename(entity, artifactName) {
+  const override = ARTIFACT_FILENAME_OVERRIDES[entity];
+  if (override && override[artifactName]) return override[artifactName];
+  return ARTIFACT_CATALOG[artifactName].filename;
+}
+
 const ARTIFACT_NAMES = Object.keys(ARTIFACT_CATALOG).sort();
 
 // ── Summary JSON validation ──────────────────────────────────────────────────
@@ -203,7 +222,13 @@ if (subcmd === 'list') {
   const known = [];
   const other = [];
   for (const f of files) {
-    const catalogEntry = Object.entries(ARTIFACT_CATALOG).find(([, v]) => v.filename === f);
+    // Recognise the per-entity overrides as well, so e.g. BUG_FIX_PLAN.md
+    // surfaces as the `plan` artifact in bug-mode listings.
+    const overrideEntry = ARTIFACT_FILENAME_OVERRIDES[entity]
+      ? Object.entries(ARTIFACT_FILENAME_OVERRIDES[entity]).find(([, fn]) => fn === f)
+      : undefined;
+    const catalogEntry = overrideEntry
+      || Object.entries(ARTIFACT_CATALOG).find(([, v]) => v.filename === f);
     if (catalogEntry) {
       known.push(`  ${catalogEntry[0]} → ${f}`);
     } else {
@@ -236,13 +261,14 @@ if (!catalogEntry) {
   process.exit(1);
 }
 
-const filePath = path.join(absDir, catalogEntry.filename);
+const resolvedFilename = resolveArtifactFilename(entity, artifactName);
+const filePath = path.join(absDir, resolvedFilename);
 
 // ── read ─────────────────────────────────────────────────────────────────────
 
 if (subcmd === 'read') {
   if (!fs.existsSync(filePath)) {
-    process.stderr.write(`Artifact not found: ${path.join(entityDir, catalogEntry.filename)}\n`);
+    process.stderr.write(`Artifact not found: ${path.join(entityDir, resolvedFilename)}\n`);
     process.exit(2);
   }
   process.stdout.write(fs.readFileSync(filePath, 'utf8'));
@@ -275,7 +301,7 @@ if (subcmd === 'write') {
     const validationError = validateSummaryJson(content);
     if (validationError) {
       process.stderr.write(
-        `Summary validation failed for ${catalogEntry.filename}: ${validationError}. ` +
+        `Summary validation failed for ${resolvedFilename}: ${validationError}. ` +
         `Required fields: ${SUMMARY_REQUIRED.join(', ')}.\n`
       );
       process.exit(1);
@@ -285,7 +311,7 @@ if (subcmd === 'write') {
   fs.mkdirSync(absDir, { recursive: true });
   fs.writeFileSync(filePath, content, 'utf8');
   process.stdout.write(
-    `Wrote ${Buffer.byteLength(content, 'utf8')} bytes to ${path.join(entityDir, catalogEntry.filename)}\n`
+    `Wrote ${Buffer.byteLength(content, 'utf8')} bytes to ${path.join(entityDir, resolvedFilename)}\n`
   );
   process.exit(0);
 }
