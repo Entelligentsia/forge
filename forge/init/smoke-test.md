@@ -23,7 +23,7 @@ KB_PATH=$(node -e "try{console.log(require('./.forge/config.json').paths.enginee
 - `{KB_PATH}/architecture/INDEX.md` and sub-docs
 - `{KB_PATH}/business-domain/INDEX.md` and `entity-model.md`
 - `{KB_PATH}/stack-checklist.md`
-- All 18 workflows in `.forge/workflows/`
+- All workflows listed in `tools/build-manifest.cjs` `WORKFLOW_MAP` materialise into `.forge/workflows/` (no hard-coded count — the set grows with the plugin)
 - All commands in `.claude/commands/`
 - All templates in `.forge/templates/`
 - `.forge/schemas/` (all JSON Schema files)

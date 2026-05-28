@@ -23,7 +23,7 @@ Phases`):
 
 | Phase | Role | Persona | Workflow | Path A | Path B |
 |---|---|---|---|---|---|
-| triage | `triage` | bug-fixer | (inline algorithm) | yes | yes |
+| triage | `triage` | bug-fixer | `triage.md` | yes | yes |
 | plan-fix | `plan` | engineer | `plan_task.md` (bug-mode) | no | yes |
 | review-plan | `review-plan` | supervisor | `review_plan.md` | no | yes |
 | implement | `implement` | engineer | `implement_plan.md` (bug-mode) | yes | yes |
@@ -93,24 +93,11 @@ The `route` field is required. Allowed values: `"A"` or `"B"`.
 > Triage subagents MUST NOT touch `bug.path` — that field is set at bug
 > creation and never modified by triage.
 
-### Path A — short-circuit (eligibility)
+### Path A / Path B eligibility
 
-Path A is **eligible only when ALL** of the following hold. Triage subagent
-must enumerate each in its findings:
-
-- `bug.severity ∈ {minor}`
-- Fix is contained in a single file
-- Estimated diff ≤ ~20 lines (judgement call; one screen)
-- No schema, API, migration, security, or build-system change
-- A regression test is obvious from the reproduction script (single short
-  test case, no new fixtures, no test-harness change)
-
-If any criterion fails, the triage subagent MUST select Path B.
-
-### Path B — full loop (default)
-
-Path B runs the same plan/review/implement/review/approve/commit shape as
-`meta-orchestrate.md`. It is the default. Any uncertainty defaults Path B.
+See `triage.md § Path A / Path B Eligibility` for the criteria the triage
+subagent applies. The criteria are single-sourced in the triage workflow;
+this orchestrator only reads the resulting `summaries.triage.route` value.
 
 ### Pipeline selection by path
 
@@ -156,16 +143,11 @@ Differences are confined to the **triage** step and the **path branch**.
      b. If .forge/store/bugs/{BUG_ID}.json does NOT exist, write a fresh record
         via store-cli with status="reported".
      c. Read the now-guaranteed record.
-   - Spawn the triage subagent (persona: bug-fixer). It MUST:
-     • Reproduce the bug (failing test or reproduction script).
-     • Confirm the root cause via codebase research.
-     • Decide Path A vs Path B by the criteria above.
-     • Write triage artifact:
-       forge_artifact({ command:"write", entity:"bug", entityId:"{bugId}", artifact:"triage", content:"<markdown>" })
-     • Write triage-summary artifact (JSON shape documented in § Triage Judgement):
-       forge_artifact({ command:"write", entity:"bug", entityId:"{bugId}", artifact:"triage-summary", content:"<JSON>" })
-     • Call set-bug-summary {bugId} triage via forge_store:
-       forge_store({ command:"set-bug-summary", bugId:"{bugId}", phase:"triage", file:"TRIAGE-SUMMARY.json" })
+   - Spawn the triage subagent (workflow: `triage.md`, persona: bug-fixer).
+     It MUST write `TRIAGE.md` + `TRIAGE-SUMMARY.json` with a `route` field
+     (`"A"` or `"B"`) and call `set-bug-summary {bugId} triage` per
+     `triage.md`. The triage workflow is `audience: subagent`, `phase: triage`;
+     the orchestrator MUST NOT pass any other workflow body to this subagent.
    - On return, orchestrator transitions status:
        store-cli update-status bug {bugId} status triaged
        store-cli update-status bug {bugId} status in-progress

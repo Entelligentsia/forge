@@ -1,4 +1,13 @@
 {
+  "1.0.2": {
+    "version": "1.0.3",
+    "date": "2026-05-28",
+    "notes": "v1.0.3 — FORGE-BUG-040 (GH-110) fix. /forge:fix-bug now runs each phase as a phase-scoped subagent: triage uses the new triage.md workflow, plan-fix uses plan_task.md (bug-mode), implement uses implement_plan.md (bug-mode). Previously all three pointed at fix_bug.md (orchestrator-only body), causing the triage subagent to execute the entire lifecycle in one phase. Bug schema, transitions, and store layout are unchanged.",
+    "target": "workflows:triage,workflows:fix_bug",
+    "regenerate": ["workflows:triage", "workflows:fix_bug"],
+    "breaking": false,
+    "manual": []
+  },
   "1.0.1": {
     "version": "1.0.2",
     "date": "2026-05-27",

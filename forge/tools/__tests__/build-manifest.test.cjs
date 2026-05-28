@@ -34,8 +34,13 @@ describe('build-manifest.cjs — mapping tables', () => {
     }
   });
 
-  test('WORKFLOW_MAP has 19 entries', () => {
-    assert.equal(WORKFLOW_MAP.length, 19);
+  test('WORKFLOW_MAP has 20 entries', () => {
+    assert.equal(WORKFLOW_MAP.length, 20);
+  });
+
+  test('WORKFLOW_MAP contains meta-bug-triage.md → triage.md (FORGE-BUG-040)', () => {
+    const entry = WORKFLOW_MAP.find(([src, out]) => src === 'meta-bug-triage.md' && out === 'triage.md');
+    assert.ok(entry, 'triage workflow must be wired through WORKFLOW_MAP so build-manifest regenerates it');
   });
 
   test('FRAGMENT_MAP enumerates every meta fragment, each as a [source, output] tuple', () => {

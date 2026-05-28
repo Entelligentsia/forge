@@ -537,11 +537,11 @@ describe('buildBasePack: validates all expected output files exist', () => {
     assert.equal(files.length, 9, `expected 9 skill files, got ${files.length}: ${files.join(', ')}`);
   });
 
-  test('all 20 workflow files created; fragments mirror meta/workflows/_fragments/', () => {
+  test('all 21 workflow files created; fragments mirror meta/workflows/_fragments/', () => {
     mod = mod || require(SCRIPT_PATH);
     const wfDir = path.join(outDir, 'workflows');
     const files = fs.readdirSync(wfDir).filter(f => f.endsWith('.md'));
-    assert.equal(files.length, 20, `expected 20 workflow files, got ${files.length}: ${files.join(', ')}`);
+    assert.equal(files.length, 21, `expected 21 workflow files, got ${files.length}: ${files.join(', ')}`);
 
     // Fragments must achieve parity with meta source — no hardcoded allowlist.
     // Previously the base-pack omitted store-cli-verbs.md and friction-emit.md
