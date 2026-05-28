@@ -5,6 +5,30 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.0.3] — 2026-05-28
+
+### Fixed
+
+- **FORGE-BUG-040 (critical) — `/forge:fix-bug` triage subagent received the orchestrator-only `fix_bug.md` body and executed the entire bug lifecycle in one phase, bypassing review/approve/commit gates.** The fix splits triage into a phase-scoped subagent workflow (new `triage.md` generated from `meta-bug-triage.md`) and corrects forge-cli's `BUG_PHASES` wiring (forge-cli v1.0.3 must be paired). Users on `forge@1.0.0–1.0.2` + `@entelligentsia/forgecli@1.0.0–1.0.2` were running with a non-functional `/forge:fix-bug` pipeline. Closes Entelligentsia/forge#110.
+
+### Added
+
+- `meta/workflows/meta-bug-triage.md` — phase-scoped triage subagent workflow (`audience: subagent`, `phase: triage`) with the four required `checkMaterialization` markers and an explicit "triage NEVER writes `bug.status`" Iron Law.
+- `init/base-pack/workflows/triage.md` — generated.
+- `meta/fragments/tool-discipline.md` — new "Data boundaries" section enumerating paths owned by `forge_store`, `forge_artifact`, and `forge_collate`.
+- `tools/artifact.cjs` — three new `ARTIFACT_CATALOG` entries: `task-prompt`, `sprint-requirements`, `sprint-completion-review`.
+
+### Changed
+
+- `meta/workflows/meta-fix-bug.md` — § 2. Triage and § Triage Judgement trimmed; orchestrator now references `triage.md`. Route-reading retained.
+- `init/smoke-test.md` — dropped hard-coded "18 workflows" count.
+
+### Migration
+
+`1.0.2 → 1.0.3` regenerates `workflows:triage` (new) and `workflows:fix_bug` (regenerated). `breaking: false`. No FSM, schema, or store-record changes; in-flight bugs resume correctly on next `/forge:fix-bug` invocation.
+
+---
+
 ## [1.0.0] — 2026-05-26
 
 **v1.0 DevX Overhaul (FORGE-S26) — coordinated release with forge-cli v1.0.0.**
