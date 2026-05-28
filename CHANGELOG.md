@@ -27,6 +27,10 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 `1.0.2 → 1.0.3` regenerates `workflows:triage` (new) and `workflows:fix_bug` (regenerated). `breaking: false`. No FSM, schema, or store-record changes; in-flight bugs resume correctly on next `/forge:fix-bug` invocation.
 
+### Fixed (FORGE-BUG-041 — regression of FORGE-BUG-040 fix)
+
+- **`tools/artifact.cjs` per-entity filename overrides.** Post-FORGE-BUG-040, plan-fix routes via `plan_task.md` and calls `forge_artifact entity:bug artifact:plan`. The artifact catalog had no bug-mode override, so plan-fix wrote `PLAN.md` and the review-plan preflight then halted with `artifact missing: BUG_FIX_PLAN.md`. New `ARTIFACT_FILENAME_OVERRIDES` map: bug-mode `plan → BUG_FIX_PLAN.md` and bug-mode `plan-summary → BUG-FIX-PLAN-SUMMARY.json`. Task-mode behaviour unchanged. In-flight bugs that already wrote `PLAN.md` need a one-time rename to `BUG_FIX_PLAN.md` (and similarly for the summary) before resuming.
+
 ---
 
 ## [1.0.0] — 2026-05-26
