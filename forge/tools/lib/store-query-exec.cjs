@@ -5,6 +5,14 @@ const path = require('path');
 const { extractExcerpt, loadForgeConfig, findIndexPath } = require('./store-facade.cjs');
 const { extractKeywordsFromIntent } = require('./store-nlp.cjs');
 
+// Default safety cap for NLP listings without an explicit limit. Prevents an
+// unbounded query from dumping the entire store into an LLM's context (a single
+// uncapped query consumed ~28% of a plan run's input tokens — see
+// doc/plans/store-query-nlp-response-shape-improvement.md). Callers that need
+// everything use the exact `--sprint`/`--task` flag paths (which bypass this) or
+// pass an explicit limit.
+const DEFAULT_NLP_LIMIT = 25;
+
 function escapeRe(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -128,7 +136,7 @@ function executeQuery(plan, store, cfg) {
   const trace = [];
   const traverse = plan.traverse || plan;
   const singMap = { bug: 'bugs', task: 'tasks', sprint: 'sprints', feature: 'features' };
-  const primary = singMap[traverse.primary] || traverse.primary || 'tasks';
+  let primary = singMap[traverse.primary] || traverse.primary || 'tasks';
   let filter = { ...(traverse.filter || {}) };
   const follow = traverse.follow || [];
   const kwMatch = traverse.keywordMatch || {};
@@ -138,6 +146,7 @@ function executeQuery(plan, store, cfg) {
 
   // Validate + strip invalid filters
   const validation = validatePlan(plan);
+  const stripped = {};
   if (validation.warnings.length > 0) {
     const validators = buildFieldValidators();
     const fields = validators[primary];
@@ -145,18 +154,36 @@ function executeQuery(plan, store, cfg) {
       for (const key of Object.keys(filter)) {
         if (!fields[key]) {
           trace.push(`stripped invalid filter key: ${key}`);
+          stripped[key] = filter[key];
           delete filter[key];
         } else {
           const spec = fields[key];
           if (spec instanceof RegExp && !spec.test(String(filter[key]))) {
             trace.push(`stripped filter ${key}="${filter[key]}" (value mismatch)`);
+            stripped[key] = filter[key];
             delete filter[key];
           } else if (Array.isArray(spec) && !spec.includes(String(filter[key]))) {
             trace.push(`stripped filter ${key}="${filter[key]}" (not in enum)`);
+            stripped[key] = filter[key];
             delete filter[key];
           }
         }
       }
+    }
+  }
+
+  // Re-route on a stripped record-anchoring ID: an explicit taskId/bugId that
+  // was stripped because `primary` disagreed means the caller named a specific
+  // record. Honour it (re-route primary + restore the filter) instead of
+  // degrading into a full-collection scan. This is the engine-layer floor that
+  // backs up the parser fix in store-nlp.cjs.
+  const ID_ROUTE = { taskId: 'tasks', bugId: 'bugs' };
+  for (const idKey of Object.keys(ID_ROUTE)) {
+    if (stripped[idKey] !== undefined && primary !== ID_ROUTE[idKey]) {
+      trace.push(`re-routed primary ${primary} → ${ID_ROUTE[idKey]} (anchored ${idKey}="${stripped[idKey]}")`);
+      primary = ID_ROUTE[idKey];
+      filter[idKey] = stripped[idKey];
+      break;
     }
   }
 
@@ -201,10 +228,16 @@ function executeQuery(plan, store, cfg) {
     return { query: cfg.query || '', path: 'intent-nlp', traversalTrace: trace, count: totalMatched, results: [], relatedFileRefs: [], totalMatched };
   }
 
-  // Limit
-  if (traverse.limit && entities.length > traverse.limit) {
-    trace.push(`limited to ${traverse.limit} (of ${totalMatched})`);
-    entities = entities.slice(0, traverse.limit);
+  // Limit — honour an explicit limit; otherwise apply a default safety cap so an
+  // unbounded NLP listing never dumps the whole collection into the model's
+  // context. `truncated` + `totalMatched` let the caller detect and, if needed,
+  // re-query with an explicit limit or the exact-flag path.
+  const effectiveLimit = traverse.limit || DEFAULT_NLP_LIMIT;
+  let truncated = false;
+  if (entities.length > effectiveLimit) {
+    trace.push(`limited to ${effectiveLimit} (of ${totalMatched})${traverse.limit ? '' : ' [default cap]'}`);
+    entities = entities.slice(0, effectiveLimit);
+    truncated = true;
   }
 
   // Build results + follow FKs
@@ -263,6 +296,7 @@ function executeQuery(plan, store, cfg) {
     results:        allResults,
     totalMatched,
     returned:       allResults.length,
+    truncated,
     limit:          traverse.limit || null,
     sort:           traverse.sort || null,
     relatedFileRefs: [...new Set(relatedFiles)],

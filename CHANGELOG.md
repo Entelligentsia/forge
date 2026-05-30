@@ -5,6 +5,19 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.0.4] — 2026-05-30
+
+### Fixed
+
+- **Preflight gate false-negative on non-default store layouts.** `tools/preflight-gate.cjs` reconstructed artifact paths as `engineering/sprints/{sprintId}/{taskId}/…`, which does not match projects whose on-disk sprint/task directories differ from the bare IDs (legacy `sprint_NN_*/tasks/<task>/` trees, `tasks/`-nested layouts, or sprint dirs whose name ≠ `sprintId`). The gate now derives `{sprint}`/`{task}` from the store record's authoritative `task.path`, with a file-vs-directory guard, and falls back to the previous directory-scan resolution only when `task.path` is not under `engineering/sprints/`. Eliminates spurious `preflight gate failed … artifact missing` halts mid-pipeline.
+- **Store-query NLP degraded an explicit-ID lookup into a full-store scan.** A query like `"<taskId> with sprint with feature"` mis-routed `primary` to `sprints` (the follow-word "sprint" overrode the anchored task ID), the `taskId` filter was silently stripped as invalid, and the engine listed the entire store (e.g. 37 sprints → 74 expanded results, ~38 KB). Three defensive fixes: (1) the parser keeps `primary = tasks` when a `with <entity>` follow-phrase accompanies an anchored ID; (2) the engine re-routes a stripped anchored `taskId`/`bugId` to its entity instead of scanning the whole collection; (3) a default result cap (`DEFAULT_NLP_LIMIT`) with a new `truncated` flag bounds any unbounded listing. Equivalent targeted lookups drop from ~38 KB to ~1.5 KB.
+
+**Regenerate:** tools
+
+> Manual: run `/forge:update` to copy the updated tools into your project.
+
+---
+
 ## [1.0.3] — 2026-05-28
 
 ### Fixed

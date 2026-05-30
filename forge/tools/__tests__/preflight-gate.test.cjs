@@ -951,3 +951,175 @@ describe('preflight-gate.cjs :: bug directory regression (FORGE-BUG-034)', () =>
     // Should NOT mention skipping orchestrate_task in stderr (it was silently filtered)
   });
 });
+
+// FORGE-S19/legacy-layout: the gate must honour the store's authoritative
+// artifact path (task.path) regardless of layout convention. Heterogeneous
+// projects (e.g. walkinto.in) mix 2-level `sprints/<sprint>/<task>/` with
+// legacy 3-level `sprints/<sprint>/tasks/<task>/` trees whose on-disk sprint
+// dir name differs from sprintId ("S19" → "sprint_19_platform_ux_improvements").
+// The pre-fix scan logic could not express the `tasks/` nesting, so review-plan
+// preflight failed with "artifact missing" even though PLAN.md existed.
+describe('preflight-gate.cjs :: deriveSprintTaskFromArtifactPath()', () => {
+  const { deriveSprintTaskFromArtifactPath } = require('../preflight-gate.cjs');
+
+  test('legacy 3-level path → {sprint} carries the tasks/ segment', () => {
+    assert.deepEqual(
+      deriveSprintTaskFromArtifactPath(
+        'engineering/sprints/sprint_19_platform_ux_improvements/tasks/WI-S19-T04-mark-fixed-retest-now',
+        'engineering',
+      ),
+      { sprint: 'sprint_19_platform_ux_improvements/tasks', task: 'WI-S19-T04-mark-fixed-retest-now' },
+    );
+  });
+
+  test('modern 2-level path → bare {sprint} + {task}', () => {
+    assert.deepEqual(
+      deriveSprintTaskFromArtifactPath('engineering/sprints/S34/WI-S34-T01', 'engineering'),
+      { sprint: 'S34', task: 'WI-S34-T01' },
+    );
+  });
+
+  test('trailing slash is tolerated', () => {
+    assert.deepEqual(
+      deriveSprintTaskFromArtifactPath('engineering/sprints/S32/tasks/task_01_x/', 'engineering'),
+      { sprint: 'S32/tasks', task: 'task_01_x' },
+    );
+  });
+
+  test('file-vs-dir guard: a file path inside the artifact dir resolves to the dir', () => {
+    // task.path pointing at a file *inside* the artifact directory must not
+    // produce the bogus `.../TASK_PROMPT.md/PLAN.md` (ENOTDIR).
+    assert.deepEqual(
+      deriveSprintTaskFromArtifactPath('engineering/sprints/S01/HLO-S01-T01/TASK_PROMPT.md', 'engineering'),
+      { sprint: 'S01', task: 'HLO-S01-T01' },
+    );
+  });
+
+  test('non-sprints path (forge/ source file) → null (caller falls back to scan)', () => {
+    assert.equal(deriveSprintTaskFromArtifactPath('forge/tools/store-cli.cjs', 'engineering'), null);
+  });
+
+  test('custom engineering root is respected', () => {
+    assert.deepEqual(
+      deriveSprintTaskFromArtifactPath('eng/sprints/S1/T1', 'eng'),
+      { sprint: 'S1', task: 'T1' },
+    );
+  });
+
+  test('absent / too-shallow path → null', () => {
+    assert.equal(deriveSprintTaskFromArtifactPath('', 'engineering'), null);
+    assert.equal(deriveSprintTaskFromArtifactPath(null, 'engineering'), null);
+    // file directly under sprints/ with no task subdir → < 2 dir segments → null
+    assert.equal(deriveSprintTaskFromArtifactPath('engineering/sprints/S1/notes.md', 'engineering'), null);
+  });
+});
+
+describe('preflight-gate.cjs :: CLI legacy 3-level layout (end-to-end)', () => {
+  test('[legacy-layout] review-plan gate passes for sprints/<dir>/tasks/<task>/ when task.path encodes it', () => {
+    const { spawnSync } = require('node:child_process');
+    const tool = path.resolve(__dirname, '..', 'preflight-gate.cjs');
+    const dir = tmpdir();
+
+    // Legacy layout: sprint dir name != sprintId, task nested under tasks/.
+    const taskArtifactDir = path.join(
+      dir, 'engineering', 'sprints', 'sprint_19_platform_ux_improvements', 'tasks',
+      'WI-S19-T04-mark-fixed-retest-now',
+    );
+    fs.mkdirSync(taskArtifactDir, { recursive: true });
+    fs.writeFileSync(path.join(taskArtifactDir, 'PLAN.md'), 'x'.repeat(300));
+
+    const configDir = path.join(dir, '.forge');
+    fs.mkdirSync(path.join(configDir, 'workflows'), { recursive: true });
+    fs.mkdirSync(path.join(configDir, 'store', 'tasks'), { recursive: true });
+    fs.mkdirSync(path.join(configDir, 'store', 'sprints'), { recursive: true });
+
+    fs.writeFileSync(path.join(configDir, 'config.json'), JSON.stringify({
+      paths: { engineering: 'engineering', store: '.forge/store' },
+    }));
+
+    fs.writeFileSync(path.join(configDir, 'store', 'tasks', 'WI-S19-T04.json'), JSON.stringify({
+      taskId: 'WI-S19-T04',
+      sprintId: 'S19',
+      title: 'Legacy-layout task',
+      status: 'plan-approved',
+      path: 'engineering/sprints/sprint_19_platform_ux_improvements/tasks/WI-S19-T04-mark-fixed-retest-now',
+      summaries: { review_plan: { verdict: 'approved' } },
+    }));
+
+    fs.writeFileSync(path.join(configDir, 'store', 'sprints', 'S19.json'), JSON.stringify({
+      sprintId: 'S19',
+      title: 'Platform UX',
+      status: 'active',
+      taskIds: ['WI-S19-T04'],
+      path: 'engineering/sprints/sprint_19_platform_ux_improvements/',
+    }));
+
+    fs.writeFileSync(path.join(configDir, 'workflows', 'orchestrate_task.md'), [
+      '# Orchestrate Task',
+      '',
+      '```gates phase=review-plan',
+      'artifact {engineering}/sprints/{sprint}/{task}/PLAN.md min=200',
+      'forbid task.status == blocked',
+      '```',
+    ].join('\n'));
+
+    // Pre-fix: {sprint}="S19" (scan can't map to sprint_19_...) and no tasks/
+    // segment → engineering/sprints/S19/WI-S19-T04-.../PLAN.md → exit 1.
+    // Post-fix: derived from task.path → correct nested path → exit 0.
+    const r = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'review-plan', '--task', 'WI-S19-T04'],
+      { encoding: 'utf8', cwd: dir },
+    );
+    assert.equal(r.status, 0, `Expected exit 0 (legacy artifact resolved), got ${r.status}. stderr: ${r.stderr}`);
+  });
+
+  test('[legacy-layout] task.path pointing at a file inside the artifact dir still resolves (no ENOTDIR)', () => {
+    const { spawnSync } = require('node:child_process');
+    const tool = path.resolve(__dirname, '..', 'preflight-gate.cjs');
+    const dir = tmpdir();
+
+    const taskArtifactDir = path.join(dir, 'engineering', 'sprints', 'S01', 'HLO-S01-T01');
+    fs.mkdirSync(taskArtifactDir, { recursive: true });
+    fs.writeFileSync(path.join(taskArtifactDir, 'TASK_PROMPT.md'), 'prompt');
+    fs.writeFileSync(path.join(taskArtifactDir, 'PLAN.md'), 'x'.repeat(300));
+
+    const configDir = path.join(dir, '.forge');
+    fs.mkdirSync(path.join(configDir, 'workflows'), { recursive: true });
+    fs.mkdirSync(path.join(configDir, 'store', 'tasks'), { recursive: true });
+    fs.mkdirSync(path.join(configDir, 'store', 'sprints'), { recursive: true });
+
+    fs.writeFileSync(path.join(configDir, 'config.json'), JSON.stringify({
+      paths: { engineering: 'engineering', store: '.forge/store' },
+    }));
+
+    fs.writeFileSync(path.join(configDir, 'store', 'tasks', 'HLO-S01-T01.json'), JSON.stringify({
+      taskId: 'HLO-S01-T01',
+      sprintId: 'S01',
+      title: 'File-path task',
+      status: 'plan-approved',
+      path: 'engineering/sprints/S01/HLO-S01-T01/TASK_PROMPT.md',
+      summaries: { review_plan: { verdict: 'approved' } },
+    }));
+
+    fs.writeFileSync(path.join(configDir, 'store', 'sprints', 'S01.json'), JSON.stringify({
+      sprintId: 'S01', title: 'S01', status: 'active', taskIds: ['HLO-S01-T01'],
+      path: 'engineering/sprints/S01',
+    }));
+
+    fs.writeFileSync(path.join(configDir, 'workflows', 'orchestrate_task.md'), [
+      '# Orchestrate Task',
+      '',
+      '```gates phase=review-plan',
+      'artifact {engineering}/sprints/{sprint}/{task}/PLAN.md min=200',
+      '```',
+    ].join('\n'));
+
+    const r = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'review-plan', '--task', 'HLO-S01-T01'],
+      { encoding: 'utf8', cwd: dir },
+    );
+    assert.equal(r.status, 0, `Expected exit 0 (file-path guard resolves to dir), got ${r.status}. stderr: ${r.stderr}`);
+  });
+});

@@ -1,4 +1,13 @@
 {
+  "1.0.3": {
+    "version": "1.0.4",
+    "date": "2026-05-30",
+    "notes": "v1.0.4 — two store/path tool fixes. (1) preflight-gate.cjs now derives {sprint}/{task} from the store record's task.path instead of reconstructing sprints/{sprintId}/{taskId}/, fixing false 'artifact missing' halts on projects whose on-disk layout differs from the default (legacy sprint_NN_*/tasks/ trees and tasks/-nested dirs). (2) The store-query NLP path no longer degrades an explicit-ID query into a full-store scan: the parser keeps primary=tasks when a follow-word ('with sprint'/'with feature') accompanies an anchored task ID, and the engine re-routes a stripped anchored ID to its entity and applies a default result cap (new 'truncated' flag) so unbounded listings never dump the whole store. No schema, workflow, or store-layout changes.",
+    "target": "tools:preflight-gate,tools:store-query",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": ["Run /forge:update to copy the updated tools into your project."]
+  },
   "1.0.2": {
     "version": "1.0.3",
     "date": "2026-05-28",
