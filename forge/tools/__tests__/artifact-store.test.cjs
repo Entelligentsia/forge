@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 
 const mod = require('../artifact-store.cjs');
-const { ArtifactStore, FsArtifactImpl, toLocator, fsRefToDir } = mod;
+const { ArtifactStore, FsArtifactImpl, MemArtifactImpl, toLocator, fsRefToDir } = mod;
 
 function tmpProject() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-artstore-'));
@@ -116,6 +116,79 @@ describe('FsArtifactImpl — synchronous fs operations', () => {
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe('pluggable backends (Phase 4) — register + route by handle.backend', () => {
+  // A complete, sync, in-memory reference backend. Proves the acceptance
+  // criterion: adding a backend = implement the ArtifactStore method surface
+  // only, with zero call-site / prompt changes.
+  function memImpl() {
+    const files = new Map();
+    const key = (h) => `${h.entity}/${h.entityId}/${h.kind}`;
+    return {
+      _files: files,
+      read(h)  { if (!files.has(key(h))) { const e = new Error('not found'); e.code = 'ENOENT'; throw e; } return files.get(key(h)); },
+      write(h, c) { files.set(key(h), c); return { bytes: Buffer.byteLength(c, 'utf8'), ref: `mem:${key(h)}` }; },
+      exists(h) { return files.has(key(h)); },
+      url(h)    { return `mem://${key(h)}`; },
+      list(_h)  { return [...files.keys()]; },
+      delete(h) { return files.delete(key(h)); },
+    };
+  }
+
+  test('a registered backend serves handles tagged with its name; fs is untouched', () => {
+    const root = tmpProject();
+    try {
+      const store = new ArtifactStore(implFor(root, { T: path.join('eng', 't') }));
+      const mem = memImpl();
+      store.register('mem', mem);
+
+      const memH = { entity: 'task', entityId: 'T', kind: 'plan', backend: 'mem' };
+      store.write(memH, 'in memory');
+      assert.strictEqual(store.exists(memH), true);
+      assert.strictEqual(store.read(memH), 'in memory');
+      assert.match(store.url(memH), /^mem:\/\//);
+      // Nothing hit the filesystem.
+      assert.strictEqual(fs.existsSync(path.join(root, 'eng', 't', 'PLAN.md')), false);
+
+      // The same facade still routes un-tagged (and backend:'fs') handles to fs.
+      const fsH = { entity: 'task', entityId: 'T', kind: 'plan' };
+      store.write(fsH, 'on disk');
+      assert.ok(fs.existsSync(path.join(root, 'eng', 't', 'PLAN.md')));
+      assert.strictEqual(store.read(fsH), 'on disk');
+      assert.strictEqual(store.read(memH), 'in memory'); // independent backends
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('an unregistered backend raises a clear error', () => {
+    const store = new ArtifactStore(new FsArtifactImpl({ projectRoot: '/tmp', resolveDir: () => 'x' }));
+    assert.throws(
+      () => store.read({ entity: 'task', entityId: 'T', kind: 'plan', backend: 's3' }),
+      /backend.*s3|no.*backend|unregistered/i,
+    );
+  });
+
+  test('the shipped MemArtifactImpl reference backend works end-to-end through the registry', () => {
+    const store = new ArtifactStore(new FsArtifactImpl({ projectRoot: '/tmp', resolveDir: () => 'x' }));
+    store.register('mem', new MemArtifactImpl());
+    const h = { entity: 'bug', entityId: 'B-9', kind: 'plan', backend: 'mem' };
+    // bug-mode 'plan' resolves through the same kind registry → BUG_FIX_PLAN.md key.
+    store.write(h, 'reference backend');
+    assert.strictEqual(store.exists(h), true);
+    assert.strictEqual(store.read(h), 'reference backend');
+    assert.deepEqual(store.list({ entity: 'bug', entityId: 'B-9', backend: 'mem' }), ['BUG_FIX_PLAN.md']);
+    assert.strictEqual(store.delete(h), true);
+    assert.strictEqual(store.exists(h), false);
+  });
+
+  test('register returns the store for chaining and is idempotent on re-register', () => {
+    const store = new ArtifactStore(new FsArtifactImpl({ projectRoot: '/tmp', resolveDir: () => 'x' }));
+    const m = memImpl();
+    assert.strictEqual(store.register('mem', m), store);
+    store.register('mem', m); // no throw on re-register
   });
 });
 

@@ -5,6 +5,20 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.0.8] — 2026-05-31
+
+### Added
+
+- **Pluggable artifact backends (issue #111, Phase 4 — completes the issue).** `ArtifactStore` now carries a backend registry: `register(backend, impl)` plus per-call routing by the handle's `backend` (default `fs`). Adding a storage backend is implementing the six-method interface and registering it — **no prompt or call-site changes** (the issue's acceptance criterion). Ships `MemArtifactImpl`, a complete synchronous in-memory reference backend, as the canonical template for real S3/CMS/DB providers.
+
+  Per the architecture's sync constraint (`doc/decisions/artifact-resolution-abstraction.md`), a networked backend is sync-bound for in-process callers and reachable async-internally only through the forge-cli subprocess surface, so no live remote backend is bundled — the extension point and a working reference impl are.
+
+**Regenerate:** tools
+
+> Manual: run `/forge:update` to copy the updated tools into your project.
+
+---
+
 ## [1.0.7] — 2026-05-31
 
 ### Added

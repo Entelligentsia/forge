@@ -94,13 +94,41 @@ function resolveEntityDir(entity, entityId, engineeringPath, toolDir, projectRoo
 // ── Facade ───────────────────────────────────────────────────────────────────
 
 class ArtifactStore {
-  constructor(impl) { this.impl = impl; }
-  read(handle)            { return this.impl.read(handle); }
-  write(handle, content)  { return this.impl.write(handle, content); }
-  exists(handle)          { return this.impl.exists(handle); }
-  url(handle)             { return this.impl.url(handle); }
-  list(handle)            { return this.impl.list(handle); }
-  delete(handle)          { return this.impl.delete(handle); }
+  // The constructor impl is the default backend (`fs`). Additional backends are
+  // added with register(name, impl) — Phase 4. Each call routes to the impl for
+  // the handle's `backend` (default 'fs'), so adding a backend requires
+  // implementing the method surface only — no call-site or prompt changes.
+  constructor(impl) {
+    this.impl = impl;                 // default (fs) backend
+    this._backends = new Map([['fs', impl]]);
+  }
+
+  // Register an additional backend impl (e.g. an S3/CMS/DB provider). Returns
+  // `this` for chaining; re-registering the same name replaces the impl.
+  register(backend, impl) {
+    this._backends.set(backend, impl);
+    return this;
+  }
+
+  _implFor(handle) {
+    const backend = (handle && handle.backend) || 'fs';
+    const impl = this._backends.get(backend);
+    if (!impl) {
+      throw new Error(
+        `No ArtifactStore backend registered for "${backend}". ` +
+        `Registered: ${[...this._backends.keys()].join(', ')}. ` +
+        `Add one with artifactStore.register("${backend}", impl).`
+      );
+    }
+    return impl;
+  }
+
+  read(handle)            { return this._implFor(handle).read(handle); }
+  write(handle, content)  { return this._implFor(handle).write(handle, content); }
+  exists(handle)          { return this._implFor(handle).exists(handle); }
+  url(handle)             { return this._implFor(handle).url(handle); }
+  list(handle)            { return this._implFor(handle).list(handle); }
+  delete(handle)          { return this._implFor(handle).delete(handle); }
 }
 
 // ── Filesystem impl ───────────────────────────────────────────────────────────
@@ -173,9 +201,41 @@ class FsArtifactImpl {
   }
 }
 
+// ── Reference non-fs backend (Phase 4) ───────────────────────────────────────
+//
+// A complete, synchronous, in-memory implementation of the ArtifactStore method
+// surface. It exists as the canonical *reference* for adding a backend: a real
+// S3/CMS/DB provider implements these same six methods and is wired with
+// `artifactStore.register('<backend>', new XxxArtifactImpl(...))` — no prompt or
+// call-site changes. (A networked impl is sync-bound for in-process callers per
+// the ADR; it is reachable async-internally only through the forge-cli
+// subprocess surface. This in-memory impl is fully functional and dependency-free.)
+class MemArtifactImpl {
+  constructor() { this.files = new Map(); }
+  _key(h) { return `${h.entity}/${h.entityId}/${resolveArtifactFilename(h.entity, h.kind)}`; }
+  read(handle) {
+    const k = this._key(handle);
+    if (!this.files.has(k)) { const e = new Error(`Artifact not found: mem:${k}`); e.code = 'ENOENT'; throw e; }
+    return this.files.get(k);
+  }
+  write(handle, content) {
+    const k = this._key(handle);
+    this.files.set(k, content);
+    return { bytes: Buffer.byteLength(content, 'utf8'), ref: `mem:${k}` };
+  }
+  exists(handle) { return this.files.has(this._key(handle)); }
+  url(handle)    { return `mem://${this._key(handle)}`; }
+  list(handle)   {
+    const prefix = `${handle.entity}/${handle.entityId}/`;
+    return [...this.files.keys()].filter((k) => k.startsWith(prefix)).map((k) => k.slice(prefix.length));
+  }
+  delete(handle) { return this.files.delete(this._key(handle)); }
+}
+
 module.exports = new ArtifactStore(new FsArtifactImpl());
 module.exports.ArtifactStore = ArtifactStore;
 module.exports.FsArtifactImpl = FsArtifactImpl;
+module.exports.MemArtifactImpl = MemArtifactImpl;
 module.exports.toLocator = toLocator;
 module.exports.fsRefToDir = fsRefToDir;
 module.exports.resolveEntityDir = resolveEntityDir;

@@ -1,4 +1,13 @@
 {
+  "1.0.7": {
+    "version": "1.0.8",
+    "date": "2026-05-31",
+    "notes": "v1.0.8 — artifact-resolution Phase 4 (issue #111). ArtifactStore gains a backend registry: artifactStore.register(backend, impl) and per-call routing by the handle's `backend` (default 'fs'). Adding a storage backend is now implementing the six-method interface and registering it — no prompt or call-site changes (the acceptance criterion). Ships MemArtifactImpl, a complete synchronous in-memory reference backend, as the canonical template for real S3/CMS/DB providers. Per the ADR sync constraint, a networked impl is sync-bound for in-process callers and reachable async-internally only through the forge-cli subprocess surface — so no live remote backend is bundled. tools-only; no schema, workflow, or store-layout changes.",
+    "target": "tools:artifact-store",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": ["Run /forge:update to copy the updated tools into your project."]
+  },
   "1.0.6": {
     "version": "1.0.7",
     "date": "2026-05-31",
