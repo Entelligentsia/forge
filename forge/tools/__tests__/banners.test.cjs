@@ -260,3 +260,32 @@ describe('banners.cjs — plain mode', () => {
     assert.equal(banners.stripAnsi(input), 'hello');
   });
 });
+
+describe('banners.cjs — CLI --quiet flag', () => {
+  const { execFileSync } = require('node:child_process');
+  const path = require('node:path');
+  const CLI = path.join(__dirname, '..', 'banners.cjs');
+
+  test('--badge without --quiet produces non-empty stdout (no regression)', () => {
+    const out = execFileSync(process.execPath, [CLI, '--badge', 'forge'], { encoding: 'utf8' });
+    // Badge output must be non-empty
+    assert.ok(out.trim().length > 0, '--badge without --quiet should produce non-empty output');
+  });
+
+  test('--badge --quiet produces empty stdout and exits 0', () => {
+    const out = execFileSync(process.execPath, [CLI, '--badge', 'forge', '--quiet'], { encoding: 'utf8' });
+    // --quiet must suppress all output
+    assert.strictEqual(out, '', `--badge --quiet should produce empty stdout, got: ${JSON.stringify(out)}`);
+  });
+
+  test('--quiet works with named banner (full render) and produces empty stdout', () => {
+    const out = execFileSync(process.execPath, [CLI, 'forge', '--quiet'], { encoding: 'utf8' });
+    assert.strictEqual(out, '', `CLI --quiet should suppress full render output, got: ${JSON.stringify(out)}`);
+  });
+
+  test('--quiet can appear before the command without breaking dispatch', () => {
+    // --quiet anywhere in args should suppress output
+    const out = execFileSync(process.execPath, [CLI, '--quiet', '--badge', 'forge'], { encoding: 'utf8' });
+    assert.strictEqual(out, '', `--quiet before --badge should suppress output, got: ${JSON.stringify(out)}`);
+  });
+});

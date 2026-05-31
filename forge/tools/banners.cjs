@@ -32,6 +32,7 @@
 //   node banners.cjs --subtitle "Forging your SDLC"
 //   node banners.cjs --progress 5 12 "Templates"
 //   node banners.cjs --phase 7 12 "Workflows" ember
+//   node banners.cjs --badge forge --quiet    (automated/orchestrator use: zero stdout)
 
 // ─── Plain-mode detection ─────────────────────────────────────────────────────
 // Resolved at call-time so tests can flip env vars dynamically.
@@ -50,6 +51,12 @@ function stripAnsi(s) {
 
 // Soft override — set by `--plain` CLI flag to force plain mode for one run.
 let FORCE_PLAIN = false;
+
+// Quiet mode — set by `--quiet` CLI flag to suppress all stdout output.
+// Used by the orchestrator loop so banner output does not enter the LLM context
+// window (output remains visible on a real TTY via the human's terminal but is
+// not fed back as tool-call response text).
+let QUIET_MODE = false;
 
 // ─── ANSI helpers ─────────────────────────────────────────────────────────────
 const R = '\x1b[0m';
@@ -376,6 +383,7 @@ function _maybePlain(s) {
 
 // ─── CLI ───────────────────────────────────────────────────────────────────────
 // node banners.cjs [<name>] [--gallery] [--badge <name>] [--mark <name>] [--list]
+// node banners.cjs --badge <name> --quiet   (suppress all stdout; orchestrator use)
 
 if (require.main === module) {
   let args = process.argv.slice(2);
@@ -387,38 +395,49 @@ if (require.main === module) {
     args = args.slice(0, plainIdx).concat(args.slice(plainIdx + 1));
   }
 
+  // --quiet may appear anywhere; consume it before dispatch.
+  // When set, all stdout is suppressed (exit 0 still guaranteed on success).
+  const quietIdx = args.indexOf('--quiet');
+  if (quietIdx !== -1) {
+    QUIET_MODE = true;
+    args = args.slice(0, quietIdx).concat(args.slice(quietIdx + 1));
+  }
+
+  // Helper: write to stdout only when not in quiet mode.
+  const emit = (s) => { if (!QUIET_MODE) process.stdout.write(s); };
+
   try {
     if (!args.length || args[0] === '--gallery') {
-      process.stdout.write(gallery() + '\n');
+      emit(gallery() + '\n');
     } else if (args[0] === '--list') {
-      console.log(list().map(n => {
+      emit(list().map(n => {
         const b = BANNERS[n];
         return `${b.emoji}  ${n.padEnd(8)} — ${b.tagline}`;
-      }).join('\n'));
+      }).join('\n') + '\n');
     } else if (args[0] === '--badge') {
-      console.log(badge(args[1] || ''));
+      emit(badge(args[1] || '') + '\n');
     } else if (args[0] === '--mark') {
-      console.log(mark(args[1] || ''));
+      emit(mark(args[1] || '') + '\n');
     } else if (args[0] === '--subtitle') {
-      console.log(subtitle(args.slice(1).join(' ')));
+      emit(subtitle(args.slice(1).join(' ')) + '\n');
     } else if (args[0] === '--progress') {
       const n = Number(args[1]);
       const total = Number(args[2]);
       const label = args.slice(3).join(' ') || undefined;
-      console.log(progressBar(n, total, { label }));
+      emit(progressBar(n, total, { label }) + '\n');
     } else if (args[0] === '--phase') {
       const n = Number(args[1]);
       const total = Number(args[2]);
       const name = args[3] || '';
       const bannerKey = args[4] || 'forge';
       const mode = args[5];   // optional 'fast' | 'full'
-      console.log(phaseHeader(n, total, name, bannerKey, mode ? { mode } : undefined));
+      emit(phaseHeader(n, total, name, bannerKey, mode ? { mode } : undefined) + '\n');
     } else if (args[0] === '--rule') {
       // --rule [text]   Zen-blue em-dash horizontal rule (with optional label)
       const text = args.slice(1).join(' ') || undefined;
-      console.log(ruleLine(text));
+      emit(ruleLine(text) + '\n');
     } else {
-      process.stdout.write(render(args[0]) + '\n');
+      emit(render(args[0]) + '\n');
     }
   } catch (e) {
     console.error(e.message);

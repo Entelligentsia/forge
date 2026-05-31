@@ -391,9 +391,27 @@ for each task in dependency_sorted(tasks):
     agent_name = f"{task_id}:{persona_noun}:{phase.role}:{iteration}"
 
     # --- Announce phase with identity banner (badge) + task context ---
+    # --quiet makes banners.cjs emit zero stdout (unconditional; no isTTY branch).
+    # The badge is fully suppressed during the automated run_bash call — it does
+    # not enter the LLM context window and is not shown on the human terminal.
+    # The human-visible per-phase marker is the print() line below.
+    #
+    # Digest-compliance note (FORGE-S27-T03): every deterministic tool call this
+    # loop body makes is already digest-compliant on its success path:
+    #   store-cli write verbs (update-status, emit, merge-sidecar, set-summary,
+    #   progress-clear) → silent on success.
+    #   preflight-gate.cjs → silent on success (stderr only on failure).
+    #   read-verdict.cjs   → one load-bearing token (e.g. "approved"); orchestrator
+    #                        branches on it — must not be suppressed.
+    #   banners.cjs --badge → 1-line ANSI badge; made zero-cost via --quiet below.
+    #   build-overlay.cjs  → ~1185 chars captured into overlay_md and injected into
+    #                        the subagent prompt as Project Context. This is payload
+    #                        data, not a log — reducing it would break prompt assembly.
+    #                        Reference-mode redesign is deferred to the T02/forge-compress
+    #                        work; leave unchanged here.
     emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🌊", "Orchestrator", "I move tasks through their lifecycle."))
     banner_name = BANNER_MAP.get(phase.role, "forge")
-    run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name}')
+    run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name} --quiet')
     print(f"  → {task_id}  [{display_model}]\n")
 
     # --- Start progress Monitor before spawning subagent ---
