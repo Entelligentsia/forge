@@ -21,6 +21,38 @@ deps:
 Wire the atomic workflows into a pipeline that drives a single task through
 the complete lifecycle. This is the task state machine.
 
+## Session Preflight (run once, before the phase loop)
+
+The deterministic pre-dispatch glue — FORGE_ROOT resolution, config
+reconciliation, generation-manifest state, calibration-baseline freshness,
+MASTER_INDEX hashing, and the structure check — is bundled into a single
+deterministic tool, `forge/tools/forge-preflight.cjs`. **Do NOT hand-run these
+checks turn-by-turn.** Read the one compact blob it produces, once, at the top
+of the orchestration:
+
+1. The SessionStart hook (`hooks/preflight-session.cjs`) primes the blob at
+   `.forge/cache/preflight-status.json` for any project that has a `.forge/`
+   directory. Read that file. If it is absent or stale, run the tool once:
+   `node "$FORGE_ROOT/tools/forge-preflight.cjs"` and read its stdout.
+2. Branch on `blob.ok`:
+   - **`ok: true`** → proceed to the phase loop using `blob.forgeRoot` and the
+     recorded state. Do not re-derive any field the blob already carries
+     (`masterIndexHash`, `calibrationFresh`, `manifestState`, `structureOk`);
+     surface `calibrationFresh.suggest` to the operator if `fresh` is false, but
+     this is advisory and does not block the run.
+   - **`ok: false`** → **halt before phase 1** (fast-fail-safe). This is a
+     pre-dispatch halt: print `blob.warnings`, route through the existing
+     escalation idiom (see `§ Escalation Procedure`) — emit the standard
+     escalation event and message — and instruct the operator to fix the
+     surfaced preflight warning and re-run. A half-initialized run must never
+     proceed.
+
+The blob is the single source of truth for these concerns for the remainder of
+the run. The SessionStart hook is command-name-independent (SessionStart fires
+before any command and carries no per-command signal); the scoping to
+run-task / fix-bug / run-sprint contexts lives here, in the orchestration
+preamble, which only those commands reach.
+
 ## Pipeline Phases
 
 Each phase has:
