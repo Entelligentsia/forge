@@ -5,6 +5,22 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.0.6] — 2026-05-31
+
+### Fixed
+
+- **Orchestrator verdict detection referenced a deleted tool (issue #111, Phase 2).** `meta-orchestrate.md` was the last file still invoking `parse-verdict.cjs` (removed in favour of `read-verdict.cjs`) and still reading the verdict from a hand-built markdown review-artifact path (`{sprintDir}/{taskDir}/…`). The verdict step would have failed calling a missing tool. The orchestrator now reads the verdict from the **store record** via `read-verdict.cjs --phase <role> --task|--bug <id>`, branching on the stdout token — no artifact path is ever constructed. Removed the superseded verdict-source table.
+
+### Changed
+
+- **Prose path references replaced with logical access.** `meta-commit` reads `ARCHITECT_APPROVAL.md` by kind through `forge_artifact` instead of a constructed path; `meta-collate` anchors `WRITEBACK-SUMMARY.json` on the sprint record's `path`. Documented canonical artifact addressing and the placeholder-token glossary in the `store-cli-verbs` fragment (the tokens are parsed literally by `preflight-gate.cjs`/`collate.cjs`, so they must not be renamed in prose).
+
+**Regenerate:** workflows (orchestrate_task, commit, collate)
+
+> Manual: run `/forge:update` to copy the updated workflows into your project.
+
+---
+
 ## [1.0.5] — 2026-05-31
 
 ### Fixed

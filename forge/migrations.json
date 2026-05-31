@@ -1,4 +1,13 @@
 {
+  "1.0.5": {
+    "version": "1.0.6",
+    "date": "2026-05-31",
+    "notes": "v1.0.6 — artifact-resolution Phase 2 (issue #111). (1) The orchestrator's Verdict Detection no longer reads a markdown review artifact via the removed parse-verdict.cjs — meta-orchestrate.md was the last reference to that deleted tool, which would have crashed the verdict step. It now reads the verdict from the store record via read-verdict.cjs (--phase <role> --task|--bug <id>), branching on the stdout token; no artifact path is constructed. (2) Removed the stale verdict-source table that hard-coded {sprintDir}/{taskDir} markdown paths. (3) meta-commit reads ARCHITECT_APPROVAL by kind via forge_artifact instead of a built path; meta-collate anchors WRITEBACK-SUMMARY on the sprint record's path. (4) Documented canonical artifact addressing + the placeholder-token glossary in the store-cli-verbs fragment (rename-unsafe: tools parse the literal tokens). No schema or store-layout changes.",
+    "target": "workflows:orchestrate_task,workflows:commit,workflows:collate",
+    "regenerate": ["workflows:orchestrate_task", "workflows:commit", "workflows:collate"],
+    "breaking": false,
+    "manual": ["Run /forge:update to copy the updated workflows into your project."]
+  },
   "1.0.4": {
     "version": "1.0.5",
     "date": "2026-05-31",
