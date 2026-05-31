@@ -5,6 +5,34 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.0.11] — 2026-05-31
+
+### Added
+
+- **`forge-preflight.cjs` — aggregated pre-dispatch glue tool (A1).** Consolidates all deterministic pre-dispatch checks (entity read, status gate, sprint context, persona load) into a single blob read, eliminating ~20 hand-run tool round-trips from the orchestrator preamble. The orchestrator now opens every task with a single `forge-preflight --task <id>` call and gets a structured blob covering status, sprint context, dependency chain, and persona directive.
+
+- **`preflight-session.cjs` — SessionStart hook pre-warming (A1).** New hook wired into `hooks.json` that runs on session start for `run-task`, `fix-bug`, and `run-sprint` contexts. Pre-warms the preflight blob so the first call into the orchestrator arrives with context already loaded; fails open (no-op) when `.forge/` is absent.
+
+- **`token-forensics.cjs` — message.id dedup harness (NH2).** Stand-alone diagnostic tool for correct through-model token accounting. Deduplicates by `message.id` to prevent double-counting when the same API response appears in multiple cost-reporting paths.
+
+### Changed
+
+- **`banners.cjs` gains `--quiet` flag; `orchestrate_task` loop uses it (A3).** Verbose banner output no longer accretes in the transcript across the orchestration loop. Passing `--quiet` suppresses the decorative banner sections; the orchestrator loop now calls `banners --quiet` by default.
+
+- **`meta-orchestrate.md` state-ledger compaction discipline (A4).** `/compact` is now instructed to retain the one-line `[checkpoint]` ledger entry and shed raw tool output. Prevents state-ledger loss during long orchestration sessions.
+
+- **`meta-fix-bug.md` preflight and digest treatment ported from orchestrate_task (NH1).** A1 preflight cross-reference, A3 `--quiet` flag treatment, and spurious cost-bullet removal applied to the bug-fix workflow glue so fix-bug sessions receive the same waste-reduction treatment as run-task sessions.
+
+### Not shipped in this release
+
+- **A2 (context-pack / forge-compress port)** — escalated; not included. Users will not receive the context-pack or persona-pack build changes in this release. A2 remains open for a follow-on sprint.
+
+**Regenerate:** tools:forge-preflight, hooks:preflight-session, workflows:orchestrate_task, workflows:fix_bug, tools:banners, tools:token-forensics
+
+> Manual: run `/forge:update` to copy the updated tools and hooks into your project.
+
+---
+
 ## [1.0.10] — 2026-05-31
 
 ### Changed

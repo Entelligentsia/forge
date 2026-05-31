@@ -1,4 +1,22 @@
 {
+  "1.0.10": {
+    "version": "1.0.11",
+    "date": "2026-05-31",
+    "notes": "v1.0.11 — Orchestration waste reduction (FORGE-S27 Track A, shipped tasks A1/A3/A4/NH1/NH2). New forge-preflight.cjs aggregates deterministic pre-dispatch glue into a single blob read, eliminating ~20 hand-run round-trips from the orchestrator preamble. New preflight-session.cjs SessionStart hook pre-warms the blob for run-task/fix-bug/run-sprint. banners.cjs gains --quiet flag; orchestrate_task loop uses it so verbose banner output does not accrete in the transcript. meta-orchestrate.md state-ledger compaction discipline: /compact retains the one-line [checkpoint] ledger and sheds raw tool output. meta-fix-bug.md: A1+A3 treatment ported (preflight cross-ref, --quiet flag, spurious cost bullet removed). token-forensics.cjs: message.id-dedup harness for correct through-model token accounting. A2 (context-pack/forge-compress port) remains escalated and is not included in this release.",
+    "target": "tools:forge-preflight",
+    "regenerate": [
+      "tools:forge-preflight",
+      "hooks:preflight-session",
+      "workflows:orchestrate_task",
+      "workflows:fix_bug",
+      "tools:banners",
+      "tools:token-forensics"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update to copy the updated tools and hooks into your project."
+    ]
+  },
   "1.0.9": {
     "version": "1.0.10",
     "date": "2026-05-31",

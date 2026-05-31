@@ -4,5 +4,8 @@
     "build-base-pack": "node forge/tools/build-base-pack.cjs --forge-root forge",
     "test": "node --test forge/tools/__tests__/*.test.cjs forge/hooks/__tests__/*.test.cjs",
     "lint:no-skip": "node forge/tools/check-no-skipped-tests.cjs"
+  },
+  "dependencies": {
+    "@entelligentsia/forgecli": "file:../../../../../tmp/entelligentsia-forgecli-1.0.10.tgz"
   }
 }
