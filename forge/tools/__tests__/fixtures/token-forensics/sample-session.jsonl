@@ -1,0 +1,10 @@
+{"type":"meta","note":"non-assistant line — must be ignored"}
+{"type":"assistant","actor":"orchestrator","message":{"id":"msg_orch_1","usage":{"input_tokens":100,"output_tokens":40,"cache_read_input_tokens":10,"cache_creation_input_tokens":5}}}
+{"type":"assistant","actor":"orchestrator","message":{"id":"msg_orch_1","usage":{"input_tokens":100,"output_tokens":40,"cache_read_input_tokens":10,"cache_creation_input_tokens":5}}}
+{"type":"assistant","actor":"orchestrator","message":{"id":"msg_orch_2","usage":{"input_tokens":200,"output_tokens":0,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}
+{"type":"assistant","actor":"orchestrator","message":{"id":"msg_orch_2","usage":{"input_tokens":200,"output_tokens":80,"cache_read_input_tokens":20,"cache_creation_input_tokens":0}}}
+{"type":"user","note":"tool result — must be ignored"}
+{"type":"assistant","agent":"FORGE-S27-T06:engineer:plan:1","id":"msg_sub_a","usage":{"inputTokens":300,"outputTokens":150,"cacheReadTokens":30,"cacheWriteTokens":15}}
+{"type":"assistant","agent":"FORGE-S27-T06:engineer:plan:1","id":"msg_sub_a","usage":{"inputTokens":300,"outputTokens":150,"cacheReadTokens":30,"cacheWriteTokens":15}}
+{"type":"assistant","agent":"FORGE-S27-T06:supervisor:review-plan:1","message":{"id":"msg_sub_b","usage":{"input_tokens":500,"output_tokens":250,"cache_read_input_tokens":50,"cache_creation_input_tokens":25}}}
+{"type":"assistant","note":"no id, no usage — ignored"}
