@@ -57,9 +57,8 @@ deps:
 
 1. Load Context:
    - Read the record manifest (task or bug, per entity_kind).
-   - Read ARCHITECT_APPROVAL.md from the record's artifact directory:
-     - Task mode: `engineering/sprints/{sprint}/{task}/ARCHITECT_APPROVAL.md`
-     - Bug mode:  `engineering/bugs/{bugDir}/ARCHITECT_APPROVAL.md`
+   - Read ARCHITECT_APPROVAL.md by kind — never construct the path:
+     `forge_artifact({ command:"read", entity:"{entity_kind}", entityId:"{record_id}", artifact:"architect-approval" })`
 
 2. Staging:
    - Stage all record-related artifacts and the code changes:

@@ -115,10 +115,9 @@ The Supervisor performs a final validation of the implementation against the acc
        "artifact_ref":"VALIDATION_REPORT.md"
      }
      ```
-   - Call:
+   - Call (the sidecar path is auto-resolved from the task record's `path` — never pass it):
      ```
-     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {task_id} validation \
-       engineering/sprints/{sprint}/{task}/VALIDATION-SUMMARY.json
+     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {task_id} validation
      ```
    - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```

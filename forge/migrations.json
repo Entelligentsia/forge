@@ -1,4 +1,67 @@
 {
+  "1.0.9": {
+    "version": "1.0.10",
+    "date": "2026-05-31",
+    "notes": "v1.0.10 — set-summary self-resolve hardening. When the JSON file is omitted, set-summary/set-bug-summary resolve the CANONICAL sidecar name (e.g. VALIDATION-SUMMARY.json) from the phase→kind map. If that file is missing but a near-name summary sidecar exists in the same dir (e.g. an agent wrote VALIDATE-SUMMARY.json via the Write tool instead of forge_artifact's canonical name), the error now surfaces the near-name file and points at the canonical write path (forge_artifact artifact:\"<kind>\"), instead of a silent 'file not found' dead-end. Surfaced by cartographer CART-S01-T01 validate, where the QA subagent wrote a non-canonical sidecar and the verdict never reached the store (orchestrator then correctly escalated via read-verdict). No behavior change when the canonical file is present.",
+    "target": "tools:store-cli",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": ["Run /forge:update to copy the updated tools into your project."]
+  },
+  "1.0.8": {
+    "version": "1.0.9",
+    "date": "2026-05-31",
+    "notes": "v1.0.9 — store-cli suggestion drift-map: add create→write. Agents reach for REST-style `create <entity>`, but store-cli has no `create` verb (records are written with `write`), and create→write is beyond Levenshtein ≤2 so only the curated drift-map can surface it. `store-cli create sprint` now emits `Unknown command: create (Did you mean \"write\"?)`. Pure error-message UX improvement; no behavior change for valid commands. Observed on cartographer sprint-init dogfooding.",
+    "target": "tools:store-cli",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": ["Run /forge:update to copy the updated tools into your project."]
+  },
+  "1.0.7": {
+    "version": "1.0.8",
+    "date": "2026-05-31",
+    "notes": "v1.0.8 — artifact-resolution Phase 4 (issue #111). ArtifactStore gains a backend registry: artifactStore.register(backend, impl) and per-call routing by the handle's `backend` (default 'fs'). Adding a storage backend is now implementing the six-method interface and registering it — no prompt or call-site changes (the acceptance criterion). Ships MemArtifactImpl, a complete synchronous in-memory reference backend, as the canonical template for real S3/CMS/DB providers. Per the ADR sync constraint, a networked impl is sync-bound for in-process callers and reachable async-internally only through the forge-cli subprocess surface — so no live remote backend is bundled. tools-only; no schema, workflow, or store-layout changes.",
+    "target": "tools:artifact-store",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": ["Run /forge:update to copy the updated tools into your project."]
+  },
+  "1.0.6": {
+    "version": "1.0.7",
+    "date": "2026-05-31",
+    "notes": "v1.0.7 — artifact-resolution Phase 3 (issue #111). Introduces the ArtifactStore/FsArtifactImpl provider seam (tools/artifact-store.cjs), mirroring the store.cjs Store/FSImpl pattern: a backend-agnostic, synchronous facade (read/write/exists/url/list/delete) delegating to a swappable impl, default-wired to the filesystem. artifact.cjs is now a thin CLI over the facade and gains exists/url/delete subcommands; entity-dir resolution moved into artifact-store.cjs (re-exported for back-compat). Records gain an optional backend-agnostic locator {backend,ref} (schemas/_defs/locator.schema.json, $ref'd from task/bug/sprint); record.path stays REQUIRED as the read-time alias (the resolver derives {backend:'fs',ref:path} when locator is absent), so legacy records work unchanged and no store rewrite is forced. Concepts docs (task.md/bug.md) updated. Materialization of locator into stored records is deferred — the alias covers it. No FSM/lifecycle or store-layout changes.",
+    "target": "tools:artifact,tools:artifact-store,schemas:task,schemas:bug,schemas:sprint",
+    "regenerate": ["tools", "schemas"],
+    "breaking": false,
+    "manual": ["Run /forge:update to copy the updated tools and schemas into your project."]
+  },
+  "1.0.5": {
+    "version": "1.0.6",
+    "date": "2026-05-31",
+    "notes": "v1.0.6 — artifact-resolution Phase 2 (issue #111). (1) The orchestrator's Verdict Detection no longer reads a markdown review artifact via the removed parse-verdict.cjs — meta-orchestrate.md was the last reference to that deleted tool, which would have crashed the verdict step. It now reads the verdict from the store record via read-verdict.cjs (--phase <role> --task|--bug <id>), branching on the stdout token; no artifact path is constructed. (2) Removed the stale verdict-source table that hard-coded {sprintDir}/{taskDir} markdown paths. (3) meta-commit reads ARCHITECT_APPROVAL by kind via forge_artifact instead of a built path; meta-collate anchors WRITEBACK-SUMMARY on the sprint record's path. (4) Documented canonical artifact addressing + the placeholder-token glossary in the store-cli-verbs fragment (rename-unsafe: tools parse the literal tokens). No schema or store-layout changes.",
+    "target": "workflows:orchestrate_task,workflows:commit,workflows:collate",
+    "regenerate": ["workflows:orchestrate_task", "workflows:commit", "workflows:collate"],
+    "breaking": false,
+    "manual": ["Run /forge:update to copy the updated workflows into your project."]
+  },
+  "1.0.4": {
+    "version": "1.0.5",
+    "date": "2026-05-31",
+    "notes": "v1.0.5 — artifact-resolution Phase 1 (issue #111). set-summary / set-bug-summary now self-resolve the phase-summary sidecar from the store record's path: the JSON file argument is optional and the call collapses to `set-summary <id> <phase>`. This fixes the 2-arg arity failure (plan-phase set-summary previously exited 1 with Usage) and removes the hand-built `engineering/sprints/{sprint}/{task}/…-SUMMARY.json` paths from the implement/validate/approve/bug-triage workflows, which broke on non-default on-disk layouts. New canonical kind registry tools/lib/artifact-kinds.cjs (ARTIFACT_CATALOG + bug-mode overrides + phase→kind map) is now the single source consumed by artifact.cjs and store-cli.cjs. No schema or store-layout changes; the explicit jsonFile form remains accepted for back-compat.",
+    "target": "tools:store-cli,tools:artifact,tools:artifact-kinds,workflows:implement_plan,workflows:validate_task,workflows:approve_task,workflows:triage",
+    "regenerate": ["tools", "workflows:implement_plan", "workflows:validate_task", "workflows:approve_task", "workflows:triage"],
+    "breaking": false,
+    "manual": ["Run /forge:update to copy the updated tools and workflows into your project."]
+  },
+  "1.0.3": {
+    "version": "1.0.4",
+    "date": "2026-05-30",
+    "notes": "v1.0.4 — two store/path tool fixes. (1) preflight-gate.cjs now derives {sprint}/{task} from the store record's task.path instead of reconstructing sprints/{sprintId}/{taskId}/, fixing false 'artifact missing' halts on projects whose on-disk layout differs from the default (legacy sprint_NN_*/tasks/ trees and tasks/-nested dirs). (2) The store-query NLP path no longer degrades an explicit-ID query into a full-store scan: the parser keeps primary=tasks when a follow-word ('with sprint'/'with feature') accompanies an anchored task ID, and the engine re-routes a stripped anchored ID to its entity and applies a default result cap (new 'truncated' flag) so unbounded listings never dump the whole store. No schema, workflow, or store-layout changes.",
+    "target": "tools:preflight-gate,tools:store-query",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": ["Run /forge:update to copy the updated tools into your project."]
+  },
   "1.0.2": {
     "version": "1.0.3",
     "date": "2026-05-28",

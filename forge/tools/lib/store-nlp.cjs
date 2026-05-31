@@ -99,6 +99,12 @@ function parseIntentNLP(intent) {
   outer:
   for (let i = 0; i < words.length; i++) {
     if (consumed.has(i)) continue;
+    // "with <entity>" (and "<entity> for") are FK-follow directives handled in
+    // Stage 4 — they must NOT be treated as the primary entity. Otherwise an
+    // explicit anchored ID (e.g. "WI-S19-T04 with sprint with feature") loses
+    // its entity to the follow-word, its filter is stripped as invalid, and the
+    // query degrades into a full-store scan.
+    if (i > 0 && words[i - 1] === 'with') continue;
     const w = words[i];
     if (i + 1 < words.length) {
       const bigram = w + ' ' + words[i + 1];

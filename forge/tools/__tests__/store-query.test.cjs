@@ -284,6 +284,29 @@ describe('lib/store-nlp.cjs — parseIntentNLP', () => {
     assert.ok(plan.traverse.follow.includes('sprintId'));
   });
 
+  // P0 (store-query NLP shape): an anchored task ID must keep `primary = tasks`
+  // even when a follow-phrase entity word ("with sprint", "with feature")
+  // appears. Pre-fix, "sprint" was detected as the primary entity, the explicit
+  // taskId filter was then stripped as invalid-for-sprints, and the query
+  // degraded into a full-store scan (37 sprints → 74 results).
+  test('[P0] anchored task ID keeps primary=tasks despite "with sprint with feature"', () => {
+    const proj = makeForgeRoot(makeTempStore(), os.tmpdir(), 'WI');
+    const prev = process.cwd();
+    const { resetConfigCache } = require('../lib/store-facade.cjs');
+    try {
+      process.chdir(proj);
+      resetConfigCache();
+      const plan = parse('WI-S19-T04 with sprint with feature');
+      assert.equal(plan.traverse.primary, 'tasks');
+      assert.equal(plan.traverse.filter.taskId, 'WI-S19-T04');
+      assert.ok(plan.traverse.follow.includes('sprintId'), 'should follow sprintId');
+      assert.ok(plan.traverse.follow.includes('featureId'), 'should follow featureId');
+    } finally {
+      process.chdir(prev);
+      resetConfigCache();
+    }
+  });
+
   test('multiple keywords extracted', () => {
     const plan = parse('panohost admin tasks');
     assert.ok(plan.traverse.keywordMatch.terms.includes('panohost'));
@@ -317,6 +340,53 @@ describe('lib/store-query-exec.cjs — executeQuery', () => {
     const result = executeQuery(plan, makeStore(), {});
     assert.equal(result.results.length, 1);
     assert.equal(result.results[0].id, 'WI-S01-T01');
+  });
+
+  // P0 (store-query NLP shape): defence-in-depth for the parser misroute. Even
+  // if a plan arrives with primary=sprints but carries an anchored taskId that
+  // gets stripped, the engine must NOT degrade to listing the whole store — it
+  // re-routes primary to the ID's entity and honours the filter.
+  test('[P0] re-routes to the anchored entity instead of full-store scan', () => {
+    // 30 sprints in the store — the degraded path would return all of them.
+    for (let i = 1; i <= 30; i++) {
+      const id = 'S' + String(i).padStart(2, '0');
+      writeJson(path.join(storeDir, 'sprints'), `${id}.json`, { sprintId: id, title: `Sprint ${i}`, status: 'active' });
+    }
+    writeJson(path.join(storeDir, 'tasks'), 'WI-S19-T04.json', { taskId: 'WI-S19-T04', sprintId: 'S19', title: 'Target task', status: 'planned' });
+    const { executeQuery } = require('../lib/store-query-exec.cjs');
+    // Post-parse state of the bug: primary mis-set to sprints, taskId filter present.
+    const plan = { traverse: { primary: 'sprints', filter: { taskId: 'WI-S19-T04' }, follow: [], keywordMatch: { field: 'title', terms: [] } } };
+    const result = executeQuery(plan, makeStore(), {});
+    const ids = result.results.map(r => r.id);
+    assert.ok(ids.includes('WI-S19-T04'), `expected target task, got ${JSON.stringify(ids)}`);
+    assert.ok(!ids.includes('S01'), 'must not list unrelated sprints (no full-store scan)');
+    assert.ok(result.results.length <= 2, `expected just the task (+maybe follows), got ${result.results.length}`);
+  });
+
+  // P0: unbounded NLP listing must be capped, not dumped wholesale to the model.
+  test('[P0] caps an unbounded listing with truncated flag', () => {
+    for (let i = 1; i <= 30; i++) {
+      const id = 'S' + String(i).padStart(2, '0');
+      writeJson(path.join(storeDir, 'sprints'), `${id}.json`, { sprintId: id, title: `Sprint ${i}`, status: 'active' });
+    }
+    const { executeQuery } = require('../lib/store-query-exec.cjs');
+    const plan = { traverse: { primary: 'sprints', filter: {}, follow: [], keywordMatch: { field: 'title', terms: [] } } };
+    const result = executeQuery(plan, makeStore(), {});
+    assert.ok(result.totalMatched === 30, `totalMatched should report 30, got ${result.totalMatched}`);
+    assert.ok(result.results.length < 30, `results should be capped, got ${result.results.length}`);
+    assert.equal(result.truncated, true, 'truncated flag must be set when capped');
+  });
+
+  // P0: an explicit limit must still be honoured (cap is only a default floor).
+  test('[P0] explicit limit is honoured over the default cap', () => {
+    for (let i = 1; i <= 30; i++) {
+      const id = 'S' + String(i).padStart(2, '0');
+      writeJson(path.join(storeDir, 'sprints'), `${id}.json`, { sprintId: id, title: `Sprint ${i}`, status: 'active' });
+    }
+    const { executeQuery } = require('../lib/store-query-exec.cjs');
+    const plan = { traverse: { primary: 'sprints', filter: {}, follow: [], keywordMatch: { field: 'title', terms: [] }, limit: 3 } };
+    const result = executeQuery(plan, makeStore(), {});
+    assert.equal(result.results.length, 3);
   });
 
   test('keyword match filters by title', () => {

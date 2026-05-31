@@ -107,6 +107,14 @@ describe('suggest.cjs — DRIFT_MAP', () => {
     assert.deepEqual(DRIFT_MAP['set'], ['set-summary']);
   });
 
+  test('DRIFT_MAP has entry for "create" → ["write"]', () => {
+    // Agents reach for REST-style `create <entity>`; store-cli has no `create`
+    // verb (records are written with `write`), and create→write is beyond
+    // Levenshtein ≤2 so only the drift-map can catch it. (cartographer 2026-05-31)
+    assert.ok(DRIFT_MAP['create'], 'should have "create" key');
+    assert.deepEqual(DRIFT_MAP['create'], ['write']);
+  });
+
   test('DRIFT_MAP has entry for "start" → ["startTimestamp"]', () => {
     assert.ok(DRIFT_MAP['start'], 'should have "start" key');
     assert.deepEqual(DRIFT_MAP['start'], ['startTimestamp']);
@@ -173,6 +181,13 @@ describe('suggest.cjs — suggest pipeline', () => {
     const commands = ['write', 'read', 'list', 'delete', 'set-summary', 'emit', 'update-status'];
     const result = suggest('set', commands);
     assert.deepEqual(result, ['set-summary']);
+  });
+
+  // Test 9b: DRIFT_MAP hit for the `create` → `write` verb misconception
+  test('suggest("create", commands) — DRIFT_MAP returns ["write"]', () => {
+    const commands = ['write', 'read', 'list', 'delete', 'set-summary', 'emit', 'update-status'];
+    const result = suggest('create', commands);
+    assert.deepEqual(result, ['write']);
   });
 
   // Test 10: No candidates within distance 2

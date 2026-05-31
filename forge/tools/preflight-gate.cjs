@@ -113,7 +113,49 @@ function describePredicate(pred) {
   return `${pred.field} ${pred.op} ${pred.value}`;
 }
 
-module.exports = { preflight, resolveTaskArtifactDir, resolveSprintArtifactDir };
+module.exports = { preflight, resolveTaskArtifactDir, resolveSprintArtifactDir, deriveSprintTaskFromArtifactPath };
+
+// Derive {sprint} and {task} substitutions directly from a task's artifact path
+// (task.path) when that path is a directory under `<engineeringRoot>/sprints/`.
+//
+// task.path is the authoritative artifact location — it is where the plan /
+// implement phases actually write PLAN.md, REVIEW.md, etc. Splitting it tolerates
+// ANY nesting depth and ANY on-disk naming, so a single rule covers both the
+// modern 2-level layout (`sprints/<sprint>/<task>/`) and legacy 3-level layouts
+// (`sprints/<sprint>/tasks/<task>/`) whose on-disk sprint dir name need not equal
+// sprintId (e.g. sprintId "S19" → dir "sprint_19_platform_ux_improvements"). The
+// directory-scan resolution (resolveSprintArtifactDir + resolveTaskArtifactDir)
+// cannot express the `tasks/` nesting, which is what broke review-plan preflight
+// for heterogeneous-layout projects (walkinto.in S19/S32/S33).
+//
+//   {task}   = the last path segment (the artifact directory name)
+//   {sprint} = everything between `sprints/` and that last segment, joined by "/"
+//
+// File-vs-dir guard: if task.path ends in a filename (has an extension), the
+// artifact directory is its PARENT — strip the filename first. This prevents the
+// bogus `.../TASK_PROMPT.md/PLAN.md` (ENOTDIR) seen when a project stores
+// task.path as a file inside the artifact dir.
+//
+// Returns null when the path is absent, or not under `<engineeringRoot>/sprints/`
+// (e.g. a forge/ source-file path — see regression S12-T06), or resolves to
+// fewer than 2 directory segments. In every null case the caller falls back to
+// the directory-scan resolution, preserving prior behaviour.
+function deriveSprintTaskFromArtifactPath(taskPath, engineeringRoot) {
+  if (!taskPath) return null;
+  let norm = String(taskPath).replace(/\\/g, '/').replace(/\/+$/, '');
+  // File-vs-dir guard — drop a trailing filename so we split on the dir.
+  if (/\.[a-zA-Z0-9]+$/.test(norm)) {
+    norm = norm.replace(/\/[^/]*$/, '');
+  }
+  const er = String(engineeringRoot || 'engineering').replace(/\/+$/, '');
+  const prefix = er + '/sprints/';
+  if (!norm.startsWith(prefix)) return null;
+  const segs = norm.slice(prefix.length).split('/').filter(Boolean);
+  if (segs.length < 2) return null;
+  const task = segs[segs.length - 1];
+  const sprint = segs.slice(0, -1).join('/');
+  return { sprint, task };
+}
 
 // CLI shim: `node preflight-gate.cjs --phase <name> --task <taskId> [--bug <bugId>] [--workflow <name>]`
 // exit codes: 0 ok, 1 gate(s) failed, 2 invalid args / missing definitions
@@ -246,10 +288,18 @@ if (require.main === module) {
   // name is used both as the {sprint} substitution and as the directory in
   // which resolveTaskArtifactDir scans for task subdirectories.
   const sprintId = taskRecord ? taskRecord.sprintId : undefined;
-  const resolvedSprintDir = sprintId
-    ? (resolveSprintArtifactDir(sprintId, engineeringRoot) || sprintId)
-    : undefined;
-  const taskArtifactDir = resolveTaskArtifactDir(taskRecord, engineeringRoot, undefined, resolvedSprintDir);
+  // Primary resolution: derive {sprint}/{task} straight from task.path (the
+  // authoritative artifact directory). This honours arbitrary layout nesting —
+  // including legacy 3-level `sprints/<sprint>/tasks/<task>/` trees the
+  // directory-scan resolution below cannot express. Falls back to the scan when
+  // task.path is not an artifact dir under sprints/ (e.g. a forge/ source file).
+  const derived = taskRecord ? deriveSprintTaskFromArtifactPath(taskRecord.path, engineeringRoot) : null;
+  const resolvedSprintDir = derived
+    ? derived.sprint
+    : (sprintId ? (resolveSprintArtifactDir(sprintId, engineeringRoot) || sprintId) : undefined);
+  const taskArtifactDir = derived
+    ? derived.task
+    : resolveTaskArtifactDir(taskRecord, engineeringRoot, undefined, resolvedSprintDir);
   // Fallback: if task.path points to a file (e.g., TASK_PROMPT.md) we want
   // the *directory* segment, not the filename. Without this, a project that
   // stores task.path as the prompt file would propagate "TASK_PROMPT.md" as

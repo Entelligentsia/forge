@@ -20,6 +20,7 @@
     "createdAt":      { "type": "string", "format": "date-time" },
     "completedAt":    { "type": "string", "format": "date-time" },
     "path":           { "type": "string" },
+    "locator":        { "$ref": "_defs/locator.schema.json" },
     "humanEstimates": { "type": "object" },
     "features":       { "type": "array", "items": { "type": "string" } }
   },

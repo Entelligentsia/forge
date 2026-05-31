@@ -14,59 +14,26 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
 const { findProjectRoot } = require('./lib/project-root.cjs');
 
 // ── Artifact catalog ─────────────────────────────────────────────────────────
+//
+// The catalog, bug-mode overrides, and filename resolution now live in the
+// canonical registry at lib/artifact-kinds.cjs (ADR artifact-resolution Phase 1),
+// consumed here and by store-cli.cjs so there is ONE source of truth.
+const {
+  ARTIFACT_CATALOG,
+  ARTIFACT_FILENAME_OVERRIDES,
+  ARTIFACT_NAMES,
+  resolveArtifactFilename,
+} = require('./lib/artifact-kinds.cjs');
 
-const ARTIFACT_CATALOG = {
-  'plan':                   { filename: 'PLAN.md',                    type: 'md' },
-  'plan-review':            { filename: 'PLAN_REVIEW.md',             type: 'md' },
-  'progress':               { filename: 'PROGRESS.md',                type: 'md' },
-  'code-review':            { filename: 'CODE_REVIEW.md',             type: 'md' },
-  'validation-report':      { filename: 'VALIDATION_REPORT.md',       type: 'md' },
-  'architect-approval':     { filename: 'ARCHITECT_APPROVAL.md',      type: 'md' },
-  'triage':                 { filename: 'TRIAGE.md',                  type: 'md' },
-  'bug-report':             { filename: 'BUG_REPORT.md',              type: 'md' },
-  'index':                  { filename: 'INDEX.md',                   type: 'md' },
-  'task-prompt':            { filename: 'TASK_PROMPT.md',             type: 'md' },
-  'sprint-requirements':    { filename: 'SPRINT_REQUIREMENTS.md',     type: 'md' },
-  'sprint-completion-review': { filename: 'SPRINT_COMPLETION_REVIEW.md', type: 'md' },
-  'cost-report':            { filename: 'COST_REPORT.md',             type: 'md' },
-  'timesheet':              { filename: 'TIMESHEET.md',               type: 'md' },
-  'plan-summary':           { filename: 'PLAN-SUMMARY.json',          type: 'json' },
-  'review-plan-summary':    { filename: 'REVIEW-PLAN-SUMMARY.json',   type: 'json' },
-  'implementation-summary': { filename: 'IMPLEMENTATION-SUMMARY.json', type: 'json' },
-  'review-code-summary':    { filename: 'REVIEW-CODE-SUMMARY.json',   type: 'json' },
-  'review-impl-summary':    { filename: 'REVIEW-IMPL-SUMMARY.json',   type: 'json' },
-  'validation-summary':     { filename: 'VALIDATION-SUMMARY.json',    type: 'json' },
-  'approve-summary':        { filename: 'APPROVE-SUMMARY.json',       type: 'json' },
-  'commit-summary':         { filename: 'COMMIT-SUMMARY.json',        type: 'json' },
-  'triage-summary':         { filename: 'TRIAGE-SUMMARY.json',        type: 'json' },
-  'writeback-summary':      { filename: 'WRITEBACK-SUMMARY.json',     type: 'json' },
-  'collation-summary':      { filename: 'COLLATION-SUMMARY.json',     type: 'json' },
-};
-
-// Per-entity filename overrides. Bug-mode plans and plan-summaries use the
-// BUG_FIX_PLAN prefix to match the long-standing forge convention and the
-// preflight-gate.cjs expectations for review-plan in bug mode. Without this
-// override, plan-fix (routed via plan_task.md post FORGE-BUG-040) writes
-// PLAN.md and review-plan preflight then fails "artifact missing:
-// BUG_FIX_PLAN.md" — see FORGE-BUG-041.
-const ARTIFACT_FILENAME_OVERRIDES = {
-  bug: {
-    'plan':         'BUG_FIX_PLAN.md',
-    'plan-summary': 'BUG-FIX-PLAN-SUMMARY.json',
-  },
-};
-
-function resolveArtifactFilename(entity, artifactName) {
-  const override = ARTIFACT_FILENAME_OVERRIDES[entity];
-  if (override && override[artifactName]) return override[artifactName];
-  return ARTIFACT_CATALOG[artifactName].filename;
-}
-
-const ARTIFACT_NAMES = Object.keys(ARTIFACT_CATALOG).sort();
+// The provider seam (ArtifactStore/FsArtifactImpl) and entity-dir resolution
+// live in artifact-store.cjs (ADR Phase 3). This CLI is a thin layer over the
+// facade: it owns arg parsing, @-file expansion, JSON validation, and display;
+// all filesystem access goes through the provider.
+const artifactStore = require('./artifact-store.cjs');
+const { ArtifactStore, FsArtifactImpl, resolveEntityDir } = artifactStore;
 
 // ── Summary JSON validation ──────────────────────────────────────────────────
 
@@ -88,66 +55,6 @@ function validateSummaryJson(content) {
   return null;
 }
 
-// ── Entity path resolution ───────────────────────────────────────────────────
-
-/** Read a store record via store-cli and return its `path` field, or null on failure. */
-function readStorePath(entity, entityId, toolDir, projectRoot) {
-  const cliPath = path.join(toolDir, 'store-cli.cjs');
-  try {
-    const result = execFileSync('node', [cliPath, 'read', entity, entityId, '--json'], {
-      cwd: projectRoot,
-      encoding: 'utf8',
-      timeout: 10_000,
-    });
-    const record = JSON.parse(result);
-    if (typeof record.path === 'string' && record.path.length > 0) {
-      // Defensive: if the path ends with a file extension, the store record
-      // was written with a filename (e.g. "…/PROGRESS.md") instead of the
-      // directory. Strip the trailing filename to get the entity directory.
-      const p = record.path;
-      if (/\.(md|json)$/i.test(p)) return path.dirname(p);
-      return p;
-    }
-  } catch (_) {
-    // Store unavailable or record not found — fall through.
-  }
-  return null;
-}
-
-/**
- * Resolve entity directory using the store record's `path` field when available,
- * falling back to ID-only construction.
- */
-function resolveEntityDir(entity, entityId, engineeringPath, toolDir, projectRoot) {
-  switch (entity) {
-    case 'bug': {
-      const storePath = readStorePath('bug', entityId, toolDir, projectRoot);
-      if (storePath) return storePath;
-      return path.join(engineeringPath, 'bugs', entityId);
-    }
-    case 'sprint': {
-      const storePath = readStorePath('sprint', entityId, toolDir, projectRoot);
-      if (storePath) return storePath;
-      return path.join(engineeringPath, 'sprints', entityId);
-    }
-    case 'task': {
-      const storePath = readStorePath('task', entityId, toolDir, projectRoot);
-      if (storePath) return storePath;
-      // Fallback: derive from sprint prefix + sprint record path.
-      const match = entityId.match(/^(.+-S\d+)-T\d+$/);
-      if (!match) return null;
-      const sprintId = match[1];
-      const sprintPath = readStorePath('sprint', sprintId, toolDir, projectRoot);
-      if (sprintPath) {
-        return path.join(sprintPath, entityId);
-      }
-      return path.join(engineeringPath, 'sprints', sprintId, entityId);
-    }
-    default:
-      return null;
-  }
-}
-
 // ── CLI ───────────────────────────────────────────────────────────────────────
 
 if (require.main === module) {
@@ -163,6 +70,9 @@ if (argv.length === 0 || argv[0] === '--help' || argv[0] === '-h') {
     '  read <entity> <entityId> <artifact>         Read artifact content',
     '  write <entity> <entityId> <artifact> <content|@file>',
     '                                              Write artifact (content or @/path/to/file)',
+    '  exists <entity> <entityId> <artifact>       Exit 0 if present, 2 if absent',
+    '  url <entity> <entityId> <artifact>          Print the backend URL (file:// for fs)',
+    '  delete <entity> <entityId> <artifact>       Delete an artifact',
     '',
     'Entities: task, bug, sprint',
     `Known artifacts: ${ARTIFACT_NAMES.join(', ')}`,
@@ -210,6 +120,14 @@ if (!entityDir) {
 }
 
 const absDir = path.resolve(projectRoot, entityDir);
+
+// Provider instance — all filesystem access for read/write/exists/url/delete
+// goes through the facade (ADR Phase 3). Wired with the already-resolved dir so
+// the CLI and the provider agree on location without a second store read.
+const store = new ArtifactStore(new FsArtifactImpl({
+  projectRoot, engineeringPath, toolDir,
+  resolveDir: () => entityDir,
+}));
 
 // ── list ────────────────────────────────────────────────────────────────────
 
@@ -262,16 +180,41 @@ if (!catalogEntry) {
 }
 
 const resolvedFilename = resolveArtifactFilename(entity, artifactName);
-const filePath = path.join(absDir, resolvedFilename);
+const displayPath = path.join(entityDir, resolvedFilename);
+const handle = { entity, entityId, kind: artifactName };
 
 // ── read ─────────────────────────────────────────────────────────────────────
 
 if (subcmd === 'read') {
-  if (!fs.existsSync(filePath)) {
-    process.stderr.write(`Artifact not found: ${path.join(entityDir, resolvedFilename)}\n`);
+  if (!store.exists(handle)) {
+    process.stderr.write(`Artifact not found: ${displayPath}\n`);
     process.exit(2);
   }
-  process.stdout.write(fs.readFileSync(filePath, 'utf8'));
+  process.stdout.write(store.read(handle));
+  process.exit(0);
+}
+
+// ── exists ─────────────────────────────────────────────────────────────────────
+
+if (subcmd === 'exists') {
+  // Boolean check: always exit 0 with a "true"/"false" token so callers
+  // (including the forge-cli subprocess surface) never treat absence as an error.
+  process.stdout.write(store.exists(handle) ? 'true\n' : 'false\n');
+  process.exit(0);
+}
+
+// ── url ────────────────────────────────────────────────────────────────────────
+
+if (subcmd === 'url') {
+  process.stdout.write(store.url(handle) + '\n');
+  process.exit(0);
+}
+
+// ── delete ─────────────────────────────────────────────────────────────────────
+
+if (subcmd === 'delete') {
+  const removed = store.delete(handle);
+  process.stdout.write(removed ? `Deleted ${displayPath}\n` : `Nothing to delete: ${displayPath}\n`);
   process.exit(0);
 }
 
@@ -308,15 +251,12 @@ if (subcmd === 'write') {
     }
   }
 
-  fs.mkdirSync(absDir, { recursive: true });
-  fs.writeFileSync(filePath, content, 'utf8');
-  process.stdout.write(
-    `Wrote ${Buffer.byteLength(content, 'utf8')} bytes to ${path.join(entityDir, resolvedFilename)}\n`
-  );
+  const res = store.write(handle, content);
+  process.stdout.write(`Wrote ${res.bytes} bytes to ${displayPath}\n`);
   process.exit(0);
 }
 
-process.stderr.write(`Unknown subcommand: ${subcmd}. Valid: list, read, write\n`);
+process.stderr.write(`Unknown subcommand: ${subcmd}. Valid: list, read, write, exists, url, delete\n`);
 process.exit(1);
 
 } // end if (require.main === module)

@@ -47,7 +47,9 @@ describe('phase-workflow-guards :: preflight invocation invariant', () => {
     const p = path.join(WORKFLOWS_DIR, 'meta-orchestrate.md');
     const contents = fs.readFileSync(p, 'utf8');
     assert.match(contents, /preflight-gate\.cjs/);
-    assert.match(contents, /parse-verdict\.cjs/);
+    // Verdicts are read from the store via read-verdict.cjs (the former
+    // parse-verdict.cjs markdown reader was removed; issue #111 Phase 2).
+    assert.match(contents, /read-verdict\.cjs/);
   });
 
   test('meta-fix-bug.md invokes preflight-gate before every subagent spawn', () => {

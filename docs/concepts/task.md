@@ -85,6 +85,20 @@ stateDiagram-v2
 | `planIterations` | `integer ≥ 0` | Number of plan revision loops taken |
 | `codeReviewIterations` | `integer ≥ 0` | Number of code review revision loops taken |
 | `summaries` | `object` | Terse phase summaries (see below) |
+| `locator` | `{ backend, ref }` | Backend-agnostic artifact locator (see below) |
+
+### `locator` field
+
+Added in v1.0.7 (issue #111 Phase 3). The backend-agnostic address of the task's
+artifact directory — `{ backend, ref }`, e.g. `{ "backend": "fs", "ref":
+"engineering/sprints/<dir>/<task>/" }`. It is the forward-looking form of `path`:
+the `ArtifactStore` provider resolves artifacts through the locator so a future
+non-filesystem backend (`s3`/`cms`/`db`) is a drop-in with no prompt or tool changes.
+
+`path` remains **required** and is the back-compat **alias**: when `locator` is
+absent, the resolver derives `{ backend: "fs", ref: path }`. Tools and prompts never
+reconstruct a physical path from id templates — they address artifacts by
+`(entity, entityId, kind)` through `forge_artifact` / the resolver.
 
 ### `summaries` field
 

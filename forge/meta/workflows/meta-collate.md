@@ -72,7 +72,7 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
 
 4. Finalize:
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
-   - Write `WRITEBACK-SUMMARY.json` to the sprint directory (`engineering/sprints/{sprintId}/`) with the following shape:
+   - Write `WRITEBACK-SUMMARY.json` to the sprint's artifact directory — use the sprint record's `path` field (read it from the store), not a reconstructed `engineering/sprints/{sprintId}/` template — with the following shape:
      ```json
      {
        "objective":   "<one sentence — what views were regenerated>",

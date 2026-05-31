@@ -19,6 +19,7 @@
       ]
     },
     "path":                 { "type": "string" },
+    "locator":              { "$ref": "_defs/locator.schema.json" },
     "estimate":             { "type": "string", "enum": ["S", "M", "L", "XL"] },
     "dependencies":         { "type": "array", "items": { "type": "string" } },
     "knowledgeUpdates":     { "type": "array" },

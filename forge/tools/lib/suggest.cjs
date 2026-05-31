@@ -90,7 +90,8 @@ const DRIFT_MAP = {
   'task-completed': ['task-committed'],
   'implemented':    ['implementing'],
   'set':            ['set-summary'],
-  'start':          ['startTimestamp']
+  'start':          ['startTimestamp'],
+  'create':         ['write']
 };
 
 // ---------------------------------------------------------------------------

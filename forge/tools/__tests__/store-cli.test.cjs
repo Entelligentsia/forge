@@ -514,6 +514,124 @@ describe('store-cli.cjs — set-summary CLI subprocess tests', () => {
     }
   });
 
+  // ADR artifact-resolution Phase 1: the jsonFile arg is optional — when omitted,
+  // set-summary self-resolves the sidecar from record.path + phase→filename map,
+  // so the call collapses to `set-summary <id> <phase>` (kills the arity bug and
+  // the hand-built-path failures).
+  test('self-resolves the sidecar from record.path when jsonFile is omitted (task)', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK); // path: 'eng/t01'
+      const sidecarDir = path.join(tmpDir, 'eng', 't01');
+      fs.mkdirSync(sidecarDir, { recursive: true });
+      fs.writeFileSync(path.join(sidecarDir, 'PLAN-SUMMARY.json'), JSON.stringify(VALID_SUMMARY));
+
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'plan'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.equal(result.status, 0, `2-arg form must succeed; stderr: ${result.stderr}`);
+
+      const task = readTaskFile(tmpDir, 'T01');
+      assert.equal(task.summaries.plan.objective, VALID_SUMMARY.objective);
+      assert.equal(task.summaries.plan.verdict, VALID_SUMMARY.verdict);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('self-resolves the bug-mode plan sidecar (BUG-FIX-PLAN-SUMMARY.json) when jsonFile omitted', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeBugFile(tmpDir, 'BUG-001', MINIMAL_BUG); // path: 'eng/bugs/BUG-001'
+      const sidecarDir = path.join(tmpDir, 'eng', 'bugs', 'BUG-001');
+      fs.mkdirSync(sidecarDir, { recursive: true });
+      fs.writeFileSync(path.join(sidecarDir, 'BUG-FIX-PLAN-SUMMARY.json'), JSON.stringify(VALID_SUMMARY));
+
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-bug-summary', 'BUG-001', 'plan'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.equal(result.status, 0, `2-arg form must succeed; stderr: ${result.stderr}`);
+
+      const bug = readBugFile(tmpDir, 'BUG-001');
+      assert.equal(bug.summaries.plan.objective, VALID_SUMMARY.objective);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('self-resolve with a missing sidecar exits non-zero with a path hint', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'plan'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(result.status, 0, 'missing sidecar must fail');
+      assert.ok(/PLAN-SUMMARY\.json|not found/i.test(result.stderr), `stderr should name the resolved sidecar: ${result.stderr}`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  // v1.0.10 hardening: when self-resolve can't find the canonical sidecar but a
+  // near-name summary file exists in the same dir (e.g. an agent wrote
+  // VALIDATE-SUMMARY.json via the Write tool instead of forge_artifact's
+  // canonical VALIDATION-SUMMARY.json), surface it so the error is fixable in one
+  // step instead of a silent dead-end. (cartographer CART-S01-T01 validate, 2026-05-31)
+  test('self-resolve missing canonical sidecar surfaces a near-name file + forge_artifact hint', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK); // path: 'eng/t01'
+      const dir = path.join(tmpDir, 'eng', 't01');
+      fs.mkdirSync(dir, { recursive: true });
+      // Wrong-named sidecar present; canonical VALIDATION-SUMMARY.json absent.
+      fs.writeFileSync(path.join(dir, 'VALIDATE-SUMMARY.json'), JSON.stringify(VALID_SUMMARY));
+
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'validation'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(result.status, 0, 'canonical sidecar missing must still fail');
+      assert.match(result.stderr, /VALIDATION-SUMMARY\.json/, 'names the expected canonical file');
+      assert.match(result.stderr, /VALIDATE-SUMMARY\.json/, 'surfaces the near-name file actually present');
+      assert.match(result.stderr, /forge_artifact/, 'points at the canonical write path');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('self-resolve missing sidecar with NO near-name file gives a plain not-found (no spurious hint)', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const dir = path.join(tmpDir, 'eng', 't01');
+      fs.mkdirSync(dir, { recursive: true }); // empty dir — nothing to suggest
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'validation'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /VALIDATION-SUMMARY\.json|not found/i);
+      assert.doesNotMatch(result.stderr, /found .* nearby|forge_artifact artifact/, 'no near-name hint when none exists');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('explicit jsonFile arg still works (back-compat)', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const summaryFile = path.join(tmpDir, 'explicit.json');
+      fs.writeFileSync(summaryFile, JSON.stringify(VALID_SUMMARY));
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'plan', summaryFile], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.equal(result.status, 0, `explicit form must still work; stderr: ${result.stderr}`);
+      assert.equal(readTaskFile(tmpDir, 'T01').summaries.plan.objective, VALID_SUMMARY.objective);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   test('repeated set-summary overwrites, does not append', () => {
     const tmpDir = makeTempStore();
     try {

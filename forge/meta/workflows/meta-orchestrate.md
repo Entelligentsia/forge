@@ -566,28 +566,32 @@ for each task in dependency_sorted(tasks):
       /compact
       continue
 
-    # --- Review phase: detect verdict via parse-verdict.cjs (see Verdict Detection below) ---
-    # The CLI returns exit 0/1/2 for approved/revision/unknown. Never pattern-match
-    # the **Verdict:** line manually — the closed vocabulary lives in the tool.
+    # --- Review phase: detect verdict via read-verdict.cjs (see Verdict Detection below) ---
+    # Verdicts come from the STORE record (phase summaries / task.status), NOT from a
+    # markdown review artifact — the orchestrator never constructs an artifact path.
+    # stdout is one of: approved | revision | n/a | unknown. Never pattern-match a
+    # **Verdict:** line — the closed vocabulary lives in the tool.
     verdict_result = run_bash(
-      f'node "$FORGE_ROOT/tools/parse-verdict.cjs" {review_artifact_path(phase, task)}'
+      f'node "$FORGE_ROOT/tools/read-verdict.cjs" --phase {phase.role} --task {task_id}'
     )
-    if verdict_result.exit_code == 0:
+    verdict_token = verdict_result.stdout.strip()
+    if verdict_token == "approved":
       verdict = "Approved"
-    elif verdict_result.exit_code == 1:
+    elif verdict_token == "revision":
       verdict = "Revision Required"
     else:
-      # exit 2: malformed, missing verdict line, or missing artifact. Never guess.
+      # "n/a" / "unknown" (no verdict recorded) or exit 2 (record not found / bad args).
+      # Never guess.
       print(f"  ⚠ {task_id}  {phase.role}  — verdict_malformed, escalating\n")
       emit_event(task, phase, action="verdict_malformed",
-                 notes=f"parse-verdict exit={verdict_result.exit_code}")
+                 notes=f"read-verdict stdout='{verdict_token}' exit={verdict_result.exit_code}")
       # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
       run_bash(f'node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {task_id} status escalated')
       emit_event(task, phase, eventId=event_id, iteration=iteration,
                  action="escalated", verdict="escalated",
-                 notes="verdict_malformed: review artifact missing or verdict line unparseable")
-      print(f"  ⚠ Task {task_id} escalated: verdict_malformed — review artifact missing or verdict line unparseable\n")
-      print(f"  Review artifact: {review_artifact_path(phase, task)}\n")
+                 notes="verdict_malformed: no verdict recorded in the phase summary / record")
+      print(f"  ⚠ Task {task_id} escalated: verdict_malformed — no verdict recorded for {phase.role}\n")
+      print(f"  Inspect with: node \"$FORGE_ROOT/tools/read-verdict.cjs\" --phase {phase.role} --task {task_id}\n")
       print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
       break
 
@@ -609,7 +613,7 @@ for each task in dependency_sorted(tasks):
                    action="escalated", verdict="escalated",
                    notes="max iterations reached")
         print(f"  ⚠ Task {task_id} escalated: max iterations reached\n")
-        print(f"  Review artifact: {review_artifact_path(phase, task)}\n")
+        print(f"  Inspect with: node \"$FORGE_ROOT/tools/read-verdict.cjs\" --phase {phase.role} --task {task_id}\n")
         print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
         break
         break                               # stop processing this task
@@ -621,7 +625,7 @@ for each task in dependency_sorted(tasks):
       print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
       /compact
 
-    # No `else:` branch needed — parse-verdict.cjs already exhausts the
+    # No `else:` branch needed — read-verdict.cjs already exhausts the
     # possibilities (approved | revision | verdict_malformed), and the
     # malformed case is handled above before this if/elif chain.
 ```
@@ -681,45 +685,35 @@ Examples:
 ## Verdict Detection
 
 After each review phase completes, the orchestrator MUST read the verdict
-before branching. Do not infer the verdict from conversation context alone —
-always read the artifact.
+before branching. Do not infer the verdict from conversation context alone, and
+**never construct or read a markdown artifact path** to find it — the verdict
+lives in the **store record** (the phase summary written by `set-summary`, or
+`task.status` for the approve phase).
 
-| Phase role    | Artifact to read                                                          | Verdict field                |
-|---------------|---------------------------------------------------------------------------|------------------------------|
-| `review-plan` | `{engineering}/sprints/{sprintDir}/{taskDir}/PLAN_REVIEW.md`              | Line matching `**Verdict:**` |
-| `review-code` | `{engineering}/sprints/{sprintDir}/{taskDir}/CODE_REVIEW.md`              | Line matching `**Verdict:**` |
-| `validate`    | `{engineering}/sprints/{sprintDir}/{taskDir}/VALIDATION_REPORT.md`        | Line matching `**Verdict:**` |
-
-The verdict line format is:
-
-```
-**Verdict:** Approved
-```
-or
-```
-**Verdict:** Revision Required
-```
-
-**Parse the verdict via `parse-verdict.cjs`** — do NOT pattern-match the
-line manually. The tool enforces a closed verdict vocabulary so typos, case
-drift, and reviewer prose cannot cause silent misclassification:
+**Read the verdict via `read-verdict.cjs`** — addressed by entity ID and phase
+role, never by file path. The tool sources the verdict from the record and
+enforces a closed vocabulary so typos, case drift, and reviewer prose cannot
+cause silent misclassification:
 
 ```
 FORGE_ROOT = resolve_forge_root()
-result = run_bash(f'node "$FORGE_ROOT/tools/parse-verdict.cjs" {artifact_path}')
-# exit 0 → approved   (stdout "approved")
-# exit 1 → revision   (stdout "revision")
-# exit 2 → unknown/malformed/missing (stdout "unknown")
+result = run_bash(f'node "$FORGE_ROOT/tools/read-verdict.cjs" --phase {phase.role} --task {task_id}')
+# stdout "approved" → approved
+# stdout "revision" → revision
+# stdout "n/a" | "unknown" → no verdict recorded (treat as malformed; do NOT guess)
+# exit 2 → record not found / invalid args (treat as malformed)
 ```
 
-Recognised values (case-insensitive):
+Branch on the **stdout token** (exit 1 bundles both `revision` and the
+no-verdict cases, so the token is authoritative). Recognised verdict values:
 
-- **approved** — `Approved`, `Approve`, `[Approved]`
-- **revision** — `Revision Required`, `Revision`, `Needs Revision`, `Changes Requested`
+- **approved** — written as `verdict: "approved"` in the phase summary (or `task.status == approved` for the approve phase).
+- **revision** — `verdict: "revision"`.
 
-Anything else — including free-form prose, missing bold markers, a missing
-verdict line, or a missing artifact — yields exit 2. Do NOT treat unknown
-as approved or revision; halt the loop and escalate via `verdict_malformed`.
+Anything else — `n/a`, `unknown`, a missing summary, or a missing record —
+must NOT be treated as approved or revision; halt the loop and escalate via
+`verdict_malformed`. (In bug mode pass `--bug {bug_id}`; `read-verdict.cjs`
+applies the bug-specific phase→summary map.)
 
 ## Escalation Procedure
 
@@ -755,8 +749,8 @@ Grammar (one directive per line):
   `in [v1, v2, ...]`. Fields are dotted paths against the store record, e.g.
   `task.status`.
 - `forbid <field> <op> <value>` — predicate must NOT hold.
-- `after <phase> = <approved|revision>` — predecessor phase's review artifact
-  must carry the stated verdict (parsed by `parse-verdict.cjs`).
+- `after <phase> = <approved|revision>` — predecessor phase's stored verdict
+  must match (read from the record by `read-verdict.cjs`, not from markdown).
 
 ```gates phase=plan
 forbid task.status == committed
@@ -854,7 +848,7 @@ is a violation of the Iron Laws.
 - Subagent empty/crash/timeout response: retry once with simplified prompt
   (strip summary and architecture blocks). Escalate on second failure.
   See Subagent Response Validation in the Execution Algorithm.
-- Subagent non-zero exit code (not parse-verdict): same as above — retry
+- Subagent non-zero exit code (not read-verdict): same as above — retry
   once, escalate on second failure. The crash reason is captured in the
   escalation event notes.
 - Verdict malformed or missing: escalate to human immediately. Never guess.
