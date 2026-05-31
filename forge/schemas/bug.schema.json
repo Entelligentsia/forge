@@ -11,6 +11,7 @@
     "severity":            { "type": "string", "enum": ["critical", "major", "minor"] },
     "status":              { "type": "string", "enum": ["reported", "triaged", "in-progress", "fixed"] },
     "path":                { "type": "string" },
+    "locator":             { "$ref": "_defs/locator.schema.json" },
     "rootCauseCategory": {
       "type": "string",
       "enum": ["validation", "auth", "business-rule", "data-integrity", "race-condition", "integration", "configuration", "regression"]

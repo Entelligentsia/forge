@@ -5,6 +5,19 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.0.7] — 2026-05-31
+
+### Added
+
+- **`ArtifactStore` / `FsArtifactImpl` provider seam (issue #111, Phase 3).** New `tools/artifact-store.cjs` mirrors the `store.cjs` `Store`/`FSImpl` pattern — a backend-agnostic, synchronous facade (`read`/`write`/`exists`/`url`/`list`/`delete`) delegating to a swappable impl, default-wired to the filesystem and exported for substitution. Adding a storage backend (S3/CMS/DB) becomes a class swap with no prompt or call-site changes. `artifact.cjs` is now a thin CLI over the facade and gains `exists`/`url`/`delete` subcommands.
+- **Backend-agnostic record locator `{ backend, ref }`** (`schemas/_defs/locator.schema.json`, `$ref`'d from task/bug/sprint). `record.path` stays **required** as the read-time **alias** — the resolver derives `{ backend: "fs", ref: path }` when `locator` is absent, so legacy records work unchanged and no store rewrite is forced. Concepts docs (`task.md`, `bug.md`) updated.
+
+**Regenerate:** tools, schemas
+
+> Manual: run `/forge:update` to copy the updated tools and schemas into your project.
+
+---
+
 ## [1.0.6] — 2026-05-31
 
 ### Fixed

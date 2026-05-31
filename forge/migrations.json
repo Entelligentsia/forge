@@ -1,4 +1,13 @@
 {
+  "1.0.6": {
+    "version": "1.0.7",
+    "date": "2026-05-31",
+    "notes": "v1.0.7 — artifact-resolution Phase 3 (issue #111). Introduces the ArtifactStore/FsArtifactImpl provider seam (tools/artifact-store.cjs), mirroring the store.cjs Store/FSImpl pattern: a backend-agnostic, synchronous facade (read/write/exists/url/list/delete) delegating to a swappable impl, default-wired to the filesystem. artifact.cjs is now a thin CLI over the facade and gains exists/url/delete subcommands; entity-dir resolution moved into artifact-store.cjs (re-exported for back-compat). Records gain an optional backend-agnostic locator {backend,ref} (schemas/_defs/locator.schema.json, $ref'd from task/bug/sprint); record.path stays REQUIRED as the read-time alias (the resolver derives {backend:'fs',ref:path} when locator is absent), so legacy records work unchanged and no store rewrite is forced. Concepts docs (task.md/bug.md) updated. Materialization of locator into stored records is deferred — the alias covers it. No FSM/lifecycle or store-layout changes.",
+    "target": "tools:artifact,tools:artifact-store,schemas:task,schemas:bug,schemas:sprint",
+    "regenerate": ["tools", "schemas"],
+    "breaking": false,
+    "manual": ["Run /forge:update to copy the updated tools and schemas into your project."]
+  },
   "1.0.5": {
     "version": "1.0.6",
     "date": "2026-05-31",
