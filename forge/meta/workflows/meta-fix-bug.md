@@ -138,7 +138,13 @@ Differences are confined to the **triage** step and the **path branch**.
 
 ```
 1. Pre-loop setup (mirrors meta-orchestrate.md):
-   - Resolve FORGE_ROOT.
+   - Session Preflight (see `meta-orchestrate.md § Session Preflight`):
+     Read `.forge/cache/preflight-status.json` if present and fresh; otherwise
+     run `node "$FORGE_ROOT/tools/forge-preflight.cjs" --bug {bugId}` and read
+     its stdout. Use `blob.forgeRoot` as FORGE_ROOT for the remainder of the
+     run — do not re-derive it. Branch on `blob.ok`: ok:true → proceed;
+     ok:false → halt (fast-fail-safe), emit escalation event, instruct operator
+     to fix the surfaced preflight warning before re-running.
    - Detect execution cluster from ANTHROPIC_DEFAULT_*_MODEL env vars.
    - Clear progress log: store-cli progress-clear bugs
    - Read bug record. If status ∈ {blocked, escalated, fixed, abandoned}:
@@ -159,6 +165,12 @@ Differences are confined to the **triage** step and the **path branch**.
    - On return, orchestrator transitions status:
        store-cli update-status bug {bugId} status triaged
        store-cli update-status bug {bugId} status in-progress
+     # Digest-compliance note (FORGE-S27-T05): update-status is already silent on
+     # success (no stdout on the success path). The two-step triaged→in-progress
+     # transition is a required state-machine contract per Iron Law 2 — only triage
+     # and commit own bug.status writes. Collapsing these two writes into one would
+     # be a behavioral violation. This is not LLM-hand-run glue; it executes as a
+     # direct tool call after the triage subagent returns.
    - Read summaries.triage.route. If neither "A" nor "B": escalate
      (verdict_malformed). Do not guess.
 
@@ -171,7 +183,13 @@ Differences are confined to the **triage** step and the **path branch**.
      - Resolve model (cluster + ROLE_TIER).
      - Compute eventId, agent_name, banner_name (from PERSONA_MAP /
        BANNER_MAP below).
-     - Announce phase: banner + "→ {bugId}  [{display_model}]".
+     - Announce phase:
+       run_bash(f'node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name} --quiet')
+       # Digest-compliance note (FORGE-S27-T05): --quiet makes banners.cjs emit
+       # zero stdout (unconditional; no isTTY branch). The badge is fully
+       # suppressed during the automated run_bash call — it does not enter the
+       # LLM context window. Mirrors meta-orchestrate.md:399–411 treatment.
+       print(f"  → {bugId}  [{display_model}]\n")
      - Start progress Monitor on .forge/store/events/bugs/progress.log.
      - Preflight gate: preflight-gate.cjs --phase {role} --bug {bugId}
        Exit 1 or 2 → escalate (see meta-orchestrate.md § Escalation Procedure)
@@ -209,10 +227,12 @@ Differences are confined to the **triage** step and the **path branch**.
      phase that writes bug.status post-triage.
 
 6. Finalize (collator, housekeeping):
-   - Aggregate cost data from .forge/store/events/bugs/*.json filtered by
-     this bugId, and append a "## Cost Summary" section to the bug's
-     INDEX.md artifact.
    - Run `node "$FORGE_ROOT/tools/collate.cjs" {bugId} --purge-events`.
+     # Note (FORGE-S27-T05): collate.cjs --purge-events already handles cost
+     # aggregation and embeds the "## Cost" section into the bug's INDEX.md
+     # automatically (see collate.cjs buildBugIndex). Do NOT attempt a separate
+     # cost-aggregation round-trip before calling collate — it is redundant and
+     # may produce a duplicate section. The collate call is the single step.
      Collate purges only this bug's events from the shared bugs/ dir
      (filtered by bugId reference) — it does NOT purge other bugs' events.
    - Run preflight finalize gate: preflight-gate.cjs --phase finalize --bug {bugId}.
