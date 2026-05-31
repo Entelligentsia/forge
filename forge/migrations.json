@@ -1,4 +1,13 @@
 {
+  "1.0.9": {
+    "version": "1.0.10",
+    "date": "2026-05-31",
+    "notes": "v1.0.10 — set-summary self-resolve hardening. When the JSON file is omitted, set-summary/set-bug-summary resolve the CANONICAL sidecar name (e.g. VALIDATION-SUMMARY.json) from the phase→kind map. If that file is missing but a near-name summary sidecar exists in the same dir (e.g. an agent wrote VALIDATE-SUMMARY.json via the Write tool instead of forge_artifact's canonical name), the error now surfaces the near-name file and points at the canonical write path (forge_artifact artifact:\"<kind>\"), instead of a silent 'file not found' dead-end. Surfaced by cartographer CART-S01-T01 validate, where the QA subagent wrote a non-canonical sidecar and the verdict never reached the store (orchestrator then correctly escalated via read-verdict). No behavior change when the canonical file is present.",
+    "target": "tools:store-cli",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": ["Run /forge:update to copy the updated tools into your project."]
+  },
   "1.0.8": {
     "version": "1.0.9",
     "date": "2026-05-31",

@@ -573,6 +573,49 @@ describe('store-cli.cjs — set-summary CLI subprocess tests', () => {
     }
   });
 
+  // v1.0.10 hardening: when self-resolve can't find the canonical sidecar but a
+  // near-name summary file exists in the same dir (e.g. an agent wrote
+  // VALIDATE-SUMMARY.json via the Write tool instead of forge_artifact's
+  // canonical VALIDATION-SUMMARY.json), surface it so the error is fixable in one
+  // step instead of a silent dead-end. (cartographer CART-S01-T01 validate, 2026-05-31)
+  test('self-resolve missing canonical sidecar surfaces a near-name file + forge_artifact hint', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK); // path: 'eng/t01'
+      const dir = path.join(tmpDir, 'eng', 't01');
+      fs.mkdirSync(dir, { recursive: true });
+      // Wrong-named sidecar present; canonical VALIDATION-SUMMARY.json absent.
+      fs.writeFileSync(path.join(dir, 'VALIDATE-SUMMARY.json'), JSON.stringify(VALID_SUMMARY));
+
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'validation'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(result.status, 0, 'canonical sidecar missing must still fail');
+      assert.match(result.stderr, /VALIDATION-SUMMARY\.json/, 'names the expected canonical file');
+      assert.match(result.stderr, /VALIDATE-SUMMARY\.json/, 'surfaces the near-name file actually present');
+      assert.match(result.stderr, /forge_artifact/, 'points at the canonical write path');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('self-resolve missing sidecar with NO near-name file gives a plain not-found (no spurious hint)', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const dir = path.join(tmpDir, 'eng', 't01');
+      fs.mkdirSync(dir, { recursive: true }); // empty dir — nothing to suggest
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'validation'], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /VALIDATION-SUMMARY\.json|not found/i);
+      assert.doesNotMatch(result.stderr, /found .* nearby|forge_artifact artifact/, 'no near-name hint when none exists');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   test('explicit jsonFile arg still works (back-compat)', () => {
     const tmpDir = makeTempStore();
     try {

@@ -5,6 +5,18 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.0.10] — 2026-05-31
+
+### Changed
+
+- **`set-summary` self-resolve now gives an actionable error on a sidecar name mismatch.** When the `jsonFile` is omitted, `set-summary`/`set-bug-summary` resolve the **canonical** sidecar name (e.g. `VALIDATION-SUMMARY.json`) from the phase→kind map. If that file is missing but a near-name summary sidecar exists in the same directory — e.g. an agent wrote `VALIDATE-SUMMARY.json` via the `Write` tool instead of `forge_artifact`'s canonical name — the error now surfaces the near-name file and points at the canonical write path (`forge_artifact artifact:"<kind>"`), instead of a silent `Summary file not found` dead-end. (Surfaced by cartographer `CART-S01-T01` validate dogfooding, where a non-canonical sidecar meant the verdict never reached the store and the orchestrator correctly escalated.) No change when the canonical file is present.
+
+**Regenerate:** tools
+
+> Manual: run `/forge:update` to copy the updated tools into your project.
+
+---
+
 ## [1.0.9] — 2026-05-31
 
 ### Changed

@@ -55,7 +55,7 @@ const { validateRecord, NULLABLE_FIELDS } = require('./lib/validate.js');
 
 // FORGE-S22-T03: suggestion engine for "Did you mean?" on validation/transition errors
 const { suggest, suggestEntityType, formatSuggestion } = require('./lib/suggest.cjs');
-const { resolveSummaryFilename } = require('./lib/artifact-kinds.cjs');
+const { resolveSummaryFilename, PHASE_TO_KIND } = require('./lib/artifact-kinds.cjs');
 
 // Valid phase keys for summaries (dot-delimited → underscore in JSON key)
 const VALID_SUMMARY_PHASES = new Set(['plan', 'review_plan', 'implementation', 'code_review', 'validation', 'triage', 'approve']);
@@ -1302,6 +1302,7 @@ function _setSummaryOnEntity(entityKind, entityId, phase, summaryFilePath) {
   // ADR artifact-resolution Phase 1: when the caller omits the JSON file, derive
   // the sidecar from record.path + the canonical phase→filename map. The agent
   // never hand-builds the path (kills the Class-1 failures + the arity bug).
+  let selfResolved = false;
   if (!summaryFilePath) {
     if (typeof record.path !== 'string' || record.path.length === 0) {
       console.error(`Cannot self-resolve summary sidecar: ${entityKind} ${entityId} has no "path". Pass an explicit <jsonFile>.`);
@@ -1310,11 +1311,29 @@ function _setSummaryOnEntity(entityKind, entityId, phase, summaryFilePath) {
     // record.path is the entity directory; defensively strip a trailing filename.
     const dir = /\.(md|json)$/i.test(record.path) ? path.dirname(record.path) : record.path;
     summaryFilePath = path.join(dir, resolveSummaryFilename(entityKind, phase));
+    selfResolved = true;
   }
 
   // Read and validate summary JSON
   if (!fs.existsSync(summaryFilePath)) {
-    console.error(`Summary file not found: ${summaryFilePath}`);
+    // v1.0.10: self-resolve looks for the CANONICAL filename. If an agent wrote a
+    // non-canonical sidecar (e.g. VALIDATE-SUMMARY.json via the Write tool instead
+    // of forge_artifact's VALIDATION-SUMMARY.json), surface the near-name file so
+    // the error is fixable in one step rather than a silent dead-end.
+    let hint = '';
+    if (selfResolved) {
+      try {
+        const dir = path.dirname(summaryFilePath);
+        const expected = path.basename(summaryFilePath);
+        const nearby = fs.readdirSync(dir).filter((f) => f !== expected && f.endsWith('.json') && /summary/i.test(f));
+        if (nearby.length > 0) {
+          const kind = PHASE_TO_KIND[phase];
+          hint = ` (expected ${expected}; found ${nearby.join(', ')} in the same dir — write the sidecar via ` +
+            `forge_artifact artifact:"${kind}", or rename it to ${expected})`;
+        }
+      } catch (_) { /* dir unreadable — fall back to the plain message */ }
+    }
+    console.error(`Summary file not found: ${summaryFilePath}${hint}`);
     process.exit(1);
   }
 
