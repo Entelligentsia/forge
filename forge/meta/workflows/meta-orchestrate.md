@@ -266,6 +266,13 @@ def compose_role_block(persona_noun):
 **Rollback:** set `FORGE_PROMPT_MODE=inline`. No persisted state to revert.
 The `inline` branch will be removed one version after `reference` ships.
 
+> **Scope note (added FORGE-S27-T02, 2026-05-31):** `FORGE_PROMPT_MODE=inline` restores
+> the **role block only** — full verbatim persona + skill file contents. It does NOT restore
+> the full `MASTER_INDEX`: the overlay (`build-overlay.cjs`, line 462) is unconditional and
+> delivers the same task-scoped slice in both modes. It also does NOT affect the workflow file,
+> which is read verbatim from disk in both modes. There is currently no per-call escape hatch
+> to the full `MASTER_INDEX` — a separate overlay-bypass flag would be required.
+
 ## Execution Algorithm
 
 The orchestrator MUST follow this procedure exactly. Do not deviate.
