@@ -1,4 +1,13 @@
 {
+  "1.0.4": {
+    "version": "1.0.5",
+    "date": "2026-05-31",
+    "notes": "v1.0.5 — artifact-resolution Phase 1 (issue #111). set-summary / set-bug-summary now self-resolve the phase-summary sidecar from the store record's path: the JSON file argument is optional and the call collapses to `set-summary <id> <phase>`. This fixes the 2-arg arity failure (plan-phase set-summary previously exited 1 with Usage) and removes the hand-built `engineering/sprints/{sprint}/{task}/…-SUMMARY.json` paths from the implement/validate/approve/bug-triage workflows, which broke on non-default on-disk layouts. New canonical kind registry tools/lib/artifact-kinds.cjs (ARTIFACT_CATALOG + bug-mode overrides + phase→kind map) is now the single source consumed by artifact.cjs and store-cli.cjs. No schema or store-layout changes; the explicit jsonFile form remains accepted for back-compat.",
+    "target": "tools:store-cli,tools:artifact,tools:artifact-kinds,workflows:implement_plan,workflows:validate_task,workflows:approve_task,workflows:triage",
+    "regenerate": ["tools", "workflows:implement_plan", "workflows:validate_task", "workflows:approve_task", "workflows:triage"],
+    "breaking": false,
+    "manual": ["Run /forge:update to copy the updated tools and workflows into your project."]
+  },
   "1.0.3": {
     "version": "1.0.4",
     "date": "2026-05-30",

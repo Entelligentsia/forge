@@ -98,15 +98,14 @@ deps:
        "artifact_ref":"ARCHITECT_APPROVAL.md"
      }
      ```
-   - Call (task mode) — optional for tasks, since `task.status` is the canonical signal:
+   - Call (task mode) — optional for tasks, since `task.status` is the canonical signal.
+     The sidecar path is auto-resolved from the record's `path` — never pass it:
      ```
-     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {taskId} approve \
-       engineering/sprints/{sprint}/{task}/APPROVE-SUMMARY.json
+     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {taskId} approve
      ```
      Or (bug mode) — REQUIRED for bugs, this is the canonical verdict signal:
      ```
-     node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bugId} approve \
-       engineering/bugs/{bugDir}/APPROVE-SUMMARY.json
+     node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bugId} approve
      ```
    - In bug mode, if the set-bug-summary call exits non-zero, fix the sidecar JSON and retry. Do not return without a valid summary — the downstream commit gate has no other way to read the approval verdict.
 ```

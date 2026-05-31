@@ -92,9 +92,10 @@ deps:
      JSON shape: `{"objective":"<one sentence>", "key_changes":["<up to 12 bullets>"], "verdict":"n/a", "written_at":"<ISO 8601>", "artifact_ref":"PROGRESS.md"}`
      The tool validates required fields automatically — fix and retry if it rejects.
    - Then link sidecar to store (task mode):
-     `forge_store({ command:"set-summary", args:["{taskId}", "implementation", "engineering/sprints/{sprint}/{task}/IMPLEMENTATION-SUMMARY.json"] })`
+     `forge_store({ command:"set-summary", args:["{taskId}", "implementation"] })`
      Or (bug mode):
-     `forge_store({ command:"set-bug-summary", args:["{bugId}", "implementation", "engineering/bugs/{bugDir}/IMPLEMENTATION-SUMMARY.json"] })`
+     `forge_store({ command:"set-bug-summary", args:["{bugId}", "implementation"] })`
+     The sidecar path is auto-resolved from the record's `path` — never pass it.
 ```
 
 <!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->

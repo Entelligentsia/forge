@@ -18,55 +18,16 @@ const { execFileSync } = require('child_process');
 const { findProjectRoot } = require('./lib/project-root.cjs');
 
 // ── Artifact catalog ─────────────────────────────────────────────────────────
-
-const ARTIFACT_CATALOG = {
-  'plan':                   { filename: 'PLAN.md',                    type: 'md' },
-  'plan-review':            { filename: 'PLAN_REVIEW.md',             type: 'md' },
-  'progress':               { filename: 'PROGRESS.md',                type: 'md' },
-  'code-review':            { filename: 'CODE_REVIEW.md',             type: 'md' },
-  'validation-report':      { filename: 'VALIDATION_REPORT.md',       type: 'md' },
-  'architect-approval':     { filename: 'ARCHITECT_APPROVAL.md',      type: 'md' },
-  'triage':                 { filename: 'TRIAGE.md',                  type: 'md' },
-  'bug-report':             { filename: 'BUG_REPORT.md',              type: 'md' },
-  'index':                  { filename: 'INDEX.md',                   type: 'md' },
-  'task-prompt':            { filename: 'TASK_PROMPT.md',             type: 'md' },
-  'sprint-requirements':    { filename: 'SPRINT_REQUIREMENTS.md',     type: 'md' },
-  'sprint-completion-review': { filename: 'SPRINT_COMPLETION_REVIEW.md', type: 'md' },
-  'cost-report':            { filename: 'COST_REPORT.md',             type: 'md' },
-  'timesheet':              { filename: 'TIMESHEET.md',               type: 'md' },
-  'plan-summary':           { filename: 'PLAN-SUMMARY.json',          type: 'json' },
-  'review-plan-summary':    { filename: 'REVIEW-PLAN-SUMMARY.json',   type: 'json' },
-  'implementation-summary': { filename: 'IMPLEMENTATION-SUMMARY.json', type: 'json' },
-  'review-code-summary':    { filename: 'REVIEW-CODE-SUMMARY.json',   type: 'json' },
-  'review-impl-summary':    { filename: 'REVIEW-IMPL-SUMMARY.json',   type: 'json' },
-  'validation-summary':     { filename: 'VALIDATION-SUMMARY.json',    type: 'json' },
-  'approve-summary':        { filename: 'APPROVE-SUMMARY.json',       type: 'json' },
-  'commit-summary':         { filename: 'COMMIT-SUMMARY.json',        type: 'json' },
-  'triage-summary':         { filename: 'TRIAGE-SUMMARY.json',        type: 'json' },
-  'writeback-summary':      { filename: 'WRITEBACK-SUMMARY.json',     type: 'json' },
-  'collation-summary':      { filename: 'COLLATION-SUMMARY.json',     type: 'json' },
-};
-
-// Per-entity filename overrides. Bug-mode plans and plan-summaries use the
-// BUG_FIX_PLAN prefix to match the long-standing forge convention and the
-// preflight-gate.cjs expectations for review-plan in bug mode. Without this
-// override, plan-fix (routed via plan_task.md post FORGE-BUG-040) writes
-// PLAN.md and review-plan preflight then fails "artifact missing:
-// BUG_FIX_PLAN.md" — see FORGE-BUG-041.
-const ARTIFACT_FILENAME_OVERRIDES = {
-  bug: {
-    'plan':         'BUG_FIX_PLAN.md',
-    'plan-summary': 'BUG-FIX-PLAN-SUMMARY.json',
-  },
-};
-
-function resolveArtifactFilename(entity, artifactName) {
-  const override = ARTIFACT_FILENAME_OVERRIDES[entity];
-  if (override && override[artifactName]) return override[artifactName];
-  return ARTIFACT_CATALOG[artifactName].filename;
-}
-
-const ARTIFACT_NAMES = Object.keys(ARTIFACT_CATALOG).sort();
+//
+// The catalog, bug-mode overrides, and filename resolution now live in the
+// canonical registry at lib/artifact-kinds.cjs (ADR artifact-resolution Phase 1),
+// consumed here and by store-cli.cjs so there is ONE source of truth.
+const {
+  ARTIFACT_CATALOG,
+  ARTIFACT_FILENAME_OVERRIDES,
+  ARTIFACT_NAMES,
+  resolveArtifactFilename,
+} = require('./lib/artifact-kinds.cjs');
 
 // ── Summary JSON validation ──────────────────────────────────────────────────
 

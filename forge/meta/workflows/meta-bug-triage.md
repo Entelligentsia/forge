@@ -139,8 +139,8 @@ and the only phase that records the route decision read by the orchestrator
    - Call:
      ```
      forge_store({ command:"set-bug-summary", entity:"bug",
-                   id:"{bugId}", phase:"triage",
-                   file:"engineering/bugs/{bugDir}/TRIAGE-SUMMARY.json" })
+                   id:"{bugId}", phase:"triage" })
+     // sidecar path auto-resolved from the bug record's `path` — never pass it
      ```
    - If the set-bug-summary call exits non-zero, fix the sidecar JSON
      and retry (up to 3 attempts per the Store-Write Verification rule).

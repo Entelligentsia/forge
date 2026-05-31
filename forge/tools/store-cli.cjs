@@ -55,6 +55,7 @@ const { validateRecord, NULLABLE_FIELDS } = require('./lib/validate.js');
 
 // FORGE-S22-T03: suggestion engine for "Did you mean?" on validation/transition errors
 const { suggest, suggestEntityType, formatSuggestion } = require('./lib/suggest.cjs');
+const { resolveSummaryFilename } = require('./lib/artifact-kinds.cjs');
 
 // Valid phase keys for summaries (dot-delimited → underscore in JSON key)
 const VALID_SUMMARY_PHASES = new Set(['plan', 'review_plan', 'implementation', 'code_review', 'validation', 'triage', 'approve']);
@@ -432,8 +433,8 @@ Commands:
   progress-clear <sprintOrBugId>              Clear (truncate) the progress log
   write-collation-state '<json>'             Write COLLATION_STATE.json
   validate <entity> '<json>'                  Validate against schema without writing
-  set-summary <taskId> <phase> <jsonFile>     Set a phase summary on a task record
-  set-bug-summary <bugId> <phase> <jsonFile>  Set a phase summary on a bug record
+  set-summary <taskId> <phase> [<jsonFile>]     Set a phase summary on a task record (sidecar auto-resolved from record.path when jsonFile omitted)
+  set-bug-summary <bugId> <phase> [<jsonFile>]  Set a phase summary on a bug record (sidecar auto-resolved from record.path when jsonFile omitted)
   describe <entity>                           Print the JSON Schema for an entity
   template <entity>                           Print a canonical sample record (required fields populated)
 
@@ -1289,6 +1290,28 @@ function _setSummaryOnEntity(entityKind, entityId, phase, summaryFilePath) {
     process.exit(1);
   }
 
+  // Load entity first — its `path` is the authoritative artifact directory and
+  // is needed both to self-resolve the sidecar (when no file arg is given) and
+  // to merge the summary below.
+  const record = entityKind === 'task' ? store.getTask(entityId) : store.getBug(entityId);
+  if (!record) {
+    console.error(`${entityKind} not found: ${entityId}`);
+    process.exit(1);
+  }
+
+  // ADR artifact-resolution Phase 1: when the caller omits the JSON file, derive
+  // the sidecar from record.path + the canonical phase→filename map. The agent
+  // never hand-builds the path (kills the Class-1 failures + the arity bug).
+  if (!summaryFilePath) {
+    if (typeof record.path !== 'string' || record.path.length === 0) {
+      console.error(`Cannot self-resolve summary sidecar: ${entityKind} ${entityId} has no "path". Pass an explicit <jsonFile>.`);
+      process.exit(1);
+    }
+    // record.path is the entity directory; defensively strip a trailing filename.
+    const dir = /\.(md|json)$/i.test(record.path) ? path.dirname(record.path) : record.path;
+    summaryFilePath = path.join(dir, resolveSummaryFilename(entityKind, phase));
+  }
+
   // Read and validate summary JSON
   if (!fs.existsSync(summaryFilePath)) {
     console.error(`Summary file not found: ${summaryFilePath}`);
@@ -1309,14 +1332,7 @@ function _setSummaryOnEntity(entityKind, entityId, phase, summaryFilePath) {
     process.exit(1);
   }
 
-  // Load entity
-  const record = entityKind === 'task' ? store.getTask(entityId) : store.getBug(entityId);
-  if (!record) {
-    console.error(`${entityKind} not found: ${entityId}`);
-    process.exit(1);
-  }
-
-  // Merge summary
+  // Merge summary (record was loaded above for path resolution)
   if (!record.summaries) record.summaries = {};
   record.summaries[phase] = summary;
 
@@ -1394,8 +1410,8 @@ function cmdSetSummary() {
   const phase       = args[2];
   const summaryFile = args[3];
 
-  if (!taskId || !phase || !summaryFile) {
-    console.error('Usage: store-cli.cjs set-summary <taskId> <phase> <jsonFile>');
+  if (!taskId || !phase) {
+    console.error('Usage: store-cli.cjs set-summary <taskId> <phase> [<jsonFile>]');
     process.exit(1);
   }
 
@@ -1407,8 +1423,8 @@ function cmdSetBugSummary() {
   const phase       = args[2];
   const summaryFile = args[3];
 
-  if (!bugId || !phase || !summaryFile) {
-    console.error('Usage: store-cli.cjs set-bug-summary <bugId> <phase> <jsonFile>');
+  if (!bugId || !phase) {
+    console.error('Usage: store-cli.cjs set-bug-summary <bugId> <phase> [<jsonFile>]');
     process.exit(1);
   }
 

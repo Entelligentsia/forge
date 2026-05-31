@@ -5,6 +5,22 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.0.5] — 2026-05-31
+
+### Fixed
+
+- **`set-summary` / `set-bug-summary` arity failure and hand-built paths (issue #111, Phase 1).** The phase-summary commands required a third `<jsonFile>` argument, so the plan-phase call form `set-summary <id> plan` exited 1 with `Usage:`; and the implement/validate/approve/bug-triage workflows handed the agent a literal `engineering/sprints/{sprint}/{task}/…-SUMMARY.json` path to pass back, which broke on projects whose on-disk layout differs from the bare IDs. Both commands now **self-resolve the sidecar from the store record's `path`** plus a canonical phase→filename map: the JSON file argument is optional and the call collapses to `set-summary <id> <phase>`. The explicit-file form still works (back-compat).
+
+### Changed
+
+- **New canonical artifact-kind registry `tools/lib/artifact-kinds.cjs`** (`ARTIFACT_CATALOG` + bug-mode filename overrides + `PHASE_TO_KIND` map). `tools/artifact.cjs` and `tools/store-cli.cjs` now consume this single source instead of maintaining parallel catalogs.
+
+**Regenerate:** tools, workflows (implement_plan, validate_task, approve_task, triage)
+
+> Manual: run `/forge:update` to copy the updated tools and workflows into your project.
+
+---
+
 ## [1.0.4] — 2026-05-30
 
 ### Fixed
