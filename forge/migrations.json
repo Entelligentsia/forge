@@ -1,4 +1,13 @@
 {
+  "1.0.8": {
+    "version": "1.0.9",
+    "date": "2026-05-31",
+    "notes": "v1.0.9 — store-cli suggestion drift-map: add create→write. Agents reach for REST-style `create <entity>`, but store-cli has no `create` verb (records are written with `write`), and create→write is beyond Levenshtein ≤2 so only the curated drift-map can surface it. `store-cli create sprint` now emits `Unknown command: create (Did you mean \"write\"?)`. Pure error-message UX improvement; no behavior change for valid commands. Observed on cartographer sprint-init dogfooding.",
+    "target": "tools:store-cli",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": ["Run /forge:update to copy the updated tools into your project."]
+  },
   "1.0.7": {
     "version": "1.0.8",
     "date": "2026-05-31",

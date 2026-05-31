@@ -5,6 +5,18 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.0.9] — 2026-05-31
+
+### Changed
+
+- **`store-cli` "Did you mean?" now catches `create` → `write`.** Agents commonly reach for a REST-style `create <entity>` verb; `store-cli` has none (records are written with `write`), and `create`→`write` is beyond the Levenshtein ≤2 threshold, so the suggestion previously came up empty. Added `create → write` to the curated drift-map, so `store-cli create sprint …` now responds `Unknown command: create (Did you mean "write"?)`. Error-message UX only — no behavior change for valid commands. (Surfaced during cartographer sprint-init dogfooding.)
+
+**Regenerate:** tools
+
+> Manual: run `/forge:update` to copy the updated tools into your project.
+
+---
+
 ## [1.0.8] — 2026-05-31
 
 ### Added
