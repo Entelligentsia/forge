@@ -611,7 +611,10 @@ for each task in dependency_sorted(tasks):
     if phase.role not in ("review-plan", "review-code", "validate"):
       print(f"  ✓ {task_id}  {phase.role}  — completed\n")
       i += 1
-      # Compact context: all state is on disk; preserve loop bookkeeping in the summary
+      # State-ledger compaction: the [checkpoint] line IS the state ledger — it carries
+      # the loop bookkeeping (task_id, sprint_id, phase_index, iteration_counts) that
+      # /compact must preserve verbatim. Raw tool output and subagent return text is
+      # shed here; do not retain it between phases. The durable state is on disk.
       print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
       /compact
       continue
@@ -648,7 +651,10 @@ for each task in dependency_sorted(tasks):
     if verdict == "Approved":
       print(f"  ✓ {task_id}  {phase.role}  — Approved\n")
       i += 1                                # advance to next phase
-      # Compact context: all state is on disk; preserve loop bookkeeping in the summary
+      # State-ledger compaction: the [checkpoint] line IS the state ledger — it carries
+      # the loop bookkeeping (task_id, sprint_id, phase_index, iteration_counts) that
+      # /compact must preserve verbatim. Raw tool output and subagent return text is
+      # shed here; do not retain it between phases. The durable state is on disk.
       print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
       /compact
 
@@ -671,7 +677,10 @@ for each task in dependency_sorted(tasks):
       # Route back to the revision target
       target = phase.on_revision or nearest_preceding_non_review(phases, i)
       i = index_of(phases, target)          # loop back
-      # Compact context: all state is on disk; preserve loop bookkeeping in the summary
+      # State-ledger compaction: the [checkpoint] line IS the state ledger — it carries
+      # the loop bookkeeping (task_id, sprint_id, phase_index, iteration_counts) that
+      # /compact must preserve verbatim. Raw tool output and subagent return text is
+      # shed here; do not retain it between phases. The durable state is on disk.
       print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
       /compact
 
@@ -1002,13 +1011,28 @@ Refer subagents to `.forge/schemas/event.schema.json` instead.
   `Read engineering/architecture/stack.md` calls with a single cached summary.
   Subagents instructed by this block should read full docs **only** when the
   summary is insufficient.
-- **Include post-phase /compact calls.** After each phase-exit signal (for every
-  non-escalation outcome), the generated orchestrator MUST:
+- **Include post-phase /compact calls with state-ledger discipline.** After each
+  phase-exit signal (for every non-escalation outcome), the generated orchestrator
+  MUST:
   1. Print a checkpoint line: `[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}`
   2. Run `/compact` to free orchestrator context before the next phase.
-  All durable state is on disk; the checkpoint line ensures the compact summary
-  preserves the loop bookkeeping (task ID, sprint ID, current phase index,
-  iteration counts). Do NOT compact on escalation — the human needs full context.
+
+  The `[checkpoint]` line IS the state ledger. It carries the loop bookkeeping
+  (task ID, sprint ID, current phase index, iteration counts) that `/compact` must
+  preserve verbatim in its summary. It is not an optional debug breadcrumb — it is
+  the one line the orchestrator must carry forward through each compaction boundary.
+
+  Raw tool output (bash stdout, subagent return blobs, multi-KB phase responses)
+  is shed at every `/compact` call. The generated orchestrator MUST NOT retain
+  verbatim tool output or subagent return text between phases — only the
+  checkpoint ledger line and on-disk artifact pointers survive compaction.
+
+  The compact summary MUST contain: the checkpoint line verbatim, the task/sprint
+  IDs, and the current phase index. The compact summary MUST NOT contain: raw
+  subagent return text, bash stdout blobs, or multi-line phase responses.
+
+  Do NOT compact on escalation (verdict_malformed or max-iterations break paths) —
+  the human needs the full uncompacted context to diagnose and resume.
 
 ## Friction Emit
 
