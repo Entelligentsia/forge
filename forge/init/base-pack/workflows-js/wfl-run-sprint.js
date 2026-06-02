@@ -127,7 +127,7 @@ async function dispatchTask(sprintId, taskId, mode) {
   await agent(
     [
       `Emit a task-dispatch event for task ${taskId} in sprint ${sprintId}.`,
-      'Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot, then run:',
+      'Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report, then run:',
       `node "$FORGE_ROOT/tools/store-cli.cjs" emit ${sprintId}`,
       `'{"eventId":"<uuid-v4>","type":"task-dispatch","taskId":"${taskId}","sprintId":"${sprintId}",`,
       `"role":"orchestrator","action":"task-dispatch","phase":"dispatch","iteration":1,`,
@@ -152,7 +152,7 @@ async function dispatchTask(sprintId, taskId, mode) {
     await agent(
       [
         `Create a git worktree for task ${taskId} to isolate parallel pipeline I/O.`,
-        'Resolve FORGE_ROOT from .forge/config.json, then run:',
+        'Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report, then run:',
         `git worktree add ../worktrees/${taskId} HEAD`,
         'Assert exit 0; if the command fails, log the error and escalate (do NOT halt the sprint).',
         'Return { ok: true } on success or { ok: false, error: "<msg>" } on failure.',
@@ -258,7 +258,7 @@ const modeOverride = (typeof args === 'object' && args?.mode) || null
 phase('Load')
 const loaded = await agent(
   [
-    `Load Forge sprint ${sprintId}. Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot, then run`,
+    `Load Forge sprint ${sprintId}. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report, then run`,
     `\`node "$FORGE_ROOT/tools/store-cli.cjs" read sprint ${sprintId} --json\` and read every task in`,
     `.forge/store/tasks/ whose sprintId === ${sprintId}.`,
     'Return: sprintId, executionMode (the sprint record\'s mode; default "sequential" if absent),',
@@ -290,7 +290,7 @@ log(`Dependency plan: ${waves.length} step(s) — ${waves.map(w => `[${w.join(',
 // Gap #4 (AC2): emit sprint-start event before the wave loop begins.
 await agent(
   [
-    `Emit a sprint-start event for sprint ${sprintId}. Resolve FORGE_ROOT from .forge/config.json`,
+    `Emit a sprint-start event for sprint ${sprintId}. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report`,
     'paths.forgeRoot, then run:',
     `node "$FORGE_ROOT/tools/store-cli.cjs" emit ${sprintId}`,
     `'{"eventId":"<uuid-v4>","type":"sprint-start","sprintId":"${sprintId}",`,
@@ -311,7 +311,7 @@ await agent(
 // status during execution, which misrepresents state in /forge:status output.
 await agent(
   [
-    `Transition sprint ${sprintId} to active status. Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot, then run:`,
+    `Transition sprint ${sprintId} to active status. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report, then run:`,
     `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint ${sprintId} active`,
     'If the sprint is already active or completed, the command is a no-op — that is fine.',
     'Return "ok".',
@@ -328,7 +328,7 @@ phase('Execute')
 await agent(
   [
     `Clear the sprint progress log for ${sprintId} before dispatching any task.`,
-    'Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot, then run:',
+    'Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report, then run:',
     `node "$FORGE_ROOT/tools/store-cli.cjs" progress-clear ${sprintId}`,
     'Exit 0 for a missing log is expected and fine. Do NOT modify any other store records.',
   ].join(' '),
@@ -351,7 +351,7 @@ for (let i = 0; i < waves.length; i++) {
 await agent(
   [
     `Sprint ${sprintId} wave loop complete. Drain any queued friction records and emit sprint-level friction events.`,
-    'Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot.',
+    'Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report.',
     `Escalated task outcomes: ${JSON.stringify(results.filter(r => !r.terminal || r.status === 'escalated').map(r => ({ id: r.taskId, status: r.status, note: r.note })))}.`,
     '',
     'Step 1 — For each escalated/non-terminal task listed above, emit a type:friction event:',
@@ -376,7 +376,7 @@ const carriedOver = results.filter(r => r.status === 'abandoned').length
 const committedIds = results.filter(r => r.status === 'committed').map(r => r.taskId)
 const report = await agent(
   [
-    `All tasks for ${sprintId} have reached a terminal state. Resolve FORGE_ROOT from .forge/config.json and run`,
+    `All tasks for ${sprintId} have reached a terminal state. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report and run`,
     '`node "$FORGE_ROOT/tools/collate.cjs"`.',
     `Then set the sprint status: "completed" if all tasks committed, otherwise "partially-completed", via store-cli update-status.`,
     `Per-task outcomes: ${JSON.stringify(results.map(r => ({ id: r.taskId, status: r.status })))}.`,

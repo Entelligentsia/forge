@@ -5,6 +5,18 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.2.3] — 2026-06-02
+
+### Fixed
+
+- **Hardened `FORGE_ROOT` / `.forge/config.json` resolution in the packaged JS workflow drivers.** A friction trace of a real `/fix-bug` run found phase subagents systematically probing `../.forge/config.json` (the **parent** directory — 5 of 11 subagents, blocked as "path escapes project root") and one invoking the preflight gate with an unexported `$FORGE_ROOT` that expanded to `''` → `Cannot find module '/tools/preflight-gate.cjs'`. Root cause: the per-phase subagent preamble said only *"Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot"* — no cwd anchor, and no instruction to **export** `$FORGE_ROOT`, even though every command used it as a shell variable. Replaced all ~23 preamble sites across `wfl-run-task.js` / `wfl-run-sprint.js` / `wfl-fix-bug.js` with a directive that (a) anchors the config to `./.forge/config.json` in the current working directory ("never a parent directory"), (b) tells the agent to **export** `FORGE_ROOT`, and (c) STOPs if `$FORGE_ROOT` is empty or `$FORGE_ROOT/tools` is missing. Added a regression guard in `workflows-js-drift.test.cjs`. Prompt-text only — no orchestration-logic change.
+
+**Regenerate:** workflows-js:wfl-run-task, workflows-js:wfl-run-sprint, workflows-js:wfl-fix-bug
+
+> Manual: Run `/forge:update`, then `/forge:rebuild workflows-js` to refresh `.claude/workflows/wfl-*.js`.
+
+---
+
 ## [1.2.2] — 2026-06-02
 
 ### Fixed

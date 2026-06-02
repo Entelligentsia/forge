@@ -164,7 +164,7 @@ function runBugPhase(bugId, phase, iter) {
     [
       `You are running a SINGLE pipeline phase for Forge bug ${bugId} (sprint bugs).`,
       `Phase: role="${phase.role}", command="${phase.command}", workflow="${phase.workflow}", iteration=${iter}.`,
-      `Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot first.`,
+      `Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report first.`,
       '1. PRE-FLIGHT GATE. Run `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase ' + phase.role + ' --bug ' + bugId + '`.',
       '   If it exits non-zero: do NOT run the phase. Set status via',
       '   `node "$FORGE_ROOT/tools/store-cli.cjs" update-status bug ' + bugId + ' status escalated`, emit an escalation event,',
@@ -204,7 +204,7 @@ function runBugPhase(bugId, phase, iter) {
 function escalateBug(bugId, reason) {
   return agent(
     [
-      `Escalate Forge bug ${bugId} to a human. Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot, then`,
+      `Escalate Forge bug ${bugId} to a human. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report, then`,
       `run \`node "$FORGE_ROOT/tools/store-cli.cjs" update-status bug ${bugId} status escalated\``,
       `and emit one event (sprint bugs) with verdict="escalated" and notes="${reason}".`,
       `Return the bug's final status as taskStatus, gatePassed=true, verdict="none", escalated=true, phase="escalate", role="escalate".`,
@@ -222,7 +222,7 @@ if (!bugId) throw new Error('wfl:fix-bug requires a bug id — pass args: "FORGE
 phase('Resolve')
 const resolved = await agent(
   [
-    `Read the bug record for ${bugId}. Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot.`,
+    `Read the bug record for ${bugId}. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report.`,
     `Run \`node "$FORGE_ROOT/tools/store-cli.cjs" read bug ${bugId} --json\` and return bugId and bugStatus.`,
     `Read-only — do NOT modify anything.`,
   ].join(' '),
@@ -237,7 +237,7 @@ if (SKIP_STATUS.includes(resolved.bugStatus)) {
   // Emit bug_skipped event (not a silent return — Iron Law 3).
   await agent(
     [
-      `Emit a bug_skipped event for ${bugId}. Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot.`,
+      `Emit a bug_skipped event for ${bugId}. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report.`,
       `Run \`node "$FORGE_ROOT/tools/store-cli.cjs" emit bugs '{"type":"bug_skipped","sprintId":"bugs","bugId":"${bugId}","role":"orchestrator","action":"skipped","reason":"status=${resolved.bugStatus}","startTimestamp":"'$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)'","endTimestamp":"'$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)'","durationMinutes":0}'\`.`,
       `Best-effort. Return taskStatus="${resolved.bugStatus}", gatePassed=true, verdict="none", escalated=false, phase="skip", role="orchestrator".`,
     ].join(' '),
@@ -258,7 +258,7 @@ let triageResult = await agent(
   [
     `You are running the TRIAGE phase for Forge bug ${bugId} (sprint bugs).`,
     `Phase: role="triage", command="triage", workflow="triage.md", iteration=1.`,
-    `Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot first.`,
+    `Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report first.`,
     '1. PRE-FLIGHT GATE. Run `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase triage --bug ' + bugId + '`.',
     '   If it exits non-zero: do NOT run the phase. Return gatePassed=false, escalated=true, verdict="none".',
     '2. RUN THE PHASE. Read `.forge/workflows/triage.md` and follow it for bug ' + bugId + '.',
@@ -288,7 +288,7 @@ if (!triageResult) {
     [
       `You are running the TRIAGE phase for Forge bug ${bugId} (sprint bugs). This is a retry.`,
       `Phase: role="triage", command="triage", workflow="triage.md", iteration=1.`,
-      `Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot first.`,
+      `Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report first.`,
       '1. PRE-FLIGHT GATE. Run `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase triage --bug ' + bugId + '`.',
       '   If it exits non-zero: return gatePassed=false, escalated=true, verdict="none".',
       '2. RUN THE PHASE. Read `.forge/workflows/triage.md` and follow it for bug ' + bugId + '.',
@@ -315,7 +315,7 @@ if (!triageResult.gatePassed || triageResult.escalated) {
 // Two separate calls: reported→triaged, then triaged→in-progress.
 await agent(
   [
-    `Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot.`,
+    `Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report.`,
     `Run \`node "$FORGE_ROOT/tools/store-cli.cjs" update-status bug ${bugId} status triaged\`.`,
     `Then run \`node "$FORGE_ROOT/tools/store-cli.cjs" update-status bug ${bugId} status in-progress\`.`,
     `Return taskStatus="in-progress", gatePassed=true, verdict="none", escalated=false, phase="status-write", role="orchestrator".`,
@@ -326,7 +326,7 @@ await agent(
 // Read summaries.triage.route to select Path A or Path B.
 const routeResult = await agent(
   [
-    `Read the bug record for ${bugId}. Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot.`,
+    `Read the bug record for ${bugId}. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report.`,
     `Run \`node "$FORGE_ROOT/tools/store-cli.cjs" read bug ${bugId} --json\`.`,
     `Return the value of summaries.triage.route (field name is "route" NOT "path").`,
     `Return as: { bugId: "${bugId}", bugStatus: "<current status>", note: "<route value A or B>" }.`,
@@ -430,7 +430,7 @@ log(`→ ${bugId}  finalize [${tierFor('finalize')}]`)
 
 const finalizeResult = await agent(
   [
-    `Finalize Forge bug ${bugId}. Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot.`,
+    `Finalize Forge bug ${bugId}. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report.`,
     `Step 1: Run \`node "$FORGE_ROOT/tools/collate.cjs" ${bugId} --purge-events\`.`,
     `   This purges this bug's events from the shared bugs/ dir and embeds the cost section in INDEX.md.`,
     `   Do NOT run a separate cost aggregation — collate handles it automatically.`,

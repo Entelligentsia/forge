@@ -281,7 +281,7 @@ function runPhase(taskId, sprintId, phase, iteration, { firstPhase = false, simp
   const lines = [
     `You are running a SINGLE pipeline phase for Forge task ${taskId} (sprint ${sprintId}).`,
     `Phase: role="${phase.role}", command="${phase.command}", workflow="${phase.workflow}", iteration=${iteration}.`,
-    `Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot first.`,
+    `Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report first.`,
   ]
 
   // Gap #6: Session Preflight — first phase only.
@@ -403,7 +403,7 @@ function emitSkip(taskId, sprintId, taskStatus) {
   return agent(
     [
       `Emit a task_skipped event for Forge task ${taskId} (sprint ${sprintId}).`,
-      `Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot, then run:`,
+      `Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report, then run:`,
       `node "$FORGE_ROOT/tools/store-cli.cjs" emit ${sprintId}`,
       `'{"type":"task-dispatch","action":"skip","taskId":"${taskId}","sprintId":"${sprintId}",`,
       `"role":"orchestrator","phase":"pre-task","iteration":0,`,
@@ -422,7 +422,7 @@ function emitSkip(taskId, sprintId, taskStatus) {
 function escalateTask(taskId, sprintId, reason) {
   return agent(
     [
-      `Escalate Forge task ${taskId} to a human. Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot, then`,
+      `Escalate Forge task ${taskId} to a human. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report, then`,
       `run \`node "$FORGE_ROOT/tools/store-cli.cjs" update-status task ${taskId} status escalated\``,
       `and emit one event (sprint ${sprintId}) with verdict="escalated" and notes="${reason}".`,
       `Return the task's final status as taskStatus, gatePassed=true, verdict="none", escalated=true, phase="escalate", role="escalate".`,
@@ -437,7 +437,7 @@ function emitRetryEvent(taskId, sprintId, role, iteration, reason) {
   return agent(
     [
       `Emit a subagent_retry event for Forge task ${taskId} (sprint ${sprintId}).`,
-      `Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot, then run:`,
+      `Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report, then run:`,
       `node "$FORGE_ROOT/tools/store-cli.cjs" emit ${sprintId} '{"type":"task-implemented","action":"subagent_retry","role":"${role}","taskId":"${taskId}","phase":"${role}","iteration":${iteration},"notes":"${reason}"}'`,
       `(fill in eventId, sprintId, startTimestamp, endTimestamp, durationMinutes=0, model, provider from runtime.)`,
       `Return "ok".`,
@@ -452,7 +452,7 @@ function mergeSidecar(sprintId, eventId) {
   return agent(
     [
       `Merge the token sidecar for sprint ${sprintId}, eventId ${eventId}.`,
-      `Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot, then run:`,
+      `Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report, then run:`,
       `node "$FORGE_ROOT/tools/store-cli.cjs" merge-sidecar ${sprintId} ${eventId}`,
       `Best-effort — if the sidecar file does not exist, skip silently. Return "ok".`,
     ].join(' '),
@@ -468,7 +468,7 @@ if (!taskId) throw new Error('wfl:run-task requires a task id — pass args: "FO
 phase('Resolve')
 const resolved = await agent(
   [
-    `Resolve the run-task pipeline for Forge task ${taskId}. Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot.`,
+    `Resolve the run-task pipeline for Forge task ${taskId}. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report.`,
     `Read \`node "$FORGE_ROOT/tools/store-cli.cjs" read task ${taskId} --json\` for its current status and sprintId.`,
     'Then resolve the phase pipeline EXACTLY as `.forge/workflows/orchestrate_task.md` § Pipeline Resolution prescribes:',
     'if task.pipeline names a key in `.forge/config.json` pipelines, use those phases; otherwise use the default pipeline.',
