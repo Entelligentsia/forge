@@ -65,14 +65,19 @@ describe('orchestrator-base-pack-parity — base-pack copies carry build-overlay
   }
 });
 
-describe('orchestrator-base-pack-parity — base-pack copies have audience: orchestrator-only frontmatter', () => {
+describe('orchestrator-base-pack-parity — base-pack prose orchestrators have audience: spec-only frontmatter', () => {
+  // After FORGE-S28-T08 retirement, the prose orchestrators are downgraded to
+  // parity-spec documents. The audience field now reads "spec-only" to signal
+  // that these files are the specification the JS wfl:* ports are audited against,
+  // not runtime workflow artifacts. The PARITY SPEC sentinel is also asserted
+  // separately in orchestrators-retired.test.cjs.
   for (const [_metaFile, basePackFile] of ORCHESTRATOR_PAIRS) {
-    test(`${basePackFile} has audience: orchestrator-only`, () => {
+    test(`${basePackFile} has audience: spec-only`, () => {
       const basePackPath = path.join(BASE_PACK_DIR, basePackFile);
       const content = fs.readFileSync(basePackPath, 'utf8');
       assert.ok(
-        content.includes('audience: orchestrator-only'),
-        `${basePackFile} is missing audience: orchestrator-only frontmatter`
+        content.includes('audience: spec-only'),
+        `${basePackFile} is missing audience: spec-only frontmatter — expected after FORGE-S28-T08 retirement`
       );
     });
   }

@@ -3,7 +3,7 @@ requirements:
   reasoning: High
   context: High
   speed: Medium
-audience: orchestrator-only
+audience: spec-only
 deps:
   personas: [architect, engineer, supervisor, bug-fixer, collator, qa-engineer]
   skills: [architect, engineer, supervisor, generic]
@@ -14,6 +14,14 @@ deps:
   config_fields: [paths.engineering]
 ---
 
+> **PARITY SPEC — NOT A RUNTIME WORKFLOW**
+>
+> This document is the **specification** the JS port (`wfl-run-task.js`) is
+> audited against. It is kept in-tree as the T01 drift-guard target.
+> It is **not** loaded at runtime — `wfl:run-task` handles all execution.
+>
+> To understand the live execution path, read `forge/forge/init/base-pack/workflows-js/`.
+> To check parity, run `node --test forge/forge/tools/__tests__/workflows-js-drift.test.cjs`.
 
 # Orchestrate Task
 ## Session Preflight (run once, before the phase loop)

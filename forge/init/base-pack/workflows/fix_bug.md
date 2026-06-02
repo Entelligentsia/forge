@@ -3,7 +3,7 @@ requirements:
   reasoning: High
   context: Medium
   speed: Medium
-audience: orchestrator-only
+audience: spec-only
 deps:
   personas: [bug-fixer, supervisor, architect, engineer, collator]
   skills: [bug-fixer, supervisor, architect, engineer, generic]
@@ -14,6 +14,14 @@ deps:
   config_fields: [commands.test, paths.engineering]
 ---
 
+> **PARITY SPEC — NOT A RUNTIME WORKFLOW**
+>
+> This document is the **specification** the JS port (`wfl-fix-bug.js`) is
+> audited against. It is kept in-tree as the T01 drift-guard target.
+> It is **not** loaded at runtime — `wfl:fix-bug` handles all execution.
+>
+> To understand the live execution path, read `forge/forge/init/base-pack/workflows-js/`.
+> To check parity, run `node --test forge/forge/tools/__tests__/workflows-js-drift.test.cjs`.
 
 # Fix Bug
 ## Pipeline Phases
