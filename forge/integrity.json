@@ -1,5 +1,5 @@
 {
-  "version": "1.2.4",
+  "version": "1.2.7",
   "generated": "2026-06-02",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
@@ -9,15 +9,15 @@
     "commands/check-agent.md": "f92121cb150d4cf601654e25c28d0c13389039518d05433f1040d727054b127e",
     "commands/config.md": "e67185f98cf0b045890398083991b9d48f32bf0d53bafda1eaca3ce0337ce49c",
     "commands/enhance.md": "d28f6414119e84973809d32900bb7245b51f565aed86112bc7a994bc6941b547",
-    "commands/health.md": "29c3e5f9808d996f53a432c4b3aff1c3346d7a40fff54518d8ea2ac2c6ba9d12",
+    "commands/health.md": "8f8160d67c09eed9be12445674fc2ab76cf31d548c6268c71f9777dca30c4e47",
     "commands/init.md": "cf7a70d55f718304820c310465071d3eea9d14a43131623f46b686499f630d4d",
-    "commands/rebuild.md": "1e9337a2ab2c46a029a384a13f7502b431fb1efeaffffeed759050bb55549a9f",
+    "commands/rebuild.md": "55d113867eb28bb9aaa483f9d7dd51ac08713f31ffd23e8df7752ffbd2a40e15",
     "commands/remove.md": "0ca5ec94d52959afaadd74910bd2c81c9872b71c9cc1ce8b89e5af69c06b304f",
     "commands/repair.md": "22e21614eee31ee630ead3f587b0b948b8c537e54ecef3b65e7d819c55c0ebd4",
     "commands/report-bug.md": "af8a54bf8887b35e5c880898dd45783f6c2e80d3dc031d6479a6be613ac43053",
     "commands/search.md": "befc4ba9f3146e7599308b35b95ec315e16895c0c18c9c2bab7549619d79bf1c",
     "commands/status.md": "2fa82a0b11d493918781aec6d95c39411f84fa923662ff3152b6de0cc830d755",
-    "commands/update.md": "c1d54b689d603d0b8bd087a256d7998b53d951d2474c0e2a87b25bdbeabf6758",
+    "commands/update.md": "c8b69b43567fa5fc328bb3dde31f386d0f577bbcc65dafd525400ae2fb16b132",
     "agents/store-query-validator.md": "f4c3573edcf6e28809515705362df611806a805c5269404fb17e31433cf3a81c",
     "agents/tomoshibi.md": "0c1032df80dfc25a4f482b1276965b5318754d95ccde9f24820846d564e49a27",
     "hooks/check-update.cjs": "9607cc0c51bedcbc123f5ea1d7a492916f29ee1f838846eec64776d5df70bbea",
@@ -30,7 +30,7 @@
     "schemas/transitions/bug.json": "27b17da42d1cebffbd4f61ab3dcd432a0017aa71997d548ed80d22c2fc3fad6a",
     "schemas/transitions/sprint.json": "2e0a629396e687b0ca88e1814ac3e35d84533a5d55b25237ab67feddce3c9deb",
     "schemas/transitions/task.json": "4c71849747baa0d585756e57c56325ff6219c078178374e60815dff91e25e3e7",
-    "schemas/enum-catalog.json": "5815dfb8936c15f509f3b6e7f99f929a9da7ed8c2e314475a66e9f5da936afc0",
+    "schemas/enum-catalog.json": "4504d74b92acb1d862a2987f973a04624aa72cdd12e05c4f88ab925f8a4d1f73",
     "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
   }
 }

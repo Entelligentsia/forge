@@ -1,4 +1,15 @@
 {
+  "1.2.6": {
+    "version": "1.2.7",
+    "date": "2026-06-02",
+    "notes": "Remove paths.forgeRoot from config.schema.json required[] and properties. forge-preflight.cjs now resolves plugin root via forgeRef-based cache scan (mirrors manage-config.cjs Priority 2) instead of reading config.paths.forgeRoot. manage-config.cjs resolve-forge-root drops Priority 3 (forgeRoot fallback). generate-tools.md drops Step 1 (forgeRoot write). update.md removes forgeRoot refresh from Step 4 config section and fixes tools regenerate category to invoke /forge:rebuild tools instead of running schema refresh inline.",
+    "target": "config:forgeRoot",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:rebuild tools to re-vendor .forge/tools/ on existing projects. Projects that have never run /forge:rebuild tools will have .forge/tools/ absent until this step."
+    ]
+  },
   "1.2.5": {
     "version": "1.2.6",
     "date": "2026-06-02",

@@ -242,7 +242,7 @@ Now evaluate — **stop at the first matching row and follow only that row's act
 
 | # | Condition | Action |
 |---|-----------|--------|
-| 1 | `REMOTE_VERSION` == `LOCAL_VERSION` and `LOCAL_VERSION` == baseline | Print "Forge {LOCAL_VERSION} — up to date. No pending migrations." Then execute **Step 4 config refresh** (paths.forgeRoot, paths.forgeRef, backfill) and proceed to **Step 5**. |
+| 1 | `REMOTE_VERSION` == `LOCAL_VERSION` and `LOCAL_VERSION` == baseline | Print "Forge {LOCAL_VERSION} — up to date. No pending migrations." Then execute **Step 4 config refresh** (paths.forgeRef, backfill) and proceed to **Step 5**. |
 | 2 | `REMOTE_VERSION` == `LOCAL_VERSION` and `LOCAL_VERSION` != baseline | Jump to **Step 2B** (project migration — no install needed). |
 | 3 | `IS_CANARY` is true | Jump to **Step 2B** (canary — no install needed). |
 | 4 | `LOCAL_VERSION` > `REMOTE_VERSION` | Print "Local version ({LOCAL_VERSION}) is ahead of the release channel ({REMOTE_VERSION}). No install needed — applying any pending project migrations." then jump to **Step 2B**. |
@@ -459,27 +459,17 @@ path) — skip the re-derivation and keep the original value.
 node "$FORGE_ROOT/tools/banners.cjs" --phase 4 7 "Apply migrations" forge
 ```
 
-> **Sequencing note:** `paths.forgeRoot` is written at the very start of Step 4,
-> before any migration targets or regeneration commands execute. This ensures all
-> subsequent tool invocations in Step 4 (including `build-init-context.cjs` called
-> by regeneration sub-steps) use the current, correct plugin path.
->
-> **Config refresh always runs.** The Step 4 header section (forgeRoot, forgeRef,
-> backfill) executes regardless of whether migrations are pending — even Row 1
+> **Config refresh always runs.** The Step 4 header section (forgeRef, backfill)
+> executes regardless of whether migrations are pending — even Row 1
 > ("up to date") proceeds through this section before skipping to Step 5. The
 > "skip to Step 5" directive skips only the migration chain walk and regeneration.
 > Missing config fields can accumulate across version boundaries; backfill ensures
 > the config stays structurally complete after every `/forge:update` invocation.
 
-**Refresh `paths.forgeRoot` before applying migrations:**
-
-```sh
-node "$FORGE_ROOT/tools/manage-config.cjs" set paths.forgeRoot "$FORGE_ROOT"
-```
-
-**Write `paths.forgeRef` (FR-010):** Also write the installed plugin version
+**Write `paths.forgeRef` (FR-010):** Write the installed plugin version
 as `paths.forgeRef` to config. This makes the config portable across machines —
-`forgeRef` is a version string rather than an absolute path:
+`forgeRef` is a version string rather than an absolute path, and is used by
+`forge-preflight.cjs` to resolve the plugin root via cache lookup:
 
 ```sh
 LOCAL_VERSION=$(node -e "console.log(require('$FORGE_ROOT/.claude-plugin/plugin.json').version)")
@@ -491,7 +481,7 @@ required or recommended fields may have been added since the project was last
 initialized. `manage-config backfill` reads the config schema, compares it
 against the current `.forge/config.json`, and writes defaults for any missing
 fields with schema-defined defaults. It also stamps the top-level `version`
-field from the bundled plugin version. Run after setting forgeRoot/forgeRef:
+field from the bundled plugin version. Run after setting forgeRef:
 
 ```sh
 node "$FORGE_ROOT/tools/manage-config.cjs" backfill --forge-root "$FORGE_ROOT"
@@ -668,16 +658,16 @@ reading and following `$FORGE_ROOT/commands/regenerate.md`:
 **Category-to-command mapping:** most categories are handled by
 `/forge:rebuild`, but the `tools` and `schemas` categories are special.
 
-When `tools` appears in the aggregated result, run the schema refresh inline
-(see **Schema Refresh** section below) instead of invoking `/forge:rebuild tools`.
-Tools ship with the plugin and are invoked directly via `$FORGE_ROOT/tools/`.
+When `tools` appears in the aggregated result, invoke `/forge:rebuild tools`
+to re-copy the current plugin's tools closure into `.forge/tools/`. This is
+the actual re-vendor step — do NOT run schema refresh inline instead.
 
 When `schemas` appears in the aggregated result, run the schema refresh inline
-(same **Schema Refresh** section). Do NOT delegate to the removed `/forge:update-tools` command.
+(see **Schema Refresh** section below). Do NOT delegate to the removed `/forge:update-tools` command.
 
 ### Schema Refresh
 
-When the migration chain includes a `schemas` or `tools` target, refresh schemas inline:
+When the migration chain includes a `schemas` target, refresh schemas inline:
 
 ```sh
 mkdir -p .forge/schemas
@@ -1326,12 +1316,12 @@ Proceed to **Step 6**.
 node "$FORGE_ROOT/tools/banners.cjs" --phase 6 7 "Record state" drift
 ```
 
-> **Note:** `paths.forgeRoot` and `paths.forgeRef` were already written at the start
-> of Step 4. Step 6 does not repeat those writes — it records migration state only.
+> **Note:** `paths.forgeRef` was already written at the start
+> of Step 4. Step 6 does not repeat that write — it records migration state only.
 
 **Write `.forge/update-check-cache.json`** to record the completed migration.
 Read the existing file if present, update `migratedFrom`, `localVersion`,
-`distribution`, `forgeRoot`, `forgeRef`, `updateStatus`, `pendingReason`, and
+`distribution`, `forgeRef`, `updateStatus`, `pendingReason`, and
 `pendingMigrations`, then write it back. Use the Write or Edit tool — do not run
 a shell command for this step. The `.forge/` directory always exists at this
 point (it was checked earlier), so no `mkdir -p` is needed.
@@ -1342,7 +1332,6 @@ If the file does not exist, create it with:
   "migratedFrom": "<LOCAL_VERSION>",
   "localVersion": "<LOCAL_VERSION>",
   "distribution": "<DISTRIBUTION>",
-  "forgeRoot": "<FORGE_ROOT>",
   "forgeRef": "<LOCAL_VERSION>",
   "updateStatus": "complete",
   "pendingReason": null,

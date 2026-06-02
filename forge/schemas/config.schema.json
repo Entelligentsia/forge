@@ -61,7 +61,7 @@
     },
     "paths": {
       "type": "object",
-      "required": ["engineering", "store", "forgeRoot"],
+      "required": ["engineering", "store"],
       "properties": {
         "engineering":     { "type": "string", "default": "engineering" },
         "store":           { "type": "string", "default": ".forge/store" },
@@ -69,8 +69,7 @@
         "commands":        { "type": "string", "default": ".claude/commands" },
         "templates":       { "type": "string", "default": ".forge/templates" },
         "customCommands":  { "type": "string", "default": "engineering/commands", "description": "Directory for project-specific custom pipeline phase commands. Files here are workflow scripts invoked directly by the orchestrator via the phase workflow field." },
-        "forgeRoot":       { "type": "string", "description": "Absolute path to the installed Forge plugin root. Set at init time and refreshed by /forge:update. Used by generated workflows to invoke Forge tools without requiring $CLAUDE_PLUGIN_ROOT in subagent contexts." },
-        "forgeRef":        { "type": "string", "description": "Pinned Forge plugin reference (tag or commit) the project was generated against." }
+        "forgeRef":        { "type": "string", "description": "Pinned Forge plugin reference (tag or commit) the project was generated against. Used to resolve the plugin root via cache lookup." }
       }
     },
     "pipeline": {
