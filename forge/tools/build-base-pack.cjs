@@ -472,10 +472,18 @@ function applyGenericizationRules(content, rules) {
  *
  * Generates a command file from metadata.
  * name: filename e.g. "plan.md"
- * meta: { description, workflow }
+ * meta: { description, workflow, wflName? }
+ *
+ * When meta.wflName is present, the ## Execute body is a Pi workflow()
+ * dispatch instead of a Read prose line:
+ *   workflow('wfl:run-task', $ARGUMENTS)
+ * Otherwise the classic Read pattern is emitted.
  */
 function generateCommand(name, meta) {
   const commandName = name.replace(/\.md$/, '');
+  const executeBody = meta.wflName
+    ? `workflow('${meta.wflName}', $ARGUMENTS)`
+    : `Read \`.forge/workflows/${meta.workflow}\` and follow it.`;
   return [
     '---',
     `name: ${commandName}`,
@@ -494,7 +502,7 @@ function generateCommand(name, meta) {
     '',
     '## Execute',
     '',
-    `Read \`.forge/workflows/${meta.workflow}\` and follow it.`,
+    executeBody,
     '',
     '## Arguments',
     '',

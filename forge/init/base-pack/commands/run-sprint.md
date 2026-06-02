@@ -15,7 +15,7 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 
 ## Execute
 
-Read `.forge/workflows/run_sprint.md` and follow it.
+workflow('wfl:run-sprint', $ARGUMENTS)
 
 ## Arguments
 

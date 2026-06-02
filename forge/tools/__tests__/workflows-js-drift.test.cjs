@@ -36,10 +36,13 @@ const BASE_PACK_JS = path.join(
 // Generated output directory (dogfooding project's .claude/workflows/)
 const GENERATED_DIR = path.join(REPO_ROOT, '.claude', 'workflows');
 
-// The two JS workflow files this task establishes
+// The three JS workflow files covered by the drift guard
+// (wfl-fix-bug.js was authored in T04 and is already present in both
+//  base-pack/workflows-js/ and .claude/workflows/ — drift-coverage-only addition)
 const JS_WORKFLOWS = [
   'wfl-run-task.js',
   'wfl-run-sprint.js',
+  'wfl-fix-bug.js',
 ];
 
 /**

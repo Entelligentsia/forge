@@ -15,7 +15,7 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 
 ## Execute
 
-Read `.forge/workflows/orchestrate_task.md` and follow it.
+workflow('wfl:run-task', $ARGUMENTS)
 
 ## Arguments
 
