@@ -1,4 +1,15 @@
 {
+  "1.2.7": {
+    "version": "1.2.8",
+    "date": "2026-06-03",
+    "notes": "Remove all $FORGE_ROOT references from init/smoke-test.md. Switch tool exec check to node .forge/tools/validate-store.cjs, generation-manifest stamp to node .forge/tools/generation-manifest.cjs, version read to .forge/tools/.forge-tools-version, distribution detection to the distribution field in .forge-tools-version, and remove the forgeRoot field from update-check-cache.json stamp. Smoke-test runs only at init time — existing projects are not affected.",
+    "target": "init:smoke-test",
+    "regenerate": ["init"],
+    "breaking": false,
+    "manual": [
+      "Re-run /forge:init on new projects to pick up the updated smoke-test. Existing projects are unaffected — smoke-test runs only once at init time."
+    ]
+  },
   "1.2.6": {
     "version": "1.2.7",
     "date": "2026-06-02",
