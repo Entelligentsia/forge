@@ -1,0 +1,109 @@
+[
+  {
+    "from": "draft",
+    "to": [
+      "planned",
+      "blocked",
+      "escalated",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "planned",
+    "to": [
+      "plan-approved",
+      "plan-revision-required",
+      "blocked",
+      "escalated",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "plan-approved",
+    "to": [
+      "implementing",
+      "plan-revision-required",
+      "blocked",
+      "escalated",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "implementing",
+    "to": [
+      "implemented",
+      "plan-revision-required",
+      "code-revision-required",
+      "blocked",
+      "escalated",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "implemented",
+    "to": [
+      "review-approved",
+      "plan-revision-required",
+      "code-revision-required",
+      "blocked",
+      "escalated",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "review-approved",
+    "to": [
+      "approved",
+      "plan-revision-required",
+      "code-revision-required",
+      "blocked",
+      "escalated",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "approved",
+    "to": [
+      "committed",
+      "plan-revision-required",
+      "code-revision-required",
+      "blocked",
+      "escalated",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "plan-revision-required",
+    "to": [
+      "planned",
+      "blocked",
+      "escalated",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "code-revision-required",
+    "to": [
+      "implementing",
+      "blocked",
+      "escalated",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "committed",
+    "to": []
+  },
+  {
+    "from": "blocked",
+    "to": []
+  },
+  {
+    "from": "escalated",
+    "to": []
+  },
+  {
+    "from": "abandoned",
+    "to": []
+  }
+]

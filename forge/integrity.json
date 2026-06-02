@@ -30,7 +30,7 @@
     "schemas/transitions/bug.json": "27b17da42d1cebffbd4f61ab3dcd432a0017aa71997d548ed80d22c2fc3fad6a",
     "schemas/transitions/sprint.json": "2e0a629396e687b0ca88e1814ac3e35d84533a5d55b25237ab67feddce3c9deb",
     "schemas/transitions/task.json": "4c71849747baa0d585756e57c56325ff6219c078178374e60815dff91e25e3e7",
-    "schemas/enum-catalog.json": "fe6c4b9d0b326a22ccbe2d2e6b8ea81c4f81ea827b9b46507a214cbeffcd45d3",
+    "schemas/enum-catalog.json": "b471c8f3fc43ede011dbb69adf598ac4777e09a061b2db0fe6ac1a8f0e0553cc",
     "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
   }
 }
