@@ -1,0 +1,219 @@
+export const meta = {
+  name: 'wfl:run-sprint',
+  description: 'Code-orchestrated port of /forge:run-sprint — load sprint, topo-sort into dependency waves, drive each task through the wfl:run-task sub-workflow, escalate-don\'t-halt, collate + report.',
+  whenToUse: 'Run all tasks in a Forge sprint via a deterministic JS driver instead of the LLM orchestrator. Pass the sprint id as args, e.g. args: "FORGE-S27".',
+  phases: [
+    { title: 'Load',    detail: 'one agent reads the sprint + its tasks via store-cli, returns the task graph' },
+    { title: 'Execute', detail: 'per dependency wave: invoke the wfl:run-task sub-workflow per task (parallel within a wave); escalate-don\'t-halt' },
+    { title: 'Collate',  detail: 'run collate.cjs, summarise committed / escalated / carried-over' },
+  ],
+}
+
+// ---------------------------------------------------------------------------
+// wfl:run-sprint — a code-orchestrated port of .forge/workflows/run_sprint.md
+//
+// Why a script: run_sprint.md is a deterministic FSM (Kahn's-algorithm wave
+// sort + per-task dispatch + escalate-don't-halt + collate). In the LLM
+// orchestrator that loop is hand-run turn-by-turn. Here the JS holds the loop,
+// branching, and intermediate results; agents only do I/O and run pipelines.
+//
+// Runtime constraint (per the Workflow tool): the SCRIPT has no filesystem or
+// shell access — agents run all commands. So sprint/task loading and collation
+// are agent() calls; wave computation + routing are JS.
+//
+// COMPOSITION: each task is driven by the wfl:run-task SUB-WORKFLOW (this file's
+// sibling, .claude/workflows/wfl-run-task.js), invoked inline via the workflow()
+// hook. That child ports orchestrate_task.md's phase FSM — it owns the per-phase
+// loop, revision counters, verdict routing, and per-task escalation. This driver
+// owns only the OUTER wave-sort FSM and escalate-don't-halt at the sprint grain.
+// Nesting is one level: this sprint workflow -> wfl:run-task. wfl:run-task itself
+// calls no further workflow(), so the one-level limit holds.
+//
+// Behaviour parity with run_sprint.md:
+//   Step 1 Load        -> loadSprint()           (skip terminal; honour executionMode)
+//   Step 2 Sort        -> computeWaves()          (Kahn's algorithm, cycle = halt)
+//   Step 3 Execute     -> per-wave dispatch       (sequential | wave-parallel | full-parallel)
+//                         via wfl:run-task + escalate-don't-halt
+//   Step 4 Post-Sprint -> collate + report
+//
+// Invocation (Workflow tool):  { name: 'wfl:run-sprint', args: 'FORGE-S27' }
+// args may also be an object: { sprintId: 'FORGE-S27', mode: 'sequential' }
+// (mode override is optional; defaults to the sprint record's executionMode).
+// ---------------------------------------------------------------------------
+
+const TERMINAL = ['committed', 'abandoned']           // skip on load (already done)
+const TERMINAL_OK = ['committed', 'abandoned', 'escalated']  // acceptable end-of-dispatch states
+
+const LOAD_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['sprintId', 'executionMode', 'tasks'],
+  properties: {
+    sprintId: { type: 'string' },
+    executionMode: { type: 'string', enum: ['sequential', 'wave-parallel', 'full-parallel'] },
+    tasks: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['taskId', 'status', 'dependencies'],
+        properties: {
+          taskId: { type: 'string' },
+          status: { type: 'string' },
+          dependencies: { type: 'array', items: { type: 'string' } },
+        },
+      },
+    },
+  },
+}
+
+const COLLATE_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['committed', 'escalated', 'carriedOver'],
+  properties: {
+    committed: { type: 'integer' },
+    escalated: { type: 'integer' },
+    carriedOver: { type: 'integer' },
+    summary: { type: 'string' },
+  },
+}
+
+// --- Step 2: Kahn's-algorithm wave computation (port of run_sprint.md) -------
+function computeWaves(tasks) {
+  const graph = {}, inDegree = {}, ids = new Set(tasks.map(t => t.taskId))
+  for (const t of tasks) { graph[t.taskId] = new Set(); inDegree[t.taskId] = 0 }
+  for (const t of tasks) {
+    for (const dep of t.dependencies || []) {
+      if (ids.has(dep)) { graph[dep].add(t.taskId); inDegree[t.taskId] += 1 }
+    }
+  }
+  const waves = []
+  let queue = Object.keys(inDegree).filter(id => inDegree[id] === 0).sort()
+  while (queue.length) {
+    const wave = [...queue].sort()        // deterministic ordering within a wave
+    waves.push(wave)
+    const next = []
+    for (const id of wave) {
+      for (const succ of graph[id]) {
+        inDegree[succ] -= 1
+        if (inDegree[succ] === 0) next.push(succ)
+      }
+    }
+    queue = next
+  }
+  const remaining = Object.keys(inDegree).filter(id => inDegree[id] > 0)
+  if (remaining.length) throw new Error(`Dependency cycle detected among: ${remaining.join(', ')}`)
+  return waves
+}
+
+// --- Step 3 helper: dispatch one task through its full pipeline -------------
+// Delegates to the wfl:run-task SUB-WORKFLOW (.claude/workflows/wfl-run-task.js),
+// which owns the per-phase FSM, revision loops, verdict routing, and per-task
+// escalation. We normalise its return into the {taskId, status, terminal, note}
+// shape the collation step expects, and apply escalate-don't-halt at the sprint
+// grain: a task that escalates is logged and the sprint continues.
+async function dispatchTask(sprintId, taskId) {
+  let child
+  try {
+    // workflow() runs the child inline (shared concurrency cap, agent counter,
+    // budget). It throws on unknown name / child error — catch so one bad task
+    // never halts the whole sprint.
+    child = await workflow('wfl:run-task', { taskId })
+  } catch (err) {
+    log(`⚠ ${taskId} — wfl:run-task threw (${err?.message || err}) — escalating, continuing sprint.`)
+    return { taskId, status: 'escalated', terminal: false, note: `wfl:run-task threw: ${err?.message || err}` }
+  }
+  if (!child) {
+    return { taskId, status: 'unknown', terminal: false, note: 'wfl:run-task returned null (skipped/errored)' }
+  }
+
+  // wfl:run-task returns either a skipped result ({skipped, taskStatus}) or a
+  // terminal result ({finalStatus, escalated, escalationReason}).
+  const status = child.skipped ? child.taskStatus
+    : child.escalated ? 'escalated'
+    : (child.finalStatus || 'unknown')
+  const terminal = TERMINAL_OK.includes(status)
+  const note = child.escalationReason
+    || (child.skipped ? `skipped (status ${child.taskStatus})` : `pipeline ${status} after ${child.phasesRun ?? '?'} phase(s)`)
+
+  if (!terminal) {
+    log(`⚠ ${taskId} did not reach a terminal state (status: ${status}) — escalating, continuing sprint.`)
+  }
+  return { taskId, status, terminal, note }
+}
+
+// --- Main -------------------------------------------------------------------
+const sprintId = (typeof args === 'string' ? args : args?.sprintId)
+if (!sprintId) throw new Error('wfl:run-sprint requires a sprint id — pass args: "FORGE-S27"')
+const modeOverride = (typeof args === 'object' && args?.mode) || null
+
+// Step 1 — Load sprint + tasks (agent does the store I/O; script has none).
+phase('Load')
+const loaded = await agent(
+  [
+    `Load Forge sprint ${sprintId}. Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot, then run`,
+    `\`node "$FORGE_ROOT/tools/store-cli.cjs" read sprint ${sprintId} --json\` and read every task in`,
+    `.forge/store/tasks/ whose sprintId === ${sprintId}.`,
+    'Return: sprintId, executionMode (the sprint record\'s mode; default "sequential" if absent),',
+    'and tasks[] each with taskId, status, and dependencies[].',
+    'Do NOT modify anything. Read-only.',
+  ].join(' '),
+  { label: `load:${sprintId}`, phase: 'Load', schema: LOAD_SCHEMA }
+)
+if (!loaded) throw new Error(`Could not load sprint ${sprintId}`)
+
+const mode = modeOverride || loaded.executionMode || 'sequential'
+// Skip already-terminal tasks (committed/abandoned) — run_sprint.md Step 1.
+const active = loaded.tasks.filter(t => !TERMINAL.includes(t.status))
+log(`Sprint ${sprintId}: ${loaded.tasks.length} task(s), ${active.length} to run, mode=${mode}`)
+if (!active.length) {
+  log('No non-terminal tasks — nothing to run.')
+  return { sprintId, mode, dispatched: 0, results: [] }
+}
+
+// Step 2 — Sort into dependency waves.
+const allWaves = computeWaves(active)
+// full-parallel collapses to one wave; sequential expands to one task per step.
+let waves
+if (mode === 'full-parallel') waves = [active.map(t => t.taskId)]
+else if (mode === 'sequential') waves = allWaves.flat().map(id => [id])
+else waves = allWaves   // wave-parallel
+log(`Dependency plan: ${waves.length} step(s) — ${waves.map(w => `[${w.join(',')}]`).join(' → ')}`)
+
+// Step 3 — Execute. Parallel within a wave; escalate-don't-halt.
+phase('Execute')
+const results = []
+for (let i = 0; i < waves.length; i++) {
+  const wave = waves[i]
+  log(`▶ wave ${i + 1}/${waves.length}: ${wave.join(', ')}`)
+  const waveResults = await parallel(wave.map(taskId => () => dispatchTask(sprintId, taskId)))
+  results.push(...waveResults.filter(Boolean))
+}
+
+// Step 4 — Post-sprint collation + report (agent does the I/O + status writes).
+phase('Collate')
+const committed = results.filter(r => r.status === 'committed').length
+const escalated = results.filter(r => r.status === 'escalated' || !r.terminal).length
+const carriedOver = results.filter(r => r.status === 'abandoned').length
+const report = await agent(
+  [
+    `All tasks for ${sprintId} have reached a terminal state. Resolve FORGE_ROOT from .forge/config.json and run`,
+    '`node "$FORGE_ROOT/tools/collate.cjs"`.',
+    `Then set the sprint status: "completed" if all tasks committed, otherwise "partially-completed", via store-cli update-status.`,
+    `Per-task outcomes: ${JSON.stringify(results.map(r => ({ id: r.taskId, status: r.status })))}.`,
+    `Return committed/escalated/carriedOver counts and a one-line summary.`,
+  ].join(' '),
+  { label: `collate:${sprintId}`, phase: 'Collate', schema: COLLATE_SCHEMA }
+)
+
+log(`🌊 Sprint ${sprintId} complete — 〇 committed:${committed}  △ escalated:${escalated}  ── carried/abandoned:${carriedOver}`)
+log(`Next: /forge:retrospective ${sprintId}`)
+
+return {
+  sprintId,
+  mode,
+  waves,
+  results,
+  counts: report || { committed, escalated, carriedOver },
+}
