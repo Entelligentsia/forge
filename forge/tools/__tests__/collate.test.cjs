@@ -378,6 +378,24 @@ describe('collate.cjs — resolveTaskDir', () => {
     assert.equal(result.value, 'TST-S01-T01-my-task', `expected slug dir name, got "${result.value}"`);
   });
 
+  test('resolves the task directory when task.path is a FILE inside the task dir under engPath', () => {
+    // Regression: some store records carry task.path pointing at a file inside
+    // the task dir (e.g. .../TST-S01-T01-my-task/PLAN.md) rather than the dir
+    // itself. Case 1 must not return basename('PLAN.md') — it must resolve the
+    // actual task directory. Otherwise collate silently skips the task INDEX.md.
+    const task = { taskId: 'TST-S01-T01', path: 'engineering/sprints/FORGE-S11/TST-S01-T01-my-task/PLAN.md' };
+    const result = resolveTaskDir(task, tmpDir, 'engineering');
+    assert.equal(result.ok, true, `expected ok:true, got ok:${result.ok}`);
+    assert.equal(result.value, 'TST-S01-T01-my-task', `expected task dir name, got "${result.value}"`);
+  });
+
+  test('resolves the task directory when task.path is a FILE inside an exact-named task dir under engPath', () => {
+    const task = { taskId: 'TST-S01-T02', path: 'engineering/sprints/FORGE-S11/TST-S01-T02/TASK_PROMPT.md' };
+    const result = resolveTaskDir(task, tmpDir, 'engineering');
+    assert.equal(result.ok, true, `expected ok:true, got ok:${result.ok}`);
+    assert.equal(result.value, 'TST-S01-T02', `expected exact task dir name, got "${result.value}"`);
+  });
+
   test('returns { ok: true, value } via filesystem lookup when task.path is a plugin source (not under engPath)', () => {
     // task.path points to a plugin source file — should fall back to filesystem resolution
     const task = { taskId: 'TST-S01-T01', path: 'forge/tools/collate.cjs' };

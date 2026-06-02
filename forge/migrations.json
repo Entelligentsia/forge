@@ -1,4 +1,18 @@
 {
+  "1.1.1": {
+    "version": "1.1.2",
+    "date": "2026-06-02",
+    "notes": "v1.1.2 — Fix collate.cjs resolveTaskDir: when a task store record's `path` field points at a file inside the task directory (e.g. .../FORGE-S22-T04/PLAN.md) rather than the directory itself, Case 1 returned basename('PLAN.md') instead of the task dir. Downstream, collate's existsSync(sprintDir/PLAN.md) check failed and the task's INDEX.md was silently never generated. Case 1 now verifies its candidate is a real directory on disk and otherwise falls through to the filesystem scan (which resolves the dir by taskId). Symptom: 18 task INDEX.md files across FORGE-S22/S23 were missing despite valid store records.",
+    "target": "tools:collate",
+    "regenerate": [
+      "tools:collate"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update to receive the fixed collate tool.",
+      "After update, run /forge:collate (or /forge:rebuild) to regenerate any task INDEX.md files that were skipped."
+    ]
+  },
   "1.1.0": {
     "version": "1.1.1",
     "date": "2026-06-02",
