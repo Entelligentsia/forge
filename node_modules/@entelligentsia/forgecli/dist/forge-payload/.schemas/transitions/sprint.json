@@ -1,0 +1,46 @@
+[
+  {
+    "from": "planning",
+    "to": [
+      "active",
+      "blocked",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "active",
+    "to": [
+      "completed",
+      "partially-completed",
+      "blocked",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "completed",
+    "to": [
+      "retrospective-done"
+    ]
+  },
+  {
+    "from": "partially-completed",
+    "to": [
+      "retrospective-done"
+    ]
+  },
+  {
+    "from": "retrospective-done",
+    "to": []
+  },
+  {
+    "from": "blocked",
+    "to": [
+      "active",
+      "abandoned"
+    ]
+  },
+  {
+    "from": "abandoned",
+    "to": []
+  }
+]

@@ -120,10 +120,11 @@ const RUNTIME_PASSTHROUGH_KEYS = new Set([
  * project prefix via getCommandsSubdir() — see walkBasePack.
  */
 const SUBDIR_OUTPUT_MAP = {
-  personas:  path.join('.forge', 'personas'),
-  skills:    path.join('.forge', 'skills'),
-  workflows: path.join('.forge', 'workflows'),
-  templates: path.join('.forge', 'templates'),
+  personas:       path.join('.forge', 'personas'),
+  skills:         path.join('.forge', 'skills'),
+  workflows:      path.join('.forge', 'workflows'),
+  templates:      path.join('.forge', 'templates'),
+  'workflows-js': path.join('.claude', 'workflows'),
 };
 
 /**

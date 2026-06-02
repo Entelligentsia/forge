@@ -1,9 +1,9 @@
 'use strict';
 // base-pack-byte-budget.test.cjs
 // Verifies that base-pack phase workflow files stay within byte budgets and
-// do not contain the five forbidden strings. Orchestrator-only files
-// (orchestrate_task.md, fix_bug.md) are exempt from the byte budget but must
-// carry audience: orchestrator-only.
+// do not contain the five forbidden strings. Prose orchestrator files
+// (orchestrate_task.md, fix_bug.md) are exempt from the byte budget and now
+// carry audience: spec-only (retired from orchestrator-only by FORGE-S28-T08).
 
 const assert = require('assert');
 const { describe, it } = require('node:test');
@@ -25,7 +25,7 @@ const PHASE_FILES = [
   'update_implementation.md',
 ];
 
-// Orchestrator-only files: no byte budget, but must carry audience: orchestrator-only.
+// Prose orchestrator files: no byte budget; audience changed to spec-only (FORGE-S28-T08).
 const ORCHESTRATOR_FILES = [
   'orchestrate_task.md',
   'fix_bug.md',
@@ -183,14 +183,17 @@ describe('base-pack-byte-budget — verdict-emitting phase files instruct canoni
   }
 });
 
-describe('base-pack-byte-budget — orchestrator files carry audience: orchestrator-only', () => {
+describe('base-pack-byte-budget — prose orchestrator files carry audience: spec-only', () => {
+  // After FORGE-S28-T08 retirement, these files are downgraded to parity specs.
+  // The audience field reads "spec-only" to signal they are specifications the
+  // JS wfl:* ports are audited against, not runtime workflow artifacts.
   for (const file of ORCHESTRATOR_FILES) {
-    it(`${file} has audience: orchestrator-only`, () => {
+    it(`${file} has audience: spec-only`, () => {
       const filePath = path.join(BASE_PACK, file);
       const content = fs.readFileSync(filePath, 'utf8');
       assert.ok(
-        content.includes('audience: orchestrator-only'),
-        `${file} missing "audience: orchestrator-only" in frontmatter`
+        content.includes('audience: spec-only'),
+        `${file} missing "audience: spec-only" in frontmatter — expected after FORGE-S28-T08 retirement`
       );
     });
   }

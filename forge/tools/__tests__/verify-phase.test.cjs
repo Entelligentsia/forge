@@ -79,6 +79,17 @@ function writePhase3Dirs(dir) {
   }
 }
 
+/**
+ * Write the two generated JS workflow files to .claude/workflows/ (FORGE-S28-T01).
+ * Required for verify-phase --phase 3 to exit 0.
+ */
+function writePhase3JsWorkflows(dir) {
+  const wflDir = path.join(dir, '.claude', 'workflows');
+  fs.mkdirSync(wflDir, { recursive: true });
+  fs.writeFileSync(path.join(wflDir, 'wfl-run-task.js'), '// stub\n', 'utf8');
+  fs.writeFileSync(path.join(wflDir, 'wfl-run-sprint.js'), '// stub\n', 'utf8');
+}
+
 // ── Wave 1a: Phase 1 ─────────────────────────────────────────────────────────
 
 describe('verify-phase --phase 1', () => {
@@ -262,8 +273,9 @@ describe('verify-phase --phase 3', () => {
   before(() => { tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vp-p3-')); });
   after(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
-  it('exits 0 when all 4 .forge subdirectories are non-empty', () => {
+  it('exits 0 when all 4 .forge subdirectories are non-empty and JS workflows are present', () => {
     writePhase3Dirs(tmpDir);
+    writePhase3JsWorkflows(tmpDir);
     const r = run(['--phase', '3'], tmpDir);
     assert.equal(r.code, 0, `Expected exit 0, got ${r.code}. stderr: ${r.stderr}`);
   });
@@ -272,6 +284,7 @@ describe('verify-phase --phase 3', () => {
     const fresh = fs.mkdtempSync(path.join(os.tmpdir(), 'vp-p3-empty-'));
     try {
       writePhase3Dirs(fresh);
+      writePhase3JsWorkflows(fresh);
       // Remove the file from workflows
       fs.readdirSync(path.join(fresh, '.forge', 'workflows')).forEach(f =>
         fs.rmSync(path.join(fresh, '.forge', 'workflows', f))
@@ -285,10 +298,46 @@ describe('verify-phase --phase 3', () => {
     }
   });
 
-  it('exits 1 when all 4 dirs are empty', () => {
+  it('exits 1 when JS workflow wfl-run-task.js is absent', () => {
+    const fresh = fs.mkdtempSync(path.join(os.tmpdir(), 'vp-p3-nojsrt-'));
+    try {
+      writePhase3Dirs(fresh);
+      writePhase3JsWorkflows(fresh);
+      fs.rmSync(path.join(fresh, '.claude', 'workflows', 'wfl-run-task.js'));
+      const r = run(['--phase', '3'], fresh);
+      assert.equal(r.code, 1);
+      const out = JSON.parse(r.stdout);
+      assert.ok(
+        out.missing.some(m => m.includes('wfl-run-task.js')),
+        `missing should include wfl-run-task.js, got ${JSON.stringify(out.missing)}`
+      );
+    } finally {
+      fs.rmSync(fresh, { recursive: true, force: true });
+    }
+  });
+
+  it('exits 1 when JS workflow wfl-run-sprint.js is absent', () => {
+    const fresh = fs.mkdtempSync(path.join(os.tmpdir(), 'vp-p3-nojsrs-'));
+    try {
+      writePhase3Dirs(fresh);
+      writePhase3JsWorkflows(fresh);
+      fs.rmSync(path.join(fresh, '.claude', 'workflows', 'wfl-run-sprint.js'));
+      const r = run(['--phase', '3'], fresh);
+      assert.equal(r.code, 1);
+      const out = JSON.parse(r.stdout);
+      assert.ok(
+        out.missing.some(m => m.includes('wfl-run-sprint.js')),
+        `missing should include wfl-run-sprint.js, got ${JSON.stringify(out.missing)}`
+      );
+    } finally {
+      fs.rmSync(fresh, { recursive: true, force: true });
+    }
+  });
+
+  it('exits 1 when all 4 dirs are empty (missing 4 dirs + 2 JS files = 6 items)', () => {
     const fresh = fs.mkdtempSync(path.join(os.tmpdir(), 'vp-p3-allempty-'));
     try {
-      // Create empty .forge subdirs
+      // Create empty .forge subdirs (no JS workflows either)
       const subdirs = ['workflows', 'personas', 'skills', 'templates'];
       for (const sub of subdirs) {
         fs.mkdirSync(path.join(fresh, '.forge', sub), { recursive: true });
@@ -296,7 +345,8 @@ describe('verify-phase --phase 3', () => {
       const r = run(['--phase', '3'], fresh);
       assert.equal(r.code, 1);
       const out = JSON.parse(r.stdout);
-      assert.equal(out.missing.length, 4, `Expected 4 missing, got ${JSON.stringify(out.missing)}`);
+      // 4 empty dirs + 2 missing JS files = 6 missing items
+      assert.equal(out.missing.length, 6, `Expected 6 missing, got ${JSON.stringify(out.missing)}`);
     } finally {
       fs.rmSync(fresh, { recursive: true, force: true });
     }

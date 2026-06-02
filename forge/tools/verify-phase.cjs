@@ -194,6 +194,14 @@ function verifyPhase2(cwd, kbPath) {
 
 const PHASE3_DIRS = ['workflows', 'personas', 'skills', 'templates'];
 
+// JS workflow files that substitute-placeholders.cjs emits from
+// base-pack/workflows-js/ into .claude/workflows/ (FORGE-S28-T01).
+// These are checked in addition to the .forge/ directory checks.
+const PHASE3_JS_FILES = [
+  path.join('.claude', 'workflows', 'wfl-run-task.js'),
+  path.join('.claude', 'workflows', 'wfl-run-sprint.js'),
+];
+
 function verifyPhase3(cwd) {
   const missing = [];
   const checked = [];
@@ -210,6 +218,15 @@ function verifyPhase3(cwd) {
     }
     if (count === 0) {
       missing.push(`${rel} (empty)`);
+    }
+  }
+
+  // Assert generated JS workflow files are present (FORGE-S28-T01)
+  for (const relFile of PHASE3_JS_FILES) {
+    checked.push(relFile);
+    const absFile = path.join(cwd, relFile);
+    if (!fs.existsSync(absFile)) {
+      missing.push(relFile);
     }
   }
 

@@ -5,6 +5,85 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.1.2] — 2026-06-02
+
+### Fixed
+
+- **`collate.cjs` silently skipped task `INDEX.md` when a task's store `path` pointed at a file.** `resolveTaskDir` Case 1 returned `basename(task.path)` assuming `path` was the task *directory*. For records whose `path` pointed at a file inside the dir (e.g. `.../FORGE-S22-T04/PLAN.md`), it returned `PLAN.md`; the downstream `existsSync(sprintDir/PLAN.md)` check then failed and the task's `INDEX.md` was never written. Symptom: 18 task `INDEX.md` files across FORGE-S22/S23 were missing despite valid store records. Case 1 now verifies its candidate resolves to a real directory on disk and otherwise falls through to the filesystem scan, which resolves the dir by `taskId`. Two regression tests added.
+
+**Regenerate:** tools:collate
+
+> Manual: After `/forge:update`, run `/forge:collate` (or `/forge:rebuild`) to regenerate any task `INDEX.md` files that were previously skipped.
+
+---
+
+## [1.1.1] — 2026-06-02
+
+### Changed
+
+- **`wfl-run-task.js` LOW-polish orchestration parity (FORGE-S28-T09).** Five low-severity gaps addressed:
+  - **#19 `task_skipped` event.** `emitSkip()` agent helper added. When the pre-task SKIP_STATUS guard fires (task is `blocked`, `escalated`, `committed`, or `abandoned`), the driver now emits a `task-dispatch/action:skip` event so downstream collators have a complete per-task accounting.
+  - **#20 `writeback` in default pipeline.** The hardcoded default pipeline prompt in the resolve-agent now includes `writeback` (mapping to `update_implementation.md`) between `approve` and `commit`, matching the full `orchestrate_task.md §3` default.
+  - **#21 Progress-Monitor IPC documented as structural limitation.** A comment in the `SIDE-EFFECT OWNERSHIP` section explains that IPC with a Progress-Monitor is a host-layer concern (the Pi/forge-cli TS layer must open the pipe before spawning the Workflow tool); no implementation in the JS driver is possible or correct.
+  - **#22 `BANNER_MAP` constant.** Both `wfl-run-task.js` and `wfl-run-sprint.js` gain a `BANNER_MAP` constant mapping roles/phases to persona banner labels. The `wfl-run-task` phase-start log line now emits `[forge-architect]` / `[forge-engineer]` / `[forge-validator]` for visual phase identity.
+  - **#24 already complete** — orchestrator-side eventId composition was wired in T05 (Gap #14). No further change.
+
+- **`wfl-run-sprint.js` LOW-polish orchestration parity (FORGE-S28-T09).**
+  - **#22 `BANNER_MAP` constant** — as above.
+  - **#23 sprint→`active` before wave loop.** An agent step is added between the sprint-start event and `phase('Execute')` to call `store-cli update-status sprint <id> active`, mirroring `run_sprint.md Step 1`. Without this the sprint stayed in `planned` status during execution.
+
+### Fixed
+
+- **`forge/package.json` no-npm-packages test regression.** An accidental `"dependencies"` field referencing a local `@entelligentsia/forgecli` tgz had been left in `forge/package.json`, causing one failing test in the `placeholder-coverage` suite. Removed.
+
+**Regenerate:** `workflows-js:wfl-run-task`, `workflows-js:wfl-run-sprint`
+
+> Manual: run `/forge:update` then `/forge:rebuild workflows-js` to refresh `.claude/workflows/wfl-*.js`.
+
+---
+
+## [1.1.0] — 2026-06-02
+
+### Added
+
+- **`workflows-js` is now a first-class rebuild/update target.** The JS orchestration workflows under `.claude/workflows/` (`wfl-run-task.js`, `wfl-run-sprint.js`, `wfl-fix-bug.js`) are verbatim copies from the plugin base-pack, but were previously materialized **only** at `/forge:init` time — there was no `/forge:rebuild` or `/forge:update` path to refresh them, so fixes to a base-pack JS workflow could not reach existing installs. `/forge:rebuild workflows-js` (and the granular `workflows-js:wfl-run-task` sub-target) now performs a deterministic verbatim copy + manifest record, `/forge:update` recognises `workflows-js` as a regenerate target, and `build-manifest.cjs` declares a `workflows-js` namespace so `/forge:health` / `check-structure` cover these files. Modeled on the existing `workflows:_fragments` verbatim-copy pattern — no LLM, no placeholder substitution.
+
+  **Regenerate:** `workflows-js:wfl-run-task`
+
+### Fixed
+
+- **FORGE-BUG-041 — `wfl-run-task.js` registered an invalid `StructuredOutput` schema, escalating every task.** `emitRetryEvent` and `mergeSidecar` passed `schema: { type: 'string' }` to `agent()`. The workflow runtime registers the `StructuredOutput` tool using that schema as its `input_schema`, but the Anthropic API rejects any tool whose `input_schema.type` is not `'object'` (HTTP 400). The subagent could therefore never call `StructuredOutput`, and the workflow threw after the nudge limit. Because `mergeSidecar` runs after every phase's complete event, each `wfl:run-task` task succeeded its plan phase then died at the post-phase sidecar merge — so every task in a `wfl:run-sprint` run escalated immediately after planning. Fixed by dropping the invalid `schema` option from both calls (their return value is discarded; this matches the sibling schemaless task-dispatch emit agent). Added a regression guard to `wfl-run-task-parity.test.cjs`. The `workflows-js` rebuild wiring above lets `/forge:update` auto-deliver this fix to existing installs.
+
+---
+
+## [1.0.11] — 2026-05-31
+
+### Added
+
+- **`forge-preflight.cjs` — aggregated pre-dispatch glue tool (A1).** Consolidates all deterministic pre-dispatch checks (entity read, status gate, sprint context, persona load) into a single blob read, eliminating ~20 hand-run tool round-trips from the orchestrator preamble. The orchestrator now opens every task with a single `forge-preflight --task <id>` call and gets a structured blob covering status, sprint context, dependency chain, and persona directive.
+
+- **`preflight-session.cjs` — SessionStart hook pre-warming (A1).** New hook wired into `hooks.json` that runs on session start for `run-task`, `fix-bug`, and `run-sprint` contexts. Pre-warms the preflight blob so the first call into the orchestrator arrives with context already loaded; fails open (no-op) when `.forge/` is absent.
+
+- **`token-forensics.cjs` — message.id dedup harness (NH2).** Stand-alone diagnostic tool for correct through-model token accounting. Deduplicates by `message.id` to prevent double-counting when the same API response appears in multiple cost-reporting paths.
+
+### Changed
+
+- **`banners.cjs` gains `--quiet` flag; `orchestrate_task` loop uses it (A3).** Verbose banner output no longer accretes in the transcript across the orchestration loop. Passing `--quiet` suppresses the decorative banner sections; the orchestrator loop now calls `banners --quiet` by default.
+
+- **`meta-orchestrate.md` state-ledger compaction discipline (A4).** `/compact` is now instructed to retain the one-line `[checkpoint]` ledger entry and shed raw tool output. Prevents state-ledger loss during long orchestration sessions.
+
+- **`meta-fix-bug.md` preflight and digest treatment ported from orchestrate_task (NH1).** A1 preflight cross-reference, A3 `--quiet` flag treatment, and spurious cost-bullet removal applied to the bug-fix workflow glue so fix-bug sessions receive the same waste-reduction treatment as run-task sessions.
+
+### Not shipped in this release
+
+- **A2 (context-pack / forge-compress port)** — escalated; not included. Users will not receive the context-pack or persona-pack build changes in this release. A2 remains open for a follow-on sprint.
+
+**Regenerate:** tools:forge-preflight, hooks:preflight-session, workflows:orchestrate_task, workflows:fix_bug, tools:banners, tools:token-forensics
+
+> Manual: run `/forge:update` to copy the updated tools and hooks into your project.
+
+---
+
 ## [1.0.10] — 2026-05-31
 
 ### Changed

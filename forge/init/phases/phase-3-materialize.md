@@ -63,11 +63,24 @@ node "$FORGE_ROOT/tools/substitute-placeholders.cjs" \
 ```
 
 Output directories (managed by the tool's `SUBDIR_OUTPUT_MAP`):
-- `base-pack/commands/`  → `.claude/commands/<prefix-lowercased>/`
-- `base-pack/personas/`  → `.forge/personas/`
-- `base-pack/skills/`    → `.forge/skills/`
-- `base-pack/workflows/` → `.forge/workflows/`
-- `base-pack/templates/` → `.forge/templates/`
+- `base-pack/commands/`     → `.claude/commands/<prefix-lowercased>/`
+- `base-pack/personas/`     → `.forge/personas/`
+- `base-pack/skills/`       → `.forge/skills/`
+- `base-pack/workflows/`    → `.forge/workflows/`
+- `base-pack/templates/`    → `.forge/templates/`
+- `base-pack/workflows-js/` → `.claude/workflows/` (JS orchestration workflows — FORGE-S28-T01)
+
+### Step 3a — Record generated JS workflows in the generation manifest
+
+After `substitute-placeholders.cjs` writes the JS workflows, record them in the generation
+manifest so `/forge:rebuild` and `/forge:health` can detect stale or missing copies:
+
+```sh
+node "$FORGE_ROOT/tools/generation-manifest.cjs" record .claude/workflows/wfl-run-task.js
+node "$FORGE_ROOT/tools/generation-manifest.cjs" record .claude/workflows/wfl-run-sprint.js
+```
+
+If either `record` call exits non-zero, the file was not written — re-run Step 3 and retry.
 
 If `project-context.json` is absent or missing required keys, halt Phase 3:
 ```

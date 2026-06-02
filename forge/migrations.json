@@ -1,4 +1,62 @@
 {
+  "1.1.1": {
+    "version": "1.1.2",
+    "date": "2026-06-02",
+    "notes": "v1.1.2 — Fix collate.cjs resolveTaskDir: when a task store record's `path` field points at a file inside the task directory (e.g. .../FORGE-S22-T04/PLAN.md) rather than the directory itself, Case 1 returned basename('PLAN.md') instead of the task dir. Downstream, collate's existsSync(sprintDir/PLAN.md) check failed and the task's INDEX.md was silently never generated. Case 1 now verifies its candidate is a real directory on disk and otherwise falls through to the filesystem scan (which resolves the dir by taskId). Symptom: 18 task INDEX.md files across FORGE-S22/S23 were missing despite valid store records.",
+    "target": "tools:collate",
+    "regenerate": [
+      "tools:collate"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update to receive the fixed collate tool.",
+      "After update, run /forge:collate (or /forge:rebuild) to regenerate any task INDEX.md files that were skipped."
+    ]
+  },
+  "1.1.0": {
+    "version": "1.1.1",
+    "date": "2026-06-02",
+    "notes": "v1.1.1 — LOW-polish orchestration parity (FORGE-S28-T09). #19: emitSkip() agent helper emits a task-dispatch/action:skip event when the pre-task SKIP_STATUS guard fires, giving the event log a complete accounting of every task. #20: writeback step added to the hardcoded default pipeline prompt in wfl-run-task.js (orchestrate_task.md §3 full default: …approve → writeback → commit, writeback→update_implementation.md). #21: structural-limitation comment documents Progress-Monitor IPC as a host-layer concern (JS driver has no shell access, so the Pi/forge-cli TS layer must open the pipe). #22: BANNER_MAP constants added to both wfl-run-task.js and wfl-run-sprint.js; wfl-run-task phase-start log line now shows the persona label. #23: wfl-run-sprint.js adds an agent step to transition sprint status to 'active' before the wave loop begins, mirroring run_sprint.md Step 1. Also fixes pre-existing forge/package.json test regression (accidental 'dependencies' field removed; placeholder-coverage no-npm test passes).",
+    "target": "workflows-js:wfl-run-task",
+    "regenerate": [
+      "workflows-js:wfl-run-task",
+      "workflows-js:wfl-run-sprint"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update to receive the updated JS workflow orchestrators.",
+      "After update, run /forge:rebuild workflows-js to regenerate .claude/workflows/wfl-*.js in your project."
+    ]
+  },
+  "1.0.11": {
+    "version": "1.1.0",
+    "date": "2026-06-02",
+    "notes": "v1.1.0 — (1) New rebuild/update surface for the JS orchestration workflows: workflows-js is now a first-class /forge:rebuild category (verbatim copy of .claude/workflows/*.js from base-pack, no LLM/placeholder substitution) and a recognised /forge:update regenerate target; build-manifest.cjs declares a workflows-js namespace so /forge:health and check-structure cover .claude/workflows/*.js. Previously these files were materialised only at /forge:init and had no regeneration path. (2) Fix FORGE-BUG-041: wfl-run-task.js emitRetryEvent/mergeSidecar passed schema:{type:'string'} to agent(), an invalid StructuredOutput input_schema (Anthropic requires type:'object'); the subagent could never call StructuredOutput so the workflow threw after the nudge limit — every wfl:run-task task escalated immediately after its plan phase. Dropped the invalid schema option from both calls. With (1) in place, /forge:update now auto-delivers this fix via the workflows-js:wfl-run-task regenerate target.",
+    "target": "workflows-js:wfl-run-task",
+    "regenerate": [
+      "workflows-js:wfl-run-task"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "1.0.10": {
+    "version": "1.0.11",
+    "date": "2026-05-31",
+    "notes": "v1.0.11 — Orchestration waste reduction (FORGE-S27 Track A, shipped tasks A1/A3/A4/NH1/NH2). New forge-preflight.cjs aggregates deterministic pre-dispatch glue into a single blob read, eliminating ~20 hand-run round-trips from the orchestrator preamble. New preflight-session.cjs SessionStart hook pre-warms the blob for run-task/fix-bug/run-sprint. banners.cjs gains --quiet flag; orchestrate_task loop uses it so verbose banner output does not accrete in the transcript. meta-orchestrate.md state-ledger compaction discipline: /compact retains the one-line [checkpoint] ledger and sheds raw tool output. meta-fix-bug.md: A1+A3 treatment ported (preflight cross-ref, --quiet flag, spurious cost bullet removed). token-forensics.cjs: message.id-dedup harness for correct through-model token accounting. A2 (context-pack/forge-compress port) remains escalated and is not included in this release.",
+    "target": "tools:forge-preflight",
+    "regenerate": [
+      "tools:forge-preflight",
+      "hooks:preflight-session",
+      "workflows:orchestrate_task",
+      "workflows:fix_bug",
+      "tools:banners",
+      "tools:token-forensics"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update to copy the updated tools and hooks into your project."
+    ]
+  },
   "1.0.9": {
     "version": "1.0.10",
     "date": "2026-05-31",

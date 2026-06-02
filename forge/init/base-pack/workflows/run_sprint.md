@@ -1,8 +1,17 @@
 ---
-audience: orchestrator-only
+audience: spec-only
 deps:
   personas: [orchestrator]
 ---
+
+> **PARITY SPEC — NOT A RUNTIME WORKFLOW**
+>
+> This document is the **specification** the JS port (`wfl-run-sprint.js`) is
+> audited against. It is kept in-tree as the T01 drift-guard target.
+> It is **not** loaded at runtime — `wfl:run-sprint` handles all execution.
+>
+> To understand the live execution path, read `forge/forge/init/base-pack/workflows-js/`.
+> To check parity, run `node --test forge/forge/tools/__tests__/workflows-js-drift.test.cjs`.
 
 # Workflow: Run Sprint (Forge)
 

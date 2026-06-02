@@ -275,6 +275,19 @@ function buildManifest(forgeRoot) {
     process.stderr.write(`△ Could not read schemas dir: ${e.message}\n`);
   }
 
+  // workflows-js: JS orchestration workflows shipped verbatim from base-pack
+  // (no meta source, no placeholder substitution) and materialised into
+  // .claude/workflows/. Enumerated dynamically like schemaFiles.
+  const workflowsJsDir = path.join(forgeRoot, 'init', 'base-pack', 'workflows-js');
+  let workflowsJsFiles = [];
+  try {
+    workflowsJsFiles = fs.readdirSync(workflowsJsDir)
+      .filter((f) => f.endsWith('.js'))
+      .sort();
+  } catch (e) {
+    process.stderr.write(`△ Could not read base-pack/workflows-js dir: ${e.message}\n`);
+  }
+
   const depEdges = parseMetaDeps(path.join(forgeRoot, 'meta', 'workflows'), WORKFLOW_MAP);
 
   return {
@@ -312,6 +325,11 @@ function buildManifest(forgeRoot) {
         logicalKey: 'fragments',
         dir: '.forge/workflows/_fragments',
         files: FRAGMENT_MAP.map(([, out]) => out).sort(),
+      },
+      'workflows-js': {
+        logicalKey: 'workflows-js',
+        dir: '.claude/workflows',
+        files: workflowsJsFiles,
       },
       schemas: {
         logicalKey: 'schemas',

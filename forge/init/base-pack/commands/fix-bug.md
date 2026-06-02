@@ -15,7 +15,7 @@ FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
 
 ## Execute
 
-Read `.forge/workflows/fix_bug.md` and follow it.
+workflow('wfl:fix-bug', $ARGUMENTS)
 
 ## Arguments
 

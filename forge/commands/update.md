@@ -576,12 +576,14 @@ Execute regeneration targets in this order:
 | 5 | `commands` | Must run after `workflows` | — |
 | 6 | `knowledge-base` sub-targets | — (independent) | — |
 | 7 | `schemas` | — (independent) | **Run schema refresh inline** (see Schema Refresh below). Emit: `〇 Refreshing schemas…` |
+| 8 | `workflows-js` | — (independent) | Deterministic verbatim copy of `.claude/workflows/*.js` from base-pack via `/forge:rebuild workflows-js` (no LLM, no placeholder substitution). |
 
 > **Known special targets — note for migration authors:** `hooks` and `schemas` are
 > special-cased here. Future `migrations.json` entries should only use recognised
 > target names; using unknown bare-category targets will produce a warning and be
 > skipped. The recognised targets are: `hooks`, `tools`, `workflows`, `templates`,
-> `personas`, `commands`, `knowledge-base`, `skills`, `schemas`.
+> `personas`, `commands`, `knowledge-base`, `skills`, `schemas`, `workflows-js`.
+> `workflows-js` accepts granular sub-targets (e.g. `workflows-js:wfl-run-task`).
 
 `commands` depends on `workflows` because command wrappers reference workflow
 filenames. All other targets are independent and could run in parallel, but

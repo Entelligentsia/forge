@@ -3,7 +3,7 @@ requirements:
   reasoning: High
   context: High
   speed: Medium
-audience: orchestrator-only
+audience: spec-only
 deps:
   personas: [architect, engineer, supervisor, bug-fixer, collator, qa-engineer]
   skills: [architect, engineer, supervisor, generic]
@@ -14,8 +14,48 @@ deps:
   config_fields: [paths.engineering]
 ---
 
+> **PARITY SPEC — NOT A RUNTIME WORKFLOW**
+>
+> This document is the **specification** the JS port (`wfl-run-task.js`) is
+> audited against. It is kept in-tree as the T01 drift-guard target.
+> It is **not** loaded at runtime — `wfl:run-task` handles all execution.
+>
+> To understand the live execution path, read `forge/forge/init/base-pack/workflows-js/`.
+> To check parity, run `node --test forge/forge/tools/__tests__/workflows-js-drift.test.cjs`.
 
 # Orchestrate Task
+## Session Preflight (run once, before the phase loop)
+
+The deterministic pre-dispatch glue — FORGE_ROOT resolution, config
+reconciliation, generation-manifest state, calibration-baseline freshness,
+MASTER_INDEX hashing, and the structure check — is bundled into a single
+deterministic tool, `forge/tools/forge-preflight.cjs`. **Do NOT hand-run these
+checks turn-by-turn.** Read the one compact blob it produces, once, at the top
+of the orchestration:
+
+1. The SessionStart hook (`hooks/preflight-session.cjs`) primes the blob at
+   `.forge/cache/preflight-status.json` for any project that has a `.forge/`
+   directory. Read that file. If it is absent or stale, run the tool once:
+   `node "$FORGE_ROOT/tools/forge-preflight.cjs"` and read its stdout.
+2. Branch on `blob.ok`:
+   - **`ok: true`** → proceed to the phase loop using `blob.forgeRoot` and the
+     recorded state. Do not re-derive any field the blob already carries
+     (`masterIndexHash`, `calibrationFresh`, `manifestState`, `structureOk`);
+     surface `calibrationFresh.suggest` to the operator if `fresh` is false, but
+     this is advisory and does not block the run.
+   - **`ok: false`** → **halt before phase 1** (fast-fail-safe). This is a
+     pre-dispatch halt: print `blob.warnings`, route through the existing
+     escalation idiom (see `§ Escalation Procedure`) — emit the standard
+     escalation event and message — and instruct the operator to fix the
+     surfaced preflight warning and re-run. A half-initialized run must never
+     proceed.
+
+The blob is the single source of truth for these concerns for the remainder of
+the run. The SessionStart hook is command-name-independent (SessionStart fires
+before any command and carries no per-command signal); the scoping to
+run-task / fix-bug / run-sprint contexts lives here, in the orchestration
+preamble, which only those commands reach.
+
 ## Pipeline Phases
 
 Each phase has:
@@ -229,6 +269,13 @@ def compose_role_block(persona_noun):
 **Rollback:** set `FORGE_PROMPT_MODE=inline`. No persisted state to revert.
 The `inline` branch will be removed one version after `reference` ships.
 
+> **Scope note (added FORGE-S27-T02, 2026-05-31):** `FORGE_PROMPT_MODE=inline` restores
+> the **role block only** — full verbatim persona + skill file contents. It does NOT restore
+> the full `MASTER_INDEX`: the overlay (`build-overlay.cjs`, line 462) is unconditional and
+> delivers the same task-scoped slice in both modes. It also does NOT affect the workflow file,
+> which is read verbatim from disk in both modes. There is currently no per-call escape hatch
+> to the full `MASTER_INDEX` — a separate overlay-bypass flag would be required.
+
 ## Execution Algorithm
 
 The orchestrator MUST follow this procedure exactly. Do not deviate.
@@ -354,9 +401,27 @@ for each task in dependency_sorted(tasks):
     agent_name = f"{task_id}:{persona_noun}:{phase.role}:{iteration}"
 
     # --- Announce phase with identity banner (badge) + task context ---
+    # --quiet makes banners.cjs emit zero stdout (unconditional; no isTTY branch).
+    # The badge is fully suppressed during the automated run_bash call — it does
+    # not enter the LLM context window and is not shown on the human terminal.
+    # The human-visible per-phase marker is the print() line below.
+    #
+    # Digest-compliance note (FORGE-S27-T03): every deterministic tool call this
+    # loop body makes is already digest-compliant on its success path:
+    #   store-cli write verbs (update-status, emit, merge-sidecar, set-summary,
+    #   progress-clear) → silent on success.
+    #   preflight-gate.cjs → silent on success (stderr only on failure).
+    #   read-verdict.cjs   → one load-bearing token (e.g. "approved"); orchestrator
+    #                        branches on it — must not be suppressed.
+    #   banners.cjs --badge → 1-line ANSI badge; made zero-cost via --quiet below.
+    #   build-overlay.cjs  → ~1185 chars captured into overlay_md and injected into
+    #                        the subagent prompt as Project Context. This is payload
+    #                        data, not a log — reducing it would break prompt assembly.
+    #                        Reference-mode redesign is deferred to the T02/forge-compress
+    #                        work; leave unchanged here.
     emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🌊", "Orchestrator", "I move tasks through their lifecycle."))
     banner_name = BANNER_MAP.get(phase.role, "forge")
-    run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name}')
+    run_bash(f'FORGE_ROOT=$(node -e "console.log(require(\'./.forge/config.json\').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name} --quiet')
     print(f"  → {task_id}  [{display_model}]\n")
 
     # --- Start progress Monitor before spawning subagent ---
@@ -556,7 +621,10 @@ for each task in dependency_sorted(tasks):
     if phase.role not in ("review-plan", "review-code", "validate"):
       print(f"  ✓ {task_id}  {phase.role}  — completed\n")
       i += 1
-      # Compact context: all state is on disk; preserve loop bookkeeping in the summary
+      # State-ledger compaction: the [checkpoint] line IS the state ledger — it carries
+      # the loop bookkeeping (task_id, sprint_id, phase_index, iteration_counts) that
+      # /compact must preserve verbatim. Raw tool output and subagent return text is
+      # shed here; do not retain it between phases. The durable state is on disk.
       print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
       /compact
       continue
@@ -593,7 +661,10 @@ for each task in dependency_sorted(tasks):
     if verdict == "Approved":
       print(f"  ✓ {task_id}  {phase.role}  — Approved\n")
       i += 1                                # advance to next phase
-      # Compact context: all state is on disk; preserve loop bookkeeping in the summary
+      # State-ledger compaction: the [checkpoint] line IS the state ledger — it carries
+      # the loop bookkeeping (task_id, sprint_id, phase_index, iteration_counts) that
+      # /compact must preserve verbatim. Raw tool output and subagent return text is
+      # shed here; do not retain it between phases. The durable state is on disk.
       print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
       /compact
 
@@ -616,7 +687,10 @@ for each task in dependency_sorted(tasks):
       # Route back to the revision target
       target = phase.on_revision or nearest_preceding_non_review(phases, i)
       i = index_of(phases, target)          # loop back
-      # Compact context: all state is on disk; preserve loop bookkeeping in the summary
+      # State-ledger compaction: the [checkpoint] line IS the state ledger — it carries
+      # the loop bookkeeping (task_id, sprint_id, phase_index, iteration_counts) that
+      # /compact must preserve verbatim. Raw tool output and subagent return text is
+      # shed here; do not retain it between phases. The durable state is on disk.
       print(f"[checkpoint] task={task_id} sprint={sprint_id} phase_index={i} iterations={iteration_counts}")
       /compact
 

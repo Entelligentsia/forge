@@ -53,6 +53,7 @@ wrappers, and unrecognised files must be left completely untouched.
    - If it does NOT reference `.forge/workflows/` — overwrite and log: `Replaced stale command: <filename>`.
    - If it references `.forge/workflows/` but that workflow file **does not exist on disk** — overwrite and log: `Replaced command pointing to missing workflow: <filename>`.
    - If it references `.forge/workflows/` and the workflow file exists — check whether the file matches the template format. If it is missing `effort:` frontmatter, contains `model:` frontmatter, contains a MASTER_INDEX read line, or uses old workflow naming (`engineer_*`, `supervisor_*`) — overwrite and log: `Replaced non-conformant command: <filename>`.
+   - **wfl: dispatch rung (scoped to three filenames only):** If the filename is one of `run-task.md`, `run-sprint.md`, or `fix-bug.md` — and the file body contains `Read .forge/workflows/` — it is non-conformant (it should use `wfl:` dispatch instead). Overwrite it with the `workflow('wfl:run-task'|'wfl:run-sprint'|'wfl:fix-bug', $ARGUMENTS)` body and log: `Replaced non-conformant command: <filename>`. Do NOT apply this rung to any other command — the other 13 commands legitimately use `Read .forge/workflows/` and must not be flagged.
    - If it matches the template format and the workflow exists — skip it (already up to date).
 
 This ensures any workflow that has been renamed or replaced causes its command wrapper to be regenerated rather than silently left pointing at a missing file.

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.10",
-  "generatedAt": "2026-05-31T03:19:45.318Z",
+  "version": "1.1.1",
+  "generatedAt": "2026-06-02T08:50:52.586Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -104,6 +104,15 @@
         "progress-reporting.md",
         "store-cli-verbs.md",
         "store-write-verification.md"
+      ]
+    },
+    "workflows-js": {
+      "logicalKey": "workflows-js",
+      "dir": ".claude/workflows",
+      "files": [
+        "wfl-fix-bug.js",
+        "wfl-run-sprint.js",
+        "wfl-run-task.js"
       ]
     },
     "schemas": {

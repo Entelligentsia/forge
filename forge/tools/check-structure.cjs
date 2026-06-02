@@ -132,6 +132,7 @@ function validateManifest(manifest, forgeRoot) {
     fragments: path.join(basePackDir, 'workflows', '_fragments'),
     templates: path.join(basePackDir, 'templates'),
     commands:  path.join(basePackDir, 'commands'),
+    'workflows-js': path.join(basePackDir, 'workflows-js'),
     // schemas: not base-pack-sourced — source is forgeRoot/schemas/
   };
 

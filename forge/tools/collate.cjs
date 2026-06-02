@@ -108,9 +108,23 @@ function resolveTaskDir(task, sprintDirPath, engPath) {
   const normalizedTaskPath = task.path ? task.path.replace(/\\/g, '/').replace(/\/$/, '') : null;
   const normalizedEngPath  = engPath   ? engPath.replace(/\\/g, '/').replace(/\/$/, '')  : '';
 
-  // Case 1: path is under the engineering root — it IS the task directory
+  // Case 1: path is under the engineering root — it IS (or is a file inside)
+  // the task directory. Some store records carry task.path pointing at a file
+  // inside the task dir (e.g. .../FORGE-S22-T04/PLAN.md) rather than the dir
+  // itself; in that case basename(path) is the filename, not the dir. Only
+  // trust Case 1 when its candidate resolves to a real directory on disk —
+  // otherwise fall through to the filesystem scan, which resolves by taskId.
   if (normalizedTaskPath && normalizedEngPath && normalizedTaskPath.startsWith(normalizedEngPath + '/')) {
-    return resultOk(path.basename(normalizedTaskPath));
+    const candidate = path.basename(normalizedTaskPath);
+    // Can't verify against disk — preserve legacy behaviour and trust the path.
+    if (!sprintDirPath) return resultOk(candidate);
+    const candidatePath = path.join(sprintDirPath, candidate);
+    // Trust Case 1 only when the candidate is a real directory. If it's a file
+    // (task.path pointed at a doc inside the dir) or absent, fall through to the
+    // filesystem scan below, which resolves the dir by taskId.
+    if (fs.existsSync(candidatePath) && fs.statSync(candidatePath).isDirectory()) {
+      return resultOk(candidate);
+    }
   }
 
   // Case 2 (and fallback for case 1 missing): filesystem scan
