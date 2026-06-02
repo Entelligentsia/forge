@@ -38,7 +38,16 @@ export const meta = {
 //   its OWN phase event. This is defensible — the subagent is the only actor that
 //   holds its own runtime attribution (model, provider, token usage). The JS
 //   driver cannot run store-cli. This is a control-flow-authoritative port with
-//   delegated telemetry, NOT a byte-for-byte reproduction of the emit contract. ***
+//   delegated telemetry, NOT a byte-for-byte reproduction of the emit contract.
+//
+//   Split start/complete emit contract: per orchestrate_task.md §Event Emission,
+//   each phase subagent emits a start event (action="start") BEFORE executing its
+//   phase workflow, then a complete event (action="complete") AFTER. The JS driver
+//   delegates wall-time bracketing to the subagent: subagent notes startTimestamp,
+//   runs the workflow, then computes durationMinutes = (endMs - startMs) / 60000
+//   and includes it in the complete event. The start event carries a 0-duration
+//   placeholder (startTimestamp == endTimestamp); the complete event carries the
+//   real bracket. This mirrors the orchestrate_task.md start+complete pattern. ***
 //
 //   Honest fallback if per-phase emission ever proves too lossy: collapse to the
 //   thin port (one agent reading orchestrate_task.md, == wfl:run-sprint.dispatchTask),
@@ -145,11 +154,15 @@ function runPhase(taskId, sprintId, phase, iteration) {
       '   The workflow writes its own artifacts, {PHASE}-SUMMARY.json, and any task-status changes.',
       '   Also read the task-scoped slice of `engineering/MASTER_INDEX.md` for project context.',
       '',
-      '3. EMIT YOUR PHASE EVENT. You are the only actor that knows your runtime attribution, so YOU emit it.',
-      '   Compose an eventId of the form `{ISO_TIMESTAMP}_' + taskId + '_' + phase.role + '_complete` and emit a',
-      '   canonical event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit ' + sprintId + " '{event-json}'\`",
+      '3. EMIT YOUR PHASE EVENTS. You are the only actor that knows your runtime attribution.',
+      '   3a. BEFORE running the phase workflow: note the start timestamp (startTimestamp = new Date().toISOString()).',
+      '   Emit a start event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit ' + sprintId + " '{event-json}'\`",
+      '   with action="start", role="' + phase.role + '", iteration=' + iteration + ', startTimestamp and endTimestamp both equal to startTimestamp (0-duration placeholder).',
+      '   3b. AFTER the phase workflow completes: note the end timestamp (endTimestamp = new Date().toISOString()).',
+      '   Compute durationMinutes = (new Date(endTimestamp) - new Date(startTimestamp)) / 60000.',
+      '   Emit a complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit ' + sprintId + " '{event-json}'\`",
       '   conforming to `.forge/schemas/event.schema.json` (role, action="complete", phase, iteration=' + iteration + ',',
-      '   plus your own model/provider/token usage — do NOT invent placeholder model strings).',
+      '   startTimestamp, endTimestamp, durationMinutes, plus your own model/provider/token usage — do NOT invent placeholder model strings).',
       '   If `/cost` data is available, also write the token sidecar via the `--sidecar` form. Best-effort; skip silently if unavailable.',
       '   Then drain any `.forge/cache/FRICTION-*.jsonl` friction records you produced and emit them as type "friction".',
       '',
@@ -158,7 +171,9 @@ function runPhase(taskId, sprintId, phase, iteration) {
           + 'summary (`summaries.' + phase.role + '.verdict`) via set-summary — make sure that write happened. '
           + 'Then resolve it with the canonical tool `node "$FORGE_ROOT/tools/read-verdict.cjs" --phase ' + phase.role + ' --task ' + taskId + '` '
           + '(reads the structured summary, NOT a markdown artifact path). '
-          + 'Map exit code → verdict="approved" (exit 0), "revision" (exit 1), "malformed" (exit 2 = missing/unreadable). NEVER guess.'
+          + 'Route on the STDOUT token the tool prints (approved | revision | n/a | unknown), NOT on the exit code. '
+          + 'Map STDOUT token → verdict: "approved"→"approved", "revision"→"revision", "n/a"→"malformed", "unknown"→"malformed". '
+          + 'The exit code is unreliable (exits 1 for both revision AND missing/n/a). NEVER guess.'
         : '4. NON-REVIEW phase: return verdict="none".',
       '',
       '5. Read `.forge/store/tasks/' + taskId + '.json` and return its final status as taskStatus, plus a one-line note.',
