@@ -43,6 +43,15 @@ export const meta = {
 
 const TERMINAL = ['committed', 'abandoned']           // skip on load (already done)
 const TERMINAL_OK = ['committed', 'abandoned', 'escalated']  // acceptable end-of-dispatch states
+const TERMINAL_OK_SET = new Set(TERMINAL_OK)           // O(1) membership test for resume guard (#17)
+
+// Phase banner map — visual phase identity for log lines (LOW #22).
+// Maps the sprint orchestrator's phases to the persona label used in log output.
+const BANNER_MAP = {
+  'load':    'forge-orchestrator',
+  'execute': 'forge-orchestrator',
+  'collate': 'forge-collator',
+}
 
 const LOAD_SCHEMA = {
   type: 'object',
@@ -193,13 +202,43 @@ async function dispatchTask(sprintId, taskId, mode) {
   const status = child.skipped ? child.taskStatus
     : child.escalated ? 'escalated'
     : (child.finalStatus || 'unknown')
-  const terminal = TERMINAL_OK.includes(status)
+  const terminal = TERMINAL_OK_SET.has(status)
   const note = child.escalationReason
     || (child.skipped ? `skipped (status ${child.taskStatus})` : `pipeline ${status} after ${child.phasesRun ?? '?'} phase(s)`)
 
+  // Gap #17 — Re-spawn/resume guard: 2 attempts before escalating.
+  // Mirrors run_sprint.md §Step 3 lines 105–124: if the first dispatch returns
+  // a non-terminal status (context overflow, mid-pipeline stall), spawn once
+  // more with an explicit resumeFrom instruction before escalating.
   if (!terminal) {
-    log(`⚠ ${taskId} did not reach a terminal state (status: ${status}) — escalating, continuing sprint.`)
+    log(`⚠ ${taskId} did not reach terminal (status: ${status}) — retrying once with resumeFrom hint.`)
+    let child2
+    try {
+      child2 = await workflow('wfl:run-task', { taskId, resumeFrom: status })
+    } catch (err2) {
+      log(`⚠ ${taskId} — retry threw (${err2?.message || err2}) — escalating after 2 attempts.`)
+      return { taskId, status: 'escalated', terminal: false, note: `respawn exhausted (attempt 2 threw): ${err2?.message || err2}` }
+    }
+    if (!child2) {
+      log(`⚠ ${taskId} — retry returned null — escalating after 2 attempts.`)
+      return { taskId, status: 'escalated', terminal: false, note: 'respawn exhausted (attempt 2 returned null)' }
+    }
+    const status2 = child2.skipped ? child2.taskStatus
+      : child2.escalated ? 'escalated'
+      : (child2.finalStatus || 'unknown')
+    const terminal2 = TERMINAL_OK_SET.has(status2)
+    if (!terminal2) {
+      log(`⚠ ${taskId} did not reach terminal after 2 attempts (status: ${status2}) — escalating.`)
+      return { taskId, status: 'escalated', terminal: false, note: `respawn-exhausted after 2 attempts (final status: ${status2})` }
+    }
+    return {
+      taskId,
+      status: status2,
+      terminal: terminal2,
+      note: child2.escalationReason || `resumed from ${status}, completed as ${status2}`,
+    }
   }
+
   return { taskId, status, terminal, note }
 }
 
@@ -258,8 +297,37 @@ await agent(
   { label: `sprint-start:${sprintId}`, phase: 'Execute' }
 )
 
+// LOW #23: transition sprint status → active before the wave loop begins.
+// Mirrors run_sprint.md Step 1: the prose orchestrator calls
+// `store-cli update-status sprint <id> active` right after loading the sprint
+// and before processing any wave. Without this the sprint stays in `planned`
+// status during execution, which misrepresents state in /forge:status output.
+await agent(
+  [
+    `Transition sprint ${sprintId} to active status. Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot, then run:`,
+    `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint ${sprintId} active`,
+    'If the sprint is already active or completed, the command is a no-op — that is fine.',
+    'Return "ok".',
+  ].join(' '),
+  { label: `sprint-active:${sprintId}`, phase: 'Execute' }
+)
+
 // Step 3 — Execute. Parallel within a wave; escalate-don't-halt.
 phase('Execute')
+
+// Gap #15 — Clear the sprint progress log before dispatching any task.
+// Mirrors run_sprint.md §Step 3 "Clear Progress Log at Sprint Start" (lines 73–82).
+// store-cli exits 0 for a missing progress log — idempotent, fire-and-continue.
+await agent(
+  [
+    `Clear the sprint progress log for ${sprintId} before dispatching any task.`,
+    'Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot, then run:',
+    `node "$FORGE_ROOT/tools/store-cli.cjs" progress-clear ${sprintId}`,
+    'Exit 0 for a missing log is expected and fine. Do NOT modify any other store records.',
+  ].join(' '),
+  { label: `progress-clear:${sprintId}`, phase: 'Execute' }
+)
+
 const results = []
 for (let i = 0; i < waves.length; i++) {
   const wave = waves[i]
@@ -267,6 +335,31 @@ for (let i = 0; i < waves.length; i++) {
   const waveResults = await parallel(wave.map(taskId => () => dispatchTask(sprintId, taskId, mode)))
   results.push(...waveResults.filter(Boolean))
 }
+
+// Gap #18-sprint — Sprint-side friction emission after wave loop, before collation.
+// Mirrors run_sprint.md §Iron Laws: "Every failure must produce a visible signal and a
+// structured event." Drains FRICTION-*.jsonl written by sub-agents and emits a
+// type:friction event for any task that never reached terminal after 2 attempts.
+// Fire-and-continue: skip silently if no escalations and no FRICTION-*.jsonl files.
+await agent(
+  [
+    `Sprint ${sprintId} wave loop complete. Drain any queued friction records and emit sprint-level friction events.`,
+    'Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot.',
+    `Escalated task outcomes: ${JSON.stringify(results.filter(r => !r.terminal || r.status === 'escalated').map(r => ({ id: r.taskId, status: r.status, note: r.note })))}.`,
+    '',
+    'Step 1 — For each escalated/non-terminal task listed above, emit a type:friction event:',
+    `  node "$FORGE_ROOT/tools/store-cli.cjs" emit ${sprintId} '{"eventId":"<uuid-v4>","type":"friction","sprintId":"${sprintId}","workflow":"wfl:run-sprint","persona":"orchestrator","issue":"respawn-exhausted","taskId":"<task-id>","startTimestamp":"<ISO-now>","endTimestamp":"<ISO-now>","durationMinutes":0,"model":"<your-model-id>","provider":"anthropic"}'`,
+    '  Replace <uuid-v4>, <task-id>, <ISO-now>, <your-model-id> with actual values.',
+    '',
+    'Step 2 — Drain any .forge/cache/FRICTION-*.jsonl files:',
+    '  For each line in each FRICTION-*.jsonl file, emit the record as a type:friction event via store-cli.',
+    '  After emitting all records from a file, delete the file.',
+    '',
+    'If no escalations occurred AND no FRICTION-*.jsonl files exist, do nothing (skip silently).',
+    'Do NOT modify task or sprint store records.',
+  ].join(' '),
+  { label: `friction-drain:${sprintId}`, phase: 'Execute' }
+)
 
 // Step 4 — Post-sprint collation + report (agent does the I/O + status writes).
 phase('Collate')
@@ -292,6 +385,17 @@ const report = await agent(
     `"waveCount":${waves.length},"maxConcurrency":${mode === 'sequential' ? 1 : waves.reduce((m, w) => Math.max(m, w.length), 1)}}'`,
     'Replace placeholders: <uuid-v4>=UUID v4, <sprint-start-ISO>=sprint start timestamp,',
     '<ISO-now>=current UTC ISO 8601, <elapsed>=minutes elapsed since sprint-start, <your-model-id>=actual model.',
+    // Gap #16 (AC2): rebuild context pack — mirrors collator_agent.md §Algorithm §3.
+    // On exit 1 (architecture dir absent), skip silently.
+    `Then rebuild the context pack: node "$FORGE_ROOT/tools/build-context-pack.cjs" --arch-dir engineering/architecture --out-md .forge/cache/context-pack.md --out-json .forge/cache/context-pack.json`,
+    '(If build-context-pack.cjs exits 1 because the architecture dir is absent, skip silently and continue.)',
+    // Gap #16 (AC3): write WRITEBACK-SUMMARY.json to sprint artifact path.
+    // Use sprint.path from the store read (not a reconstructed template).
+    `Then read the sprint record: node "$FORGE_ROOT/tools/store-cli.cjs" read sprint ${sprintId} --json`,
+    'Extract sprint.path. Write WRITEBACK-SUMMARY.json to that path with this shape:',
+    `{ "objective": "Sprint ${sprintId} collation complete", "key_changes": [<list of committed task ids>], "verdict": "<complete|partial>", "written_at": "<ISO-now>" }`,
+    // Gap #16 (AC4): invoke forge:refresh-kb-links via Skill tool.
+    `Then invoke the forge:refresh-kb-links skill via the Skill tool to refresh KB and workflow links in agent instruction files.`,
     `Return committed/escalated/carriedOver counts and a one-line summary.`,
   ].join(' '),
   { label: `collate:${sprintId}`, phase: 'Collate', schema: COLLATE_SCHEMA }
