@@ -202,19 +202,26 @@ async function dispatchTask(sprintId, taskId, mode) {
   const status = child.skipped ? child.taskStatus
     : child.escalated ? 'escalated'
     : (child.finalStatus || 'unknown')
-  const terminal = TERMINAL_OK_SET.has(status)
+  // A skipped child is terminal-acceptable regardless of taskStatus: the child
+  // deliberately chose not to run the task (e.g. it is `blocked` and waiting on
+  // a dependency, or already `committed`/`abandoned`). Re-dispatching + then
+  // escalating a legitimately blocked task is wrong — leave it as-is to carry
+  // over. Only a genuinely non-terminal *run* (status `unknown`/stalled) retries.
+  const terminal = child.skipped || TERMINAL_OK_SET.has(status)
   const note = child.escalationReason
     || (child.skipped ? `skipped (status ${child.taskStatus})` : `pipeline ${status} after ${child.phasesRun ?? '?'} phase(s)`)
 
-  // Gap #17 — Re-spawn/resume guard: 2 attempts before escalating.
+  // Gap #17 — Re-spawn guard: 2 attempts before escalating.
   // Mirrors run_sprint.md §Step 3 lines 105–124: if the first dispatch returns
-  // a non-terminal status (context overflow, mid-pipeline stall), spawn once
-  // more with an explicit resumeFrom instruction before escalating.
+  // a non-terminal status (context overflow, mid-pipeline stall), re-dispatch
+  // once before escalating. wfl:run-task takes only a task id and resumes from
+  // the task's store state (completed phases are skipped by their pre-flight
+  // gates), so this is a clean re-dispatch — there is no resumeFrom argument.
   if (!terminal) {
-    log(`⚠ ${taskId} did not reach terminal (status: ${status}) — retrying once with resumeFrom hint.`)
+    log(`⚠ ${taskId} did not reach terminal (status: ${status}) — re-dispatching once before escalating.`)
     let child2
     try {
-      child2 = await workflow('wfl:run-task', { taskId, resumeFrom: status })
+      child2 = await workflow('wfl:run-task', { taskId })
     } catch (err2) {
       log(`⚠ ${taskId} — retry threw (${err2?.message || err2}) — escalating after 2 attempts.`)
       return { taskId, status: 'escalated', terminal: false, note: `respawn exhausted (attempt 2 threw): ${err2?.message || err2}` }

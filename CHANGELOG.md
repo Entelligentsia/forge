@@ -5,6 +5,24 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.2.2] — 2026-06-02
+
+### Fixed
+
+Three orchestration-logic edge-case bugs in the packaged JS workflow drivers, found by an adversarial review of the v1.2.1 packaged workflows (all are runtime-only — `node --check` and shape tests can't catch them):
+
+- **`wfl-run-sprint.js` — re-dispatch passed an unhonored `resumeFrom`.** The respawn guard called `workflow('wfl:run-task', { taskId, resumeFrom })`, but `wfl:run-task` parses only the task id, so `resumeFrom` was silently dropped. Removed the misleading arg and corrected the comment/log: the retry is a clean re-dispatch that resumes from the task's store state (completed phases are skipped by their pre-flight gates).
+- **`wfl-run-sprint.js` — `blocked` tasks were force-escalated.** A skipped child (`{skipped, taskStatus}`) was treated as non-terminal unless its status was in `{committed, abandoned, escalated}`, so a legitimately `blocked` task (waiting on a dependency) was re-dispatched and then escalated after two no-op attempts. A skipped child is now terminal-acceptable regardless of `taskStatus`.
+- **`wfl-fix-bug.js` — finalize null-dispatch reported a clean fix.** The finalize dispatch had no null guard, so a skipped/errored finalize (`agent()` returns `null`) fell through `finalizeResult?.escalated` and the run returned `bugStatus:'fixed', escalated:false` even though collate + the finalize gate never ran. It now escalates on a null finalize while preserving `bugStatus:'fixed'` (commit already wrote it).
+
+Added text-contract regression guards in `workflows-js-drift.test.cjs`. Deferred to a follow-up (filed for triage): revision-counter/eventId attribution (`wfl-run-task`), count-bucket taxonomy + `full-parallel` dependency ordering (`wfl-run-sprint`), and two MINORs in `wfl-fix-bug` (`phase('Pipeline')` grouping, `escalateBug` `bugId`).
+
+**Regenerate:** workflows-js:wfl-run-sprint, workflows-js:wfl-fix-bug
+
+> Manual: Run `/forge:update`, then `/forge:rebuild workflows-js` to refresh `.claude/workflows/wfl-run-sprint.js` and `wfl-fix-bug.js`.
+
+---
+
 ## [1.2.1] — 2026-06-02
 
 ### Fixed

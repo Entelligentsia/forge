@@ -132,3 +132,36 @@ describe('workflows-js meta contract — each driver is launchable by the Workfl
     });
   }
 });
+
+// Orchestration-logic regression guards (v1.2.2). These drivers execute on load
+// in the Workflow sandbox, so they can't be unit-imported; these text-contract
+// assertions lock in three confirmed edge-case fixes found in the v1.2.1 review.
+describe('workflows-js orchestration-logic guards', () => {
+  const read = (f) => fs.readFileSync(path.join(BASE_PACK_JS, f), 'utf8');
+
+  // S1 — the sprint retry must NOT pass a `resumeFrom` arg: wfl:run-task parses
+  // only the task id, so resumeFrom was silently dropped (dead/ misleading).
+  it('wfl-run-sprint.js: re-dispatch passes only { taskId } (no unhonored resumeFrom)', () => {
+    const src = read('wfl-run-sprint.js');
+    assert.doesNotMatch(src, /workflow\('wfl:run-task',\s*\{[^}]*resumeFrom/, 'the re-dispatch must not pass resumeFrom — wfl:run-task ignores it; pass only { taskId }');
+  });
+
+  // S2 — a skipped child (e.g. a `blocked` task waiting on a dependency) must be
+  // terminal-acceptable, otherwise it gets re-dispatched and then force-escalated.
+  it('wfl-run-sprint.js: a skipped child counts as terminal (blocked tasks are not force-escalated)', () => {
+    const src = read('wfl-run-sprint.js');
+    assert.match(src, /const terminal\s*=\s*child\.skipped\s*\|\|/, 'terminal must short-circuit on child.skipped so blocked/already-done tasks are not retried+escalated');
+  });
+
+  // F1 — the finalize dispatch must have a null guard, else a skipped/errored
+  // finalize falls through and the run is reported bugStatus:'fixed' (clean)
+  // when collate + the finalize gate never ran.
+  it('wfl-fix-bug.js: finalize dispatch is null-guarded before the escalated check', () => {
+    const src = read('wfl-fix-bug.js');
+    const guardIdx = src.search(/if\s*\(!finalizeResult\)/);
+    const useIdx = src.search(/if\s*\(finalizeResult\?\.escalated\)/);
+    assert.ok(guardIdx !== -1, 'finalize must have a null guard: if (!finalizeResult) … escalate');
+    assert.ok(useIdx !== -1, 'expected the finalizeResult?.escalated check to exist');
+    assert.ok(guardIdx < useIdx, 'the null guard must come BEFORE reading finalizeResult?.escalated, else a null finalize is reported as a clean fix');
+  });
+});

@@ -1,4 +1,18 @@
 {
+  "1.2.1": {
+    "version": "1.2.2",
+    "date": "2026-06-02",
+    "notes": "Fix three orchestration-logic edge-case bugs in the packaged JS workflow drivers (found by an adversarial review of the v1.2.1 packaged workflows). (S1) wfl-run-sprint.js re-dispatch passed { taskId, resumeFrom } but wfl:run-task parses only the task id, so resumeFrom was silently dropped — removed the misleading arg; the retry is a clean re-dispatch that resumes from store state. (S2) wfl-run-sprint.js treated a skipped child as non-terminal, so a legitimately `blocked` task (waiting on a dependency) was re-dispatched and then force-escalated; a skipped child is now terminal-acceptable. (F1) wfl-fix-bug.js had no null guard on the finalize dispatch — a skipped/errored finalize fell through and the run was reported bugStatus:'fixed', escalated:false even though collate + the finalize gate never ran; it now escalates on a null finalize while preserving bugStatus:'fixed'. Added text-contract regression guards in workflows-js-drift.test.cjs. Deferred (tracked for a follow-up): revision-counter/eventId attribution (wfl-run-task), count-bucket taxonomy + full-parallel dependency ordering (wfl-run-sprint), and two MINORs in wfl-fix-bug (phase('Pipeline') grouping, escalateBug bugId).",
+    "target": "workflows-js:wfl-run-sprint",
+    "regenerate": [
+      "workflows-js:wfl-run-sprint",
+      "workflows-js:wfl-fix-bug"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild workflows-js to refresh .claude/workflows/wfl-run-sprint.js and wfl-fix-bug.js."
+    ]
+  },
   "1.2.0": {
     "version": "1.2.1",
     "date": "2026-06-02",

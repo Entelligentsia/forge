@@ -447,6 +447,25 @@ const finalizeResult = await agent(
 
 results.push(finalizeResult)
 
+// Null-dispatch guard: agent() returns null if the finalize subagent is skipped
+// or errors. Without this, `finalizeResult?.escalated` short-circuits to
+// undefined and the driver would fall through and report bugStatus:'fixed',
+// escalated:false — declaring the run clean when finalize (collate + gate)
+// never executed. Every other dispatch in this driver has a null guard; this
+// is the one that was missing. Preserve bugStatus:'fixed' (commit already wrote
+// it) but mark the run escalated so it is not reported green.
+if (!finalizeResult) {
+  await escalateBug(bugId, 'finalize dispatch returned null (subagent skipped or errored)')
+  return {
+    bugId,
+    escalated: true,
+    bugStatus: 'fixed',
+    phasesRun: results.length,
+    results,
+    escalationReason: 'finalize dispatch returned null',
+  }
+}
+
 if (finalizeResult?.escalated) {
   log(`⚠ ${bugId}  finalize — gate failed; bug.status preserved as "fixed"`)
   log(`   Finalize escalation raised but bug commit is complete.`)
