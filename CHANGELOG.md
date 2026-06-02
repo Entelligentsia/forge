@@ -5,6 +5,18 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.1.2] — 2026-06-02
+
+### Fixed
+
+- **`collate.cjs` silently skipped task `INDEX.md` when a task's store `path` pointed at a file.** `resolveTaskDir` Case 1 returned `basename(task.path)` assuming `path` was the task *directory*. For records whose `path` pointed at a file inside the dir (e.g. `.../FORGE-S22-T04/PLAN.md`), it returned `PLAN.md`; the downstream `existsSync(sprintDir/PLAN.md)` check then failed and the task's `INDEX.md` was never written. Symptom: 18 task `INDEX.md` files across FORGE-S22/S23 were missing despite valid store records. Case 1 now verifies its candidate resolves to a real directory on disk and otherwise falls through to the filesystem scan, which resolves the dir by `taskId`. Two regression tests added.
+
+**Regenerate:** tools:collate
+
+> Manual: After `/forge:update`, run `/forge:collate` (or `/forge:rebuild`) to regenerate any task `INDEX.md` files that were previously skipped.
+
+---
+
 ## [1.1.1] — 2026-06-02
 
 ### Changed

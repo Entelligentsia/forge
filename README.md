@@ -311,11 +311,9 @@ publication. Reports are filed as versioned artifacts in
 
 | Version | Date | Report | Summary |
 |---------|------|--------|---------|
+| 1.1.2 | 2026-06-02 | [scan-v1.1.2.md](docs/security/scan-v1.1.2.md) | 407 files — 0 critical, 0 warnings, 1 info — SAFE TO USE |
 | 1.0.4 | 2026-05-30 | [scan-v1.0.4.md](docs/security/scan-v1.0.4.md) | 370 files — 0 critical, 2 warnings, 1 info — SAFE TO USE |
 | 1.0.0 | 2026-05-26 | [scan-v1.0.0.md](docs/security/scan-v1.0.0.md) | 379 files — 0 critical, 3 warnings, 2 info — SAFE TO USE |
-| 0.46.1 | 2026-05-22 | [scan-v0.46.1.md](docs/security/scan-v0.46.1.md) | 320 files — 0 critical, 0 warnings, 3 info — SAFE TO USE |
-| 0.45.0 | 2026-05-21 | [scan-v0.45.0.md](docs/security/scan-v0.45.0.md) | 306 files — 0 critical, 0 warnings, 2 info — SAFE TO USE |
-| 0.44.10 | 2026-05-21 | [scan-v0.44.10.md](docs/security/scan-v0.44.10.md) | 306 files — 0 critical, 0 warnings, 2 info — SAFE TO USE |
 
 [Full scan history →](docs/security/index.md)
 
