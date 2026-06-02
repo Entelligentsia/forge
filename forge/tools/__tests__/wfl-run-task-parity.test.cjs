@@ -296,6 +296,130 @@ describe('wfl-run-task-parity — Gap #14: merge-sidecar invocation + eventId th
   });
 });
 
+describe('wfl-run-task-parity — FORGE-BUG-041: StructuredOutput schema must be object-typed', () => {
+  // The workflow runtime registers the StructuredOutput tool using each agent()
+  // call's `schema` option as the tool's input_schema. The Anthropic API rejects
+  // any tool whose input_schema.type !== 'object' (HTTP 400), so a non-object
+  // top-level schema makes the subagent unable to ever call StructuredOutput,
+  // and the workflow throws after the nudge limit. Guard every inline schema
+  // literal in the source.
+  it('no inline agent() schema literal uses a non-object top-level type', () => {
+    const s = getSrc();
+    const re = /schema:\s*\{\s*type:\s*'([^']+)'/g;
+    const offenders = [];
+    let m;
+    while ((m = re.exec(s)) !== null) {
+      if (m[1] !== 'object') offenders.push(m[1]);
+    }
+    assert.deepEqual(
+      offenders, [],
+      `Found agent() schema literal(s) with non-object top-level type: ${JSON.stringify(offenders)}. ` +
+      `StructuredOutput input_schema.type must be 'object' (or omit the schema for free-text return).`
+    );
+  });
+
+  it("does not contain the broken schema: { type: 'string' } literal", () => {
+    const s = getSrc();
+    assert.ok(
+      !/schema:\s*\{\s*type:\s*'string'\s*\}/.test(s),
+      "Found schema: { type: 'string' } — invalid StructuredOutput input_schema (must be object). " +
+      'See FORGE-BUG-041: this caused every wfl:run-task phase to escalate after the plan phase.'
+    );
+  });
+});
+
+describe('wfl-run-task-parity — LOW #19: emitSkip task_skipped event', () => {
+  it('AC #19a: source contains emitSkip function (task_skipped event helper)', () => {
+    const s = getSrc();
+    assert.ok(
+      s.includes('emitSkip'),
+      'No "emitSkip" found — LOW #19 requires an emitSkip() agent helper for task_skipped events.'
+    );
+  });
+
+  it('AC #19b: emitSkip is called in the SKIP_STATUS pre-task guard', () => {
+    const s = getSrc();
+    // The SKIP_STATUS guard must call emitSkip before returning.
+    const skipGuardStart = s.indexOf('SKIP_STATUS.includes(resolved.taskStatus)');
+    assert.ok(skipGuardStart !== -1, 'No SKIP_STATUS guard found in source.');
+    const guardBody = s.slice(skipGuardStart, skipGuardStart + 400);
+    assert.ok(
+      guardBody.includes('emitSkip'),
+      'emitSkip not called in SKIP_STATUS guard — LOW #19 requires emitSkip before early-return.'
+    );
+  });
+
+  it('AC #19c: emitSkip emits a task-dispatch type event with action skip', () => {
+    const s = getSrc();
+    const emitSkipStart = s.indexOf('function emitSkip(');
+    assert.ok(emitSkipStart !== -1, '"function emitSkip" not found in source.');
+    const emitSkipBody = s.slice(emitSkipStart, emitSkipStart + 800);
+    assert.ok(
+      emitSkipBody.includes('task-dispatch') || emitSkipBody.includes('task_skipped'),
+      'emitSkip() must emit a task-dispatch type event — LOW #19.'
+    );
+    assert.ok(
+      emitSkipBody.includes('"skip"') || emitSkipBody.includes("'skip'") || emitSkipBody.includes('action.*skip'),
+      'emitSkip() must use action:"skip" — LOW #19.'
+    );
+  });
+});
+
+describe('wfl-run-task-parity — LOW #20: writeback in default pipeline', () => {
+  it('AC #20a: resolve-agent prompt includes writeback in hardcoded default pipeline', () => {
+    const s = getSrc();
+    assert.ok(
+      s.includes('writeback'),
+      'No "writeback" found — LOW #20 requires writeback step in the hardcoded default pipeline.'
+    );
+  });
+
+  it('AC #20b: writeback maps to update_implementation.md in role-to-workflow list', () => {
+    const s = getSrc();
+    assert.ok(
+      s.includes('update_implementation.md'),
+      'No "update_implementation.md" found — writeback must map to update_implementation.md per orchestrate_task.md §3.'
+    );
+  });
+});
+
+describe('wfl-run-task-parity — LOW #21: Progress-Monitor IPC structural limitation comment', () => {
+  it('AC #21: source contains structural-limitation comment for Progress-Monitor IPC', () => {
+    const s = getSrc();
+    const hasComment = s.includes('Progress-Monitor') || s.includes('STRUCTURAL LIMITATION') || s.includes('#21');
+    assert.ok(
+      hasComment,
+      'No structural-limitation comment for #21 (Progress-Monitor IPC) found — LOW #21 requires documentation.'
+    );
+  });
+});
+
+describe('wfl-run-task-parity — LOW #22: BANNER_MAP constant', () => {
+  it('AC #22a: source contains BANNER_MAP constant', () => {
+    const s = getSrc();
+    assert.ok(
+      s.includes('BANNER_MAP'),
+      'No "BANNER_MAP" found — LOW #22 requires a BANNER_MAP constant for phase-announcement log identity.'
+    );
+  });
+
+  it('AC #22b: BANNER_MAP contains forge-architect and forge-engineer entries', () => {
+    const s = getSrc();
+    assert.ok(
+      s.includes('forge-architect') && s.includes('forge-engineer'),
+      'BANNER_MAP must contain forge-architect and forge-engineer persona labels — LOW #22.'
+    );
+  });
+
+  it('AC #22c: BANNER_MAP is used in the phase-start log line', () => {
+    const s = getSrc();
+    assert.ok(
+      s.includes('BANNER_MAP[') || s.includes('banner'),
+      'BANNER_MAP not referenced in phase-start log — LOW #22 requires using it in the phase-announcement log.'
+    );
+  });
+});
+
 describe('wfl-run-task-parity — Syntax check', () => {
   it('node --check passes on wfl-run-task.js', () => {
     try {

@@ -53,6 +53,15 @@ export const meta = {
 //   thin port (one agent reading orchestrate_task.md, == wfl:run-sprint.dispatchTask),
 //   which inherits every side-effect for free. Do NOT ship a silently-lossy deep port.
 //
+// #21 STRUCTURAL LIMITATION — Progress-Monitor IPC:
+//   The JS driver has no shell access (Workflow tool sandbox) and therefore CANNOT
+//   write progress lines to a named pipe / Unix socket for the Progress-Monitor.
+//   Wiring real-time progress telemetry to the Forge UI requires the forge-cli TS
+//   layer to open the pipe before spawning the Workflow tool and inject the fd via
+//   the Pi runtime's stdio bridging API — this is a host-layer concern, not a
+//   JS workflow concern. Documenting here so future sprints know where the
+//   architectural seam is. No implementation in this file is possible or correct.
+//
 // MODEL CLUSTER RESOLUTION (Gap #12 — FORGE-S28-T05):
 //   Replaces the old hard-tier dispatch with three-cluster logic matching the prose:
 //   • single cluster (ANTHROPIC_DEFAULT_OPUS_MODEL == ANTHROPIC_DEFAULT_SONNET_MODEL
@@ -162,6 +171,21 @@ function resolveModel(role, phase) {
   const uniqueVals = new Set([opusVar, sonnetVar, haikiVar].filter(Boolean))
   if (uniqueVals.size <= 1) return undefined       // single cluster: inherit parent
   return tier                                       // tiered cluster: pass tier name
+}
+
+// Phase banner map — visual phase identity for log lines (LOW #22).
+// Parallel to ROLE_TO_NOUN: maps each role to the persona banner label shown at
+// phase-announcement time so the transcript log identifies which Forge persona is active.
+// The subagent already gets the full persona-block via ROLE_TO_NOUN; this is display-only.
+const BANNER_MAP = {
+  'plan':        'forge-architect',
+  'review-plan': 'forge-architect',
+  'implement':   'forge-engineer',
+  'review-code': 'forge-engineer',
+  'validate':    'forge-validator',
+  'approve':     'forge-architect',
+  'commit':      'forge-engineer',
+  'writeback':   'forge-engineer',
 }
 
 // Role → persona noun mapping for role-block injection (Gap #8).
@@ -370,6 +394,29 @@ function runPhase(taskId, sprintId, phase, iteration, { firstPhase = false, simp
   )
 }
 
+// --- emit task_skipped event (LOW #19) --------------------------------------
+// When the pre-task status guard finds a SKIP_STATUS, the task is silently
+// skipped. To give the event log a complete picture, emit a task-dispatch event
+// with action:"skip" so downstream collators can account for every task.
+// Pattern: mirrors escalateTask / mergeSidecar agent delegation (JS cannot shell out).
+function emitSkip(taskId, sprintId, taskStatus) {
+  return agent(
+    [
+      `Emit a task_skipped event for Forge task ${taskId} (sprint ${sprintId}).`,
+      `Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot, then run:`,
+      `node "$FORGE_ROOT/tools/store-cli.cjs" emit ${sprintId}`,
+      `'{"type":"task-dispatch","action":"skip","taskId":"${taskId}","sprintId":"${sprintId}",`,
+      `"role":"orchestrator","phase":"pre-task","iteration":0,`,
+      `"notes":"pre-task SKIP_STATUS guard: task status is ${taskStatus}",`,
+      `"startTimestamp":"<ISO-now>","endTimestamp":"<ISO-now>","durationMinutes":0,`,
+      `"model":"<your-model-id>","provider":"anthropic"}'`,
+      'Replace <ISO-now> with the current UTC ISO 8601 timestamp and <your-model-id> with your actual model id.',
+      'Best-effort — if the emit fails, log and continue. Return "ok".',
+    ].join(' '),
+    { label: `skip-event:${taskId}`, phase: 'Resolve', model: resolveModel('commit', {}) }
+  )
+}
+
 // --- escalate from the JS driver (maxIterations exhaustion / null dispatch) --
 // The script can't write the store, so a tiny agent performs the status write + event.
 function escalateTask(taskId, sprintId, reason) {
@@ -395,7 +442,7 @@ function emitRetryEvent(taskId, sprintId, role, iteration, reason) {
       `(fill in eventId, sprintId, startTimestamp, endTimestamp, durationMinutes=0, model, provider from runtime.)`,
       `Return "ok".`,
     ].join(' '),
-    { label: `${taskId}:retry-event:${iteration}`, phase: 'Pipeline', schema: { type: 'string' }, model: resolveModel('commit', {}) }
+    { label: `${taskId}:retry-event:${iteration}`, phase: 'Pipeline', model: resolveModel('commit', {}) }
   )
 }
 
@@ -409,7 +456,7 @@ function mergeSidecar(sprintId, eventId) {
       `node "$FORGE_ROOT/tools/store-cli.cjs" merge-sidecar ${sprintId} ${eventId}`,
       `Best-effort — if the sidecar file does not exist, skip silently. Return "ok".`,
     ].join(' '),
-    { label: `merge-sidecar:${eventId}`, phase: 'Pipeline', schema: { type: 'string' }, model: resolveModel('commit', {}) }
+    { label: `merge-sidecar:${eventId}`, phase: 'Pipeline', model: resolveModel('commit', {}) }
   )
 }
 
@@ -425,9 +472,11 @@ const resolved = await agent(
     `Read \`node "$FORGE_ROOT/tools/store-cli.cjs" read task ${taskId} --json\` for its current status and sprintId.`,
     'Then resolve the phase pipeline EXACTLY as `.forge/workflows/orchestrate_task.md` § Pipeline Resolution prescribes:',
     'if task.pipeline names a key in `.forge/config.json` pipelines, use those phases; otherwise use the default pipeline.',
-    'The hardcoded default is: plan → review-plan → implement → review-code → validate → approve → commit,',
+    // LOW #20: writeback added to hardcoded default pipeline (orchestrate_task.md §3 full default).
+    'The hardcoded default is: plan → review-plan → implement → review-code → validate → approve → writeback → commit,',
     'mapping roles to workflow files: plan→plan_task.md, review-plan→review_plan.md, implement→implement_plan.md,',
-    'review-code→review_code.md, validate→validate_task.md, approve→architect_approve.md, commit→commit_task.md.',
+    'review-code→review_code.md, validate→validate_task.md, approve→architect_approve.md,',
+    'writeback→update_implementation.md, commit→commit_task.md.',
     'maxIterations defaults to 3 for review roles (review-plan, review-code, validate) and 1 otherwise.',
     'Return taskId, sprintId, taskStatus, and the ordered phases[]. Read-only — do NOT modify anything.',
   ].join(' '),
@@ -437,8 +486,10 @@ if (!resolved) throw new Error(`Could not resolve pipeline for task ${taskId}`)
 
 const { sprintId, phases } = resolved
 // Pre-task status guard — orchestrate_task skips already-terminal/blocked tasks.
+// LOW #19: emit task_skipped event so the event log accounts for every task.
 if (SKIP_STATUS.includes(resolved.taskStatus)) {
   log(`⚠ ${taskId} — status is ${resolved.taskStatus}, nothing to run.`)
+  await emitSkip(taskId, sprintId, resolved.taskStatus)
   return { taskId, sprintId, skipped: true, taskStatus: resolved.taskStatus, results: [] }
 }
 log(`Task ${taskId} (sprint ${sprintId}) — ${phases.length} phases: ${phases.map(p => p.role).join(' → ')}`)
@@ -455,13 +506,20 @@ while (i < phases.length) {
   const p = phases[i]
   const iteration = (iterationCounts[p.command] || 0) + 1
   const isFirstPhase = i === 0 && iteration === 1
-  log(`→ ${taskId}  ${p.role} [${resolveModel(p.role, p) || 'inherit'}]  (iteration ${iteration})`)
+  // LOW #22: use BANNER_MAP for phase-announcement log identity.
+  const banner = BANNER_MAP[p.role] || p.role
+  log(`→ ${taskId}  [${banner}]  ${p.role} [${resolveModel(p.role, p) || 'inherit'}]  (iteration ${iteration})`)
 
   // Gap #11: Simplified-retry-prompt — detect empty/whitespace/timeout result.
   // Emit subagent_retry event, then retry with simplified prompt.
   // Gap #14: Compute eventId using _complete suffix (token usage lands on COMPLETE event,
   // not start). Pass eventId into runPhase so subagent uses it for sidecar agreement.
-  const eventId = `${new Date().toISOString().replace(/[:.]/g, '-')}_${taskId}_${p.role}_complete`
+  // Determinism: eventId must NOT read the wall clock — new Date()/Date.now() throw in the
+  // workflow sandbox (breaks resume) and surface as a runtime throw because nested-by-name
+  // workflows aren't statically pre-scanned. A deterministic key unique per
+  // (sprint, task, role, iteration) is sufficient: controller and subagent only need to AGREE
+  // on the same string; event time-ordering comes from payload timestamps the subagent emits.
+  const eventId = `${sprintId}_${taskId}_${p.role}_iter${iteration}_complete`
   let r = await runPhase(taskId, sprintId, p, iteration, { firstPhase: isFirstPhase, eventId })
   const isEmpty = !r || (typeof r === 'string' && !r.trim())
   if (isEmpty) {

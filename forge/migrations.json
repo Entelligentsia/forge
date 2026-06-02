@@ -1,4 +1,30 @@
 {
+  "1.1.0": {
+    "version": "1.1.1",
+    "date": "2026-06-02",
+    "notes": "v1.1.1 — LOW-polish orchestration parity (FORGE-S28-T09). #19: emitSkip() agent helper emits a task-dispatch/action:skip event when the pre-task SKIP_STATUS guard fires, giving the event log a complete accounting of every task. #20: writeback step added to the hardcoded default pipeline prompt in wfl-run-task.js (orchestrate_task.md §3 full default: …approve → writeback → commit, writeback→update_implementation.md). #21: structural-limitation comment documents Progress-Monitor IPC as a host-layer concern (JS driver has no shell access, so the Pi/forge-cli TS layer must open the pipe). #22: BANNER_MAP constants added to both wfl-run-task.js and wfl-run-sprint.js; wfl-run-task phase-start log line now shows the persona label. #23: wfl-run-sprint.js adds an agent step to transition sprint status to 'active' before the wave loop begins, mirroring run_sprint.md Step 1. Also fixes pre-existing forge/package.json test regression (accidental 'dependencies' field removed; placeholder-coverage no-npm test passes).",
+    "target": "workflows-js:wfl-run-task",
+    "regenerate": [
+      "workflows-js:wfl-run-task",
+      "workflows-js:wfl-run-sprint"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update to receive the updated JS workflow orchestrators.",
+      "After update, run /forge:rebuild workflows-js to regenerate .claude/workflows/wfl-*.js in your project."
+    ]
+  },
+  "1.0.11": {
+    "version": "1.1.0",
+    "date": "2026-06-02",
+    "notes": "v1.1.0 — (1) New rebuild/update surface for the JS orchestration workflows: workflows-js is now a first-class /forge:rebuild category (verbatim copy of .claude/workflows/*.js from base-pack, no LLM/placeholder substitution) and a recognised /forge:update regenerate target; build-manifest.cjs declares a workflows-js namespace so /forge:health and check-structure cover .claude/workflows/*.js. Previously these files were materialised only at /forge:init and had no regeneration path. (2) Fix FORGE-BUG-041: wfl-run-task.js emitRetryEvent/mergeSidecar passed schema:{type:'string'} to agent(), an invalid StructuredOutput input_schema (Anthropic requires type:'object'); the subagent could never call StructuredOutput so the workflow threw after the nudge limit — every wfl:run-task task escalated immediately after its plan phase. Dropped the invalid schema option from both calls. With (1) in place, /forge:update now auto-delivers this fix via the workflows-js:wfl-run-task regenerate target.",
+    "target": "workflows-js:wfl-run-task",
+    "regenerate": [
+      "workflows-js:wfl-run-task"
+    ],
+    "breaking": false,
+    "manual": []
+  },
   "1.0.10": {
     "version": "1.0.11",
     "date": "2026-05-31",

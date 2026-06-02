@@ -116,6 +116,20 @@ describe('build-manifest.cjs — mapping tables', () => {
     );
   });
 
+  test('workflows-js namespace in generated structure-manifest.json mirrors base-pack/workflows-js/*.js (FORGE-S28 — workflows-js rebuild wiring)', () => {
+    const manifestPath = path.join(__dirname, '..', '..', 'schemas', 'structure-manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const ns = manifest.namespaces['workflows-js'];
+    assert.ok(ns, 'structure-manifest.json must declare a "workflows-js" namespace');
+    assert.equal(ns.dir, '.claude/workflows', 'workflows-js namespace dir must be .claude/workflows');
+    const jsDir = path.join(__dirname, '..', '..', 'init', 'base-pack', 'workflows-js');
+    const expected = fs.readdirSync(jsDir).filter((f) => f.endsWith('.js')).sort();
+    assert.deepEqual(
+      ns.files, expected,
+      'workflows-js namespace files must mirror base-pack/workflows-js/*.js exactly (dynamic enumeration)'
+    );
+  });
+
   test('all source files referenced in PERSONA_MAP exist in forge/meta/personas/', () => {
     const dir = path.join(__dirname, '..', '..', 'meta', 'personas');
     for (const [src] of PERSONA_MAP) {

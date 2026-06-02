@@ -84,6 +84,9 @@ with a colon delimiter (both forms are equivalent).
 /forge:rebuild workflows plan_task          # single workflow file only
 /forge:rebuild workflows:plan_task          # same — colon form (from migration entries)
 /forge:rebuild workflows sprint_plan        # single workflow file only
+/forge:rebuild workflows-js                  # .claude/workflows/ JS orchestration workflows (verbatim copy)
+/forge:rebuild workflows-js wfl-run-task     # single JS workflow file only
+/forge:rebuild workflows-js:wfl-run-task     # same — colon form (from migration entries)
 /forge:rebuild commands                     # .claude/commands/ slash command wrappers
 /forge:rebuild templates                    # document templates only
 /forge:rebuild templates PLAN_TEMPLATE      # single template file only
@@ -355,6 +358,57 @@ write, record hash.
 
 ---
 
+## Category: `workflows-js` — verbatim copy (full or single file)
+
+Re-materialise the JS orchestration workflows in `.claude/workflows/` from the
+plugin base-pack. Unlike the `workflows` category (LLM-generated `.forge/`
+markdown with placeholder substitution and KB enrichment), the
+`workflows-js` files are **deterministic verbatim copies** from
+`$FORGE_ROOT/init/base-pack/workflows-js/` — no LLM, no placeholder
+substitution, no enrichment. The output is byte-identical to the base-pack
+source (enforced by `workflows-js-drift.test.cjs`), so this category mirrors
+the `workflows:_fragments` copy pattern, not the generation pattern.
+
+Render a badge, then proceed:
+
+```sh
+node "$FORGE_ROOT/tools/banners.cjs" --badge ember
+```
+
+**If a sub-target is provided** (e.g. `/forge:rebuild workflows-js wfl-run-task`
+or the colon form `workflows-js:wfl-run-task`), copy only the single file. The
+sub-target may be given with or without the `.js` extension; normalise to
+`<sub-target>.js`.
+
+1. Verify `$FORGE_ROOT/init/base-pack/workflows-js/<sub-target>.js` exists. If
+   not, list the available files and exit cleanly.
+2. Ensure `.claude/workflows/` exists (create if absent).
+3. Copy verbatim (no substitution) to `.claude/workflows/<sub-target>.js`.
+4. Record a manifest hash:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record .claude/workflows/<sub-target>.js
+   ```
+5. Emit `  〇 workflows-js:<sub-target> — copied`.
+
+**If no sub-target** — full copy, directory fan-out:
+
+1. Enumerate all `.js` files in `$FORGE_ROOT/init/base-pack/workflows-js/`.
+   Let `N` = the count.
+2. Emit: `Copying workflows-js (<N> files)...`
+3. Ensure `.claude/workflows/` exists (create if absent).
+4. For each file, copy verbatim to `.claude/workflows/<filename>`, then record
+   a manifest hash:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record .claude/workflows/<filename>
+   ```
+5. Emit `  〇 workflows-js — <N> files copied`.
+
+> **Note:** Only the base-pack-sourced JS workflows (`wfl-*.js`) are written.
+> Custom or project-specific files in `.claude/workflows/` are never
+> overwritten or deleted. Verify with `ls .claude/workflows/`.
+
+---
+
 ## Category: `commands` — full rebuild
 
 Re-generate `.claude/commands/` slash command wrappers from the current
@@ -549,7 +603,7 @@ are not yet represented in review checklist items.
 
 ## Default (no argument)
 
-Run all five categories respecting dependencies — with maximum parallelism:
+Run all categories respecting dependencies — with maximum parallelism:
 
 1. **Build brief** (once, synchronous):
    ```sh
@@ -572,8 +626,14 @@ Run all five categories respecting dependencies — with maximum parallelism:
    Spawn orchestration and commands subagents in a **SINGLE Agent tool message**.
    Wait for both.
 
-This runs in 4 serial steps instead of 5 sequential category passes, with all
-fan-outs parallelised within each step.
+5. **workflows-js** (deterministic verbatim copy — no LLM, independent):
+   Run the `workflows-js` category (full copy) as described above: copy every
+   `.js` file from `$FORGE_ROOT/init/base-pack/workflows-js/` into
+   `.claude/workflows/` and record manifest hashes. This step has no
+   dependencies and can run alongside step 4.
+
+This runs in a handful of serial steps instead of sequential per-category
+passes, with all fan-outs parallelised within each step.
 
 ## Flag: `--enrich`
 

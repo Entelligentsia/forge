@@ -387,6 +387,30 @@ describe('validateManifest', () => {
     assert.equal(result.basePackOnly.length, 0);
   });
 
+  test('maps the workflows-js namespace to init/base-pack/workflows-js (FORGE-S28 — workflows-js rebuild wiring)', () => {
+    tmpDir = createTempProject({
+      'init/base-pack/workflows-js/wfl-run-task.js': '// run-task',
+      'init/base-pack/workflows-js/wfl-run-sprint.js': '// run-sprint',
+    });
+
+    const manifest = {
+      namespaces: {
+        'workflows-js': {
+          logicalKey: 'workflows-js',
+          dir: '.claude/workflows',
+          files: ['wfl-run-task.js', 'wfl-run-sprint.js', 'missing-wfl.js'],
+        },
+      },
+    };
+
+    const result = validateManifest(manifest, tmpDir);
+    // If workflows-js is mapped, the missing manifest entry is detected.
+    // If it is silently skipped (no nsToSourceDir entry), manifestOnly is empty.
+    assert.equal(result.manifestOnly.length, 1, 'workflows-js namespace must be validated, not skipped');
+    assert.equal(result.manifestOnly[0].filename, 'missing-wfl.js');
+    assert.equal(result.basePackOnly.length, 0);
+  });
+
   test('detects files in base-pack but absent from manifest', () => {
     tmpDir = createTempProject({
       'init/base-pack/workflows/plan_task.md': '# plan',

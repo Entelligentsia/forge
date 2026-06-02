@@ -5,6 +5,45 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.1.1] — 2026-06-02
+
+### Changed
+
+- **`wfl-run-task.js` LOW-polish orchestration parity (FORGE-S28-T09).** Five low-severity gaps addressed:
+  - **#19 `task_skipped` event.** `emitSkip()` agent helper added. When the pre-task SKIP_STATUS guard fires (task is `blocked`, `escalated`, `committed`, or `abandoned`), the driver now emits a `task-dispatch/action:skip` event so downstream collators have a complete per-task accounting.
+  - **#20 `writeback` in default pipeline.** The hardcoded default pipeline prompt in the resolve-agent now includes `writeback` (mapping to `update_implementation.md`) between `approve` and `commit`, matching the full `orchestrate_task.md §3` default.
+  - **#21 Progress-Monitor IPC documented as structural limitation.** A comment in the `SIDE-EFFECT OWNERSHIP` section explains that IPC with a Progress-Monitor is a host-layer concern (the Pi/forge-cli TS layer must open the pipe before spawning the Workflow tool); no implementation in the JS driver is possible or correct.
+  - **#22 `BANNER_MAP` constant.** Both `wfl-run-task.js` and `wfl-run-sprint.js` gain a `BANNER_MAP` constant mapping roles/phases to persona banner labels. The `wfl-run-task` phase-start log line now emits `[forge-architect]` / `[forge-engineer]` / `[forge-validator]` for visual phase identity.
+  - **#24 already complete** — orchestrator-side eventId composition was wired in T05 (Gap #14). No further change.
+
+- **`wfl-run-sprint.js` LOW-polish orchestration parity (FORGE-S28-T09).**
+  - **#22 `BANNER_MAP` constant** — as above.
+  - **#23 sprint→`active` before wave loop.** An agent step is added between the sprint-start event and `phase('Execute')` to call `store-cli update-status sprint <id> active`, mirroring `run_sprint.md Step 1`. Without this the sprint stayed in `planned` status during execution.
+
+### Fixed
+
+- **`forge/package.json` no-npm-packages test regression.** An accidental `"dependencies"` field referencing a local `@entelligentsia/forgecli` tgz had been left in `forge/package.json`, causing one failing test in the `placeholder-coverage` suite. Removed.
+
+**Regenerate:** `workflows-js:wfl-run-task`, `workflows-js:wfl-run-sprint`
+
+> Manual: run `/forge:update` then `/forge:rebuild workflows-js` to refresh `.claude/workflows/wfl-*.js`.
+
+---
+
+## [1.1.0] — 2026-06-02
+
+### Added
+
+- **`workflows-js` is now a first-class rebuild/update target.** The JS orchestration workflows under `.claude/workflows/` (`wfl-run-task.js`, `wfl-run-sprint.js`, `wfl-fix-bug.js`) are verbatim copies from the plugin base-pack, but were previously materialized **only** at `/forge:init` time — there was no `/forge:rebuild` or `/forge:update` path to refresh them, so fixes to a base-pack JS workflow could not reach existing installs. `/forge:rebuild workflows-js` (and the granular `workflows-js:wfl-run-task` sub-target) now performs a deterministic verbatim copy + manifest record, `/forge:update` recognises `workflows-js` as a regenerate target, and `build-manifest.cjs` declares a `workflows-js` namespace so `/forge:health` / `check-structure` cover these files. Modeled on the existing `workflows:_fragments` verbatim-copy pattern — no LLM, no placeholder substitution.
+
+  **Regenerate:** `workflows-js:wfl-run-task`
+
+### Fixed
+
+- **FORGE-BUG-041 — `wfl-run-task.js` registered an invalid `StructuredOutput` schema, escalating every task.** `emitRetryEvent` and `mergeSidecar` passed `schema: { type: 'string' }` to `agent()`. The workflow runtime registers the `StructuredOutput` tool using that schema as its `input_schema`, but the Anthropic API rejects any tool whose `input_schema.type` is not `'object'` (HTTP 400). The subagent could therefore never call `StructuredOutput`, and the workflow threw after the nudge limit. Because `mergeSidecar` runs after every phase's complete event, each `wfl:run-task` task succeeded its plan phase then died at the post-phase sidecar merge — so every task in a `wfl:run-sprint` run escalated immediately after planning. Fixed by dropping the invalid `schema` option from both calls (their return value is discarded; this matches the sibling schemaless task-dispatch emit agent). Added a regression guard to `wfl-run-task-parity.test.cjs`. The `workflows-js` rebuild wiring above lets `/forge:update` auto-deliver this fix to existing installs.
+
+---
+
 ## [1.0.11] — 2026-05-31
 
 ### Added
