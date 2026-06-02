@@ -55,8 +55,10 @@
         "task-approved",
         "task-validated",
         "task-committed",
+        "sprint-start",
         "sprint-complete",
         "sprint-halted",
+        "task-dispatch",
         "bug-fixed",
 
         "bug-triaged", "fix-planned", "fix-review-passed", "fix-review-failed",
@@ -134,6 +136,20 @@
         "required": ["type"]
       },
       "then": { "required": ["bugId", "phase", "iteration"] }
+    },
+    {
+      "if": { "properties": { "type": { "const": "sprint-start" } }, "required": ["type"] },
+      "then": {
+        "required": [
+          "eventId", "sprintId", "role", "action",
+          "startTimestamp", "endTimestamp", "durationMinutes",
+          "model", "provider",
+          "taskCount"
+        ],
+        "properties": {
+          "taskCount": { "type": "integer", "minimum": 0 }
+        }
+      }
     },
     {
       "if": { "properties": { "type": { "const": "sprint-complete" } }, "required": ["type"] },

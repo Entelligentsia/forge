@@ -171,4 +171,45 @@ describe('event.schema.json — sprint event variants (Plan 12)', () => {
       `expected enum error on type, got: ${JSON.stringify(errors)}`);
   });
 
+  // FORGE-S28-T03: Cases 8 & 9 — sprint-start and task-dispatch schema validation (AC5, AC6)
+  test('valid sprint-start event passes schema validation (AC5)', () => {
+    const ev = {
+      eventId:         '20260602T030000000Z_ACME-S28_orchestrator_sprint-start',
+      sprintId:        'ACME-S28',
+      role:            'orchestrator',
+      action:          'sprint-start',
+      type:            'sprint-start',
+      startTimestamp:  '2026-06-02T03:00:00Z',
+      endTimestamp:    '2026-06-02T03:00:00Z',
+      durationMinutes: 0,
+      model:           'claude-sonnet-4-6',
+      provider:        'anthropic',
+      taskCount:       5,
+    };
+    const errors = validateRecord(ev, eventSchema);
+    assert.deepEqual(errors, [],
+      `expected no errors for sprint-start event, got: ${JSON.stringify(errors, null, 2)}`);
+  });
+
+  test('valid task-dispatch event passes schema validation (AC5)', () => {
+    const ev = {
+      eventId:         '20260602T030100000Z_ACME-S28-T01_orchestrator_task-dispatch',
+      sprintId:        'ACME-S28',
+      taskId:          'ACME-S28-T01',
+      role:            'orchestrator',
+      action:          'task-dispatch',
+      type:            'task-dispatch',
+      phase:           'dispatch',
+      iteration:       1,
+      startTimestamp:  '2026-06-02T03:01:00Z',
+      endTimestamp:    '2026-06-02T03:01:00Z',
+      durationMinutes: 0,
+      model:           'claude-sonnet-4-6',
+      provider:        'anthropic',
+    };
+    const errors = validateRecord(ev, eventSchema);
+    assert.deepEqual(errors, [],
+      `expected no errors for task-dispatch event, got: ${JSON.stringify(errors, null, 2)}`);
+  });
+
 });

@@ -113,7 +113,46 @@ function computeWaves(tasks) {
 // escalation. We normalise its return into the {taskId, status, terminal, note}
 // shape the collation step expects, and apply escalate-don't-halt at the sprint
 // grain: a task that escalates is logged and the sprint continues.
-async function dispatchTask(sprintId, taskId) {
+async function dispatchTask(sprintId, taskId, mode) {
+  // Gap #4 (AC3): emit task-dispatch event before invoking wfl:run-task.
+  await agent(
+    [
+      `Emit a task-dispatch event for task ${taskId} in sprint ${sprintId}.`,
+      'Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot, then run:',
+      `node "$FORGE_ROOT/tools/store-cli.cjs" emit ${sprintId}`,
+      `'{"eventId":"<uuid-v4>","type":"task-dispatch","taskId":"${taskId}","sprintId":"${sprintId}",`,
+      `"role":"orchestrator","action":"task-dispatch","phase":"dispatch","iteration":1,`,
+      `"startTimestamp":"<ISO-now>","endTimestamp":"<ISO-now>","durationMinutes":0,`,
+      `"model":"<your-model-id>","provider":"anthropic"}'`,
+      'Replace <uuid-v4> with a UUID v4 string (e.g. crypto.randomUUID()), <ISO-now> with the',
+      'current UTC ISO 8601 timestamp, and <your-model-id> with the actual model you are using.',
+      'Do NOT modify any other store records.',
+    ].join(' '),
+    { label: `task-dispatch:${taskId}`, phase: 'Execute' }
+  )
+
+  // Gap #3 (AC1): worktree isolation — documented-latent stub.
+  // Sequential mode: skip worktree ops (no parallel file-system contention).
+  // wave-parallel / full-parallel: bracket dispatch with per-task worktree lifecycle.
+  // DISPOSITION: implemented as documented-latent for FORGE-S28 (sequential mode only).
+  // When parallel modes are exercised in a future sprint, remove the sequential guard
+  // and promote these agent calls to full implementation with conflict-escalation logic.
+  let worktreeActive = false
+  if (mode !== 'sequential') {
+    // Pre-dispatch: create an isolated worktree for this task.
+    await agent(
+      [
+        `Create a git worktree for task ${taskId} to isolate parallel pipeline I/O.`,
+        'Resolve FORGE_ROOT from .forge/config.json, then run:',
+        `git worktree add ../worktrees/${taskId} HEAD`,
+        'Assert exit 0; if the command fails, log the error and escalate (do NOT halt the sprint).',
+        'Return { ok: true } on success or { ok: false, error: "<msg>" } on failure.',
+      ].join(' '),
+      { label: `worktree-add:${taskId}`, phase: 'Execute' }
+    )
+    worktreeActive = true
+  }
+
   let child
   try {
     // workflow() runs the child inline (shared concurrency cap, agent counter,
@@ -122,8 +161,29 @@ async function dispatchTask(sprintId, taskId) {
     child = await workflow('wfl:run-task', { taskId })
   } catch (err) {
     log(`⚠ ${taskId} — wfl:run-task threw (${err?.message || err}) — escalating, continuing sprint.`)
+    if (worktreeActive) {
+      // Teardown worktree even on error (try/finally equivalent).
+      await agent(
+        `Remove the git worktree for task ${taskId} after pipeline error. Run: git worktree remove --force ../worktrees/${taskId}`,
+        { label: `worktree-remove:${taskId}`, phase: 'Execute' }
+      )
+    }
     return { taskId, status: 'escalated', terminal: false, note: `wfl:run-task threw: ${err?.message || err}` }
   }
+
+  if (worktreeActive) {
+    // Post-dispatch: rebase and remove worktree.
+    await agent(
+      [
+        `Merge results from task ${taskId} worktree back to main and remove the worktree.`,
+        `Run: git -C ../worktrees/${taskId} rebase origin/main`,
+        '(If rebase conflicts: log and escalate — do NOT halt.)',
+        `Then run: git worktree remove --force ../worktrees/${taskId}`,
+      ].join(' '),
+      { label: `worktree-remove:${taskId}`, phase: 'Execute' }
+    )
+  }
+
   if (!child) {
     return { taskId, status: 'unknown', terminal: false, note: 'wfl:run-task returned null (skipped/errored)' }
   }
@@ -181,13 +241,30 @@ else if (mode === 'sequential') waves = allWaves.flat().map(id => [id])
 else waves = allWaves   // wave-parallel
 log(`Dependency plan: ${waves.length} step(s) — ${waves.map(w => `[${w.join(',')}]`).join(' → ')}`)
 
+// Gap #4 (AC2): emit sprint-start event before the wave loop begins.
+await agent(
+  [
+    `Emit a sprint-start event for sprint ${sprintId}. Resolve FORGE_ROOT from .forge/config.json`,
+    'paths.forgeRoot, then run:',
+    `node "$FORGE_ROOT/tools/store-cli.cjs" emit ${sprintId}`,
+    `'{"eventId":"<uuid-v4>","type":"sprint-start","sprintId":"${sprintId}",`,
+    `"role":"orchestrator","action":"sprint-start",`,
+    `"startTimestamp":"<ISO-now>","endTimestamp":"<ISO-now>","durationMinutes":0,`,
+    `"model":"<your-model-id>","provider":"anthropic","taskCount":${active.length}}'`,
+    'Replace <uuid-v4> with a UUID v4 string, <ISO-now> with the current UTC ISO 8601 timestamp,',
+    'and <your-model-id> with the actual model you are using.',
+    'Do NOT modify any other store records.',
+  ].join(' '),
+  { label: `sprint-start:${sprintId}`, phase: 'Execute' }
+)
+
 // Step 3 — Execute. Parallel within a wave; escalate-don't-halt.
 phase('Execute')
 const results = []
 for (let i = 0; i < waves.length; i++) {
   const wave = waves[i]
   log(`▶ wave ${i + 1}/${waves.length}: ${wave.join(', ')}`)
-  const waveResults = await parallel(wave.map(taskId => () => dispatchTask(sprintId, taskId)))
+  const waveResults = await parallel(wave.map(taskId => () => dispatchTask(sprintId, taskId, mode)))
   results.push(...waveResults.filter(Boolean))
 }
 
@@ -196,12 +273,25 @@ phase('Collate')
 const committed = results.filter(r => r.status === 'committed').length
 const escalated = results.filter(r => r.status === 'escalated' || !r.terminal).length
 const carriedOver = results.filter(r => r.status === 'abandoned').length
+const committedIds = results.filter(r => r.status === 'committed').map(r => r.taskId)
 const report = await agent(
   [
     `All tasks for ${sprintId} have reached a terminal state. Resolve FORGE_ROOT from .forge/config.json and run`,
     '`node "$FORGE_ROOT/tools/collate.cjs"`.',
     `Then set the sprint status: "completed" if all tasks committed, otherwise "partially-completed", via store-cli update-status.`,
     `Per-task outcomes: ${JSON.stringify(results.map(r => ({ id: r.taskId, status: r.status })))}.`,
+    // Gap #4 (AC4): emit sprint-complete event with outcome counts.
+    `Then emit a sprint-complete event via:`,
+    `node "$FORGE_ROOT/tools/store-cli.cjs" emit ${sprintId}`,
+    `'{"eventId":"<uuid-v4>","type":"sprint-complete","sprintId":"${sprintId}",`,
+    `"role":"orchestrator","action":"sprint-complete",`,
+    `"startTimestamp":"<sprint-start-ISO>","endTimestamp":"<ISO-now>","durationMinutes":<elapsed>,`,
+    `"model":"<your-model-id>","provider":"anthropic",`,
+    `"taskCount":${results.length},"completedTaskIds":${JSON.stringify(committedIds)},`,
+    `"verdict":"${committed === results.length ? 'complete' : 'partial'}",`,
+    `"waveCount":${waves.length},"maxConcurrency":${mode === 'sequential' ? 1 : waves.reduce((m, w) => Math.max(m, w.length), 1)}}'`,
+    'Replace placeholders: <uuid-v4>=UUID v4, <sprint-start-ISO>=sprint start timestamp,',
+    '<ISO-now>=current UTC ISO 8601, <elapsed>=minutes elapsed since sprint-start, <your-model-id>=actual model.',
     `Return committed/escalated/carriedOver counts and a one-line summary.`,
   ].join(' '),
   { label: `collate:${sprintId}`, phase: 'Collate', schema: COLLATE_SCHEMA }
