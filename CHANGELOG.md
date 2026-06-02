@@ -5,6 +5,23 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.2.0] — 2026-06-02
+
+### Changed
+
+- **Retired LLM orchestration prose — the JS drivers are the only truth.** The deterministic JS orchestrators (`.claude/workflows/wfl-run-task.js`, `wfl-run-sprint.js`, `wfl-fix-bug.js` — category `workflows-js`) fully replace the prose workflows `orchestrate_task.md`, `run_sprint.md`, and `fix_bug.md`. `/forge:run-task`, `/forge:run-sprint`, and `/forge:fix-bug` already dispatch to them via `workflow(wfl:*)`. The three prose orchestrators are no longer built into the base-pack, no longer generated into `.forge/workflows/`, and no longer tested:
+  - `build-base-pack.cjs` and `build-manifest.cjs` drop the three workflow mappings (`structure-manifest.json` / `enum-catalog.json` regenerated).
+  - `workflow-gen-plan.json` goes 16 → 15 entries (drops `fix_bug`).
+  - The `/forge:rebuild` orchestration-generation step and the `generate-orchestration.md` rulebook are removed; the base-pack `workflows/{orchestrate_task,run_sprint,fix_bug}.md` files are deleted.
+  - The `orchestrators-retired` and `orchestrator-base-pack-parity` drift tests are removed; `base-pack-byte-budget`, `build-base-pack`, `build-manifest`, and `placeholder-coverage` tests updated to the new counts. Only the JS drivers (`wfl-*` tests + `workflows-js-drift`) are tested.
+  - `meta-orchestrate.md` and `meta-fix-bug.md` are **kept in `meta/`** as reference specs only — not built, not generated, not tested.
+
+**Regenerate:** workflows, workflows-js
+
+> Manual: Run `/forge:update` — its `delete-workflow` scan removes the retired `orchestrate_task.md` / `run_sprint.md` / `fix_bug.md` orphans from `.forge/workflows/` (prompting before deleting any you have hand-edited). `/forge:rebuild` only regenerates and clears manifest entries; it does **not** delete files on disk. Orchestration runs through `.claude/workflows/wfl-*.js` — no other action needed.
+
+---
+
 ## [1.1.2] — 2026-06-02
 
 ### Fixed

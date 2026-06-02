@@ -1006,7 +1006,17 @@ engineer_update_implementation.md → renamed to update_implementation.md
 engineer_fix_bug.md          → renamed to fix_bug.md
 supervisor_review_plan.md    → renamed to review_plan.md
 supervisor_review_implementation.md → renamed to review_code.md
+orchestrate_task.md          → retired (v1.2.0); orchestration runs through .claude/workflows/wfl-run-task.js
+run_sprint.md                → retired (v1.2.0); orchestration runs through .claude/workflows/wfl-run-sprint.js
+fix_bug.md                   → retired (v1.2.0); orchestration runs through .claude/workflows/wfl-fix-bug.js
 ```
+
+> **Note:** `orchestrate_task.md` / `run_sprint.md` / `fix_bug.md` are LLM
+> orchestration prose retired in v1.2.0 — they are no longer generated, and the
+> deterministic JS drivers in `.claude/workflows/wfl-*.js` are the only
+> orchestration truth. They are listed here so `/forge:update` removes the
+> orphaned files from `.forge/workflows/` (the `/forge:rebuild` regeneration
+> only clears manifest entries, it does not delete files on disk).
 
 For each found workflow file, check manifest status:
 ```sh

@@ -314,14 +314,14 @@ write, record hash.
      --kb "$(node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo engineering)" \
      --out .forge/init-context.md --json-out .forge/init-context.json
    ```
-2. Read `$FORGE_ROOT/init/workflow-gen-plan.json` (16-entry fan-out table).
+2. Read `$FORGE_ROOT/init/workflow-gen-plan.json` (15-entry fan-out table).
    Let `M_total` = the entry count.
 
 3. Render the workflows badge, then emit the count:
    ```sh
    node "$FORGE_ROOT/tools/banners.cjs" --badge ember
    ```
-   Then emit: `Generating workflows (<N> atomic + orchestration, parallel)...`
+   Then emit: `Generating workflows (<N> atomic, parallel)...`
 4. Check each file for manual modifications before any clearing:
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/workflows/{filename}.md
@@ -337,22 +337,24 @@ write, record hash.
    `$FORGE_ROOT/init/generation/generate-workflows.md` as the per-subagent rulebook
    (same fan-out pattern as `/forge:init` Phase 7d). Spawn one per entry.
 7. Collect results. Retry failures once in a single Agent call.
-8. Spawn orchestration subagent:
-   ```
-   Read $FORGE_ROOT/init/generation/generate-orchestration.md and follow it.
-   FORGE_ROOT: {FORGE_ROOT}
-   Input: $FORGE_ROOT/meta/workflows/meta-orchestrate.md + .forge/workflows/
-   Output: .forge/workflows/orchestrate_task.md and .forge/workflows/run_sprint.md
-   ```
-9. **Replay user enhancements** (forge#107 / Approach A):
+
+   > **LLM orchestration retired.** `orchestrate_task` / `run_sprint` / `fix_bug`
+   > are no longer generated. The deterministic JS drivers in
+   > `.claude/workflows/wfl-*.js` (category `workflows-js`) are the only
+   > orchestration truth; `/forge:run-task`, `/forge:run-sprint`, and
+   > `/forge:fix-bug` dispatch to them via `workflow(wfl:*)`. The prose specs
+   > `meta-orchestrate.md` / `meta-fix-bug.md` remain in `meta/` as reference
+   > docs only — neither built into the base-pack nor regenerated here.
+
+8. **Replay user enhancements** (forge#107 / Approach A):
    ```sh
    node "$FORGE_ROOT/tools/manage-versions.cjs" replay --target workflows
    ```
    Walks snapshots; restores enhanced `workflows/<name>.md` files. Later
    snapshots win on collision.
-10. For each written file: record hash `node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/workflows/{filename}.md`
+9. For each written file: record hash `node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/workflows/{filename}.md`
     (this runs AFTER replay so the recorded hash reflects the restored content).
-11. Emit `  〇 workflows — <N> files written`.
+10. Emit `  〇 workflows — <N> files written`.
 
 **Do NOT touch:** `.claude/commands/`, `.forge/config.json`, or any knowledge base file.
 

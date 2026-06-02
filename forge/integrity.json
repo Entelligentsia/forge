@@ -1,5 +1,5 @@
 {
-  "version": "1.1.2",
+  "version": "1.2.0",
   "generated": "2026-06-02",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
@@ -11,13 +11,13 @@
     "commands/enhance.md": "d28f6414119e84973809d32900bb7245b51f565aed86112bc7a994bc6941b547",
     "commands/health.md": "29c3e5f9808d996f53a432c4b3aff1c3346d7a40fff54518d8ea2ac2c6ba9d12",
     "commands/init.md": "cf7a70d55f718304820c310465071d3eea9d14a43131623f46b686499f630d4d",
-    "commands/rebuild.md": "995bbc48ae91c3904aa67e50afeffe66aa5805a444584917ffa30f8008b29fdb",
+    "commands/rebuild.md": "72243f659e23609cc166df8f9916982fda5fb5920be767dc8f9d552739e34463",
     "commands/remove.md": "0ca5ec94d52959afaadd74910bd2c81c9872b71c9cc1ce8b89e5af69c06b304f",
     "commands/repair.md": "22e21614eee31ee630ead3f587b0b948b8c537e54ecef3b65e7d819c55c0ebd4",
     "commands/report-bug.md": "af8a54bf8887b35e5c880898dd45783f6c2e80d3dc031d6479a6be613ac43053",
     "commands/search.md": "befc4ba9f3146e7599308b35b95ec315e16895c0c18c9c2bab7549619d79bf1c",
     "commands/status.md": "2fa82a0b11d493918781aec6d95c39411f84fa923662ff3152b6de0cc830d755",
-    "commands/update.md": "d9a12dd5417e601f6a098b6ff4f79e8104fa3825eb445bf616b0f31e89bf5b3b",
+    "commands/update.md": "c1d54b689d603d0b8bd087a256d7998b53d951d2474c0e2a87b25bdbeabf6758",
     "agents/store-query-validator.md": "f4c3573edcf6e28809515705362df611806a805c5269404fb17e31433cf3a81c",
     "agents/tomoshibi.md": "0c1032df80dfc25a4f482b1276965b5318754d95ccde9f24820846d564e49a27",
     "hooks/check-update.cjs": "9607cc0c51bedcbc123f5ea1d7a492916f29ee1f838846eec64776d5df70bbea",
@@ -30,7 +30,7 @@
     "schemas/transitions/bug.json": "27b17da42d1cebffbd4f61ab3dcd432a0017aa71997d548ed80d22c2fc3fad6a",
     "schemas/transitions/sprint.json": "2e0a629396e687b0ca88e1814ac3e35d84533a5d55b25237ab67feddce3c9deb",
     "schemas/transitions/task.json": "4c71849747baa0d585756e57c56325ff6219c078178374e60815dff91e25e3e7",
-    "schemas/enum-catalog.json": "7a9624a6b0a9d288a9bd80c1091d1effe3f11dffb8a91210827f3491a500de46",
+    "schemas/enum-catalog.json": "ce076d94874a233c35f9ea3285bf5fe3ae7779a7fb8a42f9141ef09aeef9a804",
     "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
   }
 }

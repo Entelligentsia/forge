@@ -611,10 +611,12 @@ function buildBasePack({ forgeRoot, outRoot }) {
 
   // ── 3. Workflows ─────────────────────────────────────────────────────────────
   //
-  // Meta-backed (16): all except run_sprint.md and quiz_agent.md
-  //   → transform from meta source
-  // Copy-verbatim from existing base-pack (2):
-  //   - run_sprint.md (null meta source)
+  // Meta-backed: atomic workflows transformed from their meta source.
+  // The LLM orchestration prose (orchestrate_task / run_sprint / fix_bug) is
+  // RETIRED — the deterministic JS drivers (workflows-js/wfl-*.js) are the only
+  // truth. meta-orchestrate.md and meta-fix-bug.md are kept in meta/ as
+  // reference docs only; they are neither built into the base-pack nor tested.
+  // Copy-verbatim from existing base-pack (1):
   //   - quiz_agent.md (deferral — quiz questions need follow-up task)
 
   const META_BACKED_WORKFLOWS = [
@@ -623,10 +625,8 @@ function buildBasePack({ forgeRoot, outRoot }) {
     ['meta-collate.md',                  'collator_agent.md'],
     ['meta-commit.md',                   'commit_task.md'],
     ['meta-enhance.md',                  'enhance.md'],
-    ['meta-fix-bug.md',                  'fix_bug.md'],
     ['meta-implement.md',                'implement_plan.md'],
     ['meta-migrate.md',                  'migrate_structural.md'],
-    ['meta-orchestrate.md',              'orchestrate_task.md'],
     ['meta-plan-task.md',                'plan_task.md'],
     ['meta-retro.md',                    'sprint_retrospective.md'],
     ['meta-review-implementation.md',    'review_code.md'],
@@ -639,7 +639,6 @@ function buildBasePack({ forgeRoot, outRoot }) {
     ['meta-validate.md',                 'validate_task.md'],
   ];
   const COPY_VERBATIM_WORKFLOWS = [
-    'run_sprint.md',
     'quiz_agent.md',
   ];
 
@@ -746,15 +745,15 @@ function buildBasePack({ forgeRoot, outRoot }) {
     'skills/architect-skills.md', 'skills/bug-fixer-skills.md', 'skills/collator-skills.md',
     'skills/engineer-skills.md', 'skills/generic-skills.md', 'skills/librarian-skills.md',
     'skills/qa-engineer-skills.md', 'skills/store-custodian-skills.md', 'skills/supervisor-skills.md',
-    // Workflows (19)
+    // Workflows (17) — LLM orchestration prose retired (orchestrate_task /
+    // run_sprint / fix_bug); JS drivers in workflows-js/ are the only truth.
     'workflows/architect_approve.md', 'workflows/architect_review_sprint_completion.md',
     'workflows/architect_sprint_intake.md', 'workflows/architect_sprint_plan.md',
     'workflows/collator_agent.md', 'workflows/commit_task.md', 'workflows/enhance.md',
-    'workflows/fix_bug.md',
     'workflows/implement_plan.md', 'workflows/migrate_structural.md',
-    'workflows/orchestrate_task.md', 'workflows/plan_task.md',
+    'workflows/plan_task.md',
     'workflows/quiz_agent.md', 'workflows/review_code.md', 'workflows/review_plan.md',
-    'workflows/run_sprint.md', 'workflows/sprint_retrospective.md',
+    'workflows/sprint_retrospective.md',
     'workflows/update_implementation.md', 'workflows/update_plan.md', 'workflows/validate_task.md',
     // Fragments — enumerated dynamically from meta/workflows/_fragments/ to
     // guarantee parity with the source-of-truth set.

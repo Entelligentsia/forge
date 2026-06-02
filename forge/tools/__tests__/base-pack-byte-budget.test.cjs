@@ -1,9 +1,9 @@
 'use strict';
 // base-pack-byte-budget.test.cjs
 // Verifies that base-pack phase workflow files stay within byte budgets and
-// do not contain the five forbidden strings. Prose orchestrator files
-// (orchestrate_task.md, fix_bug.md) are exempt from the byte budget and now
-// carry audience: spec-only (retired from orchestrator-only by FORGE-S28-T08).
+// do not contain the five forbidden strings. The LLM orchestration prose
+// (orchestrate_task / run_sprint / fix_bug) is retired — the JS drivers are the
+// only truth — so the base-pack ships no prose orchestrators to budget.
 
 const assert = require('assert');
 const { describe, it } = require('node:test');
@@ -23,12 +23,6 @@ const PHASE_FILES = [
   'commit_task.md',
   'update_plan.md',
   'update_implementation.md',
-];
-
-// Prose orchestrator files: no byte budget; audience changed to spec-only (FORGE-S28-T08).
-const ORCHESTRATOR_FILES = [
-  'orchestrate_task.md',
-  'fix_bug.md',
 ];
 
 const FORBIDDEN_STRINGS = [
@@ -183,18 +177,6 @@ describe('base-pack-byte-budget — verdict-emitting phase files instruct canoni
   }
 });
 
-describe('base-pack-byte-budget — prose orchestrator files carry audience: spec-only', () => {
-  // After FORGE-S28-T08 retirement, these files are downgraded to parity specs.
-  // The audience field reads "spec-only" to signal they are specifications the
-  // JS wfl:* ports are audited against, not runtime workflow artifacts.
-  for (const file of ORCHESTRATOR_FILES) {
-    it(`${file} has audience: spec-only`, () => {
-      const filePath = path.join(BASE_PACK, file);
-      const content = fs.readFileSync(filePath, 'utf8');
-      assert.ok(
-        content.includes('audience: spec-only'),
-        `${file} missing "audience: spec-only" in frontmatter — expected after FORGE-S28-T08 retirement`
-      );
-    });
-  }
-});
+// LLM orchestration prose (orchestrate_task / run_sprint / fix_bug) is RETIRED —
+// the JS drivers (workflows-js/wfl-*.js) are the only truth. The base-pack no
+// longer ships those prose files, so there is nothing to byte-budget or audit here.

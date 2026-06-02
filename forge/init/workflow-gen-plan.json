@@ -7,7 +7,6 @@
   {"id": "implement_plan",                     "meta": "meta-implement.md",               "persona": "engineer"},
   {"id": "update_plan",                        "meta": "meta-update-plan.md",             "persona": "architect"},
   {"id": "update_implementation",              "meta": "meta-update-implementation.md",   "persona": "engineer"},
-  {"id": "fix_bug",                            "meta": "meta-fix-bug.md",                 "persona": "bug-fixer"},
   {"id": "commit_task",                        "meta": "meta-commit.md",                  "persona": "engineer"},
   {"id": "review_plan",                        "meta": "meta-review-plan.md",             "persona": "supervisor"},
   {"id": "review_code",                        "meta": "meta-review-implementation.md",   "persona": "supervisor"},

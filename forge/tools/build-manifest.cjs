@@ -48,9 +48,7 @@ const WORKFLOW_MAP = [
   ['meta-collate.md',                  'collator_agent.md'],
   ['meta-commit.md',                   'commit_task.md'],
   ['meta-bug-triage.md',               'triage.md'],
-  ['meta-fix-bug.md',                  'fix_bug.md'],
   ['meta-implement.md',                'implement_plan.md'],
-  ['meta-orchestrate.md',              'orchestrate_task.md'],
   ['meta-plan-task.md',                'plan_task.md'],
   ['meta-retro.md',                    'sprint_retrospective.md'],
   ['meta-review-implementation.md',    'review_code.md'],
@@ -63,7 +61,9 @@ const WORKFLOW_MAP = [
   ['meta-validate.md',                 'validate_task.md'],
   ['meta-check-agent.md',              'quiz_agent.md'],
   ['meta-migrate.md',                  'migrate_structural.md'],
-  [null,                               'run_sprint.md'],   // orchestration-generated
+  // LLM orchestration prose (orchestrate_task / run_sprint / fix_bug) retired —
+  // the JS drivers (workflows-js/wfl-*.js) are the only truth. meta-orchestrate.md
+  // and meta-fix-bug.md remain in meta/ as reference docs (not built, not mapped).
 ];
 
 // 4. Fragments — non-standalone reference files shared by multiple workflows.

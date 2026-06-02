@@ -34,8 +34,10 @@ describe('build-manifest.cjs — mapping tables', () => {
     }
   });
 
-  test('WORKFLOW_MAP has 20 entries', () => {
-    assert.equal(WORKFLOW_MAP.length, 20);
+  // 17 entries — LLM orchestration prose (orchestrate_task / run_sprint /
+  // fix_bug) retired; JS drivers (workflows-js/wfl-*.js) are the only truth.
+  test('WORKFLOW_MAP has 17 entries', () => {
+    assert.equal(WORKFLOW_MAP.length, 17);
   });
 
   test('WORKFLOW_MAP contains meta-bug-triage.md → triage.md (FORGE-BUG-040)', () => {

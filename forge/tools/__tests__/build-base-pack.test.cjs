@@ -537,11 +537,14 @@ describe('buildBasePack: validates all expected output files exist', () => {
     assert.equal(files.length, 9, `expected 9 skill files, got ${files.length}: ${files.join(', ')}`);
   });
 
-  test('all 21 workflow files created; fragments mirror meta/workflows/_fragments/', () => {
+  // 18 atomic workflows. The LLM orchestration prose (orchestrate_task /
+  // run_sprint / fix_bug) is retired — the JS drivers (workflows-js/wfl-*.js)
+  // are the only truth, so the base-pack ships no prose orchestrators.
+  test('all 18 workflow files created; fragments mirror meta/workflows/_fragments/', () => {
     mod = mod || require(SCRIPT_PATH);
     const wfDir = path.join(outDir, 'workflows');
     const files = fs.readdirSync(wfDir).filter(f => f.endsWith('.md'));
-    assert.equal(files.length, 21, `expected 21 workflow files, got ${files.length}: ${files.join(', ')}`);
+    assert.equal(files.length, 18, `expected 18 workflow files, got ${files.length}: ${files.join(', ')}`);
 
     // Fragments must achieve parity with meta source — no hardcoded allowlist.
     // Previously the base-pack omitted store-cli-verbs.md and friction-emit.md
