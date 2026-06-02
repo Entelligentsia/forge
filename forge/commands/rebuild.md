@@ -87,6 +87,9 @@ with a colon delimiter (both forms are equivalent).
 /forge:rebuild workflows-js                  # .claude/workflows/ JS orchestration workflows (verbatim copy)
 /forge:rebuild workflows-js wfl-run-task     # single JS workflow file only
 /forge:rebuild workflows-js:wfl-run-task     # same — colon form (from migration entries)
+/forge:rebuild tools                        # .forge/tools/ verbatim re-copy from $FORGE_ROOT/tools/
+/forge:rebuild tools store-cli              # single tool file only (name with or without .cjs)
+/forge:rebuild tools:store-cli              # same — colon form (from migration entries)
 /forge:rebuild commands                     # .claude/commands/ slash command wrappers
 /forge:rebuild templates                    # document templates only
 /forge:rebuild templates PLAN_TEMPLATE      # single template file only
@@ -408,6 +411,59 @@ sub-target may be given with or without the `.js` extension; normalise to
 > **Note:** Only the base-pack-sourced JS workflows (`wfl-*.js`) are written.
 > Custom or project-specific files in `.claude/workflows/` are never
 > overwritten or deleted. Verify with `ls .claude/workflows/`.
+
+---
+
+## Category: `tools` — verbatim copy (full or single file)
+
+Re-materialise the vendored plugin tools in `.forge/tools/` from the installed
+plugin. Unlike workflow and persona categories (LLM-generated with placeholder
+substitution), tools files are **deterministic verbatim copies** from
+`$FORGE_ROOT/tools/` — no LLM, no substitution, no enrichment. The output is
+byte-identical to the plugin source.
+
+**If a sub-target is provided** (e.g. `/forge:rebuild tools store-cli`
+or the colon form `tools:store-cli`), copy only the single file. The sub-target
+may be given with or without the `.cjs` extension; normalise to `<sub-target>.cjs`.
+Sub-targets in the `lib/` namespace may be specified with the `lib/` prefix
+(e.g. `tools:lib/schema-loader` or `tools:lib/schema-loader.cjs`).
+
+**Single-file steps:**
+
+1. Resolve the source path: if the sub-target starts with `lib/`, look in
+   `$FORGE_ROOT/tools/lib/<name>.cjs`; otherwise look in `$FORGE_ROOT/tools/<name>.cjs`.
+   If the source does not exist, list the available files and exit cleanly.
+2. Ensure the target directory exists (`.forge/tools/` or `.forge/tools/lib/`).
+3. Copy verbatim to the resolved `.forge/tools/` path.
+4. Record a manifest hash:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/tools/<sub-target>.cjs
+   ```
+5. Emit `  〇 tools:<sub-target> — copied`.
+
+**If no sub-target** — full re-copy, directory fan-out:
+
+1. Enumerate all `*.cjs` files in `$FORGE_ROOT/tools/` (top-level only, exclude
+   `*.test.cjs`). Let `N_top` = the count.
+   Enumerate all `*.cjs` files in `$FORGE_ROOT/tools/lib/` (exclude `*.test.cjs`).
+   Let `N_lib` = the count.
+2. Emit: `Copying tools (<N_top> tool files + <N_lib> lib files)...`
+3. Ensure `.forge/tools/` and `.forge/tools/lib/` exist (create if absent).
+4. For each top-level file, copy verbatim to `.forge/tools/<filename>`, then
+   record a manifest hash:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/tools/<filename>
+   ```
+5. For each lib file, copy verbatim to `.forge/tools/lib/<filename>`, then
+   record a manifest hash:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/tools/lib/<filename>
+   ```
+6. Emit `  〇 tools — <N_top + N_lib> files copied`.
+
+> **Note:** This is a full re-copy of the plugin tools at the installed
+> `$FORGE_ROOT` version. Use `/forge:rebuild tools` after `/forge:update` to
+> refresh `.forge/tools/` to the new plugin version.
 
 ---
 

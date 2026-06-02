@@ -31,8 +31,8 @@ Break sprint requirements into a set of estimated tasks with a dependency graph.
 1. Load Context:
    - Query the store to orient on current project state before reading docs:
      ```sh
-     node "$FORGE_ROOT/tools/store-cli.cjs" nlp "latest sprint"
-     node "$FORGE_ROOT/tools/store-cli.cjs" nlp "open bugs"
+     node .forge/tools/store-cli.cjs nlp "latest sprint"
+     node .forge/tools/store-cli.cjs nlp "open bugs"
      ```
      Use results (titles, statuses, excerpts, file refs) to skip manual MASTER_INDEX.md navigation where sufficient.
    - Read SPRINT_REQUIREMENTS.md
@@ -52,11 +52,11 @@ Break sprint requirements into a set of estimated tasks with a dependency graph.
 
 4. Documentation:
    - Write SPRINT_PLAN.md to `engineering/sprints/{sprintId}/SPRINT_PLAN.md`
-   - Create each task via `node "$FORGE_ROOT/tools/store-cli.cjs" write task '{task-json}'`.
+   - Create each task via `node .forge/tools/store-cli.cjs write task '{task-json}'`.
      If the command exits non-zero or the PreToolUse hook blocks the write:
      parse the error, correct the JSON, and retry (see Store-Write Verification).
      Do not proceed to the next task until this write succeeds.
-   - Update the sprint record with all new task IDs via `node "$FORGE_ROOT/tools/store-cli.cjs" write sprint '{updated-sprint-json}'` (the sprint JSON must include the complete `taskIds` array with all newly created task IDs).
+   - Update the sprint record with all new task IDs via `node .forge/tools/store-cli.cjs write sprint '{updated-sprint-json}'` (the sprint JSON must include the complete `taskIds` array with all newly created task IDs).
      If the command exits non-zero or the PreToolUse hook blocks the write:
      parse the error, correct the JSON, and retry (see Store-Write Verification).
      Do not proceed until this write succeeds.
@@ -64,7 +64,7 @@ Break sprint requirements into a set of estimated tasks with a dependency graph.
      * Folder: `engineering/sprints/{sprintId}/{taskId}/`
      * File: `TASK_PROMPT.md` — populate from `.forge/templates/TASK_PROMPT_TEMPLATE.md`
        filling in title, objective, acceptance criteria, entities, DSL/CLI changes, and operational impact
-   - Update sprint status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status active`.
+   - Update sprint status via `node .forge/tools/store-cli.cjs update-status sprint {sprintId} status active`.
      If the command exits non-zero, parse the error and retry
      (see Store-Write Verification). Do not proceed until this write succeeds.
 
@@ -141,7 +141,7 @@ environment variable is reserved for emergency operator repair only.
      - Set token fields to `null`: `"inputTokens": null, "outputTokens": null, "estimatedCostUSD": null`.
      - Add `"source": "missing"` to sidecar JSON.
      - Log: "Token data unavailable (cost probe failed). Backfill later via estimate-usage.cjs."
-  4. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar`.
+  4. Write the usage sidecar via `node .forge/tools/store-cli.cjs emit {sprintId} '{sidecar-json}' --sidecar`.
   5. **NEVER skip sidecar write.** Always emit (reported or placeholder with nulls).
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.
 - **Store-Write Verification:** The generated workflow MUST include the "Store-Write

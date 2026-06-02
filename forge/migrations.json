@@ -1,4 +1,26 @@
 {
+  "1.2.4": {
+    "version": "1.2.5",
+    "date": "2026-06-02",
+    "notes": "Rewrite all ~159 node \"$FORGE_ROOT/tools/X.cjs\" call-sites in meta/workflows/*.md, meta/workflows/_fragments/*.md, and wfl-*.js drivers to use the fixed project-relative form node .forge/tools/X.cjs. Delete the FORGE_ROOT export preamble from all three JS drivers (wfl-run-task.js, wfl-run-sprint.js, wfl-fix-bug.js). Tools are now vendored in .forge/tools/ (added in v1.2.4), so no subagent needs to resolve a plugin root path at runtime. Drift test guard updated: asserts no $FORGE_ROOT remains in any driver source. Existing projects must regenerate workflows and workflows-js to pick up the new paths.",
+    "target": "workflows:*",
+    "regenerate": ["workflows", "workflows-js"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then run /forge:rebuild tools (if not done in v1.2.4 step), then /forge:rebuild workflows and /forge:rebuild workflows-js. Tools must be vendored in .forge/tools/ before running the rewritten workflows."
+    ]
+  },
+  "1.2.3": {
+    "version": "1.2.4",
+    "date": "2026-06-02",
+    "notes": "Add tools vendor category: copy plugin tools/*.cjs + tools/lib/*.cjs into .forge/tools/ at init and rebuild, mirroring the existing schemas copy. Adds tools namespace to structure-manifest.json (via build-manifest.cjs TOOLS_FILES constant), Step 2b to generate-tools.md (init copy), and tools/tools:<filename> category to rebuild.md (verbatim re-copy from $FORGE_ROOT/tools/). check-structure.cjs validateManifest now maps the tools namespace to forgeRoot/tools/ with recursive lib/ enumeration. Foundation for FORGE-S29 call-site rewrite (T02+). No existing call-sites changed in this task.",
+    "target": "tools",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild tools to materialise .forge/tools/."
+    ]
+  },
   "1.2.2": {
     "version": "1.2.3",
     "date": "2026-06-02",

@@ -11,9 +11,12 @@ const {
   FRAGMENT_MAP,
   TEMPLATE_MAP,
   COMMAND_NAMES,
+  TOOLS_FILES,
   checkReverseDrift,
   verifySources,
   parseMetaDeps,
+  buildManifest,
+  checkManifestDrift,
 } = require('../build-manifest.cjs');
 
 describe('build-manifest.cjs — mapping tables', () => {
@@ -315,7 +318,6 @@ describe('build-manifest.cjs — --check mode (FORGE-S25-T28)', () => {
 
   test('buildManifest is exported and returns an object with namespaces', () => {
     const FORGE_ROOT = path.join(__dirname, '..', '..');
-    const { buildManifest } = require('../build-manifest.cjs');
     const manifest = buildManifest(FORGE_ROOT);
     assert.ok(manifest && typeof manifest === 'object', 'buildManifest must return an object');
     assert.ok(manifest.namespaces && typeof manifest.namespaces === 'object', 'must have namespaces');
@@ -324,7 +326,6 @@ describe('build-manifest.cjs — --check mode (FORGE-S25-T28)', () => {
 
   test('checkManifestDrift exits 0 when committed manifest matches regenerated', () => {
     const FORGE_ROOT = path.join(__dirname, '..', '..');
-    const { checkManifestDrift } = require('../build-manifest.cjs');
     // The committed structure-manifest.json should be up to date
     const result = checkManifestDrift(FORGE_ROOT);
     assert.strictEqual(result.upToDate, true, `manifest should be up to date; diff: ${JSON.stringify(result.diff)}`);
@@ -332,7 +333,6 @@ describe('build-manifest.cjs — --check mode (FORGE-S25-T28)', () => {
 
   test('checkManifestDrift exits with upToDate=false when committed manifest is stale', () => {
     const FORGE_ROOT = path.join(__dirname, '..', '..');
-    const { checkManifestDrift, buildManifest } = require('../build-manifest.cjs');
     const manifestPath = path.join(FORGE_ROOT, 'schemas', 'structure-manifest.json');
     const original = fs.readFileSync(manifestPath, 'utf8');
     try {
@@ -345,6 +345,110 @@ describe('build-manifest.cjs — --check mode (FORGE-S25-T28)', () => {
       assert.ok(result.diff.length > 0, 'diff should be non-empty');
     } finally {
       fs.writeFileSync(manifestPath, original, 'utf8');
+    }
+  });
+});
+
+describe('build-manifest.cjs — tools namespace (FORGE-S29-T01)', () => {
+  const os = require('os');
+
+  // Test 1: tools namespace in generated structure-manifest.json lists all .cjs
+  // tool files and lib/*.cjs files (reads committed manifest — fails until
+  // buildManifest is updated and manifest is regenerated).
+  test('tools namespace in generated structure-manifest.json lists all .cjs tool files and lib/*.cjs files', () => {
+    const manifestPath = path.join(__dirname, '..', '..', 'schemas', 'structure-manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const ns = manifest.namespaces.tools;
+    assert.ok(ns, 'structure-manifest.json must declare a "tools" namespace');
+    assert.equal(ns.dir, '.forge/tools', 'tools namespace dir must be .forge/tools');
+    assert.ok(Array.isArray(ns.files), 'tools namespace files must be an array');
+    // Must include top-level *.cjs files
+    assert.ok(ns.files.includes('store-cli.cjs'), 'tools files must include store-cli.cjs');
+    assert.ok(ns.files.includes('validate-store.cjs'), 'tools files must include validate-store.cjs');
+    assert.ok(ns.files.includes('generation-manifest.cjs'), 'tools files must include generation-manifest.cjs');
+    // Must include lib/*.cjs files with lib/ prefix
+    assert.ok(
+      ns.files.some(f => f.startsWith('lib/')),
+      'tools files must include lib/*.cjs files with lib/ prefix'
+    );
+    assert.ok(ns.files.includes('lib/schema-loader.cjs'), 'tools files must include lib/schema-loader.cjs');
+    assert.ok(ns.files.includes('lib/fsutil.cjs'), 'tools files must include lib/fsutil.cjs');
+  });
+
+  // Test 2: buildManifest() returns tools namespace with correct dir and file list.
+  test('buildManifest returns tools namespace with correct dir and file list', () => {
+    const FORGE_ROOT = path.join(__dirname, '..', '..');
+    const manifest = buildManifest(FORGE_ROOT);
+    const ns = manifest.namespaces.tools;
+    assert.ok(ns, 'buildManifest() must return a tools namespace');
+    assert.equal(ns.dir, '.forge/tools', 'tools namespace dir must be .forge/tools');
+    assert.equal(ns.logicalKey, 'tools', 'tools namespace logicalKey must be "tools"');
+    assert.ok(Array.isArray(ns.files), 'tools namespace files must be an array');
+    assert.ok(ns.files.length > 0, 'tools namespace must enumerate at least one file');
+    // Dynamic enumeration must include top-level tools/*.cjs
+    const toolsDir = path.join(FORGE_ROOT, 'tools');
+    const expectedTopLevel = fs.readdirSync(toolsDir)
+      .filter(f => f.endsWith('.cjs') && !f.endsWith('.test.cjs'))
+      .sort();
+    for (const f of expectedTopLevel) {
+      assert.ok(ns.files.includes(f), `tools files must include top-level ${f}`);
+    }
+    // Dynamic enumeration must include lib/*.cjs with lib/ prefix
+    const libDir = path.join(toolsDir, 'lib');
+    const expectedLib = fs.readdirSync(libDir)
+      .filter(f => f.endsWith('.cjs') && !f.endsWith('.test.cjs'))
+      .map(f => `lib/${f}`)
+      .sort();
+    for (const f of expectedLib) {
+      assert.ok(ns.files.includes(f), `tools files must include ${f}`);
+    }
+  });
+
+  // Test 3: validateManifest maps tools namespace to forge/forge/tools/ source dir
+  // and detects mismatches (not skipped). Verifies that a file present on disk but
+  // absent from the manifest is detected as basePackOnly.
+  test('validateManifest maps tools namespace to forge/forge/tools/ source dir — detects mismatch', () => {
+    const { validateManifest } = require('../check-structure.cjs');
+    const os2 = require('os');
+    const tmpDir = fs.mkdtempSync(path.join(os2.tmpdir(), 'bm-tools-validate-'));
+    try {
+      // Fake forgeRoot: tools has foo.cjs AND bar.cjs on disk;
+      // manifest declares only foo.cjs → bar.cjs should appear in basePackOnly.
+      fs.mkdirSync(path.join(tmpDir, 'tools'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'tools', 'foo.cjs'), '');
+      fs.writeFileSync(path.join(tmpDir, 'tools', 'bar.cjs'), '');
+      const manifest = {
+        namespaces: {
+          tools: {
+            logicalKey: 'tools',
+            dir: '.forge/tools',
+            files: ['foo.cjs'],
+          },
+        },
+      };
+      const result = validateManifest(manifest, tmpDir);
+      // bar.cjs is on disk but not in manifest → must be detected as basePackOnly
+      assert.ok(
+        result.basePackOnly.some(e => e.filename === 'bar.cjs'),
+        `validateManifest must detect bar.cjs as basePackOnly when it exists in tools/ but not in manifest; got: ${JSON.stringify(result.basePackOnly)}`
+      );
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  // Test 4 (exported constant): TOOLS_FILES must be exported and list *.cjs + lib/*.cjs
+  test('TOOLS_FILES is exported and enumerates tools/*.cjs and tools/lib/*.cjs', () => {
+    assert.ok(Array.isArray(TOOLS_FILES), 'TOOLS_FILES must be an exported array');
+    assert.ok(TOOLS_FILES.length > 0, 'TOOLS_FILES must be non-empty');
+    assert.ok(TOOLS_FILES.includes('store-cli.cjs'), 'TOOLS_FILES must include store-cli.cjs');
+    assert.ok(TOOLS_FILES.includes('lib/schema-loader.cjs'), 'TOOLS_FILES must include lib/schema-loader.cjs');
+    // All entries must be either *.cjs or lib/*.cjs
+    for (const f of TOOLS_FILES) {
+      assert.ok(
+        f.endsWith('.cjs'),
+        `TOOLS_FILES entry "${f}" must end with .cjs`
+      );
     }
   });
 });

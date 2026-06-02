@@ -133,8 +133,15 @@ function validateManifest(manifest, forgeRoot) {
     templates: path.join(basePackDir, 'templates'),
     commands:  path.join(basePackDir, 'commands'),
     'workflows-js': path.join(basePackDir, 'workflows-js'),
+    // tools: not base-pack-sourced — source is forgeRoot/tools/ (verbatim vendor).
+    // Uses recursive enumeration to include lib/*.cjs with the lib/ prefix.
+    tools: path.join(forgeRoot, 'tools'),
     // schemas: not base-pack-sourced — source is forgeRoot/schemas/
   };
+
+  // Namespaces that require recursive enumeration (files may include path prefixes
+  // like lib/*.cjs). The walker returns relative paths with forward slashes.
+  const recursiveNs = new Set(['tools']);
 
   const manifestOnly = [];  // Files in manifest but not in base-pack
   const basePackOnly = [];   // Files in base-pack but not in manifest
@@ -148,14 +155,31 @@ function validateManifest(manifest, forgeRoot) {
 
     const manifestFiles = new Set(ns.files || []);
 
-    // Read base-pack source directory
+    // Read base-pack source directory (flat or recursive depending on namespace)
     let basePackFiles = [];
     try {
-      basePackFiles = fs.readdirSync(sourceDir).filter(f => {
-        // Only include regular files, skip subdirectories (like _fragments under workflows)
-        const stat = fs.statSync(path.join(sourceDir, f));
-        return stat.isFile();
-      });
+      if (recursiveNs.has(nsKey)) {
+        // Recursive walk: enumerate all files, returning paths relative to sourceDir
+        // (with forward-slash separators). Excludes *.test.cjs files.
+        const walkDir = (dir, prefix) => {
+          const entries = fs.readdirSync(dir, { withFileTypes: true });
+          for (const entry of entries) {
+            const relPath = prefix ? `${prefix}/${entry.name}` : entry.name;
+            if (entry.isDirectory()) {
+              walkDir(path.join(dir, entry.name), relPath);
+            } else if (entry.isFile() && !entry.name.endsWith('.test.cjs')) {
+              basePackFiles.push(relPath);
+            }
+          }
+        };
+        walkDir(sourceDir, '');
+      } else {
+        basePackFiles = fs.readdirSync(sourceDir).filter(f => {
+          // Only include regular files, skip subdirectories (like _fragments under workflows)
+          const stat = fs.statSync(path.join(sourceDir, f));
+          return stat.isFile();
+        });
+      }
     } catch {
       // Directory doesn't exist — all manifest files are manifestOnly
       for (const f of manifestFiles) {

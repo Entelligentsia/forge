@@ -165,19 +165,16 @@ describe('workflows-js orchestration-logic guards', () => {
     assert.ok(guardIdx < useIdx, 'the null guard must come BEFORE reading finalizeResult?.escalated, else a null finalize is reported as a clean fix');
   });
 
-  // FORGE_ROOT-resolution guard (v1.2.3). The CART-BUG-001 run showed phase
-  // subagents probing ../.forge/config.json (parent dir) and invoking tools with
-  // an unexported $FORGE_ROOT (→ '/tools/preflight-gate.cjs'). Every driver that
-  // briefs subagents to use $FORGE_ROOT must: (a) drop the old bare
-  // "Resolve FORGE_ROOT from .forge/config.json …" preamble, (b) tell the agent
-  // to EXPORT FORGE_ROOT, and (c) anchor the config to cwd ("never a parent directory").
+  // FORGE-S29-T02: after call-site rewrite, zero $FORGE_ROOT permitted in any driver.
+  // Tools are vendored in .forge/tools/ (T01), so no subagent needs to resolve a plugin path.
   for (const filename of JS_WORKFLOWS) {
-    const src = read(filename);
-    if (!/\$FORGE_ROOT/.test(src)) continue; // only drivers that brief subagents with $FORGE_ROOT
-    it(`${filename}: FORGE_ROOT preamble exports + anchors to cwd (no fragile bare-resolve)`, () => {
-      assert.doesNotMatch(src, /Resolve FORGE_ROOT from \.forge\/config\.json/, 'the old bare "Resolve FORGE_ROOT from .forge/config.json" preamble is fragile (parent-dir probe + unexported $FORGE_ROOT) — replace it with the export+cwd-anchored directive');
-      assert.match(src, /export it as FORGE_ROOT/, 'subagents must be told to EXPORT FORGE_ROOT, else $FORGE_ROOT expands to "" → "/tools/..."');
-      assert.match(src, /never a parent directory/, 'the config lookup must be anchored to the cwd (./.forge/config.json), never a parent directory');
+    it(`${filename}: no $FORGE_ROOT call-sites remain (tools are vendored in .forge/tools/)`, () => {
+      const src = read(filename);
+      assert.doesNotMatch(
+        src,
+        /\$FORGE_ROOT/,
+        `${filename}: still contains $FORGE_ROOT — run the T02 call-site rewrite (all node "$FORGE_ROOT/tools/X.cjs" must become node .forge/tools/X.cjs)`
+      );
     });
   }
 });

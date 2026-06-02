@@ -471,4 +471,60 @@ describe('validateManifest', () => {
     assert.equal(result.manifestOnly.length, 0);
     assert.equal(result.basePackOnly.length, 0);
   });
+
+  // FORGE-S29-T01: tools namespace maps to forgeRoot/tools/ source dir and detects
+  // mismatches. A file present in tools/ but absent from the manifest must be
+  // detected as basePackOnly (verifies tools namespace is NOT skipped).
+  test('tools namespace: validateManifest maps tools to forgeRoot/tools/ — detects basePackOnly mismatch', () => {
+    // forgeRoot has tools/store-cli.cjs AND tools/extra.cjs on disk;
+    // manifest declares only store-cli.cjs → extra.cjs must be basePackOnly.
+    tmpDir = createTempProject({
+      'tools/store-cli.cjs': '// store-cli',
+      'tools/extra.cjs': '// extra',
+    });
+
+    const manifest = {
+      namespaces: {
+        tools: {
+          logicalKey: 'tools',
+          dir: '.forge/tools',
+          files: ['store-cli.cjs'],
+        },
+      },
+    };
+
+    const result = validateManifest(manifest, tmpDir);
+    assert.ok(
+      result.basePackOnly.some(e => e.filename === 'extra.cjs'),
+      `validateManifest must detect extra.cjs as basePackOnly when it exists in tools/ but not in manifest; got: ${JSON.stringify(result.basePackOnly)}`
+    );
+  });
+});
+
+describe('checkNamespaces — tools namespace (FORGE-S29-T01)', () => {
+  // FORGE-S29-T01: tools namespace present files → no missing
+  test('tools namespace: present files → no missing', () => {
+    const manifest = {
+      namespaces: {
+        tools: {
+          logicalKey: 'tools',
+          dir: '.forge/tools',
+          files: ['store-cli.cjs', 'lib/schema-loader.cjs'],
+        },
+      },
+    };
+
+    const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'cs-tools-test-'));
+    try {
+      fs.mkdirSync(path.join(projectRoot, '.forge', 'tools', 'lib'), { recursive: true });
+      fs.writeFileSync(path.join(projectRoot, '.forge', 'tools', 'store-cli.cjs'), '// store-cli');
+      fs.writeFileSync(path.join(projectRoot, '.forge', 'tools', 'lib', 'schema-loader.cjs'), '// schema-loader');
+      const result = checkNamespaces(manifest, projectRoot, { strict: false });
+      assert.equal(result.missing.length, 0, 'tools namespace: no missing files when all present');
+      assert.equal(result.present, 2, 'tools namespace: 2 files present');
+      assert.equal(result.total, 2, 'tools namespace: 2 files total');
+    } finally {
+      fs.rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
 });

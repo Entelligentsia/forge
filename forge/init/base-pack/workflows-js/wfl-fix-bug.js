@@ -164,21 +164,20 @@ function runBugPhase(bugId, phase, iter) {
     [
       `You are running a SINGLE pipeline phase for Forge bug ${bugId} (sprint bugs).`,
       `Phase: role="${phase.role}", command="${phase.command}", workflow="${phase.workflow}", iteration=${iter}.`,
-      `Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report first.`,
-      '1. PRE-FLIGHT GATE. Run `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase ' + phase.role + ' --bug ' + bugId + '`.',
+      '1. PRE-FLIGHT GATE. Run `node .forge/tools/preflight-gate.cjs --phase ' + phase.role + ' --bug ' + bugId + '`.',
       '   If it exits non-zero: do NOT run the phase. Set status via',
-      '   `node "$FORGE_ROOT/tools/store-cli.cjs" update-status bug ' + bugId + ' status escalated`, emit an escalation event,',
+      '   `node .forge/tools/store-cli.cjs update-status bug ' + bugId + ' status escalated`, emit an escalation event,',
       '   and return gatePassed=false, escalated=true, verdict="none", with the gate stderr in note.',
       '2. RUN THE PHASE. Read `.forge/workflows/' + phase.workflow + '` and follow it for bug ' + bugId + '.',
       '   The workflow writes its own artifacts, {PHASE}-SUMMARY.json, and any bug-status changes.',
       '   Also read the task-scoped slice of `engineering/MASTER_INDEX.md` for project context.',
       '3. EMIT YOUR PHASE EVENTS. You are the only actor that knows your runtime attribution.',
       '   3a. BEFORE running the phase workflow: note the start timestamp (startTimestamp = new Date().toISOString()).',
-      '   Emit a start event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit bugs \'{event-json}\'`',
+      '   Emit a start event via `node .forge/tools/store-cli.cjs emit bugs \'{event-json}\'`',
       '   with action="start", role="' + phase.role + '", iteration=' + iter + ', startTimestamp and endTimestamp both equal to startTimestamp (0-duration placeholder).',
       '   3b. AFTER the phase workflow completes: note the end timestamp (endTimestamp = new Date().toISOString()).',
       '   Compute durationMinutes = (new Date(endTimestamp) - new Date(startTimestamp)) / 60000.',
-      '   Emit a complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit bugs \'{event-json}\'`',
+      '   Emit a complete event via `node .forge/tools/store-cli.cjs emit bugs \'{event-json}\'`',
       '   conforming to `.forge/schemas/event.schema.json` (role, action="complete", phase, iteration=' + iter + ',',
       '   startTimestamp, endTimestamp, durationMinutes, plus your own model/provider/token usage — do NOT invent placeholder model strings).',
       '   If `/cost` data is available, also write the token sidecar via the `--sidecar` form. Best-effort; skip silently if unavailable.',
@@ -186,7 +185,7 @@ function runBugPhase(bugId, phase, iter) {
       phase.role && REVIEW_ROLES.includes(phase.role)
         ? '4. READ VERDICT. This is a REVIEW phase. The phase workflow records its verdict into the store '
           + 'summary (`summaries.' + phase.role + '.verdict`) via set-bug-summary — make sure that write happened. '
-          + 'Then resolve it with the canonical tool `node "$FORGE_ROOT/tools/read-verdict.cjs" --phase ' + phase.role + ' --bug ' + bugId + '` '
+          + 'Then resolve it with the canonical tool `node .forge/tools/read-verdict.cjs --phase ' + phase.role + ' --bug ' + bugId + '` '
           + '(reads the structured summary, NOT a markdown artifact path). '
           + 'Route on the STDOUT token the tool prints (approved | revision | n/a | unknown), NOT on the exit code. '
           + 'Map STDOUT token → verdict: "approved"→"approved", "revision"→"revision", "n/a"→"malformed", "unknown"→"malformed". '
@@ -204,8 +203,8 @@ function runBugPhase(bugId, phase, iter) {
 function escalateBug(bugId, reason) {
   return agent(
     [
-      `Escalate Forge bug ${bugId} to a human. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report, then`,
-      `run \`node "$FORGE_ROOT/tools/store-cli.cjs" update-status bug ${bugId} status escalated\``,
+      `Escalate Forge bug ${bugId} to a human.`,
+      `run \`node .forge/tools/store-cli.cjs update-status bug ${bugId} status escalated\``,
       `and emit one event (sprint bugs) with verdict="escalated" and notes="${reason}".`,
       `Return the bug's final status as taskStatus, gatePassed=true, verdict="none", escalated=true, phase="escalate", role="escalate".`,
     ].join(' '),
@@ -222,8 +221,8 @@ if (!bugId) throw new Error('wfl:fix-bug requires a bug id — pass args: "FORGE
 phase('Resolve')
 const resolved = await agent(
   [
-    `Read the bug record for ${bugId}. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report.`,
-    `Run \`node "$FORGE_ROOT/tools/store-cli.cjs" read bug ${bugId} --json\` and return bugId and bugStatus.`,
+    `Read the bug record for ${bugId}..`,
+    `Run \`node .forge/tools/store-cli.cjs read bug ${bugId} --json\` and return bugId and bugStatus.`,
     `Read-only — do NOT modify anything.`,
   ].join(' '),
   { label: `resolve:${bugId}`, phase: 'Resolve', schema: BUG_RESOLVE_SCHEMA }
@@ -237,8 +236,8 @@ if (SKIP_STATUS.includes(resolved.bugStatus)) {
   // Emit bug_skipped event (not a silent return — Iron Law 3).
   await agent(
     [
-      `Emit a bug_skipped event for ${bugId}. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report.`,
-      `Run \`node "$FORGE_ROOT/tools/store-cli.cjs" emit bugs '{"type":"bug_skipped","sprintId":"bugs","bugId":"${bugId}","role":"orchestrator","action":"skipped","reason":"status=${resolved.bugStatus}","startTimestamp":"'$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)'","endTimestamp":"'$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)'","durationMinutes":0}'\`.`,
+      `Emit a bug_skipped event for ${bugId}..`,
+      `Run \`node .forge/tools/store-cli.cjs emit bugs '{"type":"bug_skipped","sprintId":"bugs","bugId":"${bugId}","role":"orchestrator","action":"skipped","reason":"status=${resolved.bugStatus}","startTimestamp":"'$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)'","endTimestamp":"'$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)'","durationMinutes":0}'\`.`,
       `Best-effort. Return taskStatus="${resolved.bugStatus}", gatePassed=true, verdict="none", escalated=false, phase="skip", role="orchestrator".`,
     ].join(' '),
     { label: `${bugId}:skip`, phase: 'Skip', schema: BUG_PHASE_RESULT_SCHEMA, model: 'haiku' }
@@ -258,21 +257,20 @@ let triageResult = await agent(
   [
     `You are running the TRIAGE phase for Forge bug ${bugId} (sprint bugs).`,
     `Phase: role="triage", command="triage", workflow="triage.md", iteration=1.`,
-    `Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report first.`,
-    '1. PRE-FLIGHT GATE. Run `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase triage --bug ' + bugId + '`.',
+    '1. PRE-FLIGHT GATE. Run `node .forge/tools/preflight-gate.cjs --phase triage --bug ' + bugId + '`.',
     '   If it exits non-zero: do NOT run the phase. Return gatePassed=false, escalated=true, verdict="none".',
     '2. RUN THE PHASE. Read `.forge/workflows/triage.md` and follow it for bug ' + bugId + '.',
     '   The triage workflow writes TRIAGE.md + TRIAGE-SUMMARY.json with a route field ("A" or "B").',
-    '   Call `node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary ' + bugId + ' triage` with the summary.',
+    '   Call `node .forge/tools/store-cli.cjs set-bug-summary ' + bugId + ' triage` with the summary.',
     '   CRITICAL: write summaries.triage.route (field name is "route" NOT "path").',
     '   Do NOT write bug.status in this phase — the orchestrator owns the status writes.',
     '3. EMIT YOUR PHASE EVENTS. You are the only actor that knows your runtime attribution.',
     '   3a. BEFORE running the triage workflow: note the start timestamp (startTimestamp = new Date().toISOString()).',
-    '   Emit a start event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit bugs \'{event-json}\'`',
+    '   Emit a start event via `node .forge/tools/store-cli.cjs emit bugs \'{event-json}\'`',
     '   with action="start", role="triage", iteration=1, startTimestamp and endTimestamp both equal to startTimestamp (0-duration placeholder).',
     '   3b. AFTER the triage workflow completes: note the end timestamp (endTimestamp = new Date().toISOString()).',
     '   Compute durationMinutes = (new Date(endTimestamp) - new Date(startTimestamp)) / 60000.',
-    '   Emit a complete event via `node "$FORGE_ROOT/tools/store-cli.cjs" emit bugs \'{event-json}\'`',
+    '   Emit a complete event via `node .forge/tools/store-cli.cjs emit bugs \'{event-json}\'`',
     '   conforming to `.forge/schemas/event.schema.json` (role, action="complete", phase, iteration=1,',
     '   startTimestamp, endTimestamp, durationMinutes, plus your own model/provider/token usage — do NOT invent placeholder model strings).',
     '   If `/cost` data is available, also write the token sidecar via the `--sidecar` form. Best-effort; skip silently if unavailable.',
@@ -288,8 +286,7 @@ if (!triageResult) {
     [
       `You are running the TRIAGE phase for Forge bug ${bugId} (sprint bugs). This is a retry.`,
       `Phase: role="triage", command="triage", workflow="triage.md", iteration=1.`,
-      `Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report first.`,
-      '1. PRE-FLIGHT GATE. Run `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase triage --bug ' + bugId + '`.',
+      '1. PRE-FLIGHT GATE. Run `node .forge/tools/preflight-gate.cjs --phase triage --bug ' + bugId + '`.',
       '   If it exits non-zero: return gatePassed=false, escalated=true, verdict="none".',
       '2. RUN THE PHASE. Read `.forge/workflows/triage.md` and follow it for bug ' + bugId + '.',
       '   Write summaries.triage.route (field name is "route" NOT "path").',
@@ -315,9 +312,8 @@ if (!triageResult.gatePassed || triageResult.escalated) {
 // Two separate calls: reported→triaged, then triaged→in-progress.
 await agent(
   [
-    `Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report.`,
-    `Run \`node "$FORGE_ROOT/tools/store-cli.cjs" update-status bug ${bugId} status triaged\`.`,
-    `Then run \`node "$FORGE_ROOT/tools/store-cli.cjs" update-status bug ${bugId} status in-progress\`.`,
+    `Run \`node .forge/tools/store-cli.cjs update-status bug ${bugId} status triaged\`.`,
+    `Then run \`node .forge/tools/store-cli.cjs update-status bug ${bugId} status in-progress\`.`,
     `Return taskStatus="in-progress", gatePassed=true, verdict="none", escalated=false, phase="status-write", role="orchestrator".`,
   ].join(' '),
   { label: `${bugId}:status-write`, phase: 'StatusWrite', schema: BUG_PHASE_RESULT_SCHEMA, model: 'haiku' }
@@ -326,8 +322,8 @@ await agent(
 // Read summaries.triage.route to select Path A or Path B.
 const routeResult = await agent(
   [
-    `Read the bug record for ${bugId}. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report.`,
-    `Run \`node "$FORGE_ROOT/tools/store-cli.cjs" read bug ${bugId} --json\`.`,
+    `Read the bug record for ${bugId}..`,
+    `Run \`node .forge/tools/store-cli.cjs read bug ${bugId} --json\`.`,
     `Return the value of summaries.triage.route (field name is "route" NOT "path").`,
     `Return as: { bugId: "${bugId}", bugStatus: "<current status>", note: "<route value A or B>" }.`,
   ].join(' '),
@@ -430,11 +426,11 @@ log(`→ ${bugId}  finalize [${tierFor('finalize')}]`)
 
 const finalizeResult = await agent(
   [
-    `Finalize Forge bug ${bugId}. Resolve and EXPORT the plugin root before any command — read paths.forgeRoot from ./.forge/config.json in your current working directory (never a parent directory) and export it as FORGE_ROOT so $FORGE_ROOT works in every command below; if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing, STOP and report.`,
-    `Step 1: Run \`node "$FORGE_ROOT/tools/collate.cjs" ${bugId} --purge-events\`.`,
+    `Finalize Forge bug ${bugId}..`,
+    `Step 1: Run \`node .forge/tools/collate.cjs ${bugId} --purge-events\`.`,
     `   This purges this bug's events from the shared bugs/ dir and embeds the cost section in INDEX.md.`,
     `   Do NOT run a separate cost aggregation — collate handles it automatically.`,
-    `Step 2: Run \`node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase finalize --bug ${bugId}\`.`,
+    `Step 2: Run \`node .forge/tools/preflight-gate.cjs --phase finalize --bug ${bugId}\`.`,
     `   If the gate exits non-zero: emit one escalation event to sprint bugs with verdict="escalated"`,
     `   and notes="finalize gate failed". Do NOT call update-status bug — bug.status is already "fixed".`,
     `   Return escalated=true in that case.`,

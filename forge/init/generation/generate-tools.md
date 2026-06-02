@@ -54,6 +54,34 @@ This ensures `store-cli.cjs` and `validate-store.cjs` can validate records
 using the full schema (not the minimal fallback) even when the project is
 not inside the Forge source tree.
 
+### Step 2b — Vendor plugin tools
+
+Copy the plugin tools closure into the project's `.forge/tools/` so that
+generated artifacts can invoke `node .forge/tools/<tool>.cjs` from the
+project root without resolving `$FORGE_ROOT`:
+
+```sh
+mkdir -p .forge/tools/lib
+
+# Copy top-level tool files
+cp "$FORGE_ROOT/tools/"*.cjs .forge/tools/
+
+# Copy lib/ helper files
+cp "$FORGE_ROOT/tools/lib/"*.cjs .forge/tools/lib/
+```
+
+After copying, record each vendored file in the generation manifest so that
+`/forge:health` can detect modifications or stale copies:
+
+```sh
+for f in .forge/tools/*.cjs; do
+  node "$FORGE_ROOT/tools/generation-manifest.cjs" record "$f"
+done
+for f in .forge/tools/lib/*.cjs; do
+  node "$FORGE_ROOT/tools/generation-manifest.cjs" record "$f"
+done
+```
+
 ### Step 3 — Verify
 
 ```sh

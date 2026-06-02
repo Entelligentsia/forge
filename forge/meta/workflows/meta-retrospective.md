@@ -23,7 +23,7 @@ Close a sprint by reviewing learnings, updating the knowledge base, and improvin
 
 - Never mutate JSON records during retrospective; the store is the source of truth and retrospective flows downstream from it. Retrospective operations read store data and write markdown views only.
 - Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
 
 ## Algorithm
 
@@ -45,8 +45,8 @@ Close a sprint by reviewing learnings, updating the knowledge base, and improvin
 
 4. Finalize:
    - Write SPRINT_RETROSPECTIVE.md
-   - Update sprint status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status retrospective-done`
-   - Run `node "$FORGE_ROOT/tools/collate.cjs" {sprintId} --purge-events`
+   - Update sprint status via `node .forge/tools/store-cli.cjs update-status sprint {sprintId} status retrospective-done`
+   - Run `node .forge/tools/collate.cjs {sprintId} --purge-events`
      This single deterministic step: generates COST_REPORT.md from all
      accumulated events, then deletes `.forge/store/events/{sprintId}/`.
      COST_REPORT.md is the durable record; the raw event files are not
@@ -69,5 +69,5 @@ Close a sprint by reviewing learnings, updating the knowledge base, and improvin
      (Claude Code only); on any other runtime treat as unavailable and proceed.
      Do NOT shell out to a `cost-cli.cjs` — there is no such tool.
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar`.
+  3. Write the usage sidecar via `node .forge/tools/store-cli.cjs emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

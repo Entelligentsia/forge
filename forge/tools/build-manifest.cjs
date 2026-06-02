@@ -81,6 +81,32 @@ const FRAGMENT_MAP = [
   ['generation-instructions.md',    'generation-instructions.md'],
 ];
 
+// 5b. Tools — dynamic enumeration of tools/*.cjs + tools/lib/*.cjs
+//     Resolved at require() time relative to this file's directory so the
+//     constant is valid wherever build-manifest.cjs is installed.
+//     Test files (*.test.cjs) and lib test files are excluded.
+const _toolsDir = path.join(__dirname);
+const _toolsLibDir = path.join(__dirname, 'lib');
+const TOOLS_FILES = (() => {
+  const topLevel = [];
+  try {
+    for (const f of fs.readdirSync(_toolsDir)) {
+      if (f.endsWith('.cjs') && !f.endsWith('.test.cjs')) {
+        topLevel.push(f);
+      }
+    }
+  } catch {}
+  const lib = [];
+  try {
+    for (const f of fs.readdirSync(_toolsLibDir)) {
+      if (f.endsWith('.cjs') && !f.endsWith('.test.cjs')) {
+        lib.push(`lib/${f}`);
+      }
+    }
+  } catch {}
+  return [...topLevel.sort(), ...lib.sort()];
+})();
+
 // 5. Templates — explicit mapping
 //    CUSTOM_COMMAND_TEMPLATE.md is a one-shot init artifact (no meta source).
 //    Source is null — same pattern as orchestration-generated workflows.
@@ -336,6 +362,11 @@ function buildManifest(forgeRoot) {
         dir: '.forge/schemas',
         files: schemaFiles,
       },
+      tools: {
+        logicalKey: 'tools',
+        dir: '.forge/tools',
+        files: TOOLS_FILES.slice(),
+      },
     },
     edges: {
       workflows: depEdges,
@@ -395,6 +426,7 @@ module.exports = {
   FRAGMENT_MAP,
   TEMPLATE_MAP,
   COMMAND_NAMES,
+  TOOLS_FILES,
   checkReverseDrift,
   verifySources,
   parseMetaDeps,

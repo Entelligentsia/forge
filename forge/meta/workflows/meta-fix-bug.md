@@ -140,7 +140,7 @@ Differences are confined to the **triage** step and the **path branch**.
 1. Pre-loop setup (mirrors meta-orchestrate.md):
    - Session Preflight (see `meta-orchestrate.md § Session Preflight`):
      Read `.forge/cache/preflight-status.json` if present and fresh; otherwise
-     run `node "$FORGE_ROOT/tools/forge-preflight.cjs" --bug {bugId}` and read
+     run `node .forge/tools/forge-preflight.cjs --bug {bugId}` and read
      its stdout. Use `blob.forgeRoot` as FORGE_ROOT for the remainder of the
      run — do not re-derive it. Branch on `blob.ok`: ok:true → proceed;
      ok:false → halt (fast-fail-safe), emit escalation event, instruct operator
@@ -184,7 +184,7 @@ Differences are confined to the **triage** step and the **path branch**.
      - Compute eventId, agent_name, banner_name (from PERSONA_MAP /
        BANNER_MAP below).
      - Announce phase:
-       run_bash(f'node "$FORGE_ROOT/tools/banners.cjs" --badge {banner_name} --quiet')
+       run_bash(f'node .forge/tools/banners.cjs --badge {banner_name} --quiet')
        # Digest-compliance note (FORGE-S27-T05): --quiet makes banners.cjs emit
        # zero stdout (unconditional; no isTTY branch). The badge is fully
        # suppressed during the automated run_bash call — it does not enter the
@@ -227,7 +227,7 @@ Differences are confined to the **triage** step and the **path branch**.
      phase that writes bug.status post-triage.
 
 6. Finalize (collator, housekeeping):
-   - Run `node "$FORGE_ROOT/tools/collate.cjs" {bugId} --purge-events`.
+   - Run `node .forge/tools/collate.cjs {bugId} --purge-events`.
      # Note (FORGE-S27-T05): collate.cjs --purge-events already handles cost
      # aggregation and embeds the "## Cost" section into the bug's INDEX.md
      # automatically (see collate.cjs buildBugIndex). Do NOT attempt a separate
@@ -302,7 +302,7 @@ differences are:
 ```
 # --- Materialize project overlay (replaces MASTER_INDEX.md read in subagent) ---
 overlay_result = run_bash(
-  f'node "$FORGE_ROOT/tools/build-overlay.cjs" --bug {bug_id} --format md'
+  f'node .forge/tools/build-overlay.cjs --bug {bug_id} --format md'
 )
 bug_overlay_md = overlay_result.stdout if overlay_result.exit_code == 0 else ""
 
@@ -481,7 +481,7 @@ or is redundant with another skill — emit a `friction` event so
 | `skill_stale`      | A skill's guidance contradicts current architecture / supersedes its own advice. |
 | `skill_redundant`  | Two skills provided overlapping or conflicting guidance for the same decision.   |
 
-**Recording friction (subagent side):** call `node "$FORGE_ROOT/tools/friction-emit.cjs` `--workflow {workflow} --persona {persona-noun} --issue {token} [--subkind {token}] [--evidence '{...}']`. The tool appends one judgement-only record to `.forge/cache/FRICTION-{workflow}.jsonl`. The orchestrator drains the file at phase-end, stamps runtime attribution (model, provider, usage, wall times, eventId) onto each record, and emits the events via `store-cli emit` as event type `"friction"`. The schema enforces `{workflow, persona, issue}` as required when `type === "friction"`; `subkind` is the frozen enum `skill_unused|skill_failed|skill_missing|skill_stale|skill_redundant` or experimental `^x_[a-z_]+$`. Emit one record per distinct friction signal — do not coalesce.
+**Recording friction (subagent side):** call `node .forge/tools/friction-emit.cjs` `--workflow {workflow} --persona {persona-noun} --issue {token} [--subkind {token}] [--evidence '{...}']`. The tool appends one judgement-only record to `.forge/cache/FRICTION-{workflow}.jsonl`. The orchestrator drains the file at phase-end, stamps runtime attribution (model, provider, usage, wall times, eventId) onto each record, and emits the events via `store-cli emit` as event type `"friction"`. The schema enforces `{workflow, persona, issue}` as required when `type === "friction"`; `subkind` is the frozen enum `skill_unused|skill_failed|skill_missing|skill_stale|skill_redundant` or experimental `^x_[a-z_]+$`. Emit one record per distinct friction signal — do not coalesce.
 
 ## Progress Reporting
 

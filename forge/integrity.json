@@ -1,5 +1,5 @@
 {
-  "version": "1.2.3",
+  "version": "1.2.4",
   "generated": "2026-06-02",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
@@ -11,7 +11,7 @@
     "commands/enhance.md": "d28f6414119e84973809d32900bb7245b51f565aed86112bc7a994bc6941b547",
     "commands/health.md": "29c3e5f9808d996f53a432c4b3aff1c3346d7a40fff54518d8ea2ac2c6ba9d12",
     "commands/init.md": "cf7a70d55f718304820c310465071d3eea9d14a43131623f46b686499f630d4d",
-    "commands/rebuild.md": "72243f659e23609cc166df8f9916982fda5fb5920be767dc8f9d552739e34463",
+    "commands/rebuild.md": "1e9337a2ab2c46a029a384a13f7502b431fb1efeaffffeed759050bb55549a9f",
     "commands/remove.md": "0ca5ec94d52959afaadd74910bd2c81c9872b71c9cc1ce8b89e5af69c06b304f",
     "commands/repair.md": "22e21614eee31ee630ead3f587b0b948b8c537e54ecef3b65e7d819c55c0ebd4",
     "commands/report-bug.md": "af8a54bf8887b35e5c880898dd45783f6c2e80d3dc031d6479a6be613ac43053",
