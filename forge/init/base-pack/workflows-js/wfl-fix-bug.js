@@ -1,8 +1,9 @@
 export const meta = {
   name: 'wfl:fix-bug',
-  desc: 'Code-orchestrated port of /forge:fix-bug — drive a bug through the triage→[plan-fix→review-plan→]implement→review-code→approve→commit→finalize pipeline, with Path A (short) or Path B (full) selected once from summaries.triage.route, all escalation and revision loops held in JS.',
+  description: 'Code-orchestrated port of /forge:fix-bug — drive a bug through the triage→[plan-fix→review-plan→]implement→review-code→approve→commit→finalize pipeline, with Path A (short) or Path B (full) selected once from summaries.triage.route, all escalation and revision loops held in JS.',
   whenToUse: 'Fix a single Forge bug through the full triage→fix→commit pipeline via a deterministic JS driver. Pass the bug id as args, e.g. args: "FORGE-BUG-001".',
-  steps: [
+  phases: [
+    { title: 'Resolve', detail: 'read the bug record and check the pre-run status guard' },
     { title: 'Triage', detail: 'one subagent reproduces the bug, records root cause, and writes summaries.triage.route=A|B' },
     { title: 'Pipeline', detail: 'per phase: one subagent runs the gate + phase workflow + emits its own event; JS owns the phase index, revision counters, verdict routing, and escalation decision' },
     { title: 'Finalize', detail: 'collate + preflight finalize gate; gate failure escalates without touching bug.status=fixed' },

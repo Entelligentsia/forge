@@ -102,3 +102,33 @@ describe('workflows-js drift guard — base-pack source matches generated copy',
     });
   }
 });
+
+// Regression guard for the wfl-fix-bug.js meta defect (shipped in v1.2.0): the
+// driver used `desc:`/`steps:` instead of `description:`/`phases:`, so the
+// Workflow runtime rejected it ("meta.description must be a non-empty string")
+// and the named-workflow registry silently skipped it — /forge:fix-bug could
+// never launch wfl:fix-bug. Every JS workflow's meta MUST expose the runtime
+// contract: name, a non-empty description, and a phases array.
+describe('workflows-js meta contract — each driver is launchable by the Workflow runtime', () => {
+  function metaBlock(content) {
+    const start = content.indexOf('export const meta');
+    assert.ok(start !== -1, 'no `export const meta` block found');
+    // Capture up to the first `};` or `}` that closes the object literal.
+    const rest = content.slice(start);
+    const end = rest.search(/\n}\s*;?\s*\n/);
+    return end === -1 ? rest : rest.slice(0, end);
+  }
+
+  for (const filename of JS_WORKFLOWS) {
+    const srcPath = path.join(BASE_PACK_JS, filename);
+
+    it(`${filename}: meta has name + non-empty description + phases (not desc/steps)`, () => {
+      const block = metaBlock(fs.readFileSync(srcPath, 'utf8'));
+      assert.match(block, /\bname:\s*'wfl:[a-z-]+'/, `${filename}: meta.name must be a 'wfl:*' string`);
+      assert.match(block, /\bdescription:\s*'[^']/, `${filename}: meta.description must be a non-empty string (the Workflow runtime rejects a missing/empty description)`);
+      assert.match(block, /\bphases:\s*\[/, `${filename}: meta.phases must be an array (drives the progress display)`);
+      assert.doesNotMatch(block, /^\s*desc:/m, `${filename}: use 'description:' not 'desc:' — the runtime requires meta.description`);
+      assert.doesNotMatch(block, /^\s*steps:/m, `${filename}: use 'phases:' not 'steps:' — the runtime renders meta.phases`);
+    });
+  }
+});

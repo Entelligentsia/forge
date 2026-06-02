@@ -5,6 +5,18 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.2.1] — 2026-06-02
+
+### Fixed
+
+- **`wfl-fix-bug.js` could never launch — invalid meta.** The fix-bug JS driver declared its meta with `desc:` and `steps:` instead of `description:` and `phases:`. The Workflow runtime rejects a missing/empty `meta.description` (`"meta.description must be a non-empty string"`), and the named-workflow registry silently skipped it — so `/forge:fix-bug` (and any `/<prefix>:fix-bug`) dispatched `workflow('wfl:fix-bug', …)` to a workflow that wasn't registered. This shipped latent since the driver was authored and was exposed by the v1.2.0 prose retirement (which removed the `fix_bug.md` fallback). Renamed `desc → description` and `steps → phases` (with a `Resolve` phase) to match `wfl-run-task.js` / `wfl-run-sprint.js`. Added a meta-contract regression guard in `workflows-js-drift.test.cjs` asserting every JS driver exposes `name` + non-empty `description` + `phases`.
+
+**Regenerate:** workflows-js:wfl-fix-bug
+
+> Manual: Run `/forge:update`, then `/forge:rebuild workflows-js` to refresh `.claude/workflows/wfl-fix-bug.js`. `/<prefix>:fix-bug` then launches `wfl:fix-bug` correctly.
+
+---
+
 ## [1.2.0] — 2026-06-02
 
 ### Changed
