@@ -82,6 +82,19 @@ for f in .forge/tools/lib/*.cjs; do
 done
 ```
 
+### Step 2c — Write version marker
+
+After the tool copy loop, write the version marker so `/forge:health` can
+detect whether the vendored tools are stale relative to the active plugin:
+
+```sh
+ACTIVE_VERSION=$(node -e "console.log(require('$FORGE_ROOT/.claude-plugin/plugin.json').version)")
+node -e "
+const fs = require('fs');
+fs.writeFileSync('.forge/tools/.forge-tools-version', JSON.stringify({ version: '${ACTIVE_VERSION}' }) + '\n');
+"
+```
+
 ### Step 3 — Verify
 
 ```sh

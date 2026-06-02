@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { checkNamespaces, validateManifest } = require('../check-structure.cjs');
+const { checkNamespaces, validateManifest, checkToolsVersion } = require('../check-structure.cjs');
 
 
 // Helper: create a temp directory structure, return cleanup function
@@ -523,6 +523,84 @@ describe('checkNamespaces — tools namespace (FORGE-S29-T01)', () => {
       assert.equal(result.missing.length, 0, 'tools namespace: no missing files when all present');
       assert.equal(result.present, 2, 'tools namespace: 2 files present');
       assert.equal(result.total, 2, 'tools namespace: 2 files total');
+    } finally {
+      fs.rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('checkToolsVersion (FORGE-S29-T04)', () => {
+  // Test 1: .forge/tools/ absent → present=false, stale=false
+  test('checkToolsVersion: .forge/tools/ absent → present=false, stale=false', () => {
+    const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'csv-test-'));
+    try {
+      // No .forge/tools/ directory at all — only create the parent .forge dir
+      fs.mkdirSync(path.join(projectRoot, '.forge'), { recursive: true });
+      const result = checkToolsVersion(projectRoot);
+      assert.equal(result.present, false, 'present must be false when .forge/tools/ is absent');
+      assert.equal(result.stale, false, 'stale must be false when tools dir is absent (absent ≠ stale)');
+    } finally {
+      fs.rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  // Test 2: marker absent (tools dir present but no .forge-tools-version) → stale=true, reason='marker-absent'
+  test('checkToolsVersion: marker absent (tools dir present, no .forge-tools-version) → stale=true, reason=marker-absent', () => {
+    const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'csv-test-'));
+    try {
+      fs.mkdirSync(path.join(projectRoot, '.forge', 'tools'), { recursive: true });
+      fs.writeFileSync(path.join(projectRoot, '.forge', 'tools', 'store-cli.cjs'), '// store-cli');
+      fs.writeFileSync(
+        path.join(projectRoot, '.forge', 'config.json'),
+        JSON.stringify({ paths: { forgeRef: '1.2.6' } })
+      );
+      const result = checkToolsVersion(projectRoot);
+      assert.equal(result.present, true, 'present must be true when .forge/tools/ exists');
+      assert.equal(result.stale, true, 'stale must be true when version marker is absent');
+      assert.equal(result.reason, 'marker-absent', 'reason must be marker-absent');
+    } finally {
+      fs.rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  // Test 3: version match → stale=false
+  test('checkToolsVersion: version match → stale=false', () => {
+    const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'csv-test-'));
+    try {
+      fs.mkdirSync(path.join(projectRoot, '.forge', 'tools'), { recursive: true });
+      fs.writeFileSync(
+        path.join(projectRoot, '.forge', 'tools', '.forge-tools-version'),
+        JSON.stringify({ version: '1.2.6' })
+      );
+      fs.writeFileSync(
+        path.join(projectRoot, '.forge', 'config.json'),
+        JSON.stringify({ paths: { forgeRef: '1.2.6' } })
+      );
+      const result = checkToolsVersion(projectRoot);
+      assert.equal(result.stale, false, 'stale must be false when versions match');
+      assert.equal(result.vendoredVersion, '1.2.6', 'vendoredVersion must be read from marker');
+    } finally {
+      fs.rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  // Test 4: version mismatch → stale=true with correct versions
+  test('checkToolsVersion: version mismatch → stale=true with correct versions', () => {
+    const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'csv-test-'));
+    try {
+      fs.mkdirSync(path.join(projectRoot, '.forge', 'tools'), { recursive: true });
+      fs.writeFileSync(
+        path.join(projectRoot, '.forge', 'tools', '.forge-tools-version'),
+        JSON.stringify({ version: '1.2.4' })
+      );
+      fs.writeFileSync(
+        path.join(projectRoot, '.forge', 'config.json'),
+        JSON.stringify({ paths: { forgeRef: '1.2.6' } })
+      );
+      const result = checkToolsVersion(projectRoot);
+      assert.equal(result.stale, true, 'stale must be true when versions differ');
+      assert.equal(result.vendoredVersion, '1.2.4', 'vendoredVersion must be read from marker file');
+      assert.equal(result.activeVersion, '1.2.6', 'activeVersion must be read from config paths.forgeRef');
     } finally {
       fs.rmSync(projectRoot, { recursive: true, force: true });
     }

@@ -26,6 +26,7 @@ Assess the health and currency of the project's SDLC knowledge base.
 | **Concepts freshness** | `docs/concepts/*.md` pages older than `forge/meta/store-schema/` updates |
 | **Context pack freshness** | `source_hash` in `.forge/cache/context-pack.json` vs. current hash of `engineering/architecture/*.md` |
 | **Plugin integrity** | Plugin command and agent files modified since last release hash was recorded |
+| **Vendored tools** | `.forge/tools/` present, file set matches structure-manifest, and version marker matches active plugin version |
 
 ## How to run
 
@@ -116,6 +117,32 @@ cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/..."
    If the tool is absent (file not found), skip this check silently.
    Note: custom `paths.*` overrides in `.forge/config.json` are respected by
    check-structure.cjs. Projects using default paths will see no difference.
+8b. Check vendored tools integrity and staleness:
+   ```sh
+   node -e "
+   const { checkToolsVersion } = require('$FORGE_ROOT/tools/check-structure.cjs');
+   const result = checkToolsVersion('$PROJECT_ROOT');
+   console.log(JSON.stringify(result));
+   "
+   ```
+   Also read the structure-manifest to get the expected tools file count and count
+   how many are currently present in `.forge/tools/`:
+   ```sh
+   cd "$PROJECT_ROOT" && node "$FORGE_ROOT/tools/check-structure.cjs" --path "$PROJECT_ROOT"
+   ```
+   (The tools namespace output from the above `check-structure.cjs` call in step 8 already
+   covers file presence/completeness — use that result here for the tools namespace row.)
+
+   Based on the `checkToolsVersion` result and the tools namespace from step 8:
+   - If `.forge/tools/` is absent or the tools namespace shows missing files:
+     > × Vendored tools — missing or incomplete (N/M files present) — run `/forge:rebuild tools`
+   - If `.forge/tools/` is present and files are complete, but `stale=true`:
+     - If `reason='marker-absent'`:
+       > △ Vendored tools — stale (version marker absent; active: <activeVersion>) — run `/forge:rebuild tools`
+     - If `reason='version-mismatch'`:
+       > △ Vendored tools — stale (vendored: <vendoredVersion>, active: <activeVersion>) — run `/forge:rebuild tools`
+   - If present, complete, and `stale=false`:
+     > 〇 Vendored tools — <N>/<M> files present, version <vendoredVersion>
 9. Check skill gaps: run `node "$FORGE_ROOT/tools/list-skills.js"` to get the live
    installed skill list from `~/.claude/plugins/installed_plugins.json` (source of
    truth — not the config, which can be stale). Read `$FORGE_ROOT/meta/skill-recommendations.md`,
@@ -199,6 +226,7 @@ After step 16, emit a pass/fail summary grid. One row per check category; substi
 | Store integrity                |   〇   |
 | Modified generated files       |   〇   |
 | Generated file structure       |   〇   |
+| Vendored tools                 |   〇   |
 | Plugin integrity               |   〇   |
 | Persona pack freshness         |   △   |
 | Context pack freshness         |   〇   |
@@ -221,6 +249,7 @@ After the summary grid, emit a "Recommended Actions" section only if one or more
 | Store integrity errors         | `/forge:repair`                                        |
 | Modified generated files       | `/forge:rebuild`                                             |
 | Missing generated files        | `/forge:update`                                              |
+| Vendored tools missing / stale | `/forge:rebuild tools`                                       |
 | Plugin integrity modified      | `/forge:update`                                              |
 | Persona pack missing / stale   | `/forge:rebuild`                                             |
 | Context pack missing / stale   | `/forge:rebuild`                                             |

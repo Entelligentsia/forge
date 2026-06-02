@@ -1,4 +1,15 @@
 {
+  "1.2.5": {
+    "version": "1.2.6",
+    "date": "2026-06-02",
+    "notes": "Add vendored-tools integrity and staleness check to /forge:health. Exports checkToolsVersion(projectRoot) from check-structure.cjs: reads .forge/tools/.forge-tools-version marker and paths.forgeRef from config, returns { present, vendoredVersion, activeVersion, stale, reason }. generate-tools.md Step 2c now writes .forge/tools/.forge-tools-version after the tool copy loop. rebuild.md tools category now re-writes the marker after re-copy. health.md gains step 8b (vendored tools presence + staleness check, emitting 〇/△/× with /forge:rebuild tools recommendation). Closes the integrity gap for existing projects that ran /forge:rebuild tools in v1.2.4 without the marker.",
+    "target": "tools:health",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild tools to write .forge/tools/.forge-tools-version. Until this runs, /forge:health will report 'stale (marker absent)' — non-breaking."
+    ]
+  },
   "1.2.4": {
     "version": "1.2.5",
     "date": "2026-06-02",

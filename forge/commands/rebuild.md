@@ -459,7 +459,15 @@ Sub-targets in the `lib/` namespace may be specified with the `lib/` prefix
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/tools/lib/<filename>
    ```
-6. Emit `  〇 tools — <N_top + N_lib> files copied`.
+6. Write (or overwrite) the version marker so `/forge:health` can detect staleness:
+   ```sh
+   ACTIVE_VERSION=$(node -e "console.log(require('$FORGE_ROOT/.claude-plugin/plugin.json').version)")
+   node -e "
+   const fs = require('fs');
+   fs.writeFileSync('.forge/tools/.forge-tools-version', JSON.stringify({ version: '${ACTIVE_VERSION}' }) + '\n');
+   "
+   ```
+7. Emit `  〇 tools — <N_top + N_lib> files copied`.
 
 > **Note:** This is a full re-copy of the plugin tools at the installed
 > `$FORGE_ROOT` version. Use `/forge:rebuild tools` after `/forge:update` to
