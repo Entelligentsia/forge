@@ -1,6 +1,6 @@
 {
-  "version": "1.2.7",
-  "generated": "2026-06-02",
+  "version": "1.2.8",
+  "generated": "2026-06-03",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
     "commands/add-pipeline.md": "529a2fc01be49815efa2cf1147528827ff1bfc12ce2ac8663b5a3a9781f8682e",
@@ -30,7 +30,7 @@
     "schemas/transitions/bug.json": "27b17da42d1cebffbd4f61ab3dcd432a0017aa71997d548ed80d22c2fc3fad6a",
     "schemas/transitions/sprint.json": "2e0a629396e687b0ca88e1814ac3e35d84533a5d55b25237ab67feddce3c9deb",
     "schemas/transitions/task.json": "4c71849747baa0d585756e57c56325ff6219c078178374e60815dff91e25e3e7",
-    "schemas/enum-catalog.json": "4504d74b92acb1d862a2987f973a04624aa72cdd12e05c4f88ab925f8a4d1f73",
+    "schemas/enum-catalog.json": "d9e2f6f7ddfabb40720ed78943b4cdae9ddb0643ab2581ee9417eb5b37c2c86b",
     "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
   }
 }

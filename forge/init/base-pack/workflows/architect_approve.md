@@ -26,7 +26,7 @@ deps:
 
 - Approve only when the implementation is consistent with the project's architecture and the deployment posture is understood. Architectural sign-off is not a rubber stamp — it is the last point at which cross-cutting concerns can be caught cheaply.
 - Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
 
 ## Store-Write Verification
 
@@ -39,7 +39,7 @@ deps:
 0a. Pre-flight Gate Check:
    - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
    - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
-   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase approve --{entity_kind} {record_id}`
+   - Run: `node .forge/tools/preflight-gate.cjs --phase approve --{entity_kind} {record_id}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
@@ -48,7 +48,7 @@ deps:
    - If `--force` is present in the invocation arguments, skip this step entirely.
    - If `entity_kind == "bug"`, skip this step entirely (bug state is managed by meta-fix-bug.md).
    - Read current task state:
-     `node "$FORGE_ROOT/tools/store-cli.cjs" read task {record_id} --json`
+     `node .forge/tools/store-cli.cjs read task {record_id} --json`
    - Extract the `status` field from the JSON output.
    - Allowed states for this phase: `review-approved`.
    - If the current status is NOT in the allowed set:
@@ -81,7 +81,7 @@ deps:
 
 4. Finalize:
    - Transitions:
-     - **Task mode** — Update status: `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status approved`. The status IS the verdict signal for task-mode commit gate (`STATUS_SOURCE` in `read-verdict.cjs`).
+     - **Task mode** — Update status: `node .forge/tools/store-cli.cjs update-status task {taskId} status approved`. The status IS the verdict signal for task-mode commit gate (`STATUS_SOURCE` in `read-verdict.cjs`).
      - **Bug mode** — NO status write. The bug remains `in-progress`. The verdict signal travels through `summaries.approve.verdict` written in step 5 below (read by `read-verdict.cjs § BUG_PHASE_VERDICT_SOURCE`). Writing `bug.status` here — especially writing `approved` or `verified` — violates `meta-fix-bug.md § Iron Laws #2` and is the trap that produced the FORGE-BUG-002 regression.
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
@@ -101,11 +101,11 @@ deps:
    - Call (task mode) — optional for tasks, since `task.status` is the canonical signal.
      The sidecar path is auto-resolved from the record's `path` — never pass it:
      ```
-     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {taskId} approve
+     node .forge/tools/store-cli.cjs set-summary {taskId} approve
      ```
      Or (bug mode) — REQUIRED for bugs, this is the canonical verdict signal:
      ```
-     node "$FORGE_ROOT/tools/store-cli.cjs" set-bug-summary {bugId} approve
+     node .forge/tools/store-cli.cjs set-bug-summary {bugId} approve
      ```
    - In bug mode, if the set-bug-summary call exits non-zero, fix the sidecar JSON and retry. Do not return without a valid summary — the downstream commit gate has no other way to read the approval verdict.
 ```

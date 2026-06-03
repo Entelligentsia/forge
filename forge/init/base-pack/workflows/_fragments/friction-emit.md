@@ -42,7 +42,7 @@ fields (`model`, `provider`, `eventId`, timestamps, token counts) are
 at drain time.
 
 ```sh
-node "$FORGE_ROOT/tools/friction-emit.cjs" \
+node .forge/tools/friction-emit.cjs \
   --workflow {workflow-key} \
   --persona  {persona-noun} \
   --issue    skill_unused \

@@ -28,7 +28,7 @@ deps:
   reproduction has no business going to plan-fix or implement.
 - Read `.forge/personas/bug-fixer.md` first; print the persona identity
   line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`).
+- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`).
   Never edit `.forge/store/*.json` directly.
 - **Triage NEVER writes `bug.status`.** The orchestrator (`meta-fix-bug.md`)
   owns the `reported → triaged` and `triaged → in-progress` transitions.
@@ -52,7 +52,7 @@ deps:
 
 0. Pre-flight Gate Check:
    - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
-   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase triage --bug {bugId}`
+   - Run: `node .forge/tools/preflight-gate.cjs --phase triage --bug {bugId}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.

@@ -1,6 +1,6 @@
 {
-  "version": "1.2.7",
-  "generated": "2026-06-02",
+  "version": "1.2.8",
+  "generated": "2026-06-03",
   "note": "Authoritative enum catalog. Source: build-enum-catalog.cjs. Regenerate via node forge/tools/build-manifest.cjs.",
   "enums": {
     "task.status": [
