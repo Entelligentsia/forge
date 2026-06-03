@@ -443,10 +443,12 @@ Sub-targets in the `lib/` namespace may be specified with the `lib/` prefix
 
 **If no sub-target** — full re-copy, directory fan-out:
 
-1. Enumerate all `*.cjs` files in `$FORGE_ROOT/tools/` (top-level only, exclude
-   `*.test.cjs`). Let `N_top` = the count.
-   Enumerate all `*.cjs` files in `$FORGE_ROOT/tools/lib/` (exclude `*.test.cjs`).
-   Let `N_lib` = the count.
+1. Enumerate all `*.cjs` **and `*.js`** files in `$FORGE_ROOT/tools/` (top-level
+   only, exclude `*.test.cjs`/`*.test.js`). Let `N_top` = the count.
+   Enumerate all `*.cjs` **and `*.js`** files in `$FORGE_ROOT/tools/lib/` (exclude
+   `*.test.cjs`/`*.test.js`). Let `N_lib` = the count.
+   Both extensions are required: e.g. `store-cli.cjs` loads `lib/validate.js` and
+   `collate.cjs` loads `lib/result.js`; a `.cjs`-only copy breaks them.
 2. Emit: `Copying tools (<N_top> tool files + <N_lib> lib files)...`
 3. Ensure `.forge/tools/` and `.forge/tools/lib/` exist (create if absent).
 4. For each top-level file, copy verbatim to `.forge/tools/<filename>`, then

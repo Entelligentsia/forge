@@ -1,4 +1,15 @@
 {
+  "1.2.9": {
+    "version": "1.2.10",
+    "date": "2026-06-03",
+    "notes": "Fix incomplete .forge/tools/ vendored closure. generate-tools.md and rebuild.md copied tools via `*.cjs` globs only, silently skipping the two `.js` lib helpers (lib/result.js, lib/validate.js) and the top-level list-skills.js. Because store-cli.cjs does a top-level require('./lib/validate.js') and collate.cjs requires './lib/result.js', a freshly vendored .forge/tools/ left store-cli.cjs dead-on-arrival (ENOENT) and broke KB collation. Latent since the vendored-tools model landed; S29 made it fatal by moving tool execution off $FORGE_ROOT/tools/ onto the vendored copy. Both vendoring sites now copy `.cjs` and `.js` (find -maxdepth 1, excludes __tests__/) and record both in the generation manifest. New regression guard tools/__tests__/vendored-tools-closure.test.cjs ties the documented copy extensions to the actual require()-closure.",
+    "target": "tools:vendor-closure",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:rebuild tools to re-vendor .forge/tools/ with the complete closure. Existing projects vendored by v1.2.4–v1.2.9 are missing .forge/tools/lib/result.js, .forge/tools/lib/validate.js, and .forge/tools/list-skills.js — store-cli and KB collation are broken until this re-vendor runs."
+    ]
+  },
   "1.2.8": {
     "version": "1.2.9",
     "date": "2026-06-03",

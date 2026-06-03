@@ -46,24 +46,29 @@ Copy the plugin tools closure into the project's `.forge/tools/` so that
 generated artifacts can invoke `node .forge/tools/<tool>.cjs` from the
 project root without resolving `$FORGE_ROOT`:
 
+Copy BOTH `.cjs` and `.js` files. Some tools require `.js` helpers at load
+time — e.g. `store-cli.cjs` does a top-level `require('./lib/validate.js')`
+and `collate.cjs` requires `./lib/result.js` — so a `.cjs`-only copy leaves
+`store-cli.cjs` dead-on-arrival and breaks KB collation. `-maxdepth 1`
+excludes the `__tests__/` subtree without copying any `*.test.*` files.
+
 ```sh
 mkdir -p .forge/tools/lib
 
-# Copy top-level tool files
-cp "$FORGE_ROOT/tools/"*.cjs .forge/tools/
+# Copy top-level tool files (.cjs and .js — e.g. list-skills.js)
+find "$FORGE_ROOT/tools" -maxdepth 1 -type f \( -name '*.cjs' -o -name '*.js' \) \
+  -exec cp {} .forge/tools/ \;
 
-# Copy lib/ helper files
-cp "$FORGE_ROOT/tools/lib/"*.cjs .forge/tools/lib/
+# Copy lib/ helper files (.cjs and .js — e.g. result.js, validate.js)
+find "$FORGE_ROOT/tools/lib" -maxdepth 1 -type f \( -name '*.cjs' -o -name '*.js' \) \
+  -exec cp {} .forge/tools/lib/ \;
 ```
 
 After copying, record each vendored file in the generation manifest so that
 `/forge:health` can detect modifications or stale copies:
 
 ```sh
-for f in .forge/tools/*.cjs; do
-  node "$FORGE_ROOT/tools/generation-manifest.cjs" record "$f"
-done
-for f in .forge/tools/lib/*.cjs; do
+for f in $(find .forge/tools .forge/tools/lib -maxdepth 1 -type f \( -name '*.cjs' -o -name '*.js' \)); do
   node "$FORGE_ROOT/tools/generation-manifest.cjs" record "$f"
 done
 ```
