@@ -10,7 +10,7 @@ deps:
   templates: []
   sub_workflows: []
   kb_docs: []
-  config_fields: [paths.engineering, paths.forgeRoot]
+  config_fields: [paths.engineering]
 ---
 
 # Meta-Workflow: Enhancement Agent
@@ -20,7 +20,7 @@ deps:
 
 - Orchestrator-only: this workflow runs with full tool access in the orchestrator session. NEVER delegate it to a subagent.
 - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
 - Phase 1 only touches `{{KEY}}` token text; never rewrite persona prose, algorithm steps, or role definitions.
 
 <!-- See _fragments/store-write-verification.md — NOTE: this file uses an intentionally abbreviated
@@ -140,7 +140,7 @@ Invoked by T09 post-init hook (`--auto`) or manually via `/forge:rebuild --enric
 
 2. **Skip runtime passthrough keys** — keys used at runtime (e.g., `{{TASK_ID}}`, `{{SPRINT_ID}}`,
    `{{ARGUMENTS}}`) are intentional and must not be substituted. Read
-   `$FORGE_ROOT/tools/substitute-placeholders.cjs` to identify the RUNTIME_PASSTHROUGH_KEYS list.
+   `.forge/tools/substitute-placeholders.cjs` to identify the RUNTIME_PASSTHROUGH_KEYS list.
    Exclude them from the fill candidates.
 
 3. **Derive values from codebase signals** — for each remaining `{{KEY}}`, attempt to derive a
@@ -172,7 +172,7 @@ Invoked by T09 post-init hook (`--auto`) or manually via `/forge:rebuild --enric
 
 6. **Snapshot gate** — if at least one fill was applied:
    ```sh
-   node "$FORGE_ROOT/tools/manage-versions.cjs" add-snapshot \
+   node .forge/tools/manage-versions.cjs add-snapshot \
      --source post-init \
      --enhanced-elements "<comma-separated list of relative .forge/ paths that were modified>"
    ```
@@ -180,7 +180,7 @@ Invoked by T09 post-init hook (`--auto`) or manually via `/forge:rebuild --enric
 
 7. **Emit enhancement event** to the store:
    ```sh
-   node "$FORGE_ROOT/tools/store-cli.cjs" emit enhancement '{
+   node .forge/tools/store-cli.cjs emit enhancement '{
      "eventId": "<ISO timestamp slug>_enhance_phase1",
      "taskId": "enhancement",
      "sprintId": "enhancement",

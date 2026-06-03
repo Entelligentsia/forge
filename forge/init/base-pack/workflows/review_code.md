@@ -26,7 +26,7 @@ deps:
 
 - Evaluate the code against the approved PLAN.md and the original task prompt. Do not accept "it works" as a substitute for "it is correct and maintainable."
 - Read `.forge/personas/supervisor.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
 
 ## Store-Write Verification
 
@@ -37,9 +37,8 @@ deps:
 ```
 
 0a. Pre-flight Gate Check:
-   - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
    - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
-   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase review-code --{entity_kind} {record_id}`
+   - Run: `node .forge/tools/preflight-gate.cjs --phase review-code --{entity_kind} {record_id}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
@@ -48,7 +47,7 @@ deps:
    - If `--force` is present in the invocation arguments, skip this step entirely.
    - If `entity_kind == "bug"`, skip this step entirely (bug state is managed by meta-fix-bug.md).
    - Read current task state:
-     `node "$FORGE_ROOT/tools/store-cli.cjs" read task {record_id} --json`
+     `node .forge/tools/store-cli.cjs read task {record_id} --json`
    - Extract the `status` field from the JSON output.
    - Allowed states for this phase: `implemented`, `implementing`.
    - If the current status is NOT in the allowed set:
@@ -98,7 +97,7 @@ deps:
 
 6. Finalize:
    - Transitions:
-     - **Task mode** — Update status: `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status review-approved` (if Approved) or `... status code-revision-required` (if Revision Required).
+     - **Task mode** — Update status: `node .forge/tools/store-cli.cjs update-status task {taskId} status review-approved` (if Approved) or `... status code-revision-required` (if Revision Required).
      - **Bug mode** — NO status write. The bug remains `in-progress`. The verdict signal travels through `summaries.code_review.verdict` (read by `read-verdict.cjs § BUG_PHASE_VERDICT_SOURCE`), not `bug.status`. Writing `bug.status` here violates `meta-fix-bug.md § Iron Laws #2`.
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
@@ -116,10 +115,11 @@ deps:
      }
      ```
    - Call (task mode):
-     `forge_store({ command:"set-summary", entity:"task", id:"{taskId}", phase:"code_review" })`
+     `forge_store({ command:"set-summary", args:["{taskId}", "code_review"] })`
      Or (bug mode):
-     `forge_store({ command:"set-bug-summary", entity:"bug", id:"{bugId}", phase:"code_review" })`
-   - If the set-summary call exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
+     `forge_store({ command:"set-bug-summary", args:["{bugId}", "code_review"] })`
+     `args[1]` is the LITERAL phase key `code_review`, never the record id; `forge_store` has no `entity`/`id`/`phase` field (see `_fragments/store-cli-verbs.md`).
+   - If set-summary exits non-zero, `args[1]` was wrong — fix it to `code_review` and retry. Do not return without a valid summary; the orchestrator halts as "verdict missing" if `summaries.code_review` is absent.
 ```
 
 <!-- See _fragments/generation-instructions.md for Generation Instructions template -->

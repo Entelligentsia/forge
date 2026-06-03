@@ -2,13 +2,9 @@
 
 ## Purpose
 
-Record the plugin root path so generated workflows can invoke tools without
-hardcoding paths, and install validation schemas for local use.
-
-Forge tools (`collate.cjs`, `manage-config.cjs`, `validate-store.cjs`,
-`seed-store.cjs`, `generation-manifest.cjs`, `store-cli.cjs`,
-`estimate-usage.cjs`) ship with the plugin and are invoked directly via
-`$FORGE_ROOT/tools/`. They are never copied to the project.
+Vendor the plugin tools closure and validation schemas into the project so
+generated workflows can invoke tools via `node .forge/tools/<tool>.cjs` from
+the project root without resolving `$FORGE_ROOT` at runtime.
 
 Store validation schemas are loaded at runtime from `.forge/schemas/`
 (project-installed), `forge/schemas/` (in-tree fallback), or
@@ -22,7 +18,8 @@ on fallback paths.
 
 ## Outputs
 
-- `.forge/config.json` — updated with `paths.forgeRoot` (resolved at init time)
+- `.forge/tools/` — vendored plugin tools closure
+- `.forge/tools/.forge-tools-version` — version marker for `/forge:health` staleness check
 - `.forge/schemas/` — JSON Schema copies from the installed plugin
 
 ## Instructions
@@ -30,18 +27,7 @@ on fallback paths.
 Read `.forge/config.json` for:
 - `paths.store` (default: `.forge/store`)
 
-### Step 1 — Record plugin root in config
-
-Resolve the plugin root and store it for use by generated workflows:
-
-```sh
-node "$FORGE_ROOT/tools/manage-config.cjs" set paths.forgeRoot "$FORGE_ROOT"
-```
-
-This allows generated workflow files to invoke tools via `{paths.forgeRoot}/tools/`
-without needing `$CLAUDE_PLUGIN_ROOT` to be available in subagent contexts.
-
-### Step 2 — Copy validation schemas
+### Step 1 — Copy validation schemas
 
 Copy all JSON Schema files from the installed plugin to the project:
 
@@ -53,6 +39,52 @@ cp "$FORGE_ROOT/schemas/"*.schema.json .forge/schemas/
 This ensures `store-cli.cjs` and `validate-store.cjs` can validate records
 using the full schema (not the minimal fallback) even when the project is
 not inside the Forge source tree.
+
+### Step 2 — Vendor plugin tools
+
+Copy the plugin tools closure into the project's `.forge/tools/` so that
+generated artifacts can invoke `node .forge/tools/<tool>.cjs` from the
+project root without resolving `$FORGE_ROOT`:
+
+Copy BOTH `.cjs` and `.js` files. Some tools require `.js` helpers at load
+time — e.g. `store-cli.cjs` does a top-level `require('./lib/validate.js')`
+and `collate.cjs` requires `./lib/result.js` — so a `.cjs`-only copy leaves
+`store-cli.cjs` dead-on-arrival and breaks KB collation. `-maxdepth 1`
+excludes the `__tests__/` subtree without copying any `*.test.*` files.
+
+```sh
+mkdir -p .forge/tools/lib
+
+# Copy top-level tool files (.cjs and .js — e.g. list-skills.js)
+find "$FORGE_ROOT/tools" -maxdepth 1 -type f \( -name '*.cjs' -o -name '*.js' \) \
+  -exec cp {} .forge/tools/ \;
+
+# Copy lib/ helper files (.cjs and .js — e.g. result.js, validate.js)
+find "$FORGE_ROOT/tools/lib" -maxdepth 1 -type f \( -name '*.cjs' -o -name '*.js' \) \
+  -exec cp {} .forge/tools/lib/ \;
+```
+
+After copying, record each vendored file in the generation manifest so that
+`/forge:health` can detect modifications or stale copies:
+
+```sh
+for f in $(find .forge/tools .forge/tools/lib -maxdepth 1 -type f \( -name '*.cjs' -o -name '*.js' \)); do
+  node "$FORGE_ROOT/tools/generation-manifest.cjs" record "$f"
+done
+```
+
+### Step 2b — Write version marker
+
+After the tool copy loop, write the version marker so `/forge:health` can
+detect whether the vendored tools are stale relative to the active plugin:
+
+```sh
+ACTIVE_VERSION=$(node -e "console.log(require('$FORGE_ROOT/.claude-plugin/plugin.json').version)")
+node -e "
+const fs = require('fs');
+fs.writeFileSync('.forge/tools/.forge-tools-version', JSON.stringify({ version: '${ACTIVE_VERSION}' }) + '\n');
+"
+```
 
 ### Step 3 — Verify
 
@@ -76,15 +108,14 @@ node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/config.json
 
 ## Notes
 
-- `paths.forgeRoot` is refreshed by `/forge:update` at each upgrade, so the
-  stored path stays current even after plugin reinstallation.
-- `/forge:update` automatically refreshes schemas as part of its normal flow — run it after upgrades
-  to refresh `.forge/schemas/` with any schema changes from the new version.
-- Generated workflow files reference tools using a runtime read pattern:
+- `/forge:update` automatically refreshes schemas and re-vendors tools as part
+  of its normal flow — run it after upgrades to pick up any changed tools or
+  schema updates from the new version.
+- Generated workflow files invoke tools using the vendored project-relative path:
   ```
-  FORGE_ROOT: read `paths.forgeRoot` from `.forge/config.json`
-  node "$FORGE_ROOT/tools/<tool>.cjs"
+  node .forge/tools/<tool>.cjs
   ```
-  Do NOT bake the resolved path as a string literal into generated workflow
-  files. Keeping `$FORGE_ROOT` as a runtime reference means the workflow
-  stays correct across version bumps without requiring regeneration.
+  This works from the project root without resolving `$FORGE_ROOT` at runtime.
+- `paths.forgeRef` in config records the plugin version the project was generated
+  against. `forge-preflight.cjs` uses it to resolve the plugin root via cache
+  lookup when runtime telemetry requires the original plugin path.

@@ -1,4 +1,182 @@
 {
+  "1.2.13": {
+    "version": "1.2.14",
+    "date": "2026-06-03",
+    "notes": "Correct the set-summary / set-bug-summary call signature in the review and triage workflows. meta-review-implementation.md, meta-review-plan.md, and meta-bug-triage.md documented a forge_store invocation with named entity/id/phase fields (forge_store({ command:'set-summary', entity:'task', id:'{taskId}', phase:'code_review' })) — but the forge_store tool schema accepts only { command, args[] }. Subagents handed the non-existent named form mis-built args, landing the record id in the phase slot; the phase-ownership guard rejected it ('expected summary key code_review'), summaries.code_review was never written, and the orchestrator halted the task as 'verdict missing'. All sites now use the canonical positional form forge_store({ command:'set-summary', args:['{taskId}', 'code_review'] }) with a one-line signature reminder; the _fragments/store-cli-verbs.md cheat-sheet documents the forge_store { command, args[] } shape and the 'id in both slots' failure. Also fixed a forge_store read call in meta-bug-triage.md that used the same invalid named form.",
+    "target": "workflows:review_code workflows:review_plan workflows:bug-triage",
+    "regenerate": [
+      "workflows"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild workflows to refresh .forge/workflows/ (review_code.md, review_plan.md, triage.md, and the store-cli-verbs fragment) with the corrected set-summary signature. Prompt-text only — no tool or schema change."
+    ]
+  },
+  "1.2.12": {
+    "version": "1.2.13",
+    "date": "2026-06-03",
+    "notes": "Deterministic post-phase exit guard (FORGE-S26-T19). New parseOutputs() export in parse-gates.cjs handles ```outputs phase=X``` fence blocks with closed grammar (artifact + require directives; unknown throws). New postflight-gate.cjs evaluator runs post-phase; returns { phase, reasonCode, detail, remediation } with new output-missing and output-stub reasonCodes; no LLM in path. forge-cli run-task.ts now calls runPostflightGate() after runForgeSubagent returns and before FSM advance; on UNSATISFIED halts + calls existing runHaltAdvisor. wfl-run-task.js gets a #22 parity-seam comment. meta-plan-task.md and meta-implement.md: prose Tier-2 self-check replaced by declarative outputs blocks + thin pointer reminders.",
+    "target": "tools:parse-gates tools:postflight-gate",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:rebuild to pick up updated meta-workflow changes (meta-plan-task.md, meta-implement.md now include declarative outputs blocks). postflight-gate.cjs is additive — no-op for workflows without outputs blocks."
+    ]
+  },
+  "1.2.11": {
+    "version": "1.2.12",
+    "date": "2026-06-03",
+    "notes": "Rebuild/republish bump — no functional source change from 1.2.11. Cut to ship a fresh plugin manifest + integrity hashes and a corresponding forge-cli 1.0.12 build/install. Carries the 1.2.11 halt-recovery-advisor payload (FORGE-S26-T18) unchanged.",
+    "target": "release:rebuild",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "1.2.10": {
+    "version": "1.2.11",
+    "date": "2026-06-03",
+    "notes": "Halt-recovery advisor (FORGE-S26-T18). preflight-gate.cjs now emits structured JSON on stdout on gate failure: { phase, reasonCode, detail, remediation }. reasonCode values: artifact-missing, predecessor-verdict-missing, illegal-status, tool-error. Both LLM orchestrators (meta-orchestrate.md, meta-fix-bug.md) parse and render the structured failure instead of raw stderr. forge-cli run-task and fix-bug upgraded to runPreflightGateWithData() which returns structured failure alongside the PreflightResult enum; on halt, the CLI spawns a read-only halt-recovery advisor subagent on the advisorModel config slot (or getAvailable()[0] fallback). New optional advisorModel field added to forge-cli layered config (L1 global / L2 project). Post-phase self-check guards added to meta-plan-task.md and meta-implement.md (Tier 2) to prevent false complete events when a phase subagent silently fails to write its primary output.",
+    "target": "tools:preflight-gate",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:rebuild to pick up updated meta-workflow changes (meta-orchestrate.md, meta-fix-bug.md, meta-plan-task.md, meta-implement.md). The structured JSON stdout from preflight-gate.cjs is additive — orchestrators that do not parse it still receive human-readable stderr and exit 1."
+    ]
+  },
+  "1.2.9": {
+    "version": "1.2.10",
+    "date": "2026-06-03",
+    "notes": "Fix incomplete .forge/tools/ vendored closure. generate-tools.md and rebuild.md copied tools via `*.cjs` globs only, silently skipping the two `.js` lib helpers (lib/result.js, lib/validate.js) and the top-level list-skills.js. Because store-cli.cjs does a top-level require('./lib/validate.js') and collate.cjs requires './lib/result.js', a freshly vendored .forge/tools/ left store-cli.cjs dead-on-arrival (ENOENT) and broke KB collation. Latent since the vendored-tools model landed; S29 made it fatal by moving tool execution off $FORGE_ROOT/tools/ onto the vendored copy. Both vendoring sites now copy `.cjs` and `.js` (find -maxdepth 1, excludes __tests__/) and record both in the generation manifest. New regression guard tools/__tests__/vendored-tools-closure.test.cjs ties the documented copy extensions to the actual require()-closure.",
+    "target": "tools:vendor-closure",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:rebuild tools to re-vendor .forge/tools/ with the complete closure. Existing projects vendored by v1.2.4–v1.2.9 are missing .forge/tools/lib/result.js, .forge/tools/lib/validate.js, and .forge/tools/list-skills.js — store-cli and KB collation are broken until this re-vendor runs."
+    ]
+  },
+  "1.2.8": {
+    "version": "1.2.9",
+    "date": "2026-06-03",
+    "notes": "Finish the FORGE_ROOT retirement in the workflow/persona layer (vendored-path scope). Remove the vestigial 'Resolve FORGE_ROOT (config.paths.forgeRoot)' preamble bullet from meta-approve/review-plan/review-implementation/validate/commit/plan-task/implement/bug-triage (the gate calls already use node .forge/tools/preflight-gate.cjs). Switch persona identity banners to node .forge/tools/banners.cjs <id> at the generator (build-base-pack.cjs identityBlock) and in the three base-pack-only personas (librarian/orchestrator/product-manager); drop the broken paths.forgeRoot resolution. meta-collate/collator now invoke node .forge/tools/collate.cjs directly. meta-migrate resolves the plugin root from CLAUDE_PLUGIN_ROOT (plugin-side reads of init/base-pack are not vendored). Stale paths.forgeRoot doc references removed from store-cli.spec.md, meta-enhance config_fields, and tool-discipline.md. paths.forgeRoot is intentionally retained as a maintained convenience field (written by check-update.cjs) for skills/commands that resolve the plugin root — those are out of scope for this entry.",
+    "target": "workflows:forge-root-residual-cleanup",
+    "regenerate": ["workflows", "personas"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:rebuild workflows personas to regenerate the updated workflow and persona files. The vendored banners/collate invocations require .forge/tools/ to be present — run /forge:rebuild tools first if it is absent (see the 1.2.7 migration)."
+    ]
+  },
+  "1.2.7": {
+    "version": "1.2.8",
+    "date": "2026-06-03",
+    "notes": "Remove all $FORGE_ROOT references from init/smoke-test.md. Switch tool exec check to node .forge/tools/validate-store.cjs, generation-manifest stamp to node .forge/tools/generation-manifest.cjs, version read to .forge/tools/.forge-tools-version, distribution detection to the distribution field in .forge-tools-version, and remove the forgeRoot field from update-check-cache.json stamp. Smoke-test runs only at init time — existing projects are not affected.",
+    "target": "init:smoke-test",
+    "regenerate": ["init"],
+    "breaking": false,
+    "manual": [
+      "Re-run /forge:init on new projects to pick up the updated smoke-test. Existing projects are unaffected — smoke-test runs only once at init time."
+    ]
+  },
+  "1.2.6": {
+    "version": "1.2.7",
+    "date": "2026-06-02",
+    "notes": "Remove paths.forgeRoot from config.schema.json required[] and properties. forge-preflight.cjs now resolves plugin root via forgeRef-based cache scan (mirrors manage-config.cjs Priority 2) instead of reading config.paths.forgeRoot. manage-config.cjs resolve-forge-root drops Priority 3 (forgeRoot fallback). generate-tools.md drops Step 1 (forgeRoot write). update.md removes forgeRoot refresh from Step 4 config section and fixes tools regenerate category to invoke /forge:rebuild tools instead of running schema refresh inline.",
+    "target": "config:forgeRoot",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:rebuild tools to re-vendor .forge/tools/ on existing projects. Projects that have never run /forge:rebuild tools will have .forge/tools/ absent until this step."
+    ]
+  },
+  "1.2.5": {
+    "version": "1.2.6",
+    "date": "2026-06-02",
+    "notes": "Add vendored-tools integrity and staleness check to /forge:health. Exports checkToolsVersion(projectRoot) from check-structure.cjs: reads .forge/tools/.forge-tools-version marker and paths.forgeRef from config, returns { present, vendoredVersion, activeVersion, stale, reason }. generate-tools.md Step 2c now writes .forge/tools/.forge-tools-version after the tool copy loop. rebuild.md tools category now re-writes the marker after re-copy. health.md gains step 8b (vendored tools presence + staleness check, emitting 〇/△/× with /forge:rebuild tools recommendation). Closes the integrity gap for existing projects that ran /forge:rebuild tools in v1.2.4 without the marker.",
+    "target": "tools:health",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild tools to write .forge/tools/.forge-tools-version. Until this runs, /forge:health will report 'stale (marker absent)' — non-breaking."
+    ]
+  },
+  "1.2.4": {
+    "version": "1.2.5",
+    "date": "2026-06-02",
+    "notes": "Rewrite all ~159 node \"$FORGE_ROOT/tools/X.cjs\" call-sites in meta/workflows/*.md, meta/workflows/_fragments/*.md, and wfl-*.js drivers to use the fixed project-relative form node .forge/tools/X.cjs. Delete the FORGE_ROOT export preamble from all three JS drivers (wfl-run-task.js, wfl-run-sprint.js, wfl-fix-bug.js). Tools are now vendored in .forge/tools/ (added in v1.2.4), so no subagent needs to resolve a plugin root path at runtime. Drift test guard updated: asserts no $FORGE_ROOT remains in any driver source. Existing projects must regenerate workflows and workflows-js to pick up the new paths.",
+    "target": "workflows:*",
+    "regenerate": ["workflows", "workflows-js"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then run /forge:rebuild tools (if not done in v1.2.4 step), then /forge:rebuild workflows and /forge:rebuild workflows-js. Tools must be vendored in .forge/tools/ before running the rewritten workflows."
+    ]
+  },
+  "1.2.3": {
+    "version": "1.2.4",
+    "date": "2026-06-02",
+    "notes": "Add tools vendor category: copy plugin tools/*.cjs + tools/lib/*.cjs into .forge/tools/ at init and rebuild, mirroring the existing schemas copy. Adds tools namespace to structure-manifest.json (via build-manifest.cjs TOOLS_FILES constant), Step 2b to generate-tools.md (init copy), and tools/tools:<filename> category to rebuild.md (verbatim re-copy from $FORGE_ROOT/tools/). check-structure.cjs validateManifest now maps the tools namespace to forgeRoot/tools/ with recursive lib/ enumeration. Foundation for FORGE-S29 call-site rewrite (T02+). No existing call-sites changed in this task.",
+    "target": "tools",
+    "regenerate": ["tools"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild tools to materialise .forge/tools/."
+    ]
+  },
+  "1.2.2": {
+    "version": "1.2.3",
+    "date": "2026-06-02",
+    "notes": "Harden FORGE_ROOT / .forge/config.json resolution in the packaged JS workflow drivers. A friction trace of a real /fix-bug run showed phase subagents repeatedly probing ../.forge/config.json (the PARENT directory — 5 of 11 subagents) and one invoking `node \"$FORGE_ROOT/tools/preflight-gate.cjs\"` with an unexported $FORGE_ROOT that expands to '' → '/tools/preflight-gate.cjs' (Cannot find module). Root cause: the per-phase subagent prompt preamble said only 'Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot' — no cwd anchor and no instruction to export $FORGE_ROOT, even though every subsequent command used $FORGE_ROOT as a shell variable. Replaced all ~23 preamble sites across wfl-run-task.js / wfl-run-sprint.js / wfl-fix-bug.js with a directive that (a) anchors the config to ./.forge/config.json in the current working directory ('never a parent directory'), (b) tells the agent to EXPORT FORGE_ROOT, and (c) STOPs if $FORGE_ROOT is empty or $FORGE_ROOT/tools is missing. Added a regression guard in workflows-js-drift.test.cjs. Prompt-text only — no orchestration-logic change.",
+    "target": "workflows-js:wfl-run-task",
+    "regenerate": [
+      "workflows-js:wfl-run-task",
+      "workflows-js:wfl-run-sprint",
+      "workflows-js:wfl-fix-bug"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild workflows-js to refresh .claude/workflows/wfl-*.js."
+    ]
+  },
+  "1.2.1": {
+    "version": "1.2.2",
+    "date": "2026-06-02",
+    "notes": "Fix three orchestration-logic edge-case bugs in the packaged JS workflow drivers (found by an adversarial review of the v1.2.1 packaged workflows). (S1) wfl-run-sprint.js re-dispatch passed { taskId, resumeFrom } but wfl:run-task parses only the task id, so resumeFrom was silently dropped — removed the misleading arg; the retry is a clean re-dispatch that resumes from store state. (S2) wfl-run-sprint.js treated a skipped child as non-terminal, so a legitimately `blocked` task (waiting on a dependency) was re-dispatched and then force-escalated; a skipped child is now terminal-acceptable. (F1) wfl-fix-bug.js had no null guard on the finalize dispatch — a skipped/errored finalize fell through and the run was reported bugStatus:'fixed', escalated:false even though collate + the finalize gate never ran; it now escalates on a null finalize while preserving bugStatus:'fixed'. Added text-contract regression guards in workflows-js-drift.test.cjs. Deferred (tracked for a follow-up): revision-counter/eventId attribution (wfl-run-task), count-bucket taxonomy + full-parallel dependency ordering (wfl-run-sprint), and two MINORs in wfl-fix-bug (phase('Pipeline') grouping, escalateBug bugId).",
+    "target": "workflows-js:wfl-run-sprint",
+    "regenerate": [
+      "workflows-js:wfl-run-sprint",
+      "workflows-js:wfl-fix-bug"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild workflows-js to refresh .claude/workflows/wfl-run-sprint.js and wfl-fix-bug.js."
+    ]
+  },
+  "1.2.0": {
+    "version": "1.2.1",
+    "date": "2026-06-02",
+    "notes": "Fix wfl-fix-bug.js invalid meta. The fix-bug JS driver declared its meta with `desc:` and `steps:` instead of `description:` and `phases:`, so the Workflow runtime rejected it ('meta.description must be a non-empty string') and the named-workflow registry silently skipped it — /forge:fix-bug (and any /<prefix>:fix-bug) could never launch wfl:fix-bug. This shipped latent since the driver was authored and was exposed by the v1.2.0 orchestration-prose retirement, which removed the fix_bug.md fallback. Renamed desc->description and steps->phases (adding the Resolve phase) to match wfl-run-task.js / wfl-run-sprint.js. Added a meta-contract regression guard (workflows-js-drift.test.cjs) that asserts every JS driver exposes name + non-empty description + phases.",
+    "target": "workflows-js:wfl-fix-bug",
+    "regenerate": [
+      "workflows-js:wfl-fix-bug"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update to receive the fix, then /forge:rebuild workflows-js to refresh .claude/workflows/wfl-fix-bug.js. /<prefix>:fix-bug will then launch wfl:fix-bug correctly."
+    ]
+  },
+  "1.1.2": {
+    "version": "1.2.0",
+    "date": "2026-06-02",
+    "notes": "Retire LLM orchestration prose. The deterministic JS drivers (.claude/workflows/wfl-run-task.js, wfl-run-sprint.js, wfl-fix-bug.js — category workflows-js) are now the only orchestration truth; /forge:run-task, /forge:run-sprint and /forge:fix-bug already dispatch to them via workflow(wfl:*). The prose orchestrators orchestrate_task.md, run_sprint.md and fix_bug.md are no longer built into the base-pack, no longer generated into .forge/workflows/, and no longer tested (the orchestrators-retired and orchestrator-base-pack-parity drift tests are removed; only the JS drivers are tested). meta-orchestrate.md and meta-fix-bug.md are kept in meta/ as reference specs only. build-base-pack and build-manifest drop the three workflow mappings; workflow-gen-plan.json goes 16->15; the rebuild orchestration-generation step and generate-orchestration.md rulebook are removed. The three retired prose files are added to /forge:update's delete-workflow scan so existing projects have the orphaned .forge/workflows/orchestrate_task.md, run_sprint.md and fix_bug.md removed (rebuild only regenerates and clears manifest entries; it does not delete files on disk).",
+    "target": "workflows-js:wfl-run-task",
+    "regenerate": [
+      "workflows",
+      "workflows-js"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update — it removes the retired orchestrate_task.md / run_sprint.md / fix_bug.md from .forge/workflows/ via its delete-workflow scan (prompts before deleting any you have hand-edited).",
+      "Orchestration now runs through .claude/workflows/wfl-*.js — no action needed for /forge:run-task, /forge:run-sprint, or /forge:fix-bug."
+    ]
+  },
   "1.1.1": {
     "version": "1.1.2",
     "date": "2026-06-02",

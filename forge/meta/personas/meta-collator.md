@@ -42,9 +42,9 @@ invokes the generated tool or falls back to manual collation.
 
 ## Preferred Method
 
-Read `paths.forgeRoot` from `.forge/config.json` → set as `FORGE_ROOT`. Then run:
+Run the vendored collate tool:
 ```bash
-node "$FORGE_ROOT/tools/collate.cjs"
+node .forge/tools/collate.cjs
 ```
 
 ## Fallback Method
@@ -56,17 +56,17 @@ the same outputs following the collation algorithm in
 ## Generation Instructions
 
 When generating a project-specific Collator, incorporate:
-- Emit the runtime-read pattern exactly as shown above — do NOT substitute
-  `paths.forgeRoot` as a literal string at generation time. The `$FORGE_ROOT`
-  variable must remain in the generated file so the path resolves from
-  `.forge/config.json` when the workflow runs, not when it is generated.
+- Emit the vendored project-relative invocation exactly as shown above —
+  `node .forge/tools/collate.cjs`. The tools closure is vendored into
+  `.forge/tools/` by `/forge:rebuild`, so the path resolves at runtime
+  without any plugin-root lookup.
 - The project's language for invoking the tool
 - The store path (.forge/store/)
 - The project prefix for ID formatting
 
 **Persona block format** — every generated workflow for this persona must open by running the identity banner using the Bash tool:
 ```bash
-FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" drift
+node .forge/tools/banners.cjs drift
 ```
 Use `--badge` for compact inline contexts. The plain-text fallback for non-terminal output is:
 `🍃 **{Project} Collator** — I gather what exists and arrange it into views.`

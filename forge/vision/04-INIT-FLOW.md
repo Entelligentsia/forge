@@ -187,22 +187,23 @@ Generates: `.forge/workflows/` — complete, project-specific workflow files.
 
 ---
 
-## Phase 6 — Generate Orchestration
+## Phase 6 — Orchestration (deterministic JS — no generation step)
 
-Reads: `meta-orchestrate.md` + generated atomic workflows.
-Generates: `.forge/workflows/orchestrate_task.md`
+**Retired:** there is no longer an LLM orchestration-generation phase. The prose
+orchestrators (`orchestrate_task` / `run_sprint` / `fix_bug`) have been replaced
+by deterministic JS drivers in `.claude/workflows/wfl-*.js` (category
+`workflows-js`), copied verbatim from the plugin base-pack — no LLM, no
+placeholder substitution. `/forge:run-task`, `/forge:run-sprint`, and
+`/forge:fix-bug` dispatch to them via `workflow(wfl:*)`.
 
-The orchestrator wires the atomic workflows into a pipeline:
+The JS drivers wire the atomic workflows into a pipeline:
 
 ```
 Plan → Review Plan → [loop max 3] → Implement → Review Code → [loop max 3] → Approve → Commit
 ```
 
-Project-specific elements:
-- Workflow paths (references the generated atomic workflows by name)
-- Gate conditions (test commands, file existence checks)
-- Model selection per role (Sonnet for Engineer, Opus for Supervisor/Architect, Haiku for Commit)
-- Escalation format (uses project prefix in task IDs)
+`meta-orchestrate.md` and `meta-fix-bug.md` remain in `meta/` as reference specs
+only — neither built into the base-pack nor generated into `.forge/workflows/`.
 
 ---
 

@@ -369,7 +369,10 @@ describe('manage-config.cjs', () => {
       }
     });
 
-    test('falls back to forgeRoot when CLAUDE_PLUGIN_ROOT is not set and forgeRef has no cache match', () => {
+    test('exits 1 with actionable error when CLAUDE_PLUGIN_ROOT is not set and only forgeRoot (no forgeRef) is in config', () => {
+      // Priority 3 (forgeRoot fallback) has been removed in FORGE-S29-T03.
+      // A config with only forgeRoot and no forgeRef should now exit 1 with
+      // an actionable error, not silently fall back to the stale path.
       const forgeRoot = '/tmp/some/fallback/path';
       const tmp = makeTmpProject({ paths: { forgeRoot } });
       try {
@@ -378,8 +381,9 @@ describe('manage-config.cjs', () => {
           [path.join(__dirname, '..', 'manage-config.cjs'), 'resolve-forge-root'],
           { cwd: tmp, encoding: 'utf8', env: { ...process.env, CLAUDE_PLUGIN_ROOT: '' } }
         );
-        assert.strictEqual(result.status, 0, `resolve-forge-root must exit 0. stderr: ${result.stderr}`);
-        assert.strictEqual(result.stdout.trim(), forgeRoot, 'should fall back to forgeRoot');
+        assert.strictEqual(result.status, 1, `resolve-forge-root must exit 1 when only deprecated forgeRoot present. stderr: ${result.stderr}`);
+        assert.ok(result.stderr.includes('Cannot resolve') || result.stderr.includes('forgeRoot'),
+          `stderr must mention resolution failure; got: "${result.stderr}"`);
       } finally {
         fs.rmSync(tmp, { recursive: true, force: true });
       }

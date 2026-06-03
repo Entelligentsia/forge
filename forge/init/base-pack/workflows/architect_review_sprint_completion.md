@@ -36,10 +36,10 @@ deps:
 4. Finalize:
    - If step-3 verdict is `Approved`:
      - Update sprint status to `completed` via
-       `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status completed`
+       `node .forge/tools/store-cli.cjs update-status sprint {sprintId} status completed`
    - If step-3 verdict is `Revision Required` and orchestrator passed `mode=partial`:
      - Update sprint status to `partially-completed` via
-       `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status partially-completed`
+       `node .forge/tools/store-cli.cjs update-status sprint {sprintId} status partially-completed`
    - If step-3 verdict is `Revision Required` and orchestrator passed `mode=complete`:
      - Do NOT transition status. Leave the sprint at its current status and exit;
        the orchestrator will surface the verdict to the user.

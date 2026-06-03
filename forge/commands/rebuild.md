@@ -87,6 +87,9 @@ with a colon delimiter (both forms are equivalent).
 /forge:rebuild workflows-js                  # .claude/workflows/ JS orchestration workflows (verbatim copy)
 /forge:rebuild workflows-js wfl-run-task     # single JS workflow file only
 /forge:rebuild workflows-js:wfl-run-task     # same — colon form (from migration entries)
+/forge:rebuild tools                        # .forge/tools/ verbatim re-copy from $FORGE_ROOT/tools/
+/forge:rebuild tools store-cli              # single tool file only (name with or without .cjs)
+/forge:rebuild tools:store-cli              # same — colon form (from migration entries)
 /forge:rebuild commands                     # .claude/commands/ slash command wrappers
 /forge:rebuild templates                    # document templates only
 /forge:rebuild templates PLAN_TEMPLATE      # single template file only
@@ -314,14 +317,14 @@ write, record hash.
      --kb "$(node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo engineering)" \
      --out .forge/init-context.md --json-out .forge/init-context.json
    ```
-2. Read `$FORGE_ROOT/init/workflow-gen-plan.json` (16-entry fan-out table).
+2. Read `$FORGE_ROOT/init/workflow-gen-plan.json` (15-entry fan-out table).
    Let `M_total` = the entry count.
 
 3. Render the workflows badge, then emit the count:
    ```sh
    node "$FORGE_ROOT/tools/banners.cjs" --badge ember
    ```
-   Then emit: `Generating workflows (<N> atomic + orchestration, parallel)...`
+   Then emit: `Generating workflows (<N> atomic, parallel)...`
 4. Check each file for manual modifications before any clearing:
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" check .forge/workflows/{filename}.md
@@ -337,22 +340,24 @@ write, record hash.
    `$FORGE_ROOT/init/generation/generate-workflows.md` as the per-subagent rulebook
    (same fan-out pattern as `/forge:init` Phase 7d). Spawn one per entry.
 7. Collect results. Retry failures once in a single Agent call.
-8. Spawn orchestration subagent:
-   ```
-   Read $FORGE_ROOT/init/generation/generate-orchestration.md and follow it.
-   FORGE_ROOT: {FORGE_ROOT}
-   Input: $FORGE_ROOT/meta/workflows/meta-orchestrate.md + .forge/workflows/
-   Output: .forge/workflows/orchestrate_task.md and .forge/workflows/run_sprint.md
-   ```
-9. **Replay user enhancements** (forge#107 / Approach A):
+
+   > **LLM orchestration retired.** `orchestrate_task` / `run_sprint` / `fix_bug`
+   > are no longer generated. The deterministic JS drivers in
+   > `.claude/workflows/wfl-*.js` (category `workflows-js`) are the only
+   > orchestration truth; `/forge:run-task`, `/forge:run-sprint`, and
+   > `/forge:fix-bug` dispatch to them via `workflow(wfl:*)`. The prose specs
+   > `meta-orchestrate.md` / `meta-fix-bug.md` remain in `meta/` as reference
+   > docs only — neither built into the base-pack nor regenerated here.
+
+8. **Replay user enhancements** (forge#107 / Approach A):
    ```sh
    node "$FORGE_ROOT/tools/manage-versions.cjs" replay --target workflows
    ```
    Walks snapshots; restores enhanced `workflows/<name>.md` files. Later
    snapshots win on collision.
-10. For each written file: record hash `node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/workflows/{filename}.md`
+9. For each written file: record hash `node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/workflows/{filename}.md`
     (this runs AFTER replay so the recorded hash reflects the restored content).
-11. Emit `  〇 workflows — <N> files written`.
+10. Emit `  〇 workflows — <N> files written`.
 
 **Do NOT touch:** `.claude/commands/`, `.forge/config.json`, or any knowledge base file.
 
@@ -406,6 +411,69 @@ sub-target may be given with or without the `.js` extension; normalise to
 > **Note:** Only the base-pack-sourced JS workflows (`wfl-*.js`) are written.
 > Custom or project-specific files in `.claude/workflows/` are never
 > overwritten or deleted. Verify with `ls .claude/workflows/`.
+
+---
+
+## Category: `tools` — verbatim copy (full or single file)
+
+Re-materialise the vendored plugin tools in `.forge/tools/` from the installed
+plugin. Unlike workflow and persona categories (LLM-generated with placeholder
+substitution), tools files are **deterministic verbatim copies** from
+`$FORGE_ROOT/tools/` — no LLM, no substitution, no enrichment. The output is
+byte-identical to the plugin source.
+
+**If a sub-target is provided** (e.g. `/forge:rebuild tools store-cli`
+or the colon form `tools:store-cli`), copy only the single file. The sub-target
+may be given with or without the `.cjs` extension; normalise to `<sub-target>.cjs`.
+Sub-targets in the `lib/` namespace may be specified with the `lib/` prefix
+(e.g. `tools:lib/schema-loader` or `tools:lib/schema-loader.cjs`).
+
+**Single-file steps:**
+
+1. Resolve the source path: if the sub-target starts with `lib/`, look in
+   `$FORGE_ROOT/tools/lib/<name>.cjs`; otherwise look in `$FORGE_ROOT/tools/<name>.cjs`.
+   If the source does not exist, list the available files and exit cleanly.
+2. Ensure the target directory exists (`.forge/tools/` or `.forge/tools/lib/`).
+3. Copy verbatim to the resolved `.forge/tools/` path.
+4. Record a manifest hash:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/tools/<sub-target>.cjs
+   ```
+5. Emit `  〇 tools:<sub-target> — copied`.
+
+**If no sub-target** — full re-copy, directory fan-out:
+
+1. Enumerate all `*.cjs` **and `*.js`** files in `$FORGE_ROOT/tools/` (top-level
+   only, exclude `*.test.cjs`/`*.test.js`). Let `N_top` = the count.
+   Enumerate all `*.cjs` **and `*.js`** files in `$FORGE_ROOT/tools/lib/` (exclude
+   `*.test.cjs`/`*.test.js`). Let `N_lib` = the count.
+   Both extensions are required: e.g. `store-cli.cjs` loads `lib/validate.js` and
+   `collate.cjs` loads `lib/result.js`; a `.cjs`-only copy breaks them.
+2. Emit: `Copying tools (<N_top> tool files + <N_lib> lib files)...`
+3. Ensure `.forge/tools/` and `.forge/tools/lib/` exist (create if absent).
+4. For each top-level file, copy verbatim to `.forge/tools/<filename>`, then
+   record a manifest hash:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/tools/<filename>
+   ```
+5. For each lib file, copy verbatim to `.forge/tools/lib/<filename>`, then
+   record a manifest hash:
+   ```sh
+   node "$FORGE_ROOT/tools/generation-manifest.cjs" record .forge/tools/lib/<filename>
+   ```
+6. Write (or overwrite) the version marker so `/forge:health` can detect staleness:
+   ```sh
+   ACTIVE_VERSION=$(node -e "console.log(require('$FORGE_ROOT/.claude-plugin/plugin.json').version)")
+   node -e "
+   const fs = require('fs');
+   fs.writeFileSync('.forge/tools/.forge-tools-version', JSON.stringify({ version: '${ACTIVE_VERSION}' }) + '\n');
+   "
+   ```
+7. Emit `  〇 tools — <N_top + N_lib> files copied`.
+
+> **Note:** This is a full re-copy of the plugin tools at the installed
+> `$FORGE_ROOT` version. Use `/forge:rebuild tools` after `/forge:update` to
+> refresh `.forge/tools/` to the new plugin version.
 
 ---
 

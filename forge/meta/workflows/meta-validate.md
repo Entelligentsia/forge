@@ -31,7 +31,7 @@ The Supervisor performs a final validation of the implementation against the acc
 
 - Validate against the acceptance criteria as written; do not soften, expand, or reinterpret them. The validator's job is to catch what the implementer optimistically considered "done".
 - Read `.forge/personas/qa-engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
 
 ## Store-Write Verification
 
@@ -42,9 +42,8 @@ The Supervisor performs a final validation of the implementation against the acc
 ```
 
 0a. Pre-flight Gate Check:
-   - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
    - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
-   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase validate --{entity_kind} {record_id}`
+   - Run: `node .forge/tools/preflight-gate.cjs --phase validate --{entity_kind} {record_id}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
@@ -53,7 +52,7 @@ The Supervisor performs a final validation of the implementation against the acc
    - If `--force` is present in the invocation arguments, skip this step entirely.
    - If `entity_kind == "bug"`, skip this step entirely (bug state is managed by meta-fix-bug.md).
    - Read current task state:
-     `node "$FORGE_ROOT/tools/store-cli.cjs" read task {record_id} --json`
+     `node .forge/tools/store-cli.cjs read task {record_id} --json`
    - Extract the `status` field from the JSON output.
    - Allowed states for this phase: `implemented`, `review-approved`.
    - If the current status is NOT in the allowed set:
@@ -99,7 +98,7 @@ The Supervisor performs a final validation of the implementation against the acc
      - See step 1 for iteration header and final-iteration Next Steps requirements.
 
 5. Finalize:
-   - Update task status via `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status review-approved` (if Approved) or `node "$FORGE_ROOT/tools/store-cli.cjs" update-status task {taskId} status code-revision-required` (if Revision Required)
+   - Update task status via `node .forge/tools/store-cli.cjs update-status task {taskId} status review-approved` (if Approved) or `node .forge/tools/store-cli.cjs update-status task {taskId} status code-revision-required` (if Revision Required)
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
 6. Emit Summary Sidecar:
@@ -117,7 +116,7 @@ The Supervisor performs a final validation of the implementation against the acc
      ```
    - Call (the sidecar path is auto-resolved from the task record's `path` — never pass it):
      ```
-     node "$FORGE_ROOT/tools/store-cli.cjs" set-summary {task_id} validation
+     node .forge/tools/store-cli.cjs set-summary {task_id} validation
      ```
    - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 ```

@@ -89,13 +89,20 @@ Personas live in `.forge/personas/`.
 
 Only include rows for workflow files that actually exist on disk. Check each:
 
+Atomic workflows (LLM-generated markdown in `.forge/workflows/`):
+
 - `.forge/workflows/plan_task.md` → "Research codebase → implementation plan"
 - `.forge/workflows/implement_plan.md` → "Execute approved plan → code changes"
-- `.forge/workflows/fix_bug.md` → "Triage → fix → verify"
-- `.forge/workflows/orchestrate_task.md` → "Full task pipeline (plan → implement → review → commit)"
-- `.forge/workflows/run_sprint.md` → "Full sprint orchestration"
 - `.forge/workflows/architect_sprint_plan.md` → "Sprint planning and task decomposition"
 - `.forge/workflows/architect_sprint_intake.md` → "Sprint intake and requirements elicitation"
+
+Orchestration is deterministic JS, not prose. The LLM orchestration workflows
+(`orchestrate_task` / `run_sprint` / `fix_bug`) are **retired** — link the JS
+drivers in `.claude/workflows/` instead (only include rows where the file exists):
+
+- `.claude/workflows/wfl-run-task.js` → "Full task pipeline (plan → implement → review → approve → commit)"
+- `.claude/workflows/wfl-run-sprint.js` → "Full sprint orchestration"
+- `.claude/workflows/wfl-fix-bug.js` → "Triage → fix → verify"
 
 ```markdown
 <!-- forge-workflow-links: managed by Forge — do not edit manually -->
@@ -105,13 +112,13 @@ Only include rows for workflow files that actually exist on disk. Check each:
 |----------|---------|
 | [Plan](.forge/workflows/plan_task.md) | Research codebase → implementation plan |
 | [Implement](.forge/workflows/implement_plan.md) | Execute approved plan → code changes |
-| [Fix bug](.forge/workflows/fix_bug.md) | Triage → fix → verify |
-| [Run task](.forge/workflows/orchestrate_task.md) | Full task pipeline (plan → implement → review → commit) |
-| [Run sprint](.forge/workflows/run_sprint.md) | Full sprint orchestration |
+| [Run task](.claude/workflows/wfl-run-task.js) | Full task pipeline (plan → implement → review → approve → commit) |
+| [Run sprint](.claude/workflows/wfl-run-sprint.js) | Full sprint orchestration |
+| [Fix bug](.claude/workflows/wfl-fix-bug.js) | Triage → fix → verify |
 <!-- /forge-workflow-links -->
 ```
 
-(Only include rows where the referenced `.forge/workflows/` file exists on disk.)
+(Only include rows where the referenced file exists on disk.)
 
 ## KB Integrity Check
 

@@ -37,7 +37,7 @@ KB_PATH=$(node -e "try{console.log(require('./.forge/config.json').paths.enginee
 
 ### 3. Tool execution
 
-- `node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run` runs without error
+- `node .forge/tools/validate-store.cjs --dry-run` runs without error
 
 ### 4. Template coherence
 
@@ -67,7 +67,7 @@ anchor this project to the installed Forge version. These are required for
 Run:
 
 ```sh
-node "$FORGE_ROOT/tools/generation-manifest.cjs" record-all
+node .forge/tools/generation-manifest.cjs record-all
 ```
 
 This hashes every generated file in `.forge/workflows/`, `.forge/personas/`,
@@ -81,11 +81,11 @@ retired filenames.
 Read the installed version:
 
 ```sh
-node -e "const p=require('$FORGE_ROOT/.claude-plugin/plugin.json'); console.log(p.version);"
+node -e "const v=require('.forge/tools/.forge-tools-version'); console.log(v.version);"
 ```
 
-Determine distribution from `$FORGE_ROOT` path:
-- Contains `/cache/skillforge/forge/` → `forge@skillforge`
+Determine distribution from the `distribution` field in `.forge/tools/.forge-tools-version`:
+- Value `forge@skillforge` → `forge@skillforge`
 - Anything else → `forge@forge`
 
 Write `.forge/update-check-cache.json`:
@@ -94,8 +94,7 @@ Write `.forge/update-check-cache.json`:
 {
   "migratedFrom": "<installed_version>",
   "localVersion": "<installed_version>",
-  "distribution": "<distribution>",
-  "forgeRoot": "<FORGE_ROOT>"
+  "distribution": "<distribution>"
 }
 ```
 

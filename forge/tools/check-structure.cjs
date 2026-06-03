@@ -133,8 +133,15 @@ function validateManifest(manifest, forgeRoot) {
     templates: path.join(basePackDir, 'templates'),
     commands:  path.join(basePackDir, 'commands'),
     'workflows-js': path.join(basePackDir, 'workflows-js'),
+    // tools: not base-pack-sourced — source is forgeRoot/tools/ (verbatim vendor).
+    // Uses recursive enumeration to include lib/*.cjs with the lib/ prefix.
+    tools: path.join(forgeRoot, 'tools'),
     // schemas: not base-pack-sourced — source is forgeRoot/schemas/
   };
+
+  // Namespaces that require recursive enumeration (files may include path prefixes
+  // like lib/*.cjs). The walker returns relative paths with forward slashes.
+  const recursiveNs = new Set(['tools']);
 
   const manifestOnly = [];  // Files in manifest but not in base-pack
   const basePackOnly = [];   // Files in base-pack but not in manifest
@@ -148,14 +155,31 @@ function validateManifest(manifest, forgeRoot) {
 
     const manifestFiles = new Set(ns.files || []);
 
-    // Read base-pack source directory
+    // Read base-pack source directory (flat or recursive depending on namespace)
     let basePackFiles = [];
     try {
-      basePackFiles = fs.readdirSync(sourceDir).filter(f => {
-        // Only include regular files, skip subdirectories (like _fragments under workflows)
-        const stat = fs.statSync(path.join(sourceDir, f));
-        return stat.isFile();
-      });
+      if (recursiveNs.has(nsKey)) {
+        // Recursive walk: enumerate all files, returning paths relative to sourceDir
+        // (with forward-slash separators). Excludes *.test.cjs files.
+        const walkDir = (dir, prefix) => {
+          const entries = fs.readdirSync(dir, { withFileTypes: true });
+          for (const entry of entries) {
+            const relPath = prefix ? `${prefix}/${entry.name}` : entry.name;
+            if (entry.isDirectory()) {
+              walkDir(path.join(dir, entry.name), relPath);
+            } else if (entry.isFile() && !entry.name.endsWith('.test.cjs')) {
+              basePackFiles.push(relPath);
+            }
+          }
+        };
+        walkDir(sourceDir, '');
+      } else {
+        basePackFiles = fs.readdirSync(sourceDir).filter(f => {
+          // Only include regular files, skip subdirectories (like _fragments under workflows)
+          const stat = fs.statSync(path.join(sourceDir, f));
+          return stat.isFile();
+        });
+      }
     } catch {
       // Directory doesn't exist — all manifest files are manifestOnly
       for (const f of manifestFiles) {
@@ -184,9 +208,65 @@ function validateManifest(manifest, forgeRoot) {
   return { manifestOnly, basePackOnly };
 }
 
+// Checks whether the vendored .forge/tools/ directory is present, and whether
+// the version marker (.forge/tools/.forge-tools-version) matches the active
+// plugin version from .forge/config.json (paths.forgeRef).
+//
+// Returns:
+//   { present, vendoredVersion, activeVersion, stale, reason }
+//
+//   present        — true if .forge/tools/ directory exists
+//   vendoredVersion — version string from .forge-tools-version (or null)
+//   activeVersion   — version string from paths.forgeRef in config (or null)
+//   stale          — true when: dir absent=false; marker absent=true; versions differ=true
+//   reason         — 'ok' | 'missing' | 'marker-absent' | 'version-mismatch'
+function checkToolsVersion(projectRoot) {
+  const toolsDir = path.join(projectRoot, '.forge', 'tools');
+  const markerFile = path.join(toolsDir, '.forge-tools-version');
+  const configFile = path.join(projectRoot, '.forge', 'config.json');
+
+  // Dir absent → not stale (just missing)
+  if (!fs.existsSync(toolsDir)) {
+    return { present: false, vendoredVersion: null, activeVersion: null, stale: false, reason: 'missing' };
+  }
+
+  // Read active version from config
+  let activeVersion = null;
+  if (fs.existsSync(configFile)) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+      activeVersion = (cfg && cfg.paths && cfg.paths.forgeRef) ? cfg.paths.forgeRef : null;
+    } catch {
+      // unparseable — leave activeVersion null
+    }
+  }
+
+  // Marker absent → stale
+  if (!fs.existsSync(markerFile)) {
+    return { present: true, vendoredVersion: null, activeVersion, stale: true, reason: 'marker-absent' };
+  }
+
+  // Read vendored version from marker
+  let vendoredVersion = null;
+  try {
+    const marker = JSON.parse(fs.readFileSync(markerFile, 'utf8'));
+    vendoredVersion = (marker && marker.version) ? marker.version : null;
+  } catch {
+    // unparseable marker → treat as marker-absent
+    return { present: true, vendoredVersion: null, activeVersion, stale: true, reason: 'marker-absent' };
+  }
+
+  // Version mismatch → stale
+  if (activeVersion && vendoredVersion && vendoredVersion !== activeVersion) {
+    return { present: true, vendoredVersion, activeVersion, stale: true, reason: 'version-mismatch' };
+  }
+
+  return { present: true, vendoredVersion, activeVersion, stale: false, reason: 'ok' };
+}
+
 // ── Exports ────────────────────────────────────────────────────────────────────
 
-module.exports = { checkNamespaces, validateManifest };
+module.exports = { checkNamespaces, validateManifest, checkToolsVersion };
 
 // ── CLI ────────────────────────────────────────────────────────────────────────
 

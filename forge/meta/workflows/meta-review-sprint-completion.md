@@ -42,10 +42,10 @@ Verify that all tasks in a sprint have been completed, committed, and validated 
 4. Finalize:
    - If step-3 verdict is `Approved`:
      - Update sprint status to `completed` via
-       `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status completed`
+       `node .forge/tools/store-cli.cjs update-status sprint {sprintId} status completed`
    - If step-3 verdict is `Revision Required` and orchestrator passed `mode=partial`:
      - Update sprint status to `partially-completed` via
-       `node "$FORGE_ROOT/tools/store-cli.cjs" update-status sprint {sprintId} status partially-completed`
+       `node .forge/tools/store-cli.cjs update-status sprint {sprintId} status partially-completed`
    - If step-3 verdict is `Revision Required` and orchestrator passed `mode=complete`:
      - Do NOT transition status. Leave the sprint at its current status and exit;
        the orchestrator will surface the verdict to the user.
@@ -64,5 +64,5 @@ Verify that all tasks in a sprint have been completed, committed, and validated 
      (Claude Code only); on any other runtime treat as unavailable and proceed.
      Do NOT shell out to a `cost-cli.cjs` — there is no such tool.
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar`.
+  3. Write the usage sidecar via `node .forge/tools/store-cli.cjs emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

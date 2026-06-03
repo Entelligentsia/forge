@@ -349,7 +349,54 @@ if (require.main === module) {
   if (result.ok) process.exit(0);
   process.stderr.write(`Gate failed for phase "${args.phase}":\n`);
   for (const m of result.missing) process.stderr.write(`  - ${m}\n`);
+  // Emit structured JSON on stdout for orchestrators to parse and render.
+  // Shape: { phase, reasonCode, detail, remediation }
+  const structured = buildStructuredFailure(args.phase, result.missing);
+  process.stdout.write(JSON.stringify(structured) + '\n');
   process.exit(1);
+}
+
+// Build a structured gate-failure object for orchestrators.
+// Maps the human-readable `missing[]` strings to a typed { phase, reasonCode, detail, remediation }.
+// reasonCode is derived from the dominant failure pattern:
+//   artifact-missing            — artifact missing / too small
+//   predecessor-verdict-missing — after-clause verdict absent or wrong
+//   illegal-status              — require/forbid predicate fired
+//   tool-error                  — internal error / unrecognised pattern
+// When multiple failures exist, reasonCode reflects the first recognised pattern;
+// detail combines all messages; only a single JSON object is ever emitted.
+function buildStructuredFailure(phase, missing) {
+  let reasonCode = 'tool-error';
+  const detailParts = [];
+
+  for (const m of missing) {
+    detailParts.push(m);
+    if (reasonCode === 'tool-error') {
+      if (/^artifact (missing|too small)/i.test(m)) {
+        reasonCode = 'artifact-missing';
+      } else if (/^predecessor verdict (missing|unreadable)/i.test(m) || /verdict is "/i.test(m)) {
+        reasonCode = 'predecessor-verdict-missing';
+      } else if (/^(require failed|forbid triggered)/i.test(m)) {
+        reasonCode = 'illegal-status';
+      }
+    }
+  }
+
+  const detail = detailParts.join('; ');
+
+  const remediationMap = {
+    'artifact-missing': `Re-run the phase that produces this artifact (e.g. /forge:plan or /forge:implement), then retry.`,
+    'predecessor-verdict-missing': `Ensure the predecessor review phase completed and recorded a verdict via set-summary, then retry.`,
+    'illegal-status': `Correct the task/bug status (use store-cli update-status) so it satisfies the gate predicate, then retry.`,
+    'tool-error': `Check the gate configuration and store records for this task; run node .forge/tools/preflight-gate.cjs manually for diagnostics.`,
+  };
+
+  return {
+    phase,
+    reasonCode,
+    detail,
+    remediation: remediationMap[reasonCode],
+  };
 }
 
 function parseArgs(argv) {

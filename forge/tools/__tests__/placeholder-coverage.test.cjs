@@ -190,15 +190,6 @@ describe('base-pack files must not contain residual Forge persona names', () => 
     );
   });
 
-  test('workflows/run_sprint.md must not contain "since this repository is Forge itself"', () => {
-    const content = readBP('workflows/run_sprint.md');
-    assert.ok(content !== null, 'run_sprint.md must exist');
-    assert.ok(
-      !content.includes('since this repository is Forge itself'),
-      'run_sprint.md must not contain "since this repository is Forge itself"'
-    );
-  });
-
   test('templates/PLAN_TEMPLATE.md must not contain *Forge Engineer* (should use *{{PROJECT_NAME}} Engineer*)', () => {
     const content = readBP('templates/PLAN_TEMPLATE.md');
     assert.ok(content !== null, 'PLAN_TEMPLATE.md must exist');

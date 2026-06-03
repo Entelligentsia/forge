@@ -148,6 +148,28 @@ function assessManifest(forgeRoot, projectRoot, warnings) {
   }
 }
 
+// Resolve FORGE_ROOT via forgeRef-based cache scan — mirrors manage-config.cjs
+// Priority 2 logic (FORGE-S29-T03). paths.forgeRoot is deprecated and no longer read.
+function resolveForgeRootFromConfig(config) {
+  const forgeRef = config.paths && config.paths.forgeRef;
+  if (!forgeRef) return null;
+  const homeDir = require('os').homedir();
+  const candidates = [
+    path.join(homeDir, '.claude', 'plugins', 'cache', 'forge', 'forge', forgeRef),
+    path.join(homeDir, '.claude', 'plugins', 'marketplaces', 'skillforge', 'forge', 'forge', forgeRef),
+  ];
+  for (const c of candidates) {
+    try {
+      const pluginJsonPath = path.join(c, '.claude-plugin', 'plugin.json');
+      if (fs.existsSync(pluginJsonPath)) {
+        const manifest = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
+        if (manifest.version === forgeRef) return c;
+      }
+    } catch (_) { /* try next candidate */ }
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Main aggregation.
 // ---------------------------------------------------------------------------
@@ -180,16 +202,17 @@ function preflight(opts) {
     return blob; // fast-fail-safe: cannot proceed without config, but no throw
   }
 
-  // 2. FORGE_ROOT resolution (same source every other tool uses).
-  blob.forgeRoot = (config.paths && config.paths.forgeRoot) || null;
+  // 2. FORGE_ROOT resolution — mirrors manage-config.cjs Priority 2 (forgeRef cache scan).
+  // paths.forgeRoot is deprecated (FORGE-S29-T03); we resolve via forgeRef only.
+  // blob.forgeRoot is still emitted for backward-compatible telemetry.
+  blob.forgeRoot = resolveForgeRootFromConfig(config);
   if (!blob.forgeRoot) {
+    const forgeRef = (config.paths && config.paths.forgeRef) || null;
+    const hint = forgeRef
+      ? `Cannot resolve Forge plugin root from forgeRef "${forgeRef}" — run /forge:update to refresh.`
+      : 'paths.forgeRef missing from config — cannot resolve Forge plugin root.';
     blob.ok = false;
-    warnings.push('paths.forgeRoot missing from config');
-    return blob;
-  }
-  if (!fs.existsSync(blob.forgeRoot)) {
-    blob.ok = false;
-    warnings.push(`forgeRoot does not exist: ${blob.forgeRoot}`);
+    warnings.push(hint);
     return blob;
   }
 

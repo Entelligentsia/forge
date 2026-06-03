@@ -418,7 +418,7 @@ if (subcmd === 'resolve-forge-root') {
 
   const { config } = readConfig();
   const forgeRef = getByPath(config, 'paths.forgeRef');
-  const forgeRoot = getByPath(config, 'paths.forgeRoot');
+  // Note: paths.forgeRoot read removed in FORGE-S29-T03 (Priority 3 deprecated).
 
   // Priority 2: Scan cache/marketplace directories by forgeRef
   if (forgeRef && typeof forgeRef === 'string') {
@@ -442,14 +442,12 @@ if (subcmd === 'resolve-forge-root') {
     }
   }
 
-  // Priority 3: Fallback to paths.forgeRoot (deprecated but still read)
-  if (forgeRoot && typeof forgeRoot === 'string') {
-    console.log(forgeRoot);
-    process.exit(0);
-  }
+  // Priority 3 (paths.forgeRoot fallback) removed — FORGE-S29-T03.
+  // paths.forgeRoot is deprecated and no longer used as a resolution fallback.
+  // Relying on it masks misconfigured projects and blocks the FORGE_ROOT retirement.
 
   // No resolution possible
-  console.error('× Cannot resolve Forge plugin root: no CLAUDE_PLUGIN_ROOT env var, no forgeRef cache match, and no forgeRoot in config.');
+  console.error('× Cannot resolve Forge plugin root: no CLAUDE_PLUGIN_ROOT env var and no forgeRef cache match. Run /forge:update to refresh.');
   process.exit(1);
 }
 

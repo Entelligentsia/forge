@@ -5,6 +5,77 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.2.14] — 2026-06-03
+
+### Fixed
+
+- **Corrected the `set-summary` / `set-bug-summary` call signature in the review and triage workflows.** `meta-review-implementation.md`, `meta-review-plan.md`, and `meta-bug-triage.md` documented a `forge_store` invocation with named `entity`/`id`/`phase` fields — `forge_store({ command:"set-summary", entity:"task", id:"{taskId}", phase:"code_review" })` — but the `forge_store` tool schema accepts only `{ command, args[] }`. Handed a signature that does not exist, subagents mis-built `args` and landed the record id in the phase slot; the phase-ownership guard rejected it (`expected summary key 'code_review'`), `summaries.code_review` was never written, and the orchestrator halted the task as *"verdict missing"*. All sites now use the canonical positional form `forge_store({ command:"set-summary", args:["{taskId}", "code_review"] })` plus a one-line signature reminder; `_fragments/store-cli-verbs.md` now documents the `forge_store { command, args[] }` shape and the "id in both slots" failure. Also fixed a `forge_store read` call in `meta-bug-triage.md` that used the same invalid named form. Prompt-text only — no tool or schema change.
+
+**Regenerate:** workflows:review_code workflows:review_plan workflows:bug-triage
+
+> Manual: Run `/forge:update`, then `/forge:rebuild workflows` to refresh `.forge/workflows/`.
+
+---
+
+## [1.2.3] — 2026-06-02
+
+### Fixed
+
+- **Hardened `FORGE_ROOT` / `.forge/config.json` resolution in the packaged JS workflow drivers.** A friction trace of a real `/fix-bug` run found phase subagents systematically probing `../.forge/config.json` (the **parent** directory — 5 of 11 subagents, blocked as "path escapes project root") and one invoking the preflight gate with an unexported `$FORGE_ROOT` that expanded to `''` → `Cannot find module '/tools/preflight-gate.cjs'`. Root cause: the per-phase subagent preamble said only *"Resolve FORGE_ROOT from .forge/config.json paths.forgeRoot"* — no cwd anchor, and no instruction to **export** `$FORGE_ROOT`, even though every command used it as a shell variable. Replaced all ~23 preamble sites across `wfl-run-task.js` / `wfl-run-sprint.js` / `wfl-fix-bug.js` with a directive that (a) anchors the config to `./.forge/config.json` in the current working directory ("never a parent directory"), (b) tells the agent to **export** `FORGE_ROOT`, and (c) STOPs if `$FORGE_ROOT` is empty or `$FORGE_ROOT/tools` is missing. Added a regression guard in `workflows-js-drift.test.cjs`. Prompt-text only — no orchestration-logic change.
+
+**Regenerate:** workflows-js:wfl-run-task, workflows-js:wfl-run-sprint, workflows-js:wfl-fix-bug
+
+> Manual: Run `/forge:update`, then `/forge:rebuild workflows-js` to refresh `.claude/workflows/wfl-*.js`.
+
+---
+
+## [1.2.2] — 2026-06-02
+
+### Fixed
+
+Three orchestration-logic edge-case bugs in the packaged JS workflow drivers, found by an adversarial review of the v1.2.1 packaged workflows (all are runtime-only — `node --check` and shape tests can't catch them):
+
+- **`wfl-run-sprint.js` — re-dispatch passed an unhonored `resumeFrom`.** The respawn guard called `workflow('wfl:run-task', { taskId, resumeFrom })`, but `wfl:run-task` parses only the task id, so `resumeFrom` was silently dropped. Removed the misleading arg and corrected the comment/log: the retry is a clean re-dispatch that resumes from the task's store state (completed phases are skipped by their pre-flight gates).
+- **`wfl-run-sprint.js` — `blocked` tasks were force-escalated.** A skipped child (`{skipped, taskStatus}`) was treated as non-terminal unless its status was in `{committed, abandoned, escalated}`, so a legitimately `blocked` task (waiting on a dependency) was re-dispatched and then escalated after two no-op attempts. A skipped child is now terminal-acceptable regardless of `taskStatus`.
+- **`wfl-fix-bug.js` — finalize null-dispatch reported a clean fix.** The finalize dispatch had no null guard, so a skipped/errored finalize (`agent()` returns `null`) fell through `finalizeResult?.escalated` and the run returned `bugStatus:'fixed', escalated:false` even though collate + the finalize gate never ran. It now escalates on a null finalize while preserving `bugStatus:'fixed'` (commit already wrote it).
+
+Added text-contract regression guards in `workflows-js-drift.test.cjs`. Deferred to a follow-up (filed for triage): revision-counter/eventId attribution (`wfl-run-task`), count-bucket taxonomy + `full-parallel` dependency ordering (`wfl-run-sprint`), and two MINORs in `wfl-fix-bug` (`phase('Pipeline')` grouping, `escalateBug` `bugId`).
+
+**Regenerate:** workflows-js:wfl-run-sprint, workflows-js:wfl-fix-bug
+
+> Manual: Run `/forge:update`, then `/forge:rebuild workflows-js` to refresh `.claude/workflows/wfl-run-sprint.js` and `wfl-fix-bug.js`.
+
+---
+
+## [1.2.1] — 2026-06-02
+
+### Fixed
+
+- **`wfl-fix-bug.js` could never launch — invalid meta.** The fix-bug JS driver declared its meta with `desc:` and `steps:` instead of `description:` and `phases:`. The Workflow runtime rejects a missing/empty `meta.description` (`"meta.description must be a non-empty string"`), and the named-workflow registry silently skipped it — so `/forge:fix-bug` (and any `/<prefix>:fix-bug`) dispatched `workflow('wfl:fix-bug', …)` to a workflow that wasn't registered. This shipped latent since the driver was authored and was exposed by the v1.2.0 prose retirement (which removed the `fix_bug.md` fallback). Renamed `desc → description` and `steps → phases` (with a `Resolve` phase) to match `wfl-run-task.js` / `wfl-run-sprint.js`. Added a meta-contract regression guard in `workflows-js-drift.test.cjs` asserting every JS driver exposes `name` + non-empty `description` + `phases`.
+
+**Regenerate:** workflows-js:wfl-fix-bug
+
+> Manual: Run `/forge:update`, then `/forge:rebuild workflows-js` to refresh `.claude/workflows/wfl-fix-bug.js`. `/<prefix>:fix-bug` then launches `wfl:fix-bug` correctly.
+
+---
+
+## [1.2.0] — 2026-06-02
+
+### Changed
+
+- **Retired LLM orchestration prose — the JS drivers are the only truth.** The deterministic JS orchestrators (`.claude/workflows/wfl-run-task.js`, `wfl-run-sprint.js`, `wfl-fix-bug.js` — category `workflows-js`) fully replace the prose workflows `orchestrate_task.md`, `run_sprint.md`, and `fix_bug.md`. `/forge:run-task`, `/forge:run-sprint`, and `/forge:fix-bug` already dispatch to them via `workflow(wfl:*)`. The three prose orchestrators are no longer built into the base-pack, no longer generated into `.forge/workflows/`, and no longer tested:
+  - `build-base-pack.cjs` and `build-manifest.cjs` drop the three workflow mappings (`structure-manifest.json` / `enum-catalog.json` regenerated).
+  - `workflow-gen-plan.json` goes 16 → 15 entries (drops `fix_bug`).
+  - The `/forge:rebuild` orchestration-generation step and the `generate-orchestration.md` rulebook are removed; the base-pack `workflows/{orchestrate_task,run_sprint,fix_bug}.md` files are deleted.
+  - The `orchestrators-retired` and `orchestrator-base-pack-parity` drift tests are removed; `base-pack-byte-budget`, `build-base-pack`, `build-manifest`, and `placeholder-coverage` tests updated to the new counts. Only the JS drivers (`wfl-*` tests + `workflows-js-drift`) are tested.
+  - `meta-orchestrate.md` and `meta-fix-bug.md` are **kept in `meta/`** as reference specs only — not built, not generated, not tested.
+
+**Regenerate:** workflows, workflows-js
+
+> Manual: Run `/forge:update` — its `delete-workflow` scan removes the retired `orchestrate_task.md` / `run_sprint.md` / `fix_bug.md` orphans from `.forge/workflows/` (prompting before deleting any you have hand-edited). `/forge:rebuild` only regenerates and clears manifest entries; it does **not** delete files on disk. Orchestration runs through `.claude/workflows/wfl-*.js` — no other action needed.
+
+---
+
 ## [1.1.2] — 2026-06-02
 
 ### Fixed

@@ -28,7 +28,7 @@ deps:
   reproduction has no business going to plan-fix or implement.
 - Read `.forge/personas/bug-fixer.md` first; print the persona identity
   line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`).
+- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`).
   Never edit `.forge/store/*.json` directly.
 - **Triage NEVER writes `bug.status`.** The orchestrator (`meta-fix-bug.md`)
   owns the `reported → triaged` and `triaged → in-progress` transitions.
@@ -51,8 +51,7 @@ deps:
 ```
 
 0. Pre-flight Gate Check:
-   - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
-   - Run: `node "$FORGE_ROOT/tools/preflight-gate.cjs" --phase triage --bug {bugId}`
+   - Run: `node .forge/tools/preflight-gate.cjs --phase triage --bug {bugId}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
@@ -61,7 +60,7 @@ deps:
    - Read `.forge/personas/bug-fixer.md` first; print the persona identity
      line to stdout before any other tool use.
    - Read the bug record:
-     `forge_store({ command:"read", entity:"bug", id:"{bugId}" })`
+     `forge_store({ command:"read", args:["bug", "{bugId}"] })`
    - Read business domain docs relevant to the reported symptom.
    - store-cli verbs: `read` | `list` | `write` | `emit` |
      `update-status` | `set-summary` | `set-bug-summary` | `describe` |
@@ -129,13 +128,17 @@ deps:
 
    - Call:
      ```
-     forge_store({ command:"set-bug-summary", entity:"bug",
-                   id:"{bugId}", phase:"triage" })
+     forge_store({ command:"set-bug-summary", args:["{bugId}", "triage"] })
      // sidecar path auto-resolved from the bug record's `path` — never pass it
      ```
-   - If the set-bug-summary call exits non-zero, fix the sidecar JSON
-     and retry (up to 3 attempts per the Store-Write Verification rule).
-     Do not proceed without a valid summary.
+     `forge_store` has only `command` + `args` (positional) — no
+     `entity`/`id`/`phase` field. `args[0]` is the bug id, `args[1]` is the
+     LITERAL phase key `triage` (never the bug id, never a path). See
+     `_fragments/store-cli-verbs.md`.
+   - If the set-bug-summary call exits non-zero (phase-ownership guard:
+     `expected summary key 'triage'`), `args[1]` was wrong — set it to `triage`
+     and retry (up to 3 attempts per the Store-Write Verification rule). Do not
+     proceed without a valid summary.
 
 > **Field-naming caution — runtime-tested.** The route field is named
 > `route`, never `path`. The bug schema's top-level `path` field is the

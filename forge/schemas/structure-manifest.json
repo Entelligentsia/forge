@@ -1,6 +1,6 @@
 {
-  "version": "1.1.1",
-  "generatedAt": "2026-06-02T08:50:52.586Z",
+  "version": "1.2.13",
+  "generatedAt": "2026-06-03T05:20:45.625Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -38,15 +38,12 @@
         "architect_sprint_plan.md",
         "collator_agent.md",
         "commit_task.md",
-        "fix_bug.md",
         "implement_plan.md",
         "migrate_structural.md",
-        "orchestrate_task.md",
         "plan_task.md",
         "quiz_agent.md",
         "review_code.md",
         "review_plan.md",
-        "run_sprint.md",
         "sprint_retrospective.md",
         "triage.md",
         "update_implementation.md",
@@ -135,6 +132,70 @@
         "structure-versions.schema.json",
         "task.schema.json"
       ]
+    },
+    "tools": {
+      "logicalKey": "tools",
+      "dir": ".forge/tools",
+      "files": [
+        "artifact-store.cjs",
+        "artifact.cjs",
+        "backfill-provider.cjs",
+        "banners.cjs",
+        "build-base-pack.cjs",
+        "build-context-pack.cjs",
+        "build-enum-catalog.cjs",
+        "build-init-context.cjs",
+        "build-manifest.cjs",
+        "build-overlay.cjs",
+        "build-persona-pack.cjs",
+        "check-no-skipped-tests.cjs",
+        "check-structure.cjs",
+        "collate.cjs",
+        "compression-gate.cjs",
+        "delete-candidate-detector.cjs",
+        "estimate-usage.cjs",
+        "forge-preflight.cjs",
+        "friction-emit.cjs",
+        "gen-integrity.cjs",
+        "generation-manifest.cjs",
+        "judge-proposal.cjs",
+        "manage-config.cjs",
+        "manage-versions.cjs",
+        "migrate-slug-maxlen.cjs",
+        "parse-gates.cjs",
+        "postflight-gate.cjs",
+        "preflight-gate.cjs",
+        "proposal-normalize.cjs",
+        "query-logger.cjs",
+        "queue-drain.cjs",
+        "read-verdict.cjs",
+        "replay-scoring.cjs",
+        "rewrite-plugin-urls.cjs",
+        "seed-store.cjs",
+        "store-cli.cjs",
+        "store-query.cjs",
+        "store.cjs",
+        "substitute-placeholders.cjs",
+        "token-forensics.cjs",
+        "validate-store.cjs",
+        "verify-apply.cjs",
+        "verify-integrity.cjs",
+        "verify-phase.cjs",
+        "lib/artifact-kinds.cjs",
+        "lib/forge-root.cjs",
+        "lib/frontmatter.cjs",
+        "lib/fsutil.cjs",
+        "lib/json-io.cjs",
+        "lib/paths.cjs",
+        "lib/pricing.cjs",
+        "lib/project-root.cjs",
+        "lib/schema-loader.cjs",
+        "lib/slug.cjs",
+        "lib/store-facade.cjs",
+        "lib/store-nlp.cjs",
+        "lib/store-query-exec.cjs",
+        "lib/suggest.cjs"
+      ]
     }
   },
   "edges": {
@@ -209,41 +270,6 @@
           "paths.engineering"
         ]
       },
-      "fix_bug": {
-        "personas": [
-          ".forge/personas/bug-fixer.md",
-          ".forge/personas/supervisor.md",
-          ".forge/personas/architect.md",
-          ".forge/personas/engineer.md",
-          ".forge/personas/collator.md"
-        ],
-        "skills": [
-          ".forge/skills/bug-fixer-skills.md",
-          ".forge/skills/supervisor-skills.md",
-          ".forge/skills/architect-skills.md",
-          ".forge/skills/engineer-skills.md",
-          ".forge/skills/generic-skills.md"
-        ],
-        "templates": [
-          ".forge/templates/PROGRESS_TEMPLATE.md"
-        ],
-        "sub_workflows": [
-          ".forge/workflows/plan_task.md",
-          ".forge/workflows/implement_plan.md",
-          ".forge/workflows/review_plan.md",
-          ".forge/workflows/review_code.md",
-          ".forge/workflows/architect_approve.md",
-          ".forge/workflows/commit_task.md"
-        ],
-        "kb_docs": [
-          "{KB_PATH}/architecture/stack.md",
-          "{KB_PATH}/architecture/routing.md"
-        ],
-        "config_fields": [
-          "commands.test",
-          "paths.engineering"
-        ]
-      },
       "implement_plan": {
         "personas": [
           ".forge/personas/engineer.md"
@@ -264,39 +290,6 @@
         ],
         "config_fields": [
           "commands.test",
-          "paths.engineering"
-        ]
-      },
-      "orchestrate_task": {
-        "personas": [
-          ".forge/personas/architect.md",
-          ".forge/personas/engineer.md",
-          ".forge/personas/supervisor.md",
-          ".forge/personas/bug-fixer.md",
-          ".forge/personas/collator.md",
-          ".forge/personas/qa-engineer.md"
-        ],
-        "skills": [
-          ".forge/skills/architect-skills.md",
-          ".forge/skills/engineer-skills.md",
-          ".forge/skills/supervisor-skills.md",
-          ".forge/skills/generic-skills.md"
-        ],
-        "templates": [],
-        "sub_workflows": [
-          ".forge/workflows/plan_task.md",
-          ".forge/workflows/implement_plan.md",
-          ".forge/workflows/review_plan.md",
-          ".forge/workflows/review_code.md",
-          ".forge/workflows/fix_bug.md",
-          ".forge/workflows/architect_approve.md",
-          ".forge/workflows/commit_task.md",
-          ".forge/workflows/validate_task.md"
-        ],
-        "kb_docs": [
-          "{KB_PATH}/architecture/stack.md"
-        ],
-        "config_fields": [
           "paths.engineering"
         ]
       },

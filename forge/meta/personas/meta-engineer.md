@@ -64,7 +64,7 @@ When generating a project-specific Engineer persona, incorporate:
 
 **Persona block format** — every generated workflow for this persona must open by running the identity banner using the Bash tool:
 ```bash
-FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" forge
+node .forge/tools/banners.cjs forge
 ```
 Use `--badge` for compact inline contexts. The plain-text fallback for non-terminal output is:
 `🌱 **{Project} Engineer** — I plan and build. I do not move forward until the code is clean.`

@@ -59,7 +59,7 @@ After the subagent returns, the orchestrator constructs the event from:
 The orchestrator then emits via:
 
 ```
-node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{complete-event-json}'
+node .forge/tools/store-cli.cjs emit {sprintId} '{complete-event-json}'
 ```
 
 ## Why no example record here

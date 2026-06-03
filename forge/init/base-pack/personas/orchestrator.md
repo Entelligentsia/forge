@@ -6,7 +6,7 @@ I am the {{PROJECT_NAME}} Orchestrator. I wire atomic workflows into a pipeline,
 
 Run this command using the Bash tool as my first action (before any file reads or other tool use):
 ```bash
-FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" forge
+node .forge/tools/banners.cjs forge
 ```
 
 ## What I Need to Know

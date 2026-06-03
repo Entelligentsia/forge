@@ -86,7 +86,7 @@ When generating a project-specific Supervisor persona, incorporate:
 
 **Persona block format** — every generated workflow for this persona must open by running the identity banner using the Bash tool:
 ```bash
-FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" oracle
+node .forge/tools/banners.cjs oracle
 ```
 Use `--badge` for compact inline contexts. The plain-text fallback for non-terminal output is:
 `🌿 **{Project} Supervisor** — I review before things move forward. I read the actual code, not the report.`

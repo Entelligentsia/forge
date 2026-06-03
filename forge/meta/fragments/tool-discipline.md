@@ -35,7 +35,7 @@ project config outside `.forge/store/` are fine to `read`/`grep` directly.
   Never construct artifact paths manually — the tool resolves them from entity IDs.
 - Use `forge_verify_apply` after applying edits to confirm changes landed on disk.
   If `unchanged` is non-empty, re-apply those edits.
-- Never `bash node "$FORGE_ROOT/tools/store-cli.cjs" ...` — use the named MCP tool instead.
+- Never `bash node .forge/tools/store-cli.cjs ...` — use the named MCP tool instead.
   The tool is schema-validated and shorter.
 - Workflow text saying `forge_store write sprint '<json>'` means: call the MCP tool
   `forge_store` with that 2-positional shape. Not a shell command.

@@ -23,7 +23,7 @@ Regenerate markdown views from the JSON store. This is a deterministic operation
 
 - Collation is a read-and-rewrite of generated markdown. Do not mutate any JSON record under `.forge/store/`; the store is the source of truth and collation flows downstream from it.
 - Read `.forge/personas/collator.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
-- All store reads via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+- All store reads via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
 - Do NOT call `set-summary` or `set-bug-summary` from within collation. The collator writes markdown views and a `WRITEBACK-SUMMARY.json` disk file only. Calling `set-summary` mutates the JSON store and violates Iron Law 1 (the store is the source of truth; collation flows downstream from it, not into it). The orchestrator reads `WRITEBACK-SUMMARY.json` directly — no store write is needed.
 
 <!-- See _fragments/store-write-verification.md — NOTE: this file uses an intentionally modified
@@ -46,8 +46,7 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
 
 ```
 1. Preferred: Run Plugin Tool
-   - Read `paths.forgeRoot` from `.forge/config.json` as `FORGE_ROOT`
-   - Run: `node "$FORGE_ROOT/tools/collate.cjs" [SPRINT_ID]`
+   - Run: `node .forge/tools/collate.cjs [SPRINT_ID]`
    - If tool succeeds, proceed to Finalize
 
 2. Fallback: Manual Collation
@@ -61,9 +60,8 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
    - Rebuild the architecture context pack so orchestrators have a fresh summary
      after any KB updates (architecture docs may have changed during the sprint):
      ```
-     FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
-     ENGINEERING=$(node "$FORGE_ROOT/tools/manage-config.cjs" get paths.engineering 2>/dev/null || echo engineering)
-     node "$FORGE_ROOT/tools/build-context-pack.cjs" \
+     ENGINEERING=$(node .forge/tools/manage-config.cjs get paths.engineering 2>/dev/null || echo engineering)
+     node .forge/tools/build-context-pack.cjs \
        --arch-dir "$ENGINEERING/architecture" \
        --out-md .forge/cache/context-pack.md \
        --out-json .forge/cache/context-pack.json
@@ -101,5 +99,5 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
      (Claude Code only); on any other runtime treat as unavailable and proceed.
      Do NOT shell out to a `cost-cli.cjs` — there is no such tool.
   2. Parse: `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-  3. Write the usage sidecar via `node "$FORGE_ROOT/tools/store-cli.cjs" emit {sprintId} '{sidecar-json}' --sidecar`.
+  3. Write the usage sidecar via `node .forge/tools/store-cli.cjs emit {sprintId} '{sidecar-json}' --sidecar`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

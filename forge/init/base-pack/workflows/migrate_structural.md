@@ -19,15 +19,18 @@ deps:
 
 - Migration operations are reversible and user-confirmed before any destructive writes. Do not skip the Phase 2 confirmation gate — proceed only after the user explicitly accepts the migration plan.
 - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node "$FORGE_ROOT/tools/store-cli.cjs"`). Never edit `.forge/store/*.json` directly.
+- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
 
 ## Pre-conditions
 
 - `/forge:init` has run: `.forge/config.json` exists and is readable.
 - `.forge/structure-versions.json` is absent OR `--structural` was passed.
-- The Forge plugin root is resolvable:
+- The Forge plugin root is resolvable. Migration reads plugin source
+  (`$FORGE_ROOT/init/base-pack`, `$FORGE_ROOT/.claude-plugin/plugin.json`)
+  that is not vendored into `.forge/`, so resolve the active plugin install
+  root from `CLAUDE_PLUGIN_ROOT` (this workflow runs plugin-side):
   ```sh
-  export FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
+  export FORGE_ROOT="${CLAUDE_PLUGIN_ROOT}"
   ```
 
 ---
@@ -42,7 +45,7 @@ Check that `.forge/config.json` exists. If it does not, stop:
 
 > "Forge has not been initialised in this project. Run `/forge:init` first."
 
-Read `FORGE_ROOT` from `.forge/config.json`.
+Resolve `FORGE_ROOT` from `${CLAUDE_PLUGIN_ROOT}` (the active plugin install root).
 
 **0b. Detect install generation.**
 
@@ -257,8 +260,7 @@ Write `.forge/project-context.json` with the synthesised content.
 
 Validate via the store tool:
 ```sh
-export FORGE_ROOT
-node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run
+node .forge/tools/validate-store.cjs --dry-run
 ```
 
 If this exits non-zero, report the validation errors to the user and HALT. Do
@@ -268,7 +270,7 @@ NOT remove the sentinel — the user can fix the issue and re-run.
 
 ```sh
 export FORGE_ROOT
-node "$FORGE_ROOT/tools/substitute-placeholders.cjs" \
+node .forge/tools/substitute-placeholders.cjs \
   --forge-root "$FORGE_ROOT" \
   --base-pack  "$FORGE_ROOT/init/base-pack" \
   --config     ".forge/config.json" \
@@ -286,8 +288,7 @@ user. Do NOT remove the sentinel (preserves ability to re-run after fixing).
 #### Step 3d — Register snapshot (T05)
 
 ```sh
-export FORGE_ROOT
-node "$FORGE_ROOT/tools/manage-versions.cjs" init
+node .forge/tools/manage-versions.cjs init
 ```
 
 `manage-versions init` is idempotent. Since `.forge/structure-versions.json`
@@ -331,9 +332,8 @@ rm .forge/archive/pre-migration/.migration-in-progress
 **Verification (CLI-accessible only — do NOT invoke `/forge:health` here):**
 
 ```sh
-export FORGE_ROOT
 # 1. Validate the store
-node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run
+node .forge/tools/validate-store.cjs --dry-run
 
 # 2. Verify substitution outputs are non-empty
 ls .forge/personas/*.md .forge/skills/*.md .forge/workflows/*.md .forge/templates/*.md
@@ -359,9 +359,8 @@ Read that file and extract the `sprintId` field. If no sprint files exist, use
 `"migration"` as the `sprintId` placeholder.
 
 ```sh
-export FORGE_ROOT
 MIGRATION_END=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-node "$FORGE_ROOT/tools/store-cli.cjs" emit "{projectSprintId}" '{
+node .forge/tools/store-cli.cjs emit "{projectSprintId}" '{
   "eventId": "migration-'"$(date -u +%Y%m%dT%H%M%SZ)"'",
   "taskId": "migration",
   "sprintId": "{projectSprintId}",

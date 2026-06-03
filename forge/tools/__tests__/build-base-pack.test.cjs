@@ -530,6 +530,29 @@ describe('buildBasePack: validates all expected output files exist', () => {
     assert.equal(files.length, 9, `expected 9 persona files, got ${files.length}: ${files.join(', ')}`);
   });
 
+  // FORGE-S29: the identity banner must invoke the vendored project-relative
+  // tool (`node .forge/tools/banners.cjs <id>`) — NOT resolve the plugin root
+  // from the retired `config.paths.forgeRoot` field. Workflows run subagent-side
+  // where the vendored `.forge/tools/` closure is the canonical tool path.
+  test('persona identity banners use vendored .forge/tools/banners.cjs, not paths.forgeRoot', () => {
+    mod = mod || require(SCRIPT_PATH);
+    const personaDir = path.join(outDir, 'personas');
+    const files = fs.readdirSync(personaDir).filter(f => f.endsWith('.md'));
+    let bannerLinesChecked = 0;
+    for (const f of files) {
+      const body = fs.readFileSync(path.join(personaDir, f), 'utf8');
+      const m = body.match(/^.*banners\.cjs.*$/m);
+      if (!m) continue;
+      bannerLinesChecked++;
+      const line = m[0];
+      assert.ok(line.includes('node .forge/tools/banners.cjs'),
+        `${f}: banner must invoke "node .forge/tools/banners.cjs", got: ${line}`);
+      assert.ok(!/paths\.forgeRoot/.test(line),
+        `${f}: banner must not resolve via the retired config.paths.forgeRoot, got: ${line}`);
+    }
+    assert.ok(bannerLinesChecked > 0, 'expected at least one persona banner line to verify');
+  });
+
   test('all 9 skill files created in output/skills/', () => {
     mod = mod || require(SCRIPT_PATH);
     const skillDir = path.join(outDir, 'skills');
@@ -537,11 +560,14 @@ describe('buildBasePack: validates all expected output files exist', () => {
     assert.equal(files.length, 9, `expected 9 skill files, got ${files.length}: ${files.join(', ')}`);
   });
 
-  test('all 21 workflow files created; fragments mirror meta/workflows/_fragments/', () => {
+  // 18 atomic workflows. The LLM orchestration prose (orchestrate_task /
+  // run_sprint / fix_bug) is retired — the JS drivers (workflows-js/wfl-*.js)
+  // are the only truth, so the base-pack ships no prose orchestrators.
+  test('all 18 workflow files created; fragments mirror meta/workflows/_fragments/', () => {
     mod = mod || require(SCRIPT_PATH);
     const wfDir = path.join(outDir, 'workflows');
     const files = fs.readdirSync(wfDir).filter(f => f.endsWith('.md'));
-    assert.equal(files.length, 21, `expected 21 workflow files, got ${files.length}: ${files.join(', ')}`);
+    assert.equal(files.length, 18, `expected 18 workflow files, got ${files.length}: ${files.join(', ')}`);
 
     // Fragments must achieve parity with meta source — no hardcoded allowlist.
     // Previously the base-pack omitted store-cli-verbs.md and friction-emit.md

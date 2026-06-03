@@ -48,9 +48,7 @@ const WORKFLOW_MAP = [
   ['meta-collate.md',                  'collator_agent.md'],
   ['meta-commit.md',                   'commit_task.md'],
   ['meta-bug-triage.md',               'triage.md'],
-  ['meta-fix-bug.md',                  'fix_bug.md'],
   ['meta-implement.md',                'implement_plan.md'],
-  ['meta-orchestrate.md',              'orchestrate_task.md'],
   ['meta-plan-task.md',                'plan_task.md'],
   ['meta-retro.md',                    'sprint_retrospective.md'],
   ['meta-review-implementation.md',    'review_code.md'],
@@ -63,7 +61,9 @@ const WORKFLOW_MAP = [
   ['meta-validate.md',                 'validate_task.md'],
   ['meta-check-agent.md',              'quiz_agent.md'],
   ['meta-migrate.md',                  'migrate_structural.md'],
-  [null,                               'run_sprint.md'],   // orchestration-generated
+  // LLM orchestration prose (orchestrate_task / run_sprint / fix_bug) retired —
+  // the JS drivers (workflows-js/wfl-*.js) are the only truth. meta-orchestrate.md
+  // and meta-fix-bug.md remain in meta/ as reference docs (not built, not mapped).
 ];
 
 // 4. Fragments — non-standalone reference files shared by multiple workflows.
@@ -80,6 +80,32 @@ const FRAGMENT_MAP = [
   ['iron-laws.md',                  'iron-laws.md'],
   ['generation-instructions.md',    'generation-instructions.md'],
 ];
+
+// 5b. Tools — dynamic enumeration of tools/*.cjs + tools/lib/*.cjs
+//     Resolved at require() time relative to this file's directory so the
+//     constant is valid wherever build-manifest.cjs is installed.
+//     Test files (*.test.cjs) and lib test files are excluded.
+const _toolsDir = path.join(__dirname);
+const _toolsLibDir = path.join(__dirname, 'lib');
+const TOOLS_FILES = (() => {
+  const topLevel = [];
+  try {
+    for (const f of fs.readdirSync(_toolsDir)) {
+      if (f.endsWith('.cjs') && !f.endsWith('.test.cjs')) {
+        topLevel.push(f);
+      }
+    }
+  } catch {}
+  const lib = [];
+  try {
+    for (const f of fs.readdirSync(_toolsLibDir)) {
+      if (f.endsWith('.cjs') && !f.endsWith('.test.cjs')) {
+        lib.push(`lib/${f}`);
+      }
+    }
+  } catch {}
+  return [...topLevel.sort(), ...lib.sort()];
+})();
 
 // 5. Templates — explicit mapping
 //    CUSTOM_COMMAND_TEMPLATE.md is a one-shot init artifact (no meta source).
@@ -336,6 +362,11 @@ function buildManifest(forgeRoot) {
         dir: '.forge/schemas',
         files: schemaFiles,
       },
+      tools: {
+        logicalKey: 'tools',
+        dir: '.forge/tools',
+        files: TOOLS_FILES.slice(),
+      },
     },
     edges: {
       workflows: depEdges,
@@ -395,6 +426,7 @@ module.exports = {
   FRAGMENT_MAP,
   TEMPLATE_MAP,
   COMMAND_NAMES,
+  TOOLS_FILES,
   checkReverseDrift,
   verifySources,
   parseMetaDeps,
