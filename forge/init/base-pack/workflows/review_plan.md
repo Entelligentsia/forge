@@ -114,13 +114,14 @@ deps:
      ```
    - Call (task mode):
      ```
-     forge_store({ command:"set-summary", entity:"task", id:"{record_id}", phase:"review_plan" })
+     forge_store({ command:"set-summary", args:["{record_id}", "review_plan"] })
      ```
      Or (bug mode):
      ```
-     forge_store({ command:"set-bug-summary", entity:"bug", id:"{record_id}", phase:"review_plan" })
+     forge_store({ command:"set-bug-summary", args:["{record_id}", "review_plan"] })
      ```
-   - If the set-summary call exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
+     `args[1]` is the LITERAL phase key `review_plan`, never the record id; `forge_store` has no `entity`/`id`/`phase` field (see `_fragments/store-cli-verbs.md`).
+   - If set-summary exits non-zero (guard: `expected summary key 'review_plan'`), `args[1]` was wrong — fix it to `review_plan` and retry. Do not return without a valid summary; the orchestrator halts as "verdict missing" if `summaries.review_plan` is absent.
 ```
 
 <!-- See _fragments/generation-instructions.md for Generation Instructions template -->

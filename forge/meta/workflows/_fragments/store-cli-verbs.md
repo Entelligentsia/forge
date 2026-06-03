@@ -38,6 +38,15 @@ Notes for subagents:
   canonical phase→filename map (so `set-summary {taskId} validation` just works).
   Never pass a hand-built `engineering/sprints/.../…-SUMMARY.json` path. Do not
   inline summaries into the entity via `write`.
+  - **`forge_store` tool shape (not CLI flags).** The tool has exactly two
+    fields: `command` (string) and `args` (positional string array). There is
+    NO `entity` / `id` / `phase` named field — passing them silently drops them.
+    The summary call is `forge_store({ command:"set-summary", args:["<id>", "<phase>"] })`
+    where `args[0]` is the record id and `args[1]` is the LITERAL phase key
+    (`plan`, `review_plan`, `implementation`, `code_review`, `validation`,
+    `triage`, `approve`). `args[1]` is NEVER the record id and NEVER a path —
+    putting the id in both slots is the canonical failure and the phase-ownership
+    guard rejects it with `expected summary key '<phase>'`.
 - **Artifact I/O:** Use `forge_artifact` for ALL phase artifact reads and writes
   (PLAN.md, PROGRESS.md, *-SUMMARY.json, CODE_REVIEW.md, etc.). Never construct
   artifact file paths manually — the tool resolves paths from entity IDs and

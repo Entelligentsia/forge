@@ -69,7 +69,7 @@ and the only phase that records the route decision read by the orchestrator
    - Read `.forge/personas/bug-fixer.md` first; print the persona identity
      line to stdout before any other tool use.
    - Read the bug record:
-     `forge_store({ command:"read", entity:"bug", id:"{bugId}" })`
+     `forge_store({ command:"read", args:["bug", "{bugId}"] })`
    - Read business domain docs relevant to the reported symptom.
    - store-cli verbs: `read` | `list` | `write` | `emit` |
      `update-status` | `set-summary` | `set-bug-summary` | `describe` |
@@ -137,13 +137,17 @@ and the only phase that records the route decision read by the orchestrator
 
    - Call:
      ```
-     forge_store({ command:"set-bug-summary", entity:"bug",
-                   id:"{bugId}", phase:"triage" })
+     forge_store({ command:"set-bug-summary", args:["{bugId}", "triage"] })
      // sidecar path auto-resolved from the bug record's `path` — never pass it
      ```
-   - If the set-bug-summary call exits non-zero, fix the sidecar JSON
-     and retry (up to 3 attempts per the Store-Write Verification rule).
-     Do not proceed without a valid summary.
+     `forge_store` has only `command` + `args` (positional) — no
+     `entity`/`id`/`phase` field. `args[0]` is the bug id, `args[1]` is the
+     LITERAL phase key `triage` (never the bug id, never a path). See
+     `_fragments/store-cli-verbs.md`.
+   - If the set-bug-summary call exits non-zero (phase-ownership guard:
+     `expected summary key 'triage'`), `args[1]` was wrong — set it to `triage`
+     and retry (up to 3 attempts per the Store-Write Verification rule). Do not
+     proceed without a valid summary.
 
 > **Field-naming caution — runtime-tested.** The route field is named
 > `route`, never `path`. The bug schema's top-level `path` field is the

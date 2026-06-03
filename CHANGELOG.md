@@ -5,6 +5,18 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.2.14] — 2026-06-03
+
+### Fixed
+
+- **Corrected the `set-summary` / `set-bug-summary` call signature in the review and triage workflows.** `meta-review-implementation.md`, `meta-review-plan.md`, and `meta-bug-triage.md` documented a `forge_store` invocation with named `entity`/`id`/`phase` fields — `forge_store({ command:"set-summary", entity:"task", id:"{taskId}", phase:"code_review" })` — but the `forge_store` tool schema accepts only `{ command, args[] }`. Handed a signature that does not exist, subagents mis-built `args` and landed the record id in the phase slot; the phase-ownership guard rejected it (`expected summary key 'code_review'`), `summaries.code_review` was never written, and the orchestrator halted the task as *"verdict missing"*. All sites now use the canonical positional form `forge_store({ command:"set-summary", args:["{taskId}", "code_review"] })` plus a one-line signature reminder; `_fragments/store-cli-verbs.md` now documents the `forge_store { command, args[] }` shape and the "id in both slots" failure. Also fixed a `forge_store read` call in `meta-bug-triage.md` that used the same invalid named form. Prompt-text only — no tool or schema change.
+
+**Regenerate:** workflows:review_code workflows:review_plan workflows:bug-triage
+
+> Manual: Run `/forge:update`, then `/forge:rebuild workflows` to refresh `.forge/workflows/`.
+
+---
+
 ## [1.2.3] — 2026-06-02
 
 ### Fixed

@@ -120,10 +120,11 @@ The Supervisor reviews the Engineer's implementation for correctness, quality, a
      }
      ```
    - Call (task mode):
-     `forge_store({ command:"set-summary", entity:"task", id:"{taskId}", phase:"code_review" })`
+     `forge_store({ command:"set-summary", args:["{taskId}", "code_review"] })`
      Or (bug mode):
-     `forge_store({ command:"set-bug-summary", entity:"bug", id:"{bugId}", phase:"code_review" })`
-   - If the set-summary call exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
+     `forge_store({ command:"set-bug-summary", args:["{bugId}", "code_review"] })`
+     `args[1]` is the LITERAL phase key `code_review`, never the record id; `forge_store` has no `entity`/`id`/`phase` field (see `_fragments/store-cli-verbs.md`).
+   - If set-summary exits non-zero, `args[1]` was wrong — fix it to `code_review` and retry. Do not return without a valid summary; the orchestrator halts as "verdict missing" if `summaries.code_review` is absent.
 ```
 
 <!-- See _fragments/generation-instructions.md for Generation Instructions template -->
