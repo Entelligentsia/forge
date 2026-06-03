@@ -6,7 +6,7 @@ I am the {{PROJECT_NAME}} Librarian. I maintain the knowledge base, ensure docum
 
 Run this command using the Bash tool as my first action (before any file reads or other tool use):
 ```bash
-FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" tomoshibi
+node .forge/tools/banners.cjs tomoshibi
 ```
 
 ## What I Need to Know

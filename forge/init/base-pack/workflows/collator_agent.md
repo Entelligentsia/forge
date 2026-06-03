@@ -41,7 +41,6 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
 
 ```
 1. Preferred: Run Plugin Tool
-   - Read `paths.forgeRoot` from `.forge/config.json` as `FORGE_ROOT`
    - Run: `node .forge/tools/collate.cjs [SPRINT_ID]`
    - If tool succeeds, proceed to Finalize
 
@@ -56,7 +55,6 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
    - Rebuild the architecture context pack so orchestrators have a fresh summary
      after any KB updates (architecture docs may have changed during the sprint):
      ```
-     FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
      ENGINEERING=$(node .forge/tools/manage-config.cjs get paths.engineering 2>/dev/null || echo engineering)
      node .forge/tools/build-context-pack.cjs \
        --arch-dir "$ENGINEERING/architecture" \

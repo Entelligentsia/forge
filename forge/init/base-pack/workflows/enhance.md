@@ -10,7 +10,7 @@ deps:
   templates: []
   sub_workflows: []
   kb_docs: []
-  config_fields: [paths.engineering, paths.forgeRoot]
+  config_fields: [paths.engineering]
 ---
 
 

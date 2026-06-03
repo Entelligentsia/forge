@@ -25,9 +25,12 @@ deps:
 
 - `/forge:init` has run: `.forge/config.json` exists and is readable.
 - `.forge/structure-versions.json` is absent OR `--structural` was passed.
-- The Forge plugin root is resolvable:
+- The Forge plugin root is resolvable. Migration reads plugin source
+  (`$FORGE_ROOT/init/base-pack`, `$FORGE_ROOT/.claude-plugin/plugin.json`)
+  that is not vendored into `.forge/`, so resolve the active plugin install
+  root from `CLAUDE_PLUGIN_ROOT` (this workflow runs plugin-side):
   ```sh
-  export FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
+  export FORGE_ROOT="${CLAUDE_PLUGIN_ROOT}"
   ```
 
 ---
@@ -42,7 +45,7 @@ Check that `.forge/config.json` exists. If it does not, stop:
 
 > "Forge has not been initialised in this project. Run `/forge:init` first."
 
-Read `FORGE_ROOT` from `.forge/config.json`.
+Resolve `FORGE_ROOT` from `${CLAUDE_PLUGIN_ROOT}` (the active plugin install root).
 
 **0b. Detect install generation.**
 

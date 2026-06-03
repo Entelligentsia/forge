@@ -41,9 +41,12 @@ or when `.forge/structure-versions.json` is absent (pre-T05 install detected).
 
 - `/forge:init` has run: `.forge/config.json` exists and is readable.
 - `.forge/structure-versions.json` is absent OR `--structural` was passed.
-- The Forge plugin root is resolvable:
+- The Forge plugin root is resolvable. Migration reads plugin source
+  (`$FORGE_ROOT/init/base-pack`, `$FORGE_ROOT/.claude-plugin/plugin.json`)
+  that is not vendored into `.forge/`, so resolve the active plugin install
+  root from `CLAUDE_PLUGIN_ROOT` (this workflow runs plugin-side):
   ```sh
-  export FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)")
+  export FORGE_ROOT="${CLAUDE_PLUGIN_ROOT}"
   ```
 
 ---
@@ -58,7 +61,7 @@ Check that `.forge/config.json` exists. If it does not, stop:
 
 > "Forge has not been initialised in this project. Run `/forge:init` first."
 
-Read `FORGE_ROOT` from `.forge/config.json`.
+Resolve `FORGE_ROOT` from `${CLAUDE_PLUGIN_ROOT}` (the active plugin install root).
 
 **0b. Detect install generation.**
 
@@ -463,7 +466,7 @@ cd .forge && md5sum -c archive/pre-migration/MANIFEST.md5 2>/dev/null | grep -v 
 - **Workflow Structure:** The generated `migrate_structural.md` must follow the strict multi-phase Algorithm block format (Phase 0 pre-flight → Phase 1 read/extract → Phase 2 confirmation gate → Phase 3 write → Phase 4 verify/emit → Rollback Procedure → Error Handling).
 - **Context Isolation:** Forbid inline execution of archival or substitution operations; use `forge_store` reads and structured `node` invocations for all store interactions.
 - **Project Specifics:**
-  - Reference the project's `paths.engineering` and `paths.forgeRoot` from `.forge/config.json` for all path resolutions.
+  - Reference the project's `paths.engineering` from `.forge/config.json` for path resolutions; resolve the plugin root from `${CLAUDE_PLUGIN_ROOT}` (not `config.paths.forgeRoot`, which is retired).
   - Include the project's migration path docs in the Error Handling table (e.g., expected schema files, archive paths).
 - **Token Reporting:** See `_fragments/finalize.md` — wire via `file_ref:`. Token reporting is diagnostic only (migration is not an orchestrated phase — it emits its own record via `store-cli emit` in Phase 4).
 - **Event Emission:** Migration emits its own completion event directly via `store-cli emit` in Phase 4 (orchestrator-exception; this is not a task phase). The "do NOT emit yourself" rule does not apply here.

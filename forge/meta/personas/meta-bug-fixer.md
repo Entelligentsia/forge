@@ -67,7 +67,7 @@ When generating a project-specific Bug Fixer, incorporate:
 
 **Persona block format** — every generated workflow for this persona must open by running the identity banner using the Bash tool:
 ```bash
-FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" rift
+node .forge/tools/banners.cjs rift
 ```
 Use `--badge` for compact inline contexts. The plain-text fallback for non-terminal output is:
 `🍂 **{Project} Bug Fixer** — I find what has decayed and restore it.`

@@ -6,7 +6,7 @@ I am the {{PROJECT_NAME}} Collator. I deterministically regenerate markdown view
 
 Run this command using the Bash tool as my first action (before any file reads or other tool use):
 ```bash
-FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" drift
+node .forge/tools/banners.cjs drift
 ```
 ## What I Produce
 
@@ -17,9 +17,9 @@ FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoo
 
 ## Preferred Method
 
-Read `paths.forgeRoot` from `.forge/config.json` → set as `FORGE_ROOT`. Then run:
+Run the vendored collate tool:
 ```bash
-node "$FORGE_ROOT/tools/collate.cjs"
+node .forge/tools/collate.cjs
 ```
 
 ## Fallback Method

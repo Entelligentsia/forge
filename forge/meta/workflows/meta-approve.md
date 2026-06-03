@@ -42,7 +42,6 @@ The Architect gives final sign-off on a completed task after Supervisor approval
 ```
 
 0a. Pre-flight Gate Check:
-   - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
    - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
    - Run: `node .forge/tools/preflight-gate.cjs --phase approve --{entity_kind} {record_id}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.

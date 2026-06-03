@@ -10,7 +10,7 @@ needed.
 
 ## Inputs
 
-- `.forge/config.json` — paths (specifically `paths.forgeRoot` for schema resolution)
+- `.forge/config.json` — project paths and prefix
 - `.forge/schemas/*.schema.json` — canonical JSON Schema files (primary source)
 - `forge/schemas/*.schema.json` — in-tree source schemas (fallback for dogfooding)
 - CLI arguments — command, entity type, JSON payload, flags

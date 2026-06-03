@@ -1,4 +1,15 @@
 {
+  "1.2.8": {
+    "version": "1.2.9",
+    "date": "2026-06-03",
+    "notes": "Finish the FORGE_ROOT retirement in the workflow/persona layer (vendored-path scope). Remove the vestigial 'Resolve FORGE_ROOT (config.paths.forgeRoot)' preamble bullet from meta-approve/review-plan/review-implementation/validate/commit/plan-task/implement/bug-triage (the gate calls already use node .forge/tools/preflight-gate.cjs). Switch persona identity banners to node .forge/tools/banners.cjs <id> at the generator (build-base-pack.cjs identityBlock) and in the three base-pack-only personas (librarian/orchestrator/product-manager); drop the broken paths.forgeRoot resolution. meta-collate/collator now invoke node .forge/tools/collate.cjs directly. meta-migrate resolves the plugin root from CLAUDE_PLUGIN_ROOT (plugin-side reads of init/base-pack are not vendored). Stale paths.forgeRoot doc references removed from store-cli.spec.md, meta-enhance config_fields, and tool-discipline.md. paths.forgeRoot is intentionally retained as a maintained convenience field (written by check-update.cjs) for skills/commands that resolve the plugin root — those are out of scope for this entry.",
+    "target": "workflows:forge-root-residual-cleanup",
+    "regenerate": ["workflows", "personas"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:rebuild workflows personas to regenerate the updated workflow and persona files. The vendored banners/collate invocations require .forge/tools/ to be present — run /forge:rebuild tools first if it is absent (see the 1.2.7 migration)."
+    ]
+  },
   "1.2.7": {
     "version": "1.2.8",
     "date": "2026-06-03",

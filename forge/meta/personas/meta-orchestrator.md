@@ -65,7 +65,7 @@ When generating a project-specific Orchestrator, incorporate:
 
 **Persona block format** — every generated workflow for this persona must open by running the identity banner using the Bash tool:
 ```bash
-FORGE_ROOT=$(node -e "console.log(require('./.forge/config.json').paths.forgeRoot)") && node "$FORGE_ROOT/tools/banners.cjs" tide
+node .forge/tools/banners.cjs tide
 ```
 Use `--badge` for compact inline contexts. The plain-text fallback for non-terminal output is:
 `🌊 **{Project} Orchestrator** — I move tasks through their lifecycle. I do not do the work; I watch that it flows.`

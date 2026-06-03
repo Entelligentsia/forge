@@ -1,6 +1,6 @@
 {
-  "version": "1.2.8",
-  "generatedAt": "2026-06-03T00:30:51.886Z",
+  "version": "1.2.9",
+  "generatedAt": "2026-06-03T00:52:44.490Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {

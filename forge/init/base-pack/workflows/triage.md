@@ -51,7 +51,6 @@ deps:
 ```
 
 0. Pre-flight Gate Check:
-   - Resolve FORGE_ROOT (`node -e "console.log(require('./.forge/config.json').paths.forgeRoot)"`).
    - Run: `node .forge/tools/preflight-gate.cjs --phase triage --bug {bugId}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed.
    - Exit 2 (misconfiguration) → print stderr and HALT.

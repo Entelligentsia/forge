@@ -530,6 +530,29 @@ describe('buildBasePack: validates all expected output files exist', () => {
     assert.equal(files.length, 9, `expected 9 persona files, got ${files.length}: ${files.join(', ')}`);
   });
 
+  // FORGE-S29: the identity banner must invoke the vendored project-relative
+  // tool (`node .forge/tools/banners.cjs <id>`) — NOT resolve the plugin root
+  // from the retired `config.paths.forgeRoot` field. Workflows run subagent-side
+  // where the vendored `.forge/tools/` closure is the canonical tool path.
+  test('persona identity banners use vendored .forge/tools/banners.cjs, not paths.forgeRoot', () => {
+    mod = mod || require(SCRIPT_PATH);
+    const personaDir = path.join(outDir, 'personas');
+    const files = fs.readdirSync(personaDir).filter(f => f.endsWith('.md'));
+    let bannerLinesChecked = 0;
+    for (const f of files) {
+      const body = fs.readFileSync(path.join(personaDir, f), 'utf8');
+      const m = body.match(/^.*banners\.cjs.*$/m);
+      if (!m) continue;
+      bannerLinesChecked++;
+      const line = m[0];
+      assert.ok(line.includes('node .forge/tools/banners.cjs'),
+        `${f}: banner must invoke "node .forge/tools/banners.cjs", got: ${line}`);
+      assert.ok(!/paths\.forgeRoot/.test(line),
+        `${f}: banner must not resolve via the retired config.paths.forgeRoot, got: ${line}`);
+    }
+    assert.ok(bannerLinesChecked > 0, 'expected at least one persona banner line to verify');
+  });
+
   test('all 9 skill files created in output/skills/', () => {
     mod = mod || require(SCRIPT_PATH);
     const skillDir = path.join(outDir, 'skills');
