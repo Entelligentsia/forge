@@ -1,4 +1,17 @@
 {
+  "1.2.14": {
+    "version": "1.2.15",
+    "date": "2026-06-03",
+    "notes": "COST_REPORT now accounts incomplete (aborted/failed) phase attempts. forge-cli >=1.0.16 emits phase events with verdict aborted (user cancel) / failed (halt-on-failure) carrying the provider-billed tokens of incomplete attempts; previously those tokens were invisible (the CART-S02-T03 baseline under-counted by 259,950 tokens across two aborted plan passes — husk events with no token data). collate.cjs adds an Incomplete Passes section to COST_REPORT listing each aborted/failed attempt (task, phase, outcome, tokens); Per-Task/Per-Role/Model-Split totals already sum verdict-agnostically, so the previously-missing spend now lands in the totals automatically once events arrive.",
+    "target": "tools:collate",
+    "regenerate": [
+      "tools"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild tools to re-vendor .forge/tools/collate.cjs. Report-layer only — no schema change; older forge-cli versions simply produce no incomplete-pass events."
+    ]
+  },
   "1.2.13": {
     "version": "1.2.14",
     "date": "2026-06-03",
@@ -17,7 +30,9 @@
     "date": "2026-06-03",
     "notes": "Deterministic post-phase exit guard (FORGE-S26-T19). New parseOutputs() export in parse-gates.cjs handles ```outputs phase=X``` fence blocks with closed grammar (artifact + require directives; unknown throws). New postflight-gate.cjs evaluator runs post-phase; returns { phase, reasonCode, detail, remediation } with new output-missing and output-stub reasonCodes; no LLM in path. forge-cli run-task.ts now calls runPostflightGate() after runForgeSubagent returns and before FSM advance; on UNSATISFIED halts + calls existing runHaltAdvisor. wfl-run-task.js gets a #22 parity-seam comment. meta-plan-task.md and meta-implement.md: prose Tier-2 self-check replaced by declarative outputs blocks + thin pointer reminders.",
     "target": "tools:parse-gates tools:postflight-gate",
-    "regenerate": ["workflows"],
+    "regenerate": [
+      "workflows"
+    ],
     "breaking": false,
     "manual": [
       "Run /forge:rebuild to pick up updated meta-workflow changes (meta-plan-task.md, meta-implement.md now include declarative outputs blocks). postflight-gate.cjs is additive — no-op for workflows without outputs blocks."
@@ -37,7 +52,9 @@
     "date": "2026-06-03",
     "notes": "Halt-recovery advisor (FORGE-S26-T18). preflight-gate.cjs now emits structured JSON on stdout on gate failure: { phase, reasonCode, detail, remediation }. reasonCode values: artifact-missing, predecessor-verdict-missing, illegal-status, tool-error. Both LLM orchestrators (meta-orchestrate.md, meta-fix-bug.md) parse and render the structured failure instead of raw stderr. forge-cli run-task and fix-bug upgraded to runPreflightGateWithData() which returns structured failure alongside the PreflightResult enum; on halt, the CLI spawns a read-only halt-recovery advisor subagent on the advisorModel config slot (or getAvailable()[0] fallback). New optional advisorModel field added to forge-cli layered config (L1 global / L2 project). Post-phase self-check guards added to meta-plan-task.md and meta-implement.md (Tier 2) to prevent false complete events when a phase subagent silently fails to write its primary output.",
     "target": "tools:preflight-gate",
-    "regenerate": ["workflows"],
+    "regenerate": [
+      "workflows"
+    ],
     "breaking": false,
     "manual": [
       "Run /forge:rebuild to pick up updated meta-workflow changes (meta-orchestrate.md, meta-fix-bug.md, meta-plan-task.md, meta-implement.md). The structured JSON stdout from preflight-gate.cjs is additive — orchestrators that do not parse it still receive human-readable stderr and exit 1."
@@ -48,7 +65,9 @@
     "date": "2026-06-03",
     "notes": "Fix incomplete .forge/tools/ vendored closure. generate-tools.md and rebuild.md copied tools via `*.cjs` globs only, silently skipping the two `.js` lib helpers (lib/result.js, lib/validate.js) and the top-level list-skills.js. Because store-cli.cjs does a top-level require('./lib/validate.js') and collate.cjs requires './lib/result.js', a freshly vendored .forge/tools/ left store-cli.cjs dead-on-arrival (ENOENT) and broke KB collation. Latent since the vendored-tools model landed; S29 made it fatal by moving tool execution off $FORGE_ROOT/tools/ onto the vendored copy. Both vendoring sites now copy `.cjs` and `.js` (find -maxdepth 1, excludes __tests__/) and record both in the generation manifest. New regression guard tools/__tests__/vendored-tools-closure.test.cjs ties the documented copy extensions to the actual require()-closure.",
     "target": "tools:vendor-closure",
-    "regenerate": ["tools"],
+    "regenerate": [
+      "tools"
+    ],
     "breaking": false,
     "manual": [
       "Run /forge:rebuild tools to re-vendor .forge/tools/ with the complete closure. Existing projects vendored by v1.2.4–v1.2.9 are missing .forge/tools/lib/result.js, .forge/tools/lib/validate.js, and .forge/tools/list-skills.js — store-cli and KB collation are broken until this re-vendor runs."
@@ -59,7 +78,10 @@
     "date": "2026-06-03",
     "notes": "Finish the FORGE_ROOT retirement in the workflow/persona layer (vendored-path scope). Remove the vestigial 'Resolve FORGE_ROOT (config.paths.forgeRoot)' preamble bullet from meta-approve/review-plan/review-implementation/validate/commit/plan-task/implement/bug-triage (the gate calls already use node .forge/tools/preflight-gate.cjs). Switch persona identity banners to node .forge/tools/banners.cjs <id> at the generator (build-base-pack.cjs identityBlock) and in the three base-pack-only personas (librarian/orchestrator/product-manager); drop the broken paths.forgeRoot resolution. meta-collate/collator now invoke node .forge/tools/collate.cjs directly. meta-migrate resolves the plugin root from CLAUDE_PLUGIN_ROOT (plugin-side reads of init/base-pack are not vendored). Stale paths.forgeRoot doc references removed from store-cli.spec.md, meta-enhance config_fields, and tool-discipline.md. paths.forgeRoot is intentionally retained as a maintained convenience field (written by check-update.cjs) for skills/commands that resolve the plugin root — those are out of scope for this entry.",
     "target": "workflows:forge-root-residual-cleanup",
-    "regenerate": ["workflows", "personas"],
+    "regenerate": [
+      "workflows",
+      "personas"
+    ],
     "breaking": false,
     "manual": [
       "Run /forge:rebuild workflows personas to regenerate the updated workflow and persona files. The vendored banners/collate invocations require .forge/tools/ to be present — run /forge:rebuild tools first if it is absent (see the 1.2.7 migration)."
@@ -70,7 +92,9 @@
     "date": "2026-06-03",
     "notes": "Remove all $FORGE_ROOT references from init/smoke-test.md. Switch tool exec check to node .forge/tools/validate-store.cjs, generation-manifest stamp to node .forge/tools/generation-manifest.cjs, version read to .forge/tools/.forge-tools-version, distribution detection to the distribution field in .forge-tools-version, and remove the forgeRoot field from update-check-cache.json stamp. Smoke-test runs only at init time — existing projects are not affected.",
     "target": "init:smoke-test",
-    "regenerate": ["init"],
+    "regenerate": [
+      "init"
+    ],
     "breaking": false,
     "manual": [
       "Re-run /forge:init on new projects to pick up the updated smoke-test. Existing projects are unaffected — smoke-test runs only once at init time."
@@ -81,7 +105,9 @@
     "date": "2026-06-02",
     "notes": "Remove paths.forgeRoot from config.schema.json required[] and properties. forge-preflight.cjs now resolves plugin root via forgeRef-based cache scan (mirrors manage-config.cjs Priority 2) instead of reading config.paths.forgeRoot. manage-config.cjs resolve-forge-root drops Priority 3 (forgeRoot fallback). generate-tools.md drops Step 1 (forgeRoot write). update.md removes forgeRoot refresh from Step 4 config section and fixes tools regenerate category to invoke /forge:rebuild tools instead of running schema refresh inline.",
     "target": "config:forgeRoot",
-    "regenerate": ["tools"],
+    "regenerate": [
+      "tools"
+    ],
     "breaking": false,
     "manual": [
       "Run /forge:rebuild tools to re-vendor .forge/tools/ on existing projects. Projects that have never run /forge:rebuild tools will have .forge/tools/ absent until this step."
@@ -92,7 +118,9 @@
     "date": "2026-06-02",
     "notes": "Add vendored-tools integrity and staleness check to /forge:health. Exports checkToolsVersion(projectRoot) from check-structure.cjs: reads .forge/tools/.forge-tools-version marker and paths.forgeRef from config, returns { present, vendoredVersion, activeVersion, stale, reason }. generate-tools.md Step 2c now writes .forge/tools/.forge-tools-version after the tool copy loop. rebuild.md tools category now re-writes the marker after re-copy. health.md gains step 8b (vendored tools presence + staleness check, emitting 〇/△/× with /forge:rebuild tools recommendation). Closes the integrity gap for existing projects that ran /forge:rebuild tools in v1.2.4 without the marker.",
     "target": "tools:health",
-    "regenerate": ["tools"],
+    "regenerate": [
+      "tools"
+    ],
     "breaking": false,
     "manual": [
       "Run /forge:update, then /forge:rebuild tools to write .forge/tools/.forge-tools-version. Until this runs, /forge:health will report 'stale (marker absent)' — non-breaking."
@@ -103,7 +131,10 @@
     "date": "2026-06-02",
     "notes": "Rewrite all ~159 node \"$FORGE_ROOT/tools/X.cjs\" call-sites in meta/workflows/*.md, meta/workflows/_fragments/*.md, and wfl-*.js drivers to use the fixed project-relative form node .forge/tools/X.cjs. Delete the FORGE_ROOT export preamble from all three JS drivers (wfl-run-task.js, wfl-run-sprint.js, wfl-fix-bug.js). Tools are now vendored in .forge/tools/ (added in v1.2.4), so no subagent needs to resolve a plugin root path at runtime. Drift test guard updated: asserts no $FORGE_ROOT remains in any driver source. Existing projects must regenerate workflows and workflows-js to pick up the new paths.",
     "target": "workflows:*",
-    "regenerate": ["workflows", "workflows-js"],
+    "regenerate": [
+      "workflows",
+      "workflows-js"
+    ],
     "breaking": false,
     "manual": [
       "Run /forge:update, then run /forge:rebuild tools (if not done in v1.2.4 step), then /forge:rebuild workflows and /forge:rebuild workflows-js. Tools must be vendored in .forge/tools/ before running the rewritten workflows."
@@ -114,7 +145,9 @@
     "date": "2026-06-02",
     "notes": "Add tools vendor category: copy plugin tools/*.cjs + tools/lib/*.cjs into .forge/tools/ at init and rebuild, mirroring the existing schemas copy. Adds tools namespace to structure-manifest.json (via build-manifest.cjs TOOLS_FILES constant), Step 2b to generate-tools.md (init copy), and tools/tools:<filename> category to rebuild.md (verbatim re-copy from $FORGE_ROOT/tools/). check-structure.cjs validateManifest now maps the tools namespace to forgeRoot/tools/ with recursive lib/ enumeration. Foundation for FORGE-S29 call-site rewrite (T02+). No existing call-sites changed in this task.",
     "target": "tools",
-    "regenerate": ["tools"],
+    "regenerate": [
+      "tools"
+    ],
     "breaking": false,
     "manual": [
       "Run /forge:update, then /forge:rebuild tools to materialise .forge/tools/."
@@ -240,70 +273,108 @@
     "date": "2026-05-31",
     "notes": "v1.0.10 — set-summary self-resolve hardening. When the JSON file is omitted, set-summary/set-bug-summary resolve the CANONICAL sidecar name (e.g. VALIDATION-SUMMARY.json) from the phase→kind map. If that file is missing but a near-name summary sidecar exists in the same dir (e.g. an agent wrote VALIDATE-SUMMARY.json via the Write tool instead of forge_artifact's canonical name), the error now surfaces the near-name file and points at the canonical write path (forge_artifact artifact:\"<kind>\"), instead of a silent 'file not found' dead-end. Surfaced by cartographer CART-S01-T01 validate, where the QA subagent wrote a non-canonical sidecar and the verdict never reached the store (orchestrator then correctly escalated via read-verdict). No behavior change when the canonical file is present.",
     "target": "tools:store-cli",
-    "regenerate": ["tools"],
+    "regenerate": [
+      "tools"
+    ],
     "breaking": false,
-    "manual": ["Run /forge:update to copy the updated tools into your project."]
+    "manual": [
+      "Run /forge:update to copy the updated tools into your project."
+    ]
   },
   "1.0.8": {
     "version": "1.0.9",
     "date": "2026-05-31",
     "notes": "v1.0.9 — store-cli suggestion drift-map: add create→write. Agents reach for REST-style `create <entity>`, but store-cli has no `create` verb (records are written with `write`), and create→write is beyond Levenshtein ≤2 so only the curated drift-map can surface it. `store-cli create sprint` now emits `Unknown command: create (Did you mean \"write\"?)`. Pure error-message UX improvement; no behavior change for valid commands. Observed on cartographer sprint-init dogfooding.",
     "target": "tools:store-cli",
-    "regenerate": ["tools"],
+    "regenerate": [
+      "tools"
+    ],
     "breaking": false,
-    "manual": ["Run /forge:update to copy the updated tools into your project."]
+    "manual": [
+      "Run /forge:update to copy the updated tools into your project."
+    ]
   },
   "1.0.7": {
     "version": "1.0.8",
     "date": "2026-05-31",
     "notes": "v1.0.8 — artifact-resolution Phase 4 (issue #111). ArtifactStore gains a backend registry: artifactStore.register(backend, impl) and per-call routing by the handle's `backend` (default 'fs'). Adding a storage backend is now implementing the six-method interface and registering it — no prompt or call-site changes (the acceptance criterion). Ships MemArtifactImpl, a complete synchronous in-memory reference backend, as the canonical template for real S3/CMS/DB providers. Per the ADR sync constraint, a networked impl is sync-bound for in-process callers and reachable async-internally only through the forge-cli subprocess surface — so no live remote backend is bundled. tools-only; no schema, workflow, or store-layout changes.",
     "target": "tools:artifact-store",
-    "regenerate": ["tools"],
+    "regenerate": [
+      "tools"
+    ],
     "breaking": false,
-    "manual": ["Run /forge:update to copy the updated tools into your project."]
+    "manual": [
+      "Run /forge:update to copy the updated tools into your project."
+    ]
   },
   "1.0.6": {
     "version": "1.0.7",
     "date": "2026-05-31",
     "notes": "v1.0.7 — artifact-resolution Phase 3 (issue #111). Introduces the ArtifactStore/FsArtifactImpl provider seam (tools/artifact-store.cjs), mirroring the store.cjs Store/FSImpl pattern: a backend-agnostic, synchronous facade (read/write/exists/url/list/delete) delegating to a swappable impl, default-wired to the filesystem. artifact.cjs is now a thin CLI over the facade and gains exists/url/delete subcommands; entity-dir resolution moved into artifact-store.cjs (re-exported for back-compat). Records gain an optional backend-agnostic locator {backend,ref} (schemas/_defs/locator.schema.json, $ref'd from task/bug/sprint); record.path stays REQUIRED as the read-time alias (the resolver derives {backend:'fs',ref:path} when locator is absent), so legacy records work unchanged and no store rewrite is forced. Concepts docs (task.md/bug.md) updated. Materialization of locator into stored records is deferred — the alias covers it. No FSM/lifecycle or store-layout changes.",
     "target": "tools:artifact,tools:artifact-store,schemas:task,schemas:bug,schemas:sprint",
-    "regenerate": ["tools", "schemas"],
+    "regenerate": [
+      "tools",
+      "schemas"
+    ],
     "breaking": false,
-    "manual": ["Run /forge:update to copy the updated tools and schemas into your project."]
+    "manual": [
+      "Run /forge:update to copy the updated tools and schemas into your project."
+    ]
   },
   "1.0.5": {
     "version": "1.0.6",
     "date": "2026-05-31",
     "notes": "v1.0.6 — artifact-resolution Phase 2 (issue #111). (1) The orchestrator's Verdict Detection no longer reads a markdown review artifact via the removed parse-verdict.cjs — meta-orchestrate.md was the last reference to that deleted tool, which would have crashed the verdict step. It now reads the verdict from the store record via read-verdict.cjs (--phase <role> --task|--bug <id>), branching on the stdout token; no artifact path is constructed. (2) Removed the stale verdict-source table that hard-coded {sprintDir}/{taskDir} markdown paths. (3) meta-commit reads ARCHITECT_APPROVAL by kind via forge_artifact instead of a built path; meta-collate anchors WRITEBACK-SUMMARY on the sprint record's path. (4) Documented canonical artifact addressing + the placeholder-token glossary in the store-cli-verbs fragment (rename-unsafe: tools parse the literal tokens). No schema or store-layout changes.",
     "target": "workflows:orchestrate_task,workflows:commit,workflows:collate",
-    "regenerate": ["workflows:orchestrate_task", "workflows:commit", "workflows:collate"],
+    "regenerate": [
+      "workflows:orchestrate_task",
+      "workflows:commit",
+      "workflows:collate"
+    ],
     "breaking": false,
-    "manual": ["Run /forge:update to copy the updated workflows into your project."]
+    "manual": [
+      "Run /forge:update to copy the updated workflows into your project."
+    ]
   },
   "1.0.4": {
     "version": "1.0.5",
     "date": "2026-05-31",
     "notes": "v1.0.5 — artifact-resolution Phase 1 (issue #111). set-summary / set-bug-summary now self-resolve the phase-summary sidecar from the store record's path: the JSON file argument is optional and the call collapses to `set-summary <id> <phase>`. This fixes the 2-arg arity failure (plan-phase set-summary previously exited 1 with Usage) and removes the hand-built `engineering/sprints/{sprint}/{task}/…-SUMMARY.json` paths from the implement/validate/approve/bug-triage workflows, which broke on non-default on-disk layouts. New canonical kind registry tools/lib/artifact-kinds.cjs (ARTIFACT_CATALOG + bug-mode overrides + phase→kind map) is now the single source consumed by artifact.cjs and store-cli.cjs. No schema or store-layout changes; the explicit jsonFile form remains accepted for back-compat.",
     "target": "tools:store-cli,tools:artifact,tools:artifact-kinds,workflows:implement_plan,workflows:validate_task,workflows:approve_task,workflows:triage",
-    "regenerate": ["tools", "workflows:implement_plan", "workflows:validate_task", "workflows:approve_task", "workflows:triage"],
+    "regenerate": [
+      "tools",
+      "workflows:implement_plan",
+      "workflows:validate_task",
+      "workflows:approve_task",
+      "workflows:triage"
+    ],
     "breaking": false,
-    "manual": ["Run /forge:update to copy the updated tools and workflows into your project."]
+    "manual": [
+      "Run /forge:update to copy the updated tools and workflows into your project."
+    ]
   },
   "1.0.3": {
     "version": "1.0.4",
     "date": "2026-05-30",
     "notes": "v1.0.4 — two store/path tool fixes. (1) preflight-gate.cjs now derives {sprint}/{task} from the store record's task.path instead of reconstructing sprints/{sprintId}/{taskId}/, fixing false 'artifact missing' halts on projects whose on-disk layout differs from the default (legacy sprint_NN_*/tasks/ trees and tasks/-nested dirs). (2) The store-query NLP path no longer degrades an explicit-ID query into a full-store scan: the parser keeps primary=tasks when a follow-word ('with sprint'/'with feature') accompanies an anchored task ID, and the engine re-routes a stripped anchored ID to its entity and applies a default result cap (new 'truncated' flag) so unbounded listings never dump the whole store. No schema, workflow, or store-layout changes.",
     "target": "tools:preflight-gate,tools:store-query",
-    "regenerate": ["tools"],
+    "regenerate": [
+      "tools"
+    ],
     "breaking": false,
-    "manual": ["Run /forge:update to copy the updated tools into your project."]
+    "manual": [
+      "Run /forge:update to copy the updated tools into your project."
+    ]
   },
   "1.0.2": {
     "version": "1.0.3",
     "date": "2026-05-28",
     "notes": "v1.0.3 — FORGE-BUG-040 (GH-110) fix. /forge:fix-bug now runs each phase as a phase-scoped subagent: triage uses the new triage.md workflow, plan-fix uses plan_task.md (bug-mode), implement uses implement_plan.md (bug-mode). Previously all three pointed at fix_bug.md (orchestrator-only body), causing the triage subagent to execute the entire lifecycle in one phase. Bug schema, transitions, and store layout are unchanged.",
     "target": "workflows:triage,workflows:fix_bug",
-    "regenerate": ["workflows:triage", "workflows:fix_bug"],
+    "regenerate": [
+      "workflows:triage",
+      "workflows:fix_bug"
+    ],
     "breaking": false,
     "manual": []
   },
@@ -312,7 +383,9 @@
     "date": "2026-05-27",
     "notes": "v1.0.2 — deprecated command cleanup + init bug fixes. Redirect stubs removed (old command names are now unknown). paths.commands uses project prefix. artifact.cjs strips trailing filenames from store path. Deprecated command references replaced across all meta sources.",
     "target": "commands,init:phases,init:sdlc-init,tools:artifact",
-    "regenerate": ["commands"],
+    "regenerate": [
+      "commands"
+    ],
     "breaking": false,
     "manual": [
       "Deprecated command redirect stubs removed. Old names (sprint-intake, sprint-plan, retrospective, regenerate, store-query, store-repair, quiz-agent, calibrate, update-tools, migrate, materialize) are now unknown commands. See docs/migration/v0-to-v1.md for the mapping.",
@@ -324,7 +397,9 @@
     "date": "2026-05-27",
     "notes": "v1.0.1 — init phase decomposition (FORGE-S26-T17). New shared verify-phase.cjs tool; sdlc-init.md rewritten as thin orchestrator; per-phase prompt files extracted to init/phases/.",
     "target": "tools:verify-phase,init:phases",
-    "regenerate": ["tools"],
+    "regenerate": [
+      "tools"
+    ],
     "breaking": false,
     "manual": []
   },
@@ -333,7 +408,11 @@
     "date": "2026-05-26",
     "notes": "v1.0.0 — v1.0 DevX Overhaul (FORGE-S26). 7 command renames, 6 command removals, fast-mode dead code removal, health --fix, rebuild --enrich, init --migrate, pipeline step guards, revision loop visibility, post-init welcome, Tomoshibi enhancements, forge:status plugin command, v1.0 documentation restructure.",
     "target": "commands:new-sprint,commands:plan-sprint,commands:retro,commands:rebuild,commands:search,commands:repair,commands:check-agent,commands:calibrate,commands:enhance,commands:migrate,commands:materialize,commands:update-tools,commands:collate,commands:status,workflows:orchestrate_task,workflows:plan_task,workflows:implement_plan,workflows:fix_bug,config:mode",
-    "regenerate": ["commands", "workflows", "tools"],
+    "regenerate": [
+      "commands",
+      "workflows",
+      "tools"
+    ],
     "breaking": true,
     "manual": [
       "Removed commands: /forge:update-tools, /forge:materialize, /forge:enhance, /forge:calibrate, /forge:migrate, /forge:collate (user surface). Use /forge:update for schema refresh, /forge:rebuild --enrich for enhancement, /forge:health --fix for calibration, /forge:init --migrate for migration.",

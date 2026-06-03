@@ -611,6 +611,38 @@ function buildCostReport(sprint, events, orphanSidecars, huskPrimaries) {
     }
   }
 
+  // --- Section 3b: Incomplete passes (aborted / failed attempts) ---
+  // forge-cli ≥1.0.16 emits phase events with verdict "aborted" (user cancel)
+  // or "failed" (halt-on-failure) so the provider-billed tokens of incomplete
+  // attempts reach the store. Those tokens ARE included in the Per-Task /
+  // Per-Role / Model Split totals above (totals are verdict-agnostic — this
+  // closes the under-count where aborted passes were invisible); this section
+  // makes the incomplete share visible rather than silently mixed in.
+  lines.push('## Incomplete Passes', '');
+  {
+    const INCOMPLETE_VERDICTS = new Set(['aborted', 'failed']);
+    const incompleteEvents = tokenEvents.filter(e => INCOMPLETE_VERDICTS.has(e.verdict));
+    if (incompleteEvents.length === 0) {
+      lines.push('_No incomplete passes in this sprint._', '');
+    } else {
+      const rows = [['Task', 'Phase', 'Outcome', 'Input Tokens', 'Output Tokens', 'Est. Cost USD']];
+      const sorted = [...incompleteEvents].sort((a, b) =>
+        String(a.taskId || '').localeCompare(String(b.taskId || '')) ||
+        String(a.phase || '').localeCompare(String(b.phase || '')));
+      for (const e of sorted) {
+        rows.push([
+          e.taskId || '(unknown)',
+          e.phase || '(unknown)',
+          e.verdict,
+          fmtTokens(e.inputTokens || 0),
+          fmtTokens(e.outputTokens || 0),
+          fmtCost(e.estimatedCostUSD || 0),
+        ]);
+      }
+      lines.push(padTable(rows), '');
+    }
+  }
+
   // --- Section 4: Model split ---
   lines.push('## Model Split', '');
   {

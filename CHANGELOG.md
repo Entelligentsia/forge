@@ -5,6 +5,25 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.2.15] — 2026-06-03
+
+### Fixed
+
+- **COST_REPORT now accounts incomplete (aborted/failed) phase attempts.**
+  Cancelled and halted phase attempts bill real provider tokens, but their
+  events arrived as token-less husks — the CART-S02-T03 benchmark baseline
+  under-counted by exactly 259,950 tokens across two aborted plan passes.
+  forge-cli ≥1.0.16 now emits phase events with `verdict: "aborted"` (user
+  cancel) / `"failed"` (halt-on-failure) carrying the captured partial usage;
+  `collate.cjs` adds an **Incomplete Passes** section to COST_REPORT (task,
+  phase, outcome, tokens per attempt). Per-Task / Per-Role / Model-Split
+  totals sum verdict-agnostically, so the previously-invisible spend lands in
+  the totals automatically once events arrive. Report-layer only — no schema
+  change (`verdict` was already a free-string event field); older forge-cli
+  versions simply produce no incomplete-pass events.
+
+---
+
 ## [1.2.14] — 2026-06-03
 
 ### Fixed

@@ -850,4 +850,73 @@ describe('collate.cjs — buildCostReport', () => {
     const result = buildCostReport(sprint, [], [], []);
     assert.ok(result.includes('No token data'), 'should handle no token events');
   });
+
+  // ── Incomplete Passes (bug B: aborted/failed attempt tokens) ─────────────
+  // forge-cli ≥1.0.16 emits phase events with verdict "aborted" / "failed" for
+  // cancelled and halted attempts so their provider-billed tokens reach the
+  // store. The report must (a) keep them in Per-Task Totals and (b) surface
+  // them in a dedicated section so totals aren't silently mixed.
+
+  const eventAborted = {
+    eventId: 'evt-abort-1',
+    taskId: 'TST-S01-T01',
+    role: 'engineer',
+    phase: 'plan',
+    iteration: 1,
+    model: 'claude-sonnet-4-6',
+    verdict: 'aborted',
+    inputTokens: 130_000,
+    outputTokens: 700,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    estimatedCostUSD: 0.10,
+    tokenSource: 'reported',
+  };
+  const eventFailed = {
+    eventId: 'evt-fail-1',
+    taskId: 'TST-S01-T02',
+    role: 'engineer',
+    phase: 'implement',
+    iteration: 1,
+    model: 'claude-sonnet-4-6',
+    verdict: 'failed',
+    inputTokens: 50_000,
+    outputTokens: 300,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    estimatedCostUSD: 0.04,
+    tokenSource: 'reported',
+  };
+
+  test('includes Incomplete Passes section listing aborted/failed attempts', () => {
+    const result = buildCostReport(sprint, [eventT1, eventAborted, eventFailed], orphans, husks);
+    assert.ok(result.includes('## Incomplete Passes'), 'should include Incomplete Passes section');
+    assert.ok(/Incomplete Passes[\s\S]*TST-S01-T01/.test(result), 'aborted task listed in section');
+    assert.ok(/Incomplete Passes[\s\S]*aborted/.test(result), 'outcome "aborted" shown');
+    assert.ok(/Incomplete Passes[\s\S]*failed/.test(result), 'outcome "failed" shown');
+    assert.ok(/Incomplete Passes[\s\S]*130,000/.test(result), 'aborted input tokens shown');
+  });
+
+  test('Incomplete Passes placeholder when none exist', () => {
+    const result = buildCostReport(sprint, [eventT1, eventT2], orphans, husks);
+    assert.ok(
+      result.includes('_No incomplete passes in this sprint._'),
+      'should include the no-incomplete-passes placeholder',
+    );
+  });
+
+  test('aborted/failed attempt tokens are INCLUDED in Per-Task Totals', () => {
+    const result = buildCostReport(sprint, [eventT1, eventAborted], orphans, husks);
+    // eventT1 (100k) + eventAborted (130k) both on TST-S01-T01 → 230,000 total
+    const taskRow = result.split('\n').find(l => l.startsWith('| TST-S01-T01'));
+    assert.ok(taskRow, 'task row exists');
+    assert.ok(taskRow.includes('230,000'), `task totals include aborted tokens (row: ${taskRow})`);
+  });
+
+  test('completed events with a pass verdict do not appear in Incomplete Passes', () => {
+    const passEvent = { ...eventT1, verdict: 'approved' };
+    const result = buildCostReport(sprint, [passEvent], orphans, husks);
+    assert.ok(result.includes('_No incomplete passes in this sprint._'),
+      'approved verdict is not an incomplete pass');
+  });
 });
