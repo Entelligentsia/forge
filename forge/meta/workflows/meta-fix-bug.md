@@ -192,9 +192,13 @@ Differences are confined to the **triage** step and the **path branch**.
        print(f"  → {bugId}  [{display_model}]\n")
      - Start progress Monitor on .forge/store/events/bugs/progress.log.
      - Preflight gate: preflight-gate.cjs --phase {role} --bug {bugId}
-       Exit 1 or 2 → escalate (see meta-orchestrate.md § Escalation Procedure)
-       with bug_id substituted for task_id. Update bug.status to "escalated"
-       only if it is currently "in-progress" (do not downgrade other states).
+       Exit 1 → structured JSON on stdout ({ phase, reasonCode, detail, remediation });
+       parse and render it exactly as meta-orchestrate.md § Execution Algorithm
+       does for tasks (safe_parse_json(stdout) → format reason + remediation).
+       Exit 2 → escalate (misconfiguration). In both cases:
+       see meta-orchestrate.md § Escalation Procedure with bug_id substituted
+       for task_id. Update bug.status to "escalated" only if it is currently
+       "in-progress" (do not downgrade other states).
      - Compose role-block, architecture-block, summary-block, overlay (via
        build-overlay.cjs --bug {bugId}).
      - Spawn subagent via Agent tool. Subagent prompt passes:

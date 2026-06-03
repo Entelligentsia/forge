@@ -1,4 +1,15 @@
 {
+  "1.2.10": {
+    "version": "1.2.11",
+    "date": "2026-06-03",
+    "notes": "Halt-recovery advisor (FORGE-S26-T18). preflight-gate.cjs now emits structured JSON on stdout on gate failure: { phase, reasonCode, detail, remediation }. reasonCode values: artifact-missing, predecessor-verdict-missing, illegal-status, tool-error. Both LLM orchestrators (meta-orchestrate.md, meta-fix-bug.md) parse and render the structured failure instead of raw stderr. forge-cli run-task and fix-bug upgraded to runPreflightGateWithData() which returns structured failure alongside the PreflightResult enum; on halt, the CLI spawns a read-only halt-recovery advisor subagent on the advisorModel config slot (or getAvailable()[0] fallback). New optional advisorModel field added to forge-cli layered config (L1 global / L2 project). Post-phase self-check guards added to meta-plan-task.md and meta-implement.md (Tier 2) to prevent false complete events when a phase subagent silently fails to write its primary output.",
+    "target": "tools:preflight-gate",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:rebuild to pick up updated meta-workflow changes (meta-orchestrate.md, meta-fix-bug.md, meta-plan-task.md, meta-implement.md). The structured JSON stdout from preflight-gate.cjs is additive — orchestrators that do not parse it still receive human-readable stderr and exit 1."
+    ]
+  },
   "1.2.9": {
     "version": "1.2.10",
     "date": "2026-06-03",

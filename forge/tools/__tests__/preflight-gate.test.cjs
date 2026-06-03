@@ -1123,3 +1123,184 @@ describe('preflight-gate.cjs :: CLI legacy 3-level layout (end-to-end)', () => {
     assert.equal(r.status, 0, `Expected exit 0 (file-path guard resolves to dir), got ${r.status}. stderr: ${r.stderr}`);
   });
 });
+
+// FORGE-S26-T18: structured JSON output from preflight-gate.cjs on halt.
+// The gate emits { phase, reasonCode, detail, remediation } on stdout (exit 1)
+// so orchestrators can parse and render structured failure reasons.
+describe('preflight-gate.cjs :: structured JSON stdout on halt (FORGE-S26-T18)', () => {
+  const { spawnSync } = require('node:child_process');
+  const tool = path.resolve(__dirname, '..', 'preflight-gate.cjs');
+
+  function makeGateEnv({ workflowMd, storeDir, config } = {}) {
+    const dir = tmpdir();
+    const workflowsDir = path.join(dir, '.forge', 'workflows');
+    fs.mkdirSync(workflowsDir, { recursive: true });
+    fs.writeFileSync(path.join(workflowsDir, 'orchestrate_task.md'), workflowMd);
+    const storeTasks = path.join(dir, '.forge', 'store', 'tasks');
+    fs.mkdirSync(storeTasks, { recursive: true });
+    if (storeDir) {
+      for (const [name, content] of Object.entries(storeDir)) {
+        fs.writeFileSync(path.join(storeTasks, name), JSON.stringify(content));
+      }
+    }
+    fs.writeFileSync(
+      path.join(dir, '.forge', 'config.json'),
+      JSON.stringify(config || { paths: { engineering: 'engineering', store: '.forge/store' } }),
+    );
+    return dir;
+  }
+
+  test('structured JSON on stdout when gate fails — artifact-missing reasonCode', () => {
+    const dir = makeGateEnv({
+      workflowMd: [
+        '```gates phase=implement',
+        'artifact engineering/sprints/S1/T1/PLAN.md min=200',
+        '```',
+      ].join('\n'),
+      storeDir: {
+        'FORGE-S26-T99.json': {
+          taskId: 'FORGE-S26-T99', sprintId: 'FORGE-S26', title: 'Test', status: 'plan-approved',
+          path: 'engineering/sprints/FORGE-S26/FORGE-S26-T99',
+          summaries: {},
+        },
+      },
+    });
+
+    const r = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'implement', '--task', 'FORGE-S26-T99'],
+      { encoding: 'utf8', cwd: dir },
+    );
+
+    assert.equal(r.status, 1, `Expected exit 1 (gate fail), got ${r.status}. stderr: ${r.stderr}`);
+    let json;
+    assert.doesNotThrow(() => { json = JSON.parse(r.stdout.trim()); }, `stdout should be valid JSON. Got: ${r.stdout}`);
+    assert.equal(json.phase, 'implement', 'phase field mismatch');
+    assert.equal(json.reasonCode, 'artifact-missing', `Expected artifact-missing, got ${json.reasonCode}`);
+    assert.ok(typeof json.detail === 'string' && json.detail.length > 0, 'detail must be a non-empty string');
+    assert.ok(typeof json.remediation === 'string' && json.remediation.length > 0, 'remediation must be a non-empty string');
+  });
+
+  test('structured JSON on stdout when gate fails — predecessor-verdict-missing reasonCode', () => {
+    const dir = makeGateEnv({
+      workflowMd: [
+        '```gates phase=implement',
+        'after review-plan = approved',
+        '```',
+      ].join('\n'),
+      storeDir: {
+        'FORGE-S26-T99.json': {
+          taskId: 'FORGE-S26-T99', sprintId: 'FORGE-S26', title: 'Test', status: 'plan-approved',
+          path: 'engineering/sprints/FORGE-S26/FORGE-S26-T99',
+          summaries: {},
+        },
+      },
+    });
+
+    const r = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'implement', '--task', 'FORGE-S26-T99'],
+      { encoding: 'utf8', cwd: dir },
+    );
+
+    assert.equal(r.status, 1, `Expected exit 1, got ${r.status}. stderr: ${r.stderr}`);
+    let json;
+    assert.doesNotThrow(() => { json = JSON.parse(r.stdout.trim()); }, `stdout should be valid JSON. Got: ${r.stdout}`);
+    assert.equal(json.reasonCode, 'predecessor-verdict-missing', `Expected predecessor-verdict-missing, got ${json.reasonCode}`);
+    assert.equal(json.phase, 'implement');
+    assert.ok(typeof json.detail === 'string' && json.detail.length > 0, 'detail must be present');
+    assert.ok(typeof json.remediation === 'string' && json.remediation.length > 0, 'remediation must be present');
+  });
+
+  test('structured JSON on stdout when gate fails — illegal-status reasonCode', () => {
+    const dir = makeGateEnv({
+      workflowMd: [
+        '```gates phase=plan',
+        'forbid task.status == completed',
+        '```',
+      ].join('\n'),
+      storeDir: {
+        'FORGE-S26-T99.json': {
+          taskId: 'FORGE-S26-T99', sprintId: 'FORGE-S26', title: 'Test', status: 'completed',
+          path: 'engineering/sprints/FORGE-S26/FORGE-S26-T99',
+          summaries: {},
+        },
+      },
+    });
+
+    const r = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'plan', '--task', 'FORGE-S26-T99'],
+      { encoding: 'utf8', cwd: dir },
+    );
+
+    assert.equal(r.status, 1, `Expected exit 1, got ${r.status}. stderr: ${r.stderr}`);
+    let json;
+    assert.doesNotThrow(() => { json = JSON.parse(r.stdout.trim()); }, `stdout should be valid JSON. Got: ${r.stdout}`);
+    assert.equal(json.reasonCode, 'illegal-status', `Expected illegal-status, got ${json.reasonCode}`);
+    assert.equal(json.phase, 'plan');
+    assert.ok(typeof json.detail === 'string' && json.detail.length > 0, 'detail must be present');
+    assert.ok(typeof json.remediation === 'string' && json.remediation.length > 0, 'remediation must be present');
+  });
+
+  test('no stdout JSON when gate passes (exit 0)', () => {
+    const dir = makeGateEnv({
+      workflowMd: [
+        '```gates phase=implement',
+        'require task.status in [plan-approved]',
+        '```',
+      ].join('\n'),
+      storeDir: {
+        'FORGE-S26-T99.json': {
+          taskId: 'FORGE-S26-T99', sprintId: 'FORGE-S26', title: 'Test', status: 'plan-approved',
+          path: 'engineering/sprints/FORGE-S26/FORGE-S26-T99',
+          summaries: {},
+        },
+      },
+    });
+
+    const r = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'implement', '--task', 'FORGE-S26-T99'],
+      { encoding: 'utf8', cwd: dir },
+    );
+
+    assert.equal(r.status, 0, `Expected exit 0, got ${r.status}. stderr: ${r.stderr}`);
+    assert.equal(r.stdout.trim(), '', `Expected empty stdout on pass. Got: ${r.stdout}`);
+  });
+
+  test('multiple missing items → single JSON object with combined detail', () => {
+    const dir = makeGateEnv({
+      workflowMd: [
+        '```gates phase=implement',
+        'artifact engineering/sprints/S1/T1/PLAN.md min=1',
+        'require task.status in [plan-approved]',
+        '```',
+      ].join('\n'),
+      storeDir: {
+        'FORGE-S26-T99.json': {
+          taskId: 'FORGE-S26-T99', sprintId: 'FORGE-S26', title: 'Test', status: 'draft',
+          path: 'engineering/sprints/FORGE-S26/FORGE-S26-T99',
+          summaries: {},
+        },
+      },
+    });
+
+    const r = spawnSync(
+      process.execPath,
+      [tool, '--phase', 'implement', '--task', 'FORGE-S26-T99'],
+      { encoding: 'utf8', cwd: dir },
+    );
+
+    assert.equal(r.status, 1, `Expected exit 1, got ${r.status}. stderr: ${r.stderr}`);
+    // Should be exactly one JSON line on stdout even when multiple failures.
+    const lines = r.stdout.trim().split('\n').filter(l => l.trim());
+    assert.equal(lines.length, 1, `Expected exactly one JSON line, got ${lines.length}: ${r.stdout}`);
+    let json;
+    assert.doesNotThrow(() => { json = JSON.parse(lines[0]); }, `stdout line should be valid JSON. Got: ${lines[0]}`);
+    assert.ok(json.phase, 'phase field must be present');
+    assert.ok(json.reasonCode, 'reasonCode must be present');
+    // detail should mention multiple issues (combined)
+    assert.ok(typeof json.detail === 'string' && json.detail.length > 0, 'detail must be a non-empty string');
+  });
+});

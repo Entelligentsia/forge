@@ -99,6 +99,14 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
      Or (bug mode):
      `forge_store({ command:"set-bug-summary", args:["{bugId}", "implementation"] })`
      The sidecar path is auto-resolved from the record's `path` — never pass it.
+
+8. Post-Phase Self-Check (Tier 2 — before returning):
+   - Verify that `IMPLEMENTATION-SUMMARY.json` exists and is valid JSON in the
+     task artifact directory. If it is absent or malformed:
+     - Retry step 7 (re-write the sidecar and re-link to the store).
+     - Only proceed to return after the deliverable is confirmed on disk.
+   - This guard prevents the orchestrator from emitting a false "complete" event
+     when the implement subagent silently failed to write its primary output.
 ```
 
 <!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->

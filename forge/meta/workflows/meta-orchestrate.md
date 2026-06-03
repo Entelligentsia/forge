@@ -278,6 +278,14 @@ The `inline` branch will be removed one version after `reference` ships.
 The orchestrator MUST follow this procedure exactly. Do not deviate.
 
 ```
+# --- Utility helpers ---
+def safe_parse_json(text):
+    """Attempt to parse a JSON string; return dict or None on failure."""
+    try:
+        return json.loads(text.strip()) if text and text.strip() else None
+    except Exception:
+        return None
+
 # --- Persona symbol lookup (emoji, name, tagline) ---
 PERSONA_MAP = {
   "plan":        ("🌱", "Engineer",    "I plan what will be built before any code is written."),
@@ -438,16 +446,28 @@ for each task in dependency_sorted(tasks):
     )
     if preflight_result.exit_code == 1:
       # Gate failed: halt the orchestrator loop for THIS task. Do not retry,
-      # do not spawn. Missing prerequisites are listed on stderr.
-      print(f"  ✗ {task_id}  {phase.role}  — gate failed\n{preflight_result.stderr}")
-      append_progress(progress_log_path, f"❌ Gate failed for {phase.role}: {preflight_result.stderr}")
-      emit_event(task, phase, action="gate_failed", notes=preflight_result.stderr)
+      # do not spawn. Structured failure JSON is on stdout; human-readable detail on stderr.
+      # Parse the structured JSON for a user-friendly advisory.
+      gate_failure = safe_parse_json(preflight_result.stdout)
+      if gate_failure:
+        reason_code   = gate_failure.get("reasonCode", "unknown")
+        gate_detail   = gate_failure.get("detail", preflight_result.stderr.strip())
+        gate_remedy   = gate_failure.get("remediation", "")
+        print(f"  ✗ {task_id}  {phase.role}  — gate failed [{reason_code}]")
+        print(f"    Detail:      {gate_detail}")
+        print(f"    Remediation: {gate_remedy}")
+        gate_notes = f"gate_failed [{reason_code}]: {gate_detail}"
+      else:
+        print(f"  ✗ {task_id}  {phase.role}  — gate failed\n{preflight_result.stderr}")
+        gate_notes = f"gate_failed: {preflight_result.stderr}"
+      append_progress(progress_log_path, f"❌ Gate failed for {phase.role}: {gate_notes}")
+      emit_event(task, phase, action="gate_failed", notes=gate_notes)
       # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
       run_bash(f'node .forge/tools/store-cli.cjs update-status task {task_id} status escalated')
       emit_event(task, phase, eventId=event_id, iteration=iteration,
                  action="escalated", verdict="escalated",
-                 notes=f"gate_failed: {preflight_result.stderr}")
-      print(f"  ⚠ Task {task_id} escalated: gate_failed: {preflight_result.stderr}\n")
+                 notes=gate_notes)
+      print(f"  ⚠ Task {task_id} escalated: {gate_notes}\n")
       print(f"  Review artifact: {artifact_path}\n")
       print(f"  Resume with: /{phase.command} {task_id} after addressing the issues.\n")
       break                                   # stop processing this task
