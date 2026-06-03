@@ -1,7 +1,7 @@
 'use strict';
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { parseGates } = require('../parse-gates.cjs');
+const { parseGates, parseOutputs } = require('../parse-gates.cjs');
 
 describe('parse-gates.cjs :: parseGates()', () => {
   test('parses a single phase with all directive types', () => {
@@ -189,5 +189,88 @@ describe('parse-gates.cjs :: parseGates()', () => {
       '',
     ].join('\n');
     assert.throws(() => parseGates(md), /unterminated/i);
+  });
+});
+
+describe('parse-gates.cjs :: parseOutputs()', () => {
+  test('valid grammar: artifact directive', () => {
+    const md = [
+      '```outputs phase=implement',
+      'artifact engineering/sprints/{sprint}/{task}/PROGRESS.md',
+      '```',
+    ].join('\n');
+    const outputs = parseOutputs(md);
+    assert.ok(outputs.implement, 'expected implement block');
+    assert.deepEqual(outputs.implement.artifacts, [
+      { path: 'engineering/sprints/{sprint}/{task}/PROGRESS.md', minBytes: 0 },
+    ]);
+  });
+
+  test('valid grammar: artifact with min=', () => {
+    const md = [
+      '```outputs phase=plan',
+      'artifact engineering/sprints/{sprint}/{task}/PLAN.md min=200',
+      '```',
+    ].join('\n');
+    const outputs = parseOutputs(md);
+    assert.deepEqual(outputs.plan.artifacts, [
+      { path: 'engineering/sprints/{sprint}/{task}/PLAN.md', minBytes: 200 },
+    ]);
+  });
+
+  test('valid grammar: require directive (== op)', () => {
+    const md = [
+      '```outputs phase=implement',
+      'require summaries.implementation.verdict == n/a',
+      '```',
+    ].join('\n');
+    const outputs = parseOutputs(md);
+    assert.deepEqual(outputs.implement.require, [
+      { field: 'summaries.implementation.verdict', op: '==', value: 'n/a' },
+    ]);
+  });
+
+  test('unknown directive throws', () => {
+    const md = [
+      '```outputs phase=plan',
+      'destroy /tmp',
+      '```',
+    ].join('\n');
+    assert.throws(() => parseOutputs(md), /line.*destroy|destroy.*line/i);
+  });
+
+  test('blank lines and # comments are ignored', () => {
+    const md = [
+      '```outputs phase=plan',
+      '',
+      '# this is a comment',
+      '   # indented comment',
+      '```',
+    ].join('\n');
+    const outputs = parseOutputs(md);
+    assert.ok(outputs.plan, 'expected plan block');
+    assert.equal(outputs.plan.artifacts.length, 0);
+    assert.equal(outputs.plan.require.length, 0);
+  });
+
+  test('duplicate phase block throws', () => {
+    const md = [
+      '```outputs phase=plan',
+      'artifact foo.md',
+      '```',
+      '```outputs phase=plan',
+      'artifact bar.md',
+      '```',
+    ].join('\n');
+    assert.throws(() => parseOutputs(md), /duplicate.*plan/i);
+  });
+
+  test('unterminated fence throws', () => {
+    const md = [
+      '```outputs phase=plan',
+      'artifact foo.md',
+      '',
+    ].join('\n');
+    assert.throws(() => parseOutputs(md), /unterminated/i);
   });
 });

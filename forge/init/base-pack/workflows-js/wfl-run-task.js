@@ -566,6 +566,17 @@ while (i < phases.length) {
     log(`✓ ${taskId}  ${p.role}  — completed`)
     i += 1
   }
+  // #22 PARITY SEAM — Post-phase exit guard (FORGE-S26-T19):
+  //   forge-cli/run-task.ts owns hard enforcement: runPostflightGate() is called
+  //   after runForgeSubagent returns and before currentPhaseIndex++ — if the
+  //   outputs block is unsatisfied the FSM does not advance and runHaltAdvisor
+  //   is invoked. This JS driver delegates post-phase output verification to
+  //   each per-phase subagent (which receives postflight-gate.cjs via its phase
+  //   prompt and is instructed to satisfy the outputs block before returning
+  //   gatePassed=true in its StructuredOutput). The JS driver owns advance/halt
+  //   on the returned `gatePassed` field already present in the StructuredOutput
+  //   schema (see wfl-run-task.js lines above). No shell execution of
+  //   postflight-gate.cjs in this JS driver (matches no-shell constraint, #21).
 }
 
 // If the JS driver decided to escalate (not the subagent), perform the status write.

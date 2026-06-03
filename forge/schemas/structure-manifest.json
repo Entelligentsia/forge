@@ -1,6 +1,6 @@
 {
-  "version": "1.2.10",
-  "generatedAt": "2026-06-03T02:18:03.144Z",
+  "version": "1.2.13",
+  "generatedAt": "2026-06-03T05:20:45.625Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -163,6 +163,7 @@
         "manage-versions.cjs",
         "migrate-slug-maxlen.cjs",
         "parse-gates.cjs",
+        "postflight-gate.cjs",
         "preflight-gate.cjs",
         "proposal-normalize.cjs",
         "query-logger.cjs",

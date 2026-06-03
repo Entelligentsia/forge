@@ -110,13 +110,12 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
      `forge_store({ command:"set-bug-summary", args:["{record_id}", "plan"] })`
    - If the set-summary call exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 
-7. Post-Phase Self-Check (Tier 2 — before returning):
-   - Verify that `PLAN.md` exists and is non-empty in the task artifact directory.
-     If it is absent or empty, do NOT emit a complete event. Instead:
-     - Write the missing artifact first, then re-run step 6.
-     - Only proceed to return after the deliverable is confirmed on disk.
-   - This guard prevents the orchestrator from emitting a false "complete" event
-     when the plan subagent silently failed to write its primary output.
+7. Post-Phase Output Guard: satisfy the `outputs` block before returning.
+```
+
+```outputs phase=plan
+artifact {engineering}/{sprint}/{task}/PLAN.md min=200
+require summaries.plan.verdict == n/a
 ```
 
 <!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->

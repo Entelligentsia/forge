@@ -154,4 +154,76 @@ function parseAfter(rest, lineNo) {
   return { phase: m[1], verdict };
 }
 
-module.exports = { parseGates };
+// parseOutputs — same fence-scan logic as parseGates but for ```outputs phase=X blocks.
+// Closed grammar: only `artifact` and `require` directives are allowed.
+// Unknown directives throw (parity with parseGates).
+const OUTPUTS_FENCE_OPEN = /^```outputs\s+phase=([A-Za-z0-9_-]+)\s*$/;
+
+function parseOutputs(markdown) {
+  if (typeof markdown !== 'string' || markdown.length === 0) return {};
+  const lines = markdown.split('\n');
+  const result = {};
+  let currentPhase = null;
+  let inFence = false;
+  let fenceStartLine = -1;
+  let fenceBuffer = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineNo = i + 1;
+    if (!inFence) {
+      const m = line.match(OUTPUTS_FENCE_OPEN);
+      if (m) {
+        currentPhase = m[1];
+        if (result[currentPhase]) {
+          throw new Error(
+            `parse-gates: line ${lineNo}: duplicate outputs block for phase "${currentPhase}"`,
+          );
+        }
+        inFence = true;
+        fenceStartLine = lineNo;
+        fenceBuffer = [];
+      }
+      continue;
+    }
+    // Inside an outputs fence
+    if (FENCE_CLOSE.test(line)) {
+      result[currentPhase] = parseOutputsBlock(fenceBuffer, fenceStartLine);
+      inFence = false;
+      currentPhase = null;
+      fenceBuffer = [];
+      continue;
+    }
+    fenceBuffer.push({ text: line, lineNo });
+  }
+  if (inFence) {
+    throw new Error(`parse-gates: unterminated \`\`\`outputs fence opened at line ${fenceStartLine}`);
+  }
+  return result;
+}
+
+function parseOutputsBlock(bufferedLines, _fenceStartLine) {
+  const spec = { artifacts: [], require: [] };
+  for (const { text, lineNo } of bufferedLines) {
+    const trimmed = text.trim();
+    if (trimmed === '' || trimmed.startsWith('#')) continue;
+    const firstSpace = trimmed.search(/\s/);
+    if (firstSpace < 0) {
+      throw new Error(`parse-gates: line ${lineNo}: malformed directive "${trimmed}"`);
+    }
+    const directive = trimmed.slice(0, firstSpace);
+    const rest = trimmed.slice(firstSpace + 1).trim();
+    switch (directive) {
+      case 'artifact':
+        spec.artifacts.push(parseArtifact(rest, lineNo));
+        break;
+      case 'require':
+        spec.require.push(parsePredicate(rest, lineNo));
+        break;
+      default:
+        throw new Error(`parse-gates: line ${lineNo}: unknown directive "${directive}"`);
+    }
+  }
+  return spec;
+}
+
+module.exports = { parseGates, parseOutputs };

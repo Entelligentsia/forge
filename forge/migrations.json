@@ -1,4 +1,24 @@
 {
+  "1.2.12": {
+    "version": "1.2.13",
+    "date": "2026-06-03",
+    "notes": "Deterministic post-phase exit guard (FORGE-S26-T19). New parseOutputs() export in parse-gates.cjs handles ```outputs phase=X``` fence blocks with closed grammar (artifact + require directives; unknown throws). New postflight-gate.cjs evaluator runs post-phase; returns { phase, reasonCode, detail, remediation } with new output-missing and output-stub reasonCodes; no LLM in path. forge-cli run-task.ts now calls runPostflightGate() after runForgeSubagent returns and before FSM advance; on UNSATISFIED halts + calls existing runHaltAdvisor. wfl-run-task.js gets a #22 parity-seam comment. meta-plan-task.md and meta-implement.md: prose Tier-2 self-check replaced by declarative outputs blocks + thin pointer reminders.",
+    "target": "tools:parse-gates tools:postflight-gate",
+    "regenerate": ["workflows"],
+    "breaking": false,
+    "manual": [
+      "Run /forge:rebuild to pick up updated meta-workflow changes (meta-plan-task.md, meta-implement.md now include declarative outputs blocks). postflight-gate.cjs is additive — no-op for workflows without outputs blocks."
+    ]
+  },
+  "1.2.11": {
+    "version": "1.2.12",
+    "date": "2026-06-03",
+    "notes": "Rebuild/republish bump — no functional source change from 1.2.11. Cut to ship a fresh plugin manifest + integrity hashes and a corresponding forge-cli 1.0.12 build/install. Carries the 1.2.11 halt-recovery-advisor payload (FORGE-S26-T18) unchanged.",
+    "target": "release:rebuild",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "1.2.10": {
     "version": "1.2.11",
     "date": "2026-06-03",
