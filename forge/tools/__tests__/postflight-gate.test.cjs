@@ -191,3 +191,92 @@ describe('postflight-gate.cjs :: postflight()', () => {
     assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}; stdout: ${result.stdout}`);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CART-S03-T01 false-halt regression (first live firing of the S26-T19 guards
+// after the v1.2.16 base-pack recompile activated them):
+//   1. The materialized outputs blocks use BARE field paths
+//      (`require summaries.plan.verdict == n/a`) while the CLI passes
+//      state={task:record} — readField walked from state, got undefined,
+//      and every require predicate failed unconditionally.
+//   2. Substitutions resolved {engineering}/{sprint}/{task} to
+//      engineering/<sprintId>/<taskId> — missing the `sprints/` segment —
+//      so every artifact check reported output-missing despite the artifact
+//      existing at the canonical path.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('postflight-gate.cjs :: real workflow shapes (CART-S03-T01 regression)', () => {
+  test('bare summaries.* require paths resolve against the task record', () => {
+    const { postflight } = require(POSTFLIGHT_GATE);
+    const outputs = {
+      plan: {
+        artifacts: [],
+        require: [{ field: 'summaries.plan.verdict', op: '==', value: 'n/a' }],
+      },
+    };
+    const state = { task: { summaries: { plan: { verdict: 'n/a' } } } };
+    const result = postflight({ phase: 'plan', outputs, state, substitutions: {} });
+    assert.equal(result.ok, true,
+      `bare summaries path must resolve via the task record; got: ${result.detail}`);
+  });
+
+  test('task.-prefixed require paths keep working (backward compat)', () => {
+    const { postflight } = require(POSTFLIGHT_GATE);
+    const outputs = {
+      plan: {
+        artifacts: [],
+        require: [{ field: 'task.status', op: '==', value: 'planned' }],
+      },
+    };
+    const result = postflight({
+      phase: 'plan', outputs,
+      state: { task: { status: 'planned' } },
+      substitutions: {},
+    });
+    assert.equal(result.ok, true);
+  });
+
+  test('buildSubstitutions: task record resolves {sprint} to sprints/<sprintId>', () => {
+    const { buildSubstitutions } = require(POSTFLIGHT_GATE);
+    const subs = buildSubstitutions({
+      taskRecord: { sprintId: 'CART-S03' },
+      engineeringRoot: 'engineering',
+      entityId: 'CART-S03-T01',
+    });
+    assert.equal(subs.engineering, 'engineering');
+    assert.equal(subs.sprint, 'sprints/CART-S03');
+    assert.equal(subs.task, 'CART-S03-T01');
+  });
+
+  test('canonical template resolves to the real artifact location', () => {
+    const { postflight, buildSubstitutions } = require(POSTFLIGHT_GATE);
+    const artifactDir = path.join(tmpDir, 'engineering', 'sprints', 'CART-S03', 'CART-S03-T01');
+    fs.mkdirSync(artifactDir, { recursive: true });
+    fs.writeFileSync(path.join(artifactDir, 'PLAN.md'), 'x'.repeat(300), 'utf8');
+    const subs = buildSubstitutions({
+      taskRecord: { sprintId: 'CART-S03' },
+      engineeringRoot: path.join(tmpDir, 'engineering'),
+      entityId: 'CART-S03-T01',
+    });
+    const outputs = {
+      plan: {
+        artifacts: [{ path: '{engineering}/{sprint}/{task}/PLAN.md', minBytes: 200 }],
+        require: [],
+      },
+    };
+    const result = postflight({ phase: 'plan', outputs, state: {}, substitutions: subs });
+    assert.equal(result.ok, true, `expected artifact found; got: ${result.detail}`);
+  });
+
+  test('buildSubstitutions: bug record (no sprintId) resolves {sprint} to bugs segment', () => {
+    const { buildSubstitutions } = require(POSTFLIGHT_GATE);
+    const subs = buildSubstitutions({
+      taskRecord: { bugId: 'CART-BUG-001' },
+      engineeringRoot: 'engineering',
+      entityId: 'CART-BUG-001',
+    });
+    // bug artifacts live at <engineering>/bugs/<bugId> — {sprint} maps to 'bugs'
+    assert.equal(subs.sprint, 'bugs');
+    assert.equal(subs.task, 'CART-BUG-001');
+  });
+});

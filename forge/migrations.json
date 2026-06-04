@@ -1,4 +1,17 @@
 {
+  "1.2.16": {
+    "version": "1.2.17",
+    "date": "2026-06-04",
+    "notes": "Fix two deterministic false-halt bugs in the S26-T19 postflight output guard, exposed on its first live firing (the guards were dormant until the v1.2.16 base-pack recompile activated them; CART-S03-T01 plan halted despite a fully successful phase). (1) Require predicates: the materialized outputs blocks use bare record paths (summaries.plan.verdict) while the gate passed state={task:record}; every bare require evaluated undefined and failed unconditionally. readField now falls back to the entity record (state.task / state.bug) after the direct walk. (2) Artifact paths: {sprint} was substituted with the bare sprintId, dropping the sprints/ segment, so artifact checks probed <engineering>/<sprintId>/<taskId> instead of <engineering>/sprints/<sprintId>/<taskId> and always reported output-missing. New buildSubstitutions() resolves {sprint} to the path segment under engineering (sprints/<id> for tasks, bugs for bug records).",
+    "target": "tools:postflight-gate",
+    "regenerate": [
+      "tools"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild tools to re-vendor .forge/tools/postflight-gate.cjs. Without this, every phase with an outputs block halts with output-missing/require-failed despite succeeding."
+    ]
+  },
   "1.2.15": {
     "version": "1.2.16",
     "date": "2026-06-04",

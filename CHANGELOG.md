@@ -5,6 +5,28 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.2.17] — 2026-06-04
+
+### Fixed
+
+- **Postflight output guard no longer false-halts every phase.** The S26-T19
+  guards were dormant until the v1.2.16 base-pack recompile activated them;
+  their first live firing halted CART-S03-T01's plan phase despite full
+  success. Two deterministic bugs in `postflight-gate.cjs`:
+  1. *Require predicates never resolved* — the outputs blocks use bare record
+     paths (`summaries.plan.verdict`) while the CLI passes
+     `state = { task: record }`; every bare require read `undefined` and
+     failed unconditionally. `readField` now falls back to the entity record
+     (`state.task` / `state.bug`) after the direct walk.
+  2. *Artifact paths missed the `sprints/` segment* — `{sprint}` was
+     substituted with the bare sprintId, probing
+     `<engineering>/<sprintId>/<taskId>` instead of the canonical
+     `<engineering>/sprints/<sprintId>/<taskId>`. New `buildSubstitutions()`
+     resolves `{sprint}` to the path segment under engineering
+     (`sprints/<id>` for tasks, `bugs` for bug records).
+
+---
+
 ## [1.2.16] — 2026-06-04
 
 ### Fixed
