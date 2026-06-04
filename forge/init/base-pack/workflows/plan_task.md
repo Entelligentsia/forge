@@ -105,6 +105,13 @@ deps:
      Or (bug mode):
      `forge_store({ command:"set-bug-summary", args:["{record_id}", "plan"] })`
    - If the set-summary call exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
+
+7. Post-Phase Output Guard: satisfy the `outputs` block before returning.
+```
+
+```outputs phase=plan
+artifact {engineering}/{sprint}/{task}/PLAN.md min=200
+require summaries.plan.verdict == n/a
 ```
 
 <!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->

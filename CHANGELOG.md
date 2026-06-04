@@ -5,6 +5,67 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.2.17] — 2026-06-04
+
+### Fixed
+
+- **Postflight output guard no longer false-halts every phase.** The S26-T19
+  guards were dormant until the v1.2.16 base-pack recompile activated them;
+  their first live firing halted CART-S03-T01's plan phase despite full
+  success. Two deterministic bugs in `postflight-gate.cjs`:
+  1. *Require predicates never resolved* — the outputs blocks use bare record
+     paths (`summaries.plan.verdict`) while the CLI passes
+     `state = { task: record }`; every bare require read `undefined` and
+     failed unconditionally. `readField` now falls back to the entity record
+     (`state.task` / `state.bug`) after the direct walk.
+  2. *Artifact paths missed the `sprints/` segment* — `{sprint}` was
+     substituted with the bare sprintId, probing
+     `<engineering>/<sprintId>/<taskId>` instead of the canonical
+     `<engineering>/sprints/<sprintId>/<taskId>`. New `buildSubstitutions()`
+     resolves `{sprint}` to the path segment under engineering
+     (`sprints/<id>` for tasks, `bugs` for bug records).
+
+---
+
+## [1.2.16] — 2026-06-04
+
+### Fixed
+
+- **Review/validate phases no longer self-limit on iteration count**
+  ([forge-engineering#34](https://github.com/Entelligentsia/forge-engineering/issues/34)).
+  The standalone-invocation fallback in `review_plan` / `review_code` /
+  `validate_task` read `maxReviewIterations` from `.forge/config.json` —
+  producing a *"Key not found"* error on every review phase and, worse,
+  duplicating a protection the orchestrator already owns. Loop budgeting and
+  termination are solely the orchestrator's job (`run-task` enforces
+  `maxIterations` deterministically; exhaustion escalates to a human), and a
+  deliberate human standalone re-run **is** the escape hatch for stuck items —
+  a phase consulting its own cap could refuse exactly that recovery. Workflows
+  now treat user-invoked runs as iteration 1 with no limit and never read an
+  iteration cap from config; orchestrated runs continue to take `N of M` from
+  the orchestrator-injected Review Loop Context block. Prompt-text only.
+
+---
+
+## [1.2.15] — 2026-06-03
+
+### Fixed
+
+- **COST_REPORT now accounts incomplete (aborted/failed) phase attempts.**
+  Cancelled and halted phase attempts bill real provider tokens, but their
+  events arrived as token-less husks — the CART-S02-T03 benchmark baseline
+  under-counted by exactly 259,950 tokens across two aborted plan passes.
+  forge-cli ≥1.0.16 now emits phase events with `verdict: "aborted"` (user
+  cancel) / `"failed"` (halt-on-failure) carrying the captured partial usage;
+  `collate.cjs` adds an **Incomplete Passes** section to COST_REPORT (task,
+  phase, outcome, tokens per attempt). Per-Task / Per-Role / Model-Split
+  totals sum verdict-agnostically, so the previously-invisible spend lands in
+  the totals automatically once events arrive. Report-layer only — no schema
+  change (`verdict` was already a free-string event field); older forge-cli
+  versions simply produce no incomplete-pass events.
+
+---
+
 ## [1.2.14] — 2026-06-03
 
 ### Fixed

@@ -82,14 +82,61 @@ function applySubstitutions(template, subs) {
   });
 }
 
-function readField(dottedPath, state) {
+function walkPath(dottedPath, root) {
   const parts = dottedPath.split('.');
-  let cur = state;
+  let cur = root;
   for (const p of parts) {
     if (cur === null || cur === undefined) return undefined;
     cur = cur[p];
   }
   return cur;
+}
+
+function readField(dottedPath, state) {
+  // Direct walk first (supports explicit `task.status` / `bug.status` paths).
+  const direct = walkPath(dottedPath, state);
+  if (direct !== undefined) return direct;
+  // The materialized outputs blocks use BARE record paths
+  // (`summaries.plan.verdict`) while the CLI wraps the record as
+  // { task: record } — fall back to the entity record so those resolve.
+  // (CART-S03-T01 false-halt: every bare require evaluated undefined.)
+  if (state && state.task) {
+    const viaTask = walkPath(dottedPath, state.task);
+    if (viaTask !== undefined) return viaTask;
+  }
+  if (state && state.bug) {
+    const viaBug = walkPath(dottedPath, state.bug);
+    if (viaBug !== undefined) return viaBug;
+  }
+  return undefined;
+}
+
+/**
+ * Build template substitutions for an entity's artifact directory.
+ * Canonical layouts:
+ *   tasks: <engineering>/sprints/<sprintId>/<taskId>/
+ *   bugs:  <engineering>/bugs/<bugId>/
+ * {sprint} is defined as the path segment under <engineering> that contains
+ * the entity dir — `sprints/<sprintId>` for tasks, `bugs` for bugs.
+ * (CART-S03-T01 false-halt: {sprint} was substituted with the bare sprintId,
+ * dropping the `sprints/` segment, so every artifact check missed.)
+ */
+function buildSubstitutions({ taskRecord, engineeringRoot, entityId }) {
+  const rec = taskRecord || {};
+  const isBug = Boolean(rec.bugId) || /-BUG-/.test(String(entityId || ''));
+  let sprint;
+  if (isBug) {
+    sprint = 'bugs';
+  } else if (rec.sprintId) {
+    sprint = `sprints/${rec.sprintId}`;
+  } else {
+    sprint = '{sprint}'; // unresolvable — leave the placeholder visible in the report
+  }
+  return {
+    engineering: engineeringRoot,
+    sprint,
+    task: entityId,
+  };
 }
 
 function evalPredicate(pred, state) {
@@ -144,7 +191,7 @@ function buildStructuredFailure(phase, missing) {
   };
 }
 
-module.exports = { postflight };
+module.exports = { postflight, buildSubstitutions };
 
 // CLI shim — only runs when invoked directly
 if (require.main === module) {
@@ -172,13 +219,12 @@ if (require.main === module) {
     // store.cjs not available or task not found — continue with substitutions from args
   }
 
-  // Build substitutions
-  const sprintId = taskRecord ? taskRecord.sprintId : undefined;
-  const substitutions = {
-    engineering: engineeringRoot,
-    sprint: sprintId,
-    task: args.task,
-  };
+  // Build substitutions (canonical entity-dir resolution — sprints/<id> or bugs)
+  const substitutions = buildSubstitutions({
+    taskRecord,
+    engineeringRoot,
+    entityId: args.task,
+  });
 
   // Load workflow markdown (scan .forge/workflows/ for phase)
   const workflowMd = loadWorkflowMarkdown(args.phase);

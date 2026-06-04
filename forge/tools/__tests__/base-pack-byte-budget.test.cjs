@@ -41,11 +41,16 @@ const BYTE_BUDGET = 4096;
 // fix-bug (--bug). architect_approve and commit_task gained the largest
 // bumps because they now contain the verdict-signal split (status vs
 // summary) and the bug-mode artifact list, respectively.
+// plan_task / review_plan / review_code bumped to 6912 (v1.2.16): the
+// FORGE-S26-T19 deterministic post-phase output-guard `outputs` blocks are
+// now materialized into the compiled base-pack (they had landed in the meta
+// sources without a recompile), and the review workflows carry the
+// no-self-limit standalone-invocation note (forge-engineering#34).
 const BYTE_BUDGET_OVERRIDES = {
-  'plan_task.md':         6656,
+  'plan_task.md':         6912,
   'implement_plan.md':    7168,
-  'review_plan.md':       6656,
-  'review_code.md':       6656,
+  'review_plan.md':       6912,
+  'review_code.md':       6912,
   'validate_task.md':     6400,
   'architect_approve.md': 6144,
   'commit_task.md':       5120,
