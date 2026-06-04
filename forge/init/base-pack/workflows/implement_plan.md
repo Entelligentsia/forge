@@ -95,6 +95,15 @@ deps:
      Or (bug mode):
      `forge_store({ command:"set-bug-summary", args:["{bugId}", "implementation"] })`
      The sidecar path is auto-resolved from the record's `path` — never pass it.
+
+8. Post-Phase Output Guard: the `outputs` block below is the authoritative enforcer.
+   You MUST satisfy it before returning. If PROGRESS.md is missing or too small,
+   re-run the relevant step before emitting the complete event.
+```
+
+```outputs phase=implement
+artifact {engineering}/{sprint}/{task}/PROGRESS.md min=200
+require summaries.implementation.verdict == n/a
 ```
 
 <!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->

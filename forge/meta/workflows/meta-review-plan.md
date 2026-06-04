@@ -60,9 +60,10 @@ deps:
    - If present, extract:
      - `Iteration: N of M` — current attempt number and the configured limit
      - `Is final iteration: true/false`
-   - If absent (user-invoked, not orchestrated): treat as iteration 1 of M, where M is
-     read from `.forge/config.json` → `maxReviewIterations` (default 3 if field absent).
-   - Include `(iteration N of M)` in the opening line of the `PLAN_REVIEW.md` artifact.
+   - If absent (user-invoked, not orchestrated): treat as `iteration 1`, no limit — do
+     NOT read any iteration cap from config. The orchestrator owns loop budgets; a human
+     standalone re-run is the escape hatch for stuck items (forge-engineering#34).
+   - Include `(iteration N of M)` (orchestrated) or `(standalone review)` in the opening line of the `PLAN_REVIEW.md` artifact.
    - If this is the final iteration (`N == M`) and the verdict is `Revision Required`,
      append a `### Next Steps` section to the artifact showing:
      ```

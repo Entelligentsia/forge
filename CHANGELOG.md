@@ -5,6 +5,26 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.2.16] — 2026-06-04
+
+### Fixed
+
+- **Review/validate phases no longer self-limit on iteration count**
+  ([forge-engineering#34](https://github.com/Entelligentsia/forge-engineering/issues/34)).
+  The standalone-invocation fallback in `review_plan` / `review_code` /
+  `validate_task` read `maxReviewIterations` from `.forge/config.json` —
+  producing a *"Key not found"* error on every review phase and, worse,
+  duplicating a protection the orchestrator already owns. Loop budgeting and
+  termination are solely the orchestrator's job (`run-task` enforces
+  `maxIterations` deterministically; exhaustion escalates to a human), and a
+  deliberate human standalone re-run **is** the escape hatch for stuck items —
+  a phase consulting its own cap could refuse exactly that recovery. Workflows
+  now treat user-invoked runs as iteration 1 with no limit and never read an
+  iteration cap from config; orchestrated runs continue to take `N of M` from
+  the orchestrator-injected Review Loop Context block. Prompt-text only.
+
+---
+
 ## [1.2.15] — 2026-06-03
 
 ### Fixed

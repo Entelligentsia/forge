@@ -1,4 +1,17 @@
 {
+  "1.2.15": {
+    "version": "1.2.16",
+    "date": "2026-06-04",
+    "notes": "Remove phase-side review-iteration self-limiting (forge-engineering#34). The standalone-invocation fallback in the review/validate workflows read maxReviewIterations from .forge/config.json — a redundant protection layer that produced a Key-not-found error on every review phase and, worse, worked against the recovery model: loop budgeting belongs solely to the orchestrator (run-task PHASE_PIPELINE maxIterations), exhaustion escalates to a human, and a deliberate human standalone re-run IS the escape hatch for stuck items — a phase consulting its own cap can refuse exactly that. The workflows now treat user-invoked runs as iteration 1 with no limit and never read an iteration cap from config; orchestrated runs keep taking N-of-M from the Review Loop Context block injected by the orchestrator.",
+    "target": "workflows:review_plan workflows:review_code workflows:validate_task",
+    "regenerate": [
+      "workflows"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild workflows to refresh .forge/workflows/ (review_plan.md, review_code.md, validate_task.md). Prompt-text only — no tool or schema change."
+    ]
+  },
   "1.2.14": {
     "version": "1.2.15",
     "date": "2026-06-03",
