@@ -1,4 +1,17 @@
 {
+  "1.2.18": {
+    "version": "1.2.19",
+    "date": "2026-06-06",
+    "notes": "Event-type discipline in the JS workflow drivers (forge-engineering#39 Phase 3). wfl-run-task.js and wfl-fix-bug.js now carry TASK_TYPE_TOKENS / BUG_TYPE_TOKENS maps (verbatim ports of _fragments/event-vocabulary.md) and inject explicit per-phase type guidance into the subagent emit instructions: start events MUST NOT carry a type field, complete events set the exact pass/fail token for the phase, and copying the action value (start/complete) into type is explicitly forbidden — that guess-leak was the source of the schema-rejected type:start/type:complete store residue. Also fixes wfl-run-task emitSkip(): the skip event emitted iteration 0, violating the schema's minimum of 1, so every pre-task skip event was silently rejected; now 1.",
+    "target": "workflows-js:wfl-run-task,workflows-js:wfl-fix-bug",
+    "regenerate": [
+      "workflows-js"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild to regenerate .claude/workflows/wfl-run-task.js and wfl-fix-bug.js from the base-pack. Prompt/instruction text + one literal fix — no schema or tool change."
+    ]
+  },
   "1.2.17": {
     "version": "1.2.18",
     "date": "2026-06-06",

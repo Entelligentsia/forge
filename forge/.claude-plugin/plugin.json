@@ -1,6 +1,6 @@
 {
   "name": "forge",
-  "version": "1.2.18",
+  "version": "1.2.19",
   "description": "Self-enhancing AI software development lifecycle — generates project-specific SDLC instances from meta-definitions",
   "license": "MIT",
   "author": {

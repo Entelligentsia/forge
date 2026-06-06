@@ -66,6 +66,22 @@ const SKIP_STATUS = ['blocked', 'escalated', 'fixed', 'abandoned']
 // non-review phase (the approve workflow self-escalates if it rejects).
 const REVIEW_ROLES = ['review-plan', 'review-code']
 
+// Bug-phase `type` tokens — verbatim port of the canonical table in
+// .forge/workflows/_fragments/event-vocabulary.md § Bug pipeline
+// (forge-engineering#39). The COMPLETE event carries the pass token (or the
+// fail token when a review phase's verdict is "revision"); the START event is
+// always untyped. Keyed by phase ROLE (matches PHASES_A/PHASES_B role names;
+// triage is keyed separately since it runs outside the phase loop).
+const BUG_TYPE_TOKENS = {
+  'triage':      { pass: 'bug-triaged',            fail: 'bug-triaged' },
+  'plan':        { pass: 'fix-planned',            fail: 'fix-planned' },
+  'review-plan': { pass: 'fix-review-passed',      fail: 'fix-review-failed' },
+  'implement':   { pass: 'fix-implemented',        fail: 'fix-implemented' },
+  'review-code': { pass: 'fix-code-review-passed', fail: 'fix-code-review-failed' },
+  'approve':     { pass: 'fix-approved',           fail: 'fix-revision-requested' },
+  'commit':      { pass: 'bug-committed',          fail: 'bug-commit-failed' },
+}
+
 // Per-phase model tier — verbatim port of fix_bug.md § Role-to-Tier Mapping.
 // Passed as the `model` opt to agent(); the host resolves the tier name to a model.
 const ROLE_TIER = {
@@ -160,6 +176,16 @@ function revisionTarget(phases, reviewIdx) {
 // The subagent owns ALL shell-dependent side-effects for this phase.
 function runBugPhase(bugId, phase, iter) {
   const sprintId = 'bugs'   // virtual sprint dir for all emit/sidecar/progress
+  // forge-engineering#39: explicit type-token guidance per
+  // .forge/workflows/_fragments/event-vocabulary.md § Bug pipeline. Without
+  // it, subagents guessed and leaked the action value into `type`
+  // ("start"/"complete" — schema-rejected store residue in events/bugs/).
+  const typeTokens = BUG_TYPE_TOKENS[phase.role]
+  const typeTokenLine = typeTokens
+    ? (REVIEW_ROLES.includes(phase.role)
+        ? 'set type="' + typeTokens.pass + '" when your verdict is Approved, type="' + typeTokens.fail + '" when it is Revision Required.'
+        : 'set type="' + typeTokens.pass + '".')
+    : 'omit the "type" field entirely (untyped events are valid; this role has no table entry).'
   return agent(
     [
       `You are running a SINGLE pipeline phase for Forge bug ${bugId} (sprint bugs).`,
@@ -175,11 +201,14 @@ function runBugPhase(bugId, phase, iter) {
       '   3a. BEFORE running the phase workflow: note the start timestamp (startTimestamp = new Date().toISOString()).',
       '   Emit a start event via `node .forge/tools/store-cli.cjs emit bugs \'{event-json}\'`',
       '   with action="start", role="' + phase.role + '", iteration=' + iter + ', startTimestamp and endTimestamp both equal to startTimestamp (0-duration placeholder).',
+      '   The start event MUST NOT include a "type" field.',
       '   3b. AFTER the phase workflow completes: note the end timestamp (endTimestamp = new Date().toISOString()).',
       '   Compute durationMinutes = (new Date(endTimestamp) - new Date(startTimestamp)) / 60000.',
       '   Emit a complete event via `node .forge/tools/store-cli.cjs emit bugs \'{event-json}\'`',
-      '   conforming to `.forge/schemas/event.schema.json` (role, action="complete", phase, iteration=' + iter + ',',
+      '   conforming to `.forge/schemas/event.schema.json` (role, action="complete", phase, iteration=' + iter + ', bugId,',
       '   startTimestamp, endTimestamp, durationMinutes, plus your own model/provider/token usage — do NOT invent placeholder model strings).',
+      '   COMPLETE-event type (per .forge/workflows/_fragments/event-vocabulary.md): ' + typeTokenLine,
+      '   NEVER copy the action value ("start"/"complete") into "type" — those tokens are schema-rejected and the event would be dropped.',
       '   If `/cost` data is available, also write the token sidecar via the `--sidecar` form. Best-effort; skip silently if unavailable.',
       '   Then drain any `.forge/cache/FRICTION-*.jsonl` friction records you produced and emit them as type "friction".',
       phase.role && REVIEW_ROLES.includes(phase.role)
@@ -272,11 +301,14 @@ let triageResult = await agent(
     '   3a. BEFORE running the triage workflow: note the start timestamp (startTimestamp = new Date().toISOString()).',
     '   Emit a start event via `node .forge/tools/store-cli.cjs emit bugs \'{event-json}\'`',
     '   with action="start", role="triage", iteration=1, startTimestamp and endTimestamp both equal to startTimestamp (0-duration placeholder).',
+    '   The start event MUST NOT include a "type" field.',
     '   3b. AFTER the triage workflow completes: note the end timestamp (endTimestamp = new Date().toISOString()).',
     '   Compute durationMinutes = (new Date(endTimestamp) - new Date(startTimestamp)) / 60000.',
     '   Emit a complete event via `node .forge/tools/store-cli.cjs emit bugs \'{event-json}\'`',
-    '   conforming to `.forge/schemas/event.schema.json` (role, action="complete", phase, iteration=1,',
+    '   conforming to `.forge/schemas/event.schema.json` (role, action="complete", phase, iteration=1, bugId,',
     '   startTimestamp, endTimestamp, durationMinutes, plus your own model/provider/token usage — do NOT invent placeholder model strings).',
+    '   COMPLETE-event type (per .forge/workflows/_fragments/event-vocabulary.md): set type="bug-triaged".',
+    '   NEVER copy the action value ("start"/"complete") into "type" — those tokens are schema-rejected and the event would be dropped.',
     '   If `/cost` data is available, also write the token sidecar via the `--sidecar` form. Best-effort; skip silently if unavailable.',
     '4. NON-REVIEW phase: return verdict="none".',
     '5. Read `.forge/store/bugs/' + bugId + '.json` and return its final status as taskStatus, plus a one-line note.',
