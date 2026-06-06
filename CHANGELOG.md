@@ -5,6 +5,31 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.2.21] — 2026-06-06
+
+### Fixed
+
+- **`commit-task.cjs` hardened from its first live firing** (HELLO-BUG-002
+  transcript analysis, forge-engineering#40):
+  - Gitignored staging paths are pre-filtered (`git check-ignore`) and
+    warn-skipped — one ignored path no longer aborts the all-or-nothing
+    `git add` (the agent had retried the identical failing command).
+  - A clean staging set is now a **no-op success**: the tool still seals the
+    record's terminal status and returns
+    `{ok:true, committed:false, reason:"nothing-to-commit"}` — a bug whose
+    fix is already at HEAD ends `fixed` without the agent improvising manual
+    transitions. Result JSON gains an explicit `committed` flag.
+
+### Changed
+
+- **`meta-commit.md`: `forge_commit` named tool is the primary surface on
+  forgecli** — typed arguments, no shell-quoting of the commit message, full
+  hook/governor visibility. The `node .forge/tools/commit-task.cjs` bash form
+  remains the Claude Code fallback. The no-op outcome is documented as
+  success ("do not 'fix' a no-op by staging things yourself").
+
+---
+
 ## [1.2.20] — 2026-06-06
 
 ### Added

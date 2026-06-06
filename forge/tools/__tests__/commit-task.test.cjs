@@ -145,6 +145,46 @@ describe('commit-task.cjs — happy path', () => {
   });
 });
 
+describe('commit-task.cjs — gitignored paths and clean no-op (forge-engineering#40 live-run findings)', () => {
+	// First live firing (HELLO-BUG-002): the artifact dir was gitignored at
+	// run time; `git add` of the whole set is all-or-nothing, so one ignored
+	// path aborted everything and the model retried the identical command.
+	test('gitignored staging paths are warn-skipped, the rest is staged and committed', () => {
+		const tmp = makeFixture();
+		fs.appendFileSync(path.join(tmp, '.gitignore'), 'engineering/\n');
+		// engineering/ was committed before the ignore rule — untrack it so the
+		// ignore is effective (mirrors the live-run layout).
+		git(tmp, ['rm', '-r', '-q', '--cached', 'engineering']);
+		git(tmp, ['commit', '-q', '-m', 'untrack engineering']);
+		const r = run(tmp, ['--task', 'S01-T01', '--skip-gate', '--message', 'fix: x (S01-T01)']);
+		assert.equal(r.status, 0, `expected warn-skip + commit, got ${r.status}: ${r.stderr}`);
+		assert.ok(/gitignored.*skipped|skipped.*gitignored/i.test(r.stderr),
+			`expected an ignored-path warning, got: ${r.stderr}`);
+		const committed = git(tmp, ['show', '--name-only', '--pretty=format:', 'HEAD']).split('\n').filter(Boolean);
+		assert.ok(committed.includes('src/app.js'), 'non-ignored provenance must still be committed');
+		assert.ok(!committed.some((f) => f.startsWith('engineering/')), 'ignored paths must not be committed');
+	});
+
+	// A bug whose fix is already at HEAD is a legitimate terminal state:
+	// nothing to commit, but the phase must still seal the record.
+	test('clean staging set is a no-op SUCCESS: ok:true, committed:false, terminal transition performed', () => {
+		const tmp = makeFixture();
+		// Make the working tree clean for the whole staging set.
+		git(tmp, ['add', '-A']);
+		git(tmp, ['commit', '-q', '-m', 'absorb all changes']);
+		const before = commitCount(tmp);
+		const r = run(tmp, ['--task', 'S01-T01', '--skip-gate', '--message', 'fix: x (S01-T01)']);
+		assert.equal(r.status, 0, `expected clean no-op exit 0, got ${r.status}: ${r.stderr}`);
+		const out = JSON.parse(r.stdout);
+		assert.equal(out.ok, true);
+		assert.equal(out.committed, false);
+		assert.equal(out.reason, 'nothing-to-commit');
+		assert.equal(commitCount(tmp), before, 'no commit must be created');
+		const rec = JSON.parse(fs.readFileSync(path.join(tmp, '.forge', 'store', 'tasks', 'S01-T01.json'), 'utf8'));
+		assert.equal(rec.status, 'committed', 'terminal transition must still happen on a clean no-op');
+	});
+});
+
 describe('commit-task.cjs — guards', () => {
   test('pre-existing staged changes abort (commit-boundary guard)', () => {
     const tmp = makeFixture();
