@@ -1,4 +1,18 @@
 {
+  "1.2.19": {
+    "version": "1.2.20",
+    "date": "2026-06-06",
+    "notes": "Deterministic commit choreography (forge-engineering#40). The commit phase was the most expensive phase of the pipeline (15-31% of run input tokens) because an LLM re-derived deterministic choreography turn-by-turn. New tools/commit-task.cjs owns the whole sequence — preflight gate, status precondition, staging-set derivation (record artifact dir + implementation file provenance), commit-boundary guard (aborts on a pre-populated index), git commit, terminal status transition (task→committed / bug→fixed) — with --dry-run, argv-array spawns, and operator-gated --force. The implement phase now records files_changed provenance in IMPLEMENTATION-SUMMARY.json (new optional PHASE_SUMMARY_SCHEMA key, max 100 paths) so commit never re-derives the change surface from git. meta-commit.md rewritten: agent inspects once (git diff --stat), crafts the message, calls the tool once; explicit no-summary contract (commit is not in VALID_SUMMARY_PHASES — the previous prompt commanded writing a SUMMARY that the schema rejects, sending agents on an unwinnable format hunt plus 3 write-verification retries); batched-inspection rule; commit-early/reset/redo loop forbidden.",
+    "target": "tools:commit-task,tools:store-cli,workflows:commit_task,workflows:implement_plan",
+    "regenerate": [
+      "tools",
+      "workflows"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild tools workflows to vendor .forge/tools/commit-task.cjs and refresh .forge/workflows/commit_task.md + implement_plan.md. Until the rebuild, the regenerated commit workflow will reference a tool that is not yet vendored and will halt loudly (by design)."
+    ]
+  },
   "1.2.18": {
     "version": "1.2.19",
     "date": "2026-06-06",

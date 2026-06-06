@@ -1,6 +1,6 @@
 {
-  "version": "1.2.19",
-  "generatedAt": "2026-06-06T12:45:36.881Z",
+  "version": "1.2.20",
+  "generatedAt": "2026-06-06T13:33:46.796Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -152,6 +152,7 @@
         "check-no-skipped-tests.cjs",
         "check-structure.cjs",
         "collate.cjs",
+        "commit-task.cjs",
         "compression-gate.cjs",
         "delete-candidate-detector.cjs",
         "estimate-usage.cjs",

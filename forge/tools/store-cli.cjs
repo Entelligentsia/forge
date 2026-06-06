@@ -77,7 +77,12 @@ const PHASE_SUMMARY_SCHEMA = {
     verdict:     { type: 'string', enum: ['approved', 'revision', 'n/a'] },
     written_at:  { type: 'string' },
     artifact_ref:{ type: 'string' },
-    route:       { type: 'string', enum: ['A', 'B'] }
+    route:       { type: 'string', enum: ['A', 'B'] },
+    // forge-engineering#40: implement-phase file provenance. The implement
+    // workflow records the repo-relative paths it created/modified;
+    // commit-task.cjs derives its staging set from this list instead of the
+    // LLM re-deriving the change surface from git each run.
+    files_changed: { type: 'array', items: { type: 'string', maxLength: 300 }, maxItems: 100 }
   },
   additionalProperties: false
 };

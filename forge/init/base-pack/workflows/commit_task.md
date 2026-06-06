@@ -27,6 +27,8 @@ deps:
 - Commit only the artifacts produced for this task; do not sweep unrelated working-tree changes into the commit. The commit boundary mirrors the task boundary.
 - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
 - All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
+- **Never run `git add`/`git commit`/`git reset` yourself** — `commit-task.cjs` owns staging, boundary checks, committing, and the terminal transition (#40). Your judgement input is the message.
+- **Commit writes NO summary** (`commit` ∉ `VALID_SUMMARY_PHASES` — any `set-summary` is rejected); the tool's terminal `update-status` is this phase's only store write.
 
 ## Store-Write Verification
 
@@ -36,48 +38,42 @@ deps:
 
 ```
 
-0a. Pre-flight Gate Check:
-   - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
-   - Run: `node .forge/tools/preflight-gate.cjs --phase commit --{entity_kind} {record_id}`
-   - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
-   - Exit 2 (misconfiguration) → print stderr and HALT.
-   - Exit 0 → continue.
+0. Entity-mode resolution:
+   - Read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`.
 
-0b. Pipeline Step Guard (user-invoked state check):
-   - If `--force` is present in the invocation arguments, skip this step entirely.
-   - If `entity_kind == "bug"`, skip this step entirely (bug state is managed by meta-fix-bug.md).
-   - Read current task state:
-     `node .forge/tools/store-cli.cjs read task {record_id} --json`
-   - Extract the `status` field from the JSON output.
-   - Allowed states for this phase: `approved`.
-   - If the current status is NOT in the allowed set:
-     Print the following and HALT (do not proceed):
-     `× Task {record_id} is in state '{status}' — /forge:approve must complete first. To run the full pipeline: /forge:run-task {record_id}`
+1. Inspect ONCE (message material only — #40 batched-inspection rule):
+   - One `git diff --stat`; at most ONE combined `git diff` if the message needs detail.
+     Never per-file diffs, never repeated `git status` — each extra turn re-pays full context.
+   - Staging is NOT your decision — the tool derives it from the store record.
 
-1. Load Context:
-   - Read the record manifest (task or bug, per entity_kind).
-   - Read ARCHITECT_APPROVAL.md by kind — never construct the path:
-     `forge_artifact({ command:"read", entity:"{entity_kind}", entityId:"{record_id}", artifact:"architect-approval" })`
+2. Craft the commit message:
+   - Follow project conventions; include the record ID ({taskId} / {bugId}) in the subject.
+   - `Co-authored-by:` trailer from the host runtime: Claude Code →
+     `Co-authored-by: Claude <noreply@anthropic.com>`; pi / Ollama / other →
+     `Co-authored-by: {modelId} <noreply@{provider}.ai>` from the session's `provider` and
+     `modelId`; if unresolvable, omit rather than guess. Never hardcode
+     `Claude Opus 4.6 <noreply@anthropic.com>` (forge#82 regression).
+   - Git's configured `user.name`/`user.email` own authorship; never `--author`.
 
-2. Staging:
-   - Stage all record-related artifacts and the code changes:
-     - Task mode: PLAN.md, PROGRESS.md, REVIEW files, ARCHITECT_APPROVAL.md, and the implementation diff under the task directory plus modified source files.
-     - Bug mode: BUG_FIX_PLAN.md (Path B only — absent on Path A), TRIAGE.md, PROGRESS.md, REVIEW files, ARCHITECT_APPROVAL.md, the regression test, and the implementation diff.
-   - Verify no unrelated files are staged.
+3. Commit via the tool — ONE call:
+   - `node .forge/tools/commit-task.cjs --{entity_kind} {record_id} --message "<message>" [--trailer "<Co-authored-by line>"]`
+   - The tool owns the choreography: preflight gate (`preflight-gate.cjs --phase commit`
+     internally), status precondition (task `approved` / bug `in-progress` — wrong-state runs
+     halt with `× {record_id} is in state '{status}' …; /forge:approve must complete first`),
+     staging (artifact dir + `summaries.implementation.files_changed` provenance),
+     commit-boundary guard (aborts on a pre-staged index), `git commit`, terminal transition
+     (task → `committed`; bug → `fixed`, the ONLY post-triage `bug.status` write).
+   - On `no files_changed provenance` warning: ONE `git status --porcelain`, then re-run the
+     tool with `--also <path>` per source file. Never manual `git add`.
+   - Exit 0 → done (JSON carries `sha`, `staged`, status). Exit 1 → print stderr and HALT —
+     no manual staging, no `git reset`, no `--force` retry (operator-gated). Tool file
+     missing → HALT; instruct `/forge:update` + `/forge:rebuild tools`.
+   - NEVER commit before the tool reports `ok: true` — the premature-commit/reset/redo loop
+     is forbidden.
 
-3. Commit:
-   - Create a commit with a message following project conventions.
-   - Include the record ID in the commit message: task ID for task mode, bug ID for bug mode.
-   - Append a `Co-authored-by:` trailer crediting the AI assistant that actually ran the session. Resolve the identity from the host runtime: on Claude Code use `Co-authored-by: Claude <noreply@anthropic.com>`; on pi / Ollama / any other runtime use `Co-authored-by: {modelId} <noreply@{provider}.ai>` derived from the session's `provider` and `modelId` (e.g. `Co-authored-by: glm-5.1:cloud <noreply@ollama.ai>`); if neither is resolvable, omit the trailer rather than guess. Do NOT hardcode `Claude Opus 4.6 <noreply@anthropic.com>` — that literal is rejected as a regression of forge#82 (commits authored under the wrong model).
-   - Let git's configured `user.name` / `user.email` own the commit author; never pass `--author` to override it.
-
-4. Store Finalization:
-   - Transitions:
-     - **Task mode** — `approved → committed` (terminal): `node .forge/tools/store-cli.cjs update-status task {taskId} status committed`
-     - **Bug mode** — `in-progress → fixed` (terminal): `node .forge/tools/store-cli.cjs update-status bug {bugId} status fixed`. This is the ONLY phase in the bug pipeline that writes `bug.status` post-triage (see `meta-fix-bug.md § Iron Laws #2`). Do NOT write `approved` or `verified` — those values are vestigial enum members slated for removal.
-
-5. Finalize:
-   - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
+4. Finalize:
+   - No summary, no `set-summary` (see Iron Laws). **Do NOT emit a phase event yourself** —
+     the orchestrator owns event emission. Return the tool's JSON result as your phase output.
 ```
 
 <!-- See _fragments/generation-instructions.md for Generation Instructions template -->

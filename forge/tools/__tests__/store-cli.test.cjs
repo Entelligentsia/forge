@@ -417,6 +417,25 @@ describe('store-cli.cjs — PHASE_SUMMARY_SCHEMA', () => {
     assert.ok(en.includes('revision'));
     assert.ok(en.includes('n/a'));
   });
+  // forge-engineering#40: implement-phase file provenance. commit-task.cjs
+  // derives its staging set from summaries.implementation.files_changed —
+  // the schema must accept the key (additionalProperties:false otherwise
+  // rejects it and the write-verification loop burns 3 retries).
+  test('files_changed is a declared property (provenance for commit-task.cjs)', () => {
+    const fc = PHASE_SUMMARY_SCHEMA.properties.files_changed;
+    assert.ok(fc, 'PHASE_SUMMARY_SCHEMA must declare files_changed');
+    assert.equal(fc.type, 'array');
+    assert.equal(fc.maxItems, 100);
+  });
+  test('summary carrying files_changed validates', () => {
+    const summary = {
+      objective: 'Implement the thing',
+      written_at: '2026-06-06T10:00:00Z',
+      files_changed: ['src/a.ts', 'src/b.ts'],
+    };
+    const errors = validateRecord(summary, PHASE_SUMMARY_SCHEMA);
+    assert.equal(errors.length, 0, `unexpected errors: ${JSON.stringify(errors)}`);
+  });
 });
 
 describe('store-cli.cjs — validateRecord maxLength/maxItems extensions', () => {
