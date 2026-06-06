@@ -5,6 +5,43 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.2.20] — 2026-06-06
+
+### Added
+
+- **`tools/commit-task.cjs` — deterministic commit choreography**
+  (forge-engineering#40). The commit phase was the most expensive phase of
+  the pipeline (15–31% of run input tokens across nine instrumented runs)
+  because an LLM re-derived deterministic choreography turn-by-turn. The new
+  tool owns the whole sequence in one call: preflight gate → status
+  precondition (task `approved` / bug `in-progress`) → staging-set derivation
+  (record artifact dir + implementation `files_changed` provenance +
+  validated `--also` extras) → commit-boundary guard (aborts loudly when the
+  index already has staged changes) → `git commit` → terminal transition
+  (task → `committed`, bug → `fixed`). `--dry-run` honored, argv-array
+  spawns only, `--force` operator-gated transitively via store-cli's
+  `FORGE_ALLOW_FORCE`. 11 tests.
+- **Implementation file provenance.** `PHASE_SUMMARY_SCHEMA` gains optional
+  `files_changed` (≤100 repo-relative paths); `meta-implement.md` instructs
+  recording every created/modified/deleted source path in
+  `IMPLEMENTATION-SUMMARY.json` — the commit phase no longer re-derives the
+  change surface from git.
+
+### Fixed
+
+- **`meta-commit.md` no longer commands an impossible store write.** The old
+  step 5 said *"Write the SUMMARY and return"* — but `commit` is not in
+  `VALID_SUMMARY_PHASES`, so obedient agents hunted for a format that doesn't
+  exist and then burned the 3-retry write-verification loop on a write that
+  can never validate. The workflow now states the no-summary contract
+  explicitly.
+- **Commit-phase flail loops closed at the prompt layer**: batched inspection
+  (`git diff --stat` once, one combined diff — never per-file), staging policy
+  owned by the tool (manual `git add`/`git commit`/`git reset` forbidden), and
+  the premature-commit/reset/redo loop explicitly banned.
+
+---
+
 ## [1.2.19] — 2026-06-06
 
 ### Fixed

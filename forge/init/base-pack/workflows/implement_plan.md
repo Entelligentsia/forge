@@ -83,13 +83,13 @@ deps:
          `node .forge/tools/store-cli.cjs update-status task {taskId} status implementing`
          `node .forge/tools/store-cli.cjs update-status task {taskId} status implemented`
      - **Bug mode** — NO status write. The bug remains `in-progress` until the commit phase transitions it to `fixed`. Writing `bug.status` here violates `meta-fix-bug.md § Iron Laws #2`.
-   - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
+   - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry plus the SUMMARY you write next. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (Plan 11 / Slice 2). Write the SUMMARY and return.
 
 7. Emit Summary Sidecar:
    - Write `IMPLEMENTATION-SUMMARY.json` via `forge_artifact`:
      `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"implementation-summary", content:"<JSON>" })`
-     JSON shape: `{"objective":"<one sentence>", "key_changes":["<up to 12 bullets>"], "verdict":"n/a", "written_at":"<ISO 8601>", "artifact_ref":"PROGRESS.md"}`
-     The tool validates required fields automatically — fix and retry if it rejects.
+     JSON shape: `{"objective":"<one sentence>", "key_changes":["<up to 12 bullets>"], "files_changed":["<path>"], "verdict":"n/a", "written_at":"<ISO 8601>", "artifact_ref":"PROGRESS.md"}`
+   - `files_changed`: every repo path this phase changed (one `git status --porcelain`); `commit-task.cjs` stages from it.
    - Then link sidecar to store (task mode):
      `forge_store({ command:"set-summary", args:["{taskId}", "implementation"] })`
      Or (bug mode):

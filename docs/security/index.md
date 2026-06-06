@@ -5,6 +5,7 @@ Reports are filed as versioned artifacts in this directory.
 
 | Version | Date | Report | Summary |
 |---------|------|--------|---------|
+| 1.2.20 | 2026-06-06 | [scan-v1.2.20.md](scan-v1.2.20.md) | delta vs 1.2.18 baseline; new commit-task.cjs line-reviewed — 0 critical, 0 warnings, 2 info (carried) — SAFE TO USE |
 | 1.2.19 | 2026-06-06 | [scan-v1.2.19.md](scan-v1.2.19.md) | delta vs 1.2.18 baseline — 0 critical, 0 warnings, 2 info (carried) — SAFE TO USE |
 | 1.2.18 | 2026-06-06 | [scan-v1.2.18.md](scan-v1.2.18.md) | 394 files (full-tree sweep) — 0 critical, 0 warnings, 2 info — SAFE TO USE |
 | 1.2.3 | 2026-06-02 | [scan-v1.2.3.md](scan-v1.2.3.md) | 401 files — 0 critical, 0 warnings, 1 info — SAFE TO USE |
