@@ -48,6 +48,27 @@ describe('wfl-fix-bug.js — bug-skipped emission (forge-engineering#39)', () =>
       'Expected "notes" key carrying the skip reason in the bug-skipped emit');
   });
 
+  test('source carries a BUG_TYPE_TOKENS map mirroring _fragments/event-vocabulary.md', () => {
+    assert.ok(src.includes('BUG_TYPE_TOKENS'),
+      'Expected a BUG_TYPE_TOKENS map (phase role → pass/fail type token) in wfl-fix-bug.js');
+    for (const tok of ['bug-triaged', 'fix-planned', 'fix-approved', 'fix-revision-requested', 'bug-committed', 'bug-commit-failed']) {
+      assert.ok(src.includes(`'${tok}'`) || src.includes(`"${tok}"`),
+        `Expected bug vocabulary token "${tok}" in the BUG_TYPE_TOKENS map`);
+    }
+  });
+
+  test('runBugPhase emit instructions forbid a type field on the start event and action-value copying', () => {
+    const emitIdx = src.indexOf('EMIT YOUR PHASE EVENTS');
+    assert.ok(emitIdx !== -1, 'Expected EMIT YOUR PHASE EVENTS instruction block');
+    const area = src.slice(emitIdx, emitIdx + 2500);
+    assert.ok(/MUST NOT include a "type"/.test(area),
+      'Expected the start-event instruction to forbid a "type" field — type:"start" store residue came from this gap');
+    assert.ok(/NEVER copy the action value/.test(area),
+      'Expected an explicit "NEVER copy the action value" guard in the emit instructions');
+    assert.ok(area.includes('event-vocabulary'),
+      'Expected a reference to _fragments/event-vocabulary.md in the emit instructions');
+  });
+
   test('node --check passes on wfl-fix-bug.js source', () => {
     let output = '';
     let threw = false;

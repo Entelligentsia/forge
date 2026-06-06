@@ -5,6 +5,25 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.2.19] — 2026-06-06
+
+### Fixed
+
+- **JS workflow drivers no longer let subagents guess event `type` tokens**
+  (forge-engineering#39 Phase 3). `wfl-run-task.js` / `wfl-fix-bug.js` now
+  carry `TASK_TYPE_TOKENS` / `BUG_TYPE_TOKENS` maps (verbatim ports of
+  `_fragments/event-vocabulary.md`) and inject explicit per-phase guidance
+  into the emit instructions: start events MUST NOT carry `type`, complete
+  events set the exact pass/fail token, and copying the action value
+  (`start`/`complete`) into `type` is explicitly forbidden — that guess-leak
+  produced the schema-rejected `type:"start"`/`type:"complete"` store
+  residue observed in `events/bugs/`.
+- **`wfl-run-task.js` `emitSkip()` skip events are no longer silently
+  rejected** — the event carried `iteration: 0` against the schema's
+  `minimum: 1`; every pre-task SKIP_STATUS event was dropped. Now `1`.
+
+---
+
 ## [1.2.18] — 2026-06-06
 
 ### Added

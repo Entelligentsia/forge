@@ -133,6 +133,22 @@ const SKIP_STATUS = ['blocked', 'escalated', 'committed', 'abandoned']
 // NOTE: `approve` is NOT here — orchestrate_task advances it on completion like a
 // non-review phase (the approve workflow self-escalates if it rejects).
 const REVIEW_ROLES = ['review-plan', 'review-code', 'validate']
+
+// Task-phase `type` tokens — verbatim port of the canonical table in
+// .forge/workflows/_fragments/event-vocabulary.md § Task pipeline
+// (forge-engineering#39). The COMPLETE event carries the pass token (or the
+// fail token when a review phase's verdict is "revision"); the START event is
+// always untyped. Roles outside this map emit untyped events (valid).
+const TASK_TYPE_TOKENS = {
+  'plan':        { pass: 'task-planned',     fail: 'task-planned' },
+  'review-plan': { pass: 'plan-approved',    fail: 'review-failed' },
+  'implement':   { pass: 'task-implemented', fail: 'task-implemented' },
+  'review-code': { pass: 'review-passed',    fail: 'review-failed' },
+  'validate':    { pass: 'task-validated',   fail: 'review-failed' },
+  'approve':     { pass: 'task-approved',    fail: 'review-failed' },
+  'commit':      { pass: 'task-committed',   fail: 'task-committed' },
+}
+
 // Per-phase model tier — verbatim port of orchestrate_task.md § Role-to-Tier Mapping.
 // The resolve agent uses this as a reference; JS loop calls resolveModel() not tierFor().
 const ROLE_TIER = {
@@ -338,17 +354,30 @@ function runPhase(taskId, sprintId, phase, iteration, { firstPhase = false, simp
   const eventIdLine = eventId
     ? '   Use eventId="' + eventId + '" for the COMPLETE event (the driver will call merge-sidecar with this id).'
     : '   Use a fresh crypto.randomUUID() for both start and complete event ids.'
+  // forge-engineering#39: explicit type-token guidance per
+  // .forge/workflows/_fragments/event-vocabulary.md. Without it, subagents
+  // guessed and leaked the action value into `type` ("start"/"complete" —
+  // schema-rejected store residue).
+  const typeTokens = TASK_TYPE_TOKENS[phase.role]
+  const typeTokenLine = typeTokens
+    ? (REVIEW_ROLES.includes(phase.role)
+        ? 'set type="' + typeTokens.pass + '" when your verdict is Approved, type="' + typeTokens.fail + '" when it is Revision Required.'
+        : 'set type="' + typeTokens.pass + '".')
+    : 'omit the "type" field entirely (untyped events are valid; this role has no table entry).'
   lines.push(
     '',
     '3. EMIT YOUR PHASE EVENTS. You are the only actor that knows your runtime attribution.',
     '   3a. BEFORE running the phase workflow: note the start timestamp (startTimestamp = new Date().toISOString()).',
     '   Emit a start event via `node .forge/tools/store-cli.cjs emit ' + sprintId + " '{event-json}'\`",
     '   with action="start", role="' + phase.role + '", iteration=' + iteration + ', startTimestamp and endTimestamp both equal to startTimestamp (0-duration placeholder).',
+    '   The start event MUST NOT include a "type" field.',
     '   3b. AFTER the phase workflow completes: note the end timestamp (endTimestamp = new Date().toISOString()).',
     '   Compute durationMinutes = (new Date(endTimestamp) - new Date(startTimestamp)) / 60000.',
     '   Emit a complete event via `node .forge/tools/store-cli.cjs emit ' + sprintId + " '{event-json}'\`",
     '   conforming to `.forge/schemas/event.schema.json` (role, action="complete", phase, iteration=' + iteration + ',',
     '   startTimestamp, endTimestamp, durationMinutes, plus your own model/provider/token usage — do NOT invent placeholder model strings).',
+    '   COMPLETE-event type (per .forge/workflows/_fragments/event-vocabulary.md): ' + typeTokenLine,
+    '   NEVER copy the action value ("start"/"complete") into "type" — those tokens are schema-rejected and the event would be dropped.',
     '   ' + eventIdLine,
     '   If `/cost` data is available, also write the token sidecar via the `--sidecar` form with the COMPLETE eventId. Best-effort; skip silently if unavailable.',
     '',
@@ -404,7 +433,9 @@ function emitSkip(taskId, sprintId, taskStatus) {
       `Emit a task_skipped event for Forge task ${taskId} (sprint ${sprintId}).`,
       `node .forge/tools/store-cli.cjs emit ${sprintId}`,
       `'{"type":"task-dispatch","action":"skip","taskId":"${taskId}","sprintId":"${sprintId}",`,
-      `"role":"orchestrator","phase":"pre-task","iteration":0,`,
+      // forge-engineering#39: iteration must be >= 1 (schema minimum) — the
+      // former zero value made every skip event silently schema-rejected.
+      `"role":"orchestrator","phase":"pre-task","iteration":1,`,
       `"notes":"pre-task SKIP_STATUS guard: task status is ${taskStatus}",`,
       `"startTimestamp":"<ISO-now>","endTimestamp":"<ISO-now>","durationMinutes":0,`,
       `"model":"<your-model-id>","provider":"anthropic"}'`,
