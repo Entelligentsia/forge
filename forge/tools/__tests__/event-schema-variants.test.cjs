@@ -213,3 +213,113 @@ describe('event.schema.json — sprint event variants (Plan 12)', () => {
   });
 
 });
+
+// forge-engineering#39 — event-type vocabulary alignment.
+// Canonical spec: meta/workflows/_fragments/event-vocabulary.md.
+// Bug-pipeline fail tokens emitted by forge-cli (fix-revision-requested,
+// bug-commit-failed) and the pre-loop skip token (bug-skipped) join the enum;
+// the never-emitted bug-fixed token leaves it.
+describe('event.schema.json — bug event vocabulary (forge-engineering#39)', () => {
+
+  function baseBugEvent(overrides = {}) {
+    return {
+      eventId:         '20260606T120000000Z_ACME-BUG-001_architect_approve',
+      bugId:           'ACME-BUG-001',
+      sprintId:        'bugs',
+      role:            'architect',
+      action:          'approve',
+      phase:           'approve',
+      iteration:       1,
+      startTimestamp:  '2026-06-06T12:00:00Z',
+      endTimestamp:    '2026-06-06T12:30:00Z',
+      durationMinutes: 30,
+      model:           'claude-sonnet-4-6',
+      provider:        'anthropic',
+      ...overrides,
+    };
+  }
+
+  test('fix-revision-requested (approve fail token) passes', () => {
+    const ev = baseBugEvent({ type: 'fix-revision-requested', verdict: 'revision' });
+    const errors = validateRecord(ev, eventSchema);
+    assert.deepEqual(errors, [],
+      `expected no errors, got: ${JSON.stringify(errors, null, 2)}`);
+  });
+
+  test('bug-commit-failed (commit fail token) passes', () => {
+    const ev = baseBugEvent({
+      type: 'bug-commit-failed', role: 'engineer', action: 'commit', phase: 'commit',
+    });
+    const errors = validateRecord(ev, eventSchema);
+    assert.deepEqual(errors, [],
+      `expected no errors, got: ${JSON.stringify(errors, null, 2)}`);
+  });
+
+  test('fix-revision-requested missing bugId fails (bug conditional)', () => {
+    const ev = baseBugEvent({ type: 'fix-revision-requested' });
+    delete ev.bugId;
+    const errors = validateRecord(ev, eventSchema);
+    const missing = errors
+      .filter(e => e.category === 'missing-required')
+      .map(e => e.field);
+    assert.ok(missing.includes('bugId'),
+      `expected bugId in missing-required, got: ${missing.join(',')}`);
+  });
+
+  test('bug-skipped (pre-loop skip) passes without phase/iteration', () => {
+    const ev = {
+      eventId:         '20260606T120000000Z_ACME-BUG-001_orchestrator_skipped',
+      bugId:           'ACME-BUG-001',
+      sprintId:        'bugs',
+      role:            'orchestrator',
+      action:          'skipped',
+      startTimestamp:  '2026-06-06T12:00:00Z',
+      endTimestamp:    '2026-06-06T12:00:00Z',
+      durationMinutes: 0,
+      model:           'n/a',
+      provider:        'n/a',
+      type:            'bug-skipped',
+    };
+    const errors = validateRecord(ev, eventSchema);
+    assert.deepEqual(errors, [],
+      `expected no errors for bug-skipped event, got: ${JSON.stringify(errors, null, 2)}`);
+  });
+
+  test('bug-skipped missing bugId fails', () => {
+    const ev = {
+      eventId:         '20260606T120000000Z_ACME-BUG-001_orchestrator_skipped',
+      sprintId:        'bugs',
+      role:            'orchestrator',
+      action:          'skipped',
+      startTimestamp:  '2026-06-06T12:00:00Z',
+      endTimestamp:    '2026-06-06T12:00:00Z',
+      durationMinutes: 0,
+      model:           'n/a',
+      provider:        'n/a',
+      type:            'bug-skipped',
+    };
+    const errors = validateRecord(ev, eventSchema);
+    const missing = errors
+      .filter(e => e.category === 'missing-required')
+      .map(e => e.field);
+    assert.ok(missing.includes('bugId'),
+      `expected bugId in missing-required, got: ${missing.join(',')}`);
+  });
+
+  test('legacy underscore token bug_skipped fails enum check', () => {
+    const ev = baseBugEvent({ type: 'bug_skipped' });
+    const errors = validateRecord(ev, eventSchema);
+    const enumErrs = errors.filter(e => e.category === 'invalid-enum' && e.field === 'type');
+    assert.ok(enumErrs.length > 0,
+      `expected enum error on type=bug_skipped, got: ${JSON.stringify(errors)}`);
+  });
+
+  test('retired token bug-fixed fails enum check (emitted by nothing)', () => {
+    const ev = baseBugEvent({ type: 'bug-fixed', role: 'engineer', action: 'commit', phase: 'commit' });
+    const errors = validateRecord(ev, eventSchema);
+    const enumErrs = errors.filter(e => e.category === 'invalid-enum' && e.field === 'type');
+    assert.ok(enumErrs.length > 0,
+      `expected enum error on type=bug-fixed, got: ${JSON.stringify(errors)}`);
+  });
+
+});

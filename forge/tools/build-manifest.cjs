@@ -73,6 +73,7 @@ const FRAGMENT_MAP = [
   ['context-injection.md',          'context-injection.md'],
   ['progress-reporting.md',         'progress-reporting.md'],
   ['event-emission-schema.md',      'event-emission-schema.md'],
+  ['event-vocabulary.md',           'event-vocabulary.md'],
   ['finalize.md',                   'finalize.md'],
   ['store-cli-verbs.md',            'store-cli-verbs.md'],
   ['friction-emit.md',              'friction-emit.md'],

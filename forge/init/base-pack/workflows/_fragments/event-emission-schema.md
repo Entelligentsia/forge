@@ -4,6 +4,10 @@
      orchestrator stitches runtime telemetry + judgement into the canonical
      event and emits it. Referenced by meta-orchestrate.md and meta-fix-bug.md.
 
+     Companion: _fragments/event-vocabulary.md owns the `type` token
+     vocabulary (phase→type tables for task/bug/sprint events). This fragment
+     owns WHO emits; that one owns WHAT token.
+
      PLAN-11 / SLICE-2 (2026-05-14): the LLM no longer hand-builds event JSON.
      Runtime facts (model, provider, eventId, timestamps, iteration, tokens)
      are owned by the orchestrator, never the subagent. The subagent only

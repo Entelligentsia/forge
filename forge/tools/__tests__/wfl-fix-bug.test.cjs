@@ -170,11 +170,13 @@ describe('wfl-fix-bug — AC3: bug_skipped guard', () => {
     assert.ok(src.includes("'abandoned'") || src.includes('"abandoned"'), 'SKIP_STATUS must contain "abandoned".');
   });
 
-  it('bug_skipped event is emitted on skip (not silent return)', () => {
+  it('bug-skipped event is emitted on skip (not silent return)', () => {
+    // forge-engineering#39: canonical token is kebab "bug-skipped" per
+    // _fragments/event-vocabulary.md; the underscore form is schema-rejected.
     if (!src) src = fs.readFileSync(SRC, 'utf8');
     assert.ok(
-      src.includes('bug_skipped'),
-      'No bug_skipped event found — must emit bug_skipped event (not silent return) when status is in SKIP_STATUS.'
+      src.includes('bug-skipped'),
+      'No bug-skipped event found — must emit a bug-skipped event (not silent return) when status is in SKIP_STATUS.'
     );
   });
 });

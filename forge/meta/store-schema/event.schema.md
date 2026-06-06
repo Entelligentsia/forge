@@ -10,6 +10,13 @@
 
 Example: `20260415T141523000Z_ACME-S02-T03_engineer_implement`
 
+## Type Vocabulary
+
+The optional `type` field, when present, must come from the canonical
+phase→type tables in `meta/workflows/_fragments/event-vocabulary.md`
+(task / bug / sprint / friction / skill_usage families). The schema enum in
+`schemas/event.schema.json` mirrors that fragment.
+
 ## Fields
 
 | Field | Type | Required | Description |

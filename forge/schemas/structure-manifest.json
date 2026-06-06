@@ -1,6 +1,6 @@
 {
-  "version": "1.2.13",
-  "generatedAt": "2026-06-03T05:20:45.625Z",
+  "version": "1.2.18",
+  "generatedAt": "2026-06-06T08:00:21.525Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -94,6 +94,7 @@
       "files": [
         "context-injection.md",
         "event-emission-schema.md",
+        "event-vocabulary.md",
         "finalize.md",
         "friction-emit.md",
         "generation-instructions.md",
