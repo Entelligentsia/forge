@@ -230,14 +230,18 @@ const resolved = await agent(
 
 if (!resolved) throw new Error(`Could not resolve bug record for ${bugId}`)
 
-// Pre-loop status guard — fix_bug.md: skip at pre-loop with one bug_skipped event.
+// Pre-loop status guard — fix_bug.md: skip at pre-loop with one bug-skipped event.
+// Token + payload per _fragments/event-vocabulary.md (forge-engineering#39):
+// bug-skipped requires bugId but no phase/iteration; driver-emitted skips carry
+// model/provider "n/a"; the skip reason rides in "notes" (declared property).
 if (SKIP_STATUS.includes(resolved.bugStatus)) {
   log(`⚠ ${bugId} — status is ${resolved.bugStatus}, skipping run.`)
-  // Emit bug_skipped event (not a silent return — Iron Law 3).
+  // Emit bug-skipped event (not a silent return — Iron Law 3).
   await agent(
     [
-      `Emit a bug_skipped event for ${bugId}..`,
-      `Run \`node .forge/tools/store-cli.cjs emit bugs '{"type":"bug_skipped","sprintId":"bugs","bugId":"${bugId}","role":"orchestrator","action":"skipped","reason":"status=${resolved.bugStatus}","startTimestamp":"'$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)'","endTimestamp":"'$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)'","durationMinutes":0}'\`.`,
+      `Emit a bug-skipped event for ${bugId}.`,
+      `Run \`node .forge/tools/store-cli.cjs emit bugs '{"eventId":"<uuid-v4>","type":"bug-skipped","sprintId":"bugs","bugId":"${bugId}","role":"orchestrator","action":"skipped","notes":"status=${resolved.bugStatus}","startTimestamp":"'$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)'","endTimestamp":"'$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)'","durationMinutes":0,"model":"n/a","provider":"n/a"}'\`.`,
+      'Replace <uuid-v4> with a UUID v4 string (e.g. crypto.randomUUID()). Do NOT modify any other store records.',
       `Best-effort. Return taskStatus="${resolved.bugStatus}", gatePassed=true, verdict="none", escalated=false, phase="skip", role="orchestrator".`,
     ].join(' '),
     { label: `${bugId}:skip`, phase: 'Skip', schema: BUG_PHASE_RESULT_SCHEMA, model: 'haiku' }

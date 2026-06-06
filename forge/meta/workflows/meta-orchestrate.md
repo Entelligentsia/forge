@@ -950,7 +950,10 @@ is a violation of the Iron Laws.
 <!-- See _fragments/event-emission-schema.md for canonical contract -->
 > See `_fragments/event-emission-schema.md` for the actor split (subagent
 > writes judgement-only SUMMARY; orchestrator composes the canonical event
-> from runtime telemetry + SUMMARY and emits it).
+> from runtime telemetry + SUMMARY and emits it), and
+> `_fragments/event-vocabulary.md` § Task pipeline / § Sprint grain for the
+> canonical phase→`type` token tables. When setting `type` on a phase or
+> sprint event, the token MUST come from those tables.
 
 The **orchestrator** is the only actor that calls `store-cli emit` for phase
 events. Phase subagents write `{PHASE}-SUMMARY.json` and return. After each

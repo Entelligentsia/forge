@@ -59,11 +59,11 @@
         "sprint-complete",
         "sprint-halted",
         "task-dispatch",
-        "bug-fixed",
 
         "bug-triaged", "fix-planned", "fix-review-passed", "fix-review-failed",
         "fix-implemented", "fix-code-review-passed", "fix-code-review-failed",
-        "fix-approved", "bug-committed",
+        "fix-approved", "fix-revision-requested", "bug-committed",
+        "bug-commit-failed", "bug-skipped",
 
         "skill_usage"
       ]
@@ -129,13 +129,18 @@
             "enum": [
               "bug-triaged", "fix-planned", "fix-review-passed", "fix-review-failed",
               "fix-implemented", "fix-code-review-passed", "fix-code-review-failed",
-              "fix-approved", "bug-committed", "bug-fixed"
+              "fix-approved", "fix-revision-requested", "bug-committed",
+              "bug-commit-failed"
             ]
           }
         },
         "required": ["type"]
       },
       "then": { "required": ["bugId", "phase", "iteration"] }
+    },
+    {
+      "if": { "properties": { "type": { "const": "bug-skipped" } }, "required": ["type"] },
+      "then": { "required": ["bugId"] }
     },
     {
       "if": { "properties": { "type": { "const": "sprint-start" } }, "required": ["type"] },

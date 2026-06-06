@@ -5,6 +5,43 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.2.18] — 2026-06-06
+
+### Added
+
+- **Event-type vocabulary now has a spec owner** (forge-engineering#39). New
+  canonical fragment `_fragments/event-vocabulary.md` defines the phase→`type`
+  token tables for task, bug, and sprint events (pass/fail tokens per phase,
+  conditional field requirements, kebab-case convention). The schema enum in
+  `event.schema.json` mirrors the fragment; emitters never invent tokens.
+  `meta-fix-bug.md`, `meta-orchestrate.md`, `event-emission-schema.md`, and
+  the store-schema docs reference it.
+
+### Fixed
+
+- **Bug-pipeline fail events are no longer silently dropped.**
+  `event.schema.json` now accepts `fix-revision-requested` (approve fail) and
+  `bug-commit-failed` (commit fail) — the tokens forge-cli's fix-bug
+  orchestrator has emitted since 2026-05-15 but the enum rejected, discarding
+  the events and their token telemetry (observed live on testbench
+  CART-BUG-001).
+- **`bug-skipped` pre-loop skip event is now schema-valid.** New enum token +
+  conditional (requires `bugId`, no phase/iteration). The base-pack
+  `wfl-fix-bug.js` skip emit was triple-broken: underscore `bug_skipped`
+  token (not in enum), missing required `eventId`/`model`/`provider`, and an
+  undeclared `reason` key (`additionalProperties: false`). It now emits a
+  valid event with the skip reason in `notes` and `model`/`provider` `"n/a"`.
+  `meta-fix-bug.md` step 1 references the canonical shape.
+
+### Removed
+
+- **`bug-fixed` enum token retired** — defined since the bug-pipeline schema
+  landed, emitted by no surface, zero occurrences in any store. The
+  vocabulary fragment's invariant (every enum token has a named emitter)
+  forbids dead tokens.
+
+---
+
 ## [1.2.17] — 2026-06-04
 
 ### Fixed

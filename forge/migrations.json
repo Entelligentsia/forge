@@ -1,4 +1,19 @@
 {
+  "1.2.17": {
+    "version": "1.2.18",
+    "date": "2026-06-06",
+    "notes": "Event-type vocabulary gets a spec owner (forge-engineering#39). New canonical fragment _fragments/event-vocabulary.md defines the phase→type token tables for task/bug/sprint events; schemas/event.schema.json now mirrors it: adds the bug-pipeline fail tokens fix-revision-requested (approve) and bug-commit-failed (commit) that forge-cli already emits (previously rejected by the enum — events and their token telemetry were silently dropped), adds bug-skipped (pre-loop skip; requires bugId, no phase/iteration), and retires bug-fixed (defined, emitted by nothing, zero store occurrences). The wfl-fix-bug.js base-pack driver's skip emit was triple-broken against the schema (underscore bug_skipped token, missing required eventId/model/provider, undeclared reason key) — now emits a valid bug-skipped event with the skip reason in notes and model/provider \"n/a\". meta-fix-bug.md and meta-orchestrate.md reference the vocabulary fragment; emitted tokens MUST come from its tables.",
+    "target": "schemas:event,fragments:event-vocabulary,fragments:event-emission-schema,workflows:fix_bug,workflows:orchestrate_task,workflows-js:wfl-fix-bug",
+    "regenerate": [
+      "schemas",
+      "workflows",
+      "workflows-js"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild schemas workflows to refresh .forge/schemas/event.schema.json, .forge/workflows/ (fix_bug.md, orchestrate_task.md, _fragments/), and the regenerated .claude/workflows/wfl-fix-bug.js. Projects with the legacy invalid store events (type start/complete/feature_implemented) can clear them via /forge:repair — strip the invalid type field (untyped events are valid)."
+    ]
+  },
   "1.2.16": {
     "version": "1.2.17",
     "date": "2026-06-04",

@@ -148,7 +148,9 @@ Differences are confined to the **triage** step and the **path branch**.
    - Detect execution cluster from ANTHROPIC_DEFAULT_*_MODEL env vars.
    - Clear progress log: store-cli progress-clear bugs
    - Read bug record. If status ∈ {blocked, escalated, fixed, abandoned}:
-     skip the run, emit a single `bug_skipped` event, return.
+     skip the run, emit a single `bug-skipped` event (token + payload shape per
+     `_fragments/event-vocabulary.md` § Bug pipeline: requires `bugId`, no
+     phase/iteration; model/provider `"n/a"`; skip reason in `notes`), return.
 
 2. Triage:
    - Locate or create the bug record (MANDATORY — do this before anything else):
@@ -503,7 +505,10 @@ After each subagent returns: `✓` for completed/approved, `↻` for revision re
 <!-- See _fragments/event-emission-schema.md for canonical contract -->
 > See `_fragments/event-emission-schema.md` for the actor split (subagent
 > writes judgement-only SUMMARY; orchestrator composes the canonical event
-> from runtime telemetry + SUMMARY and emits it).
+> from runtime telemetry + SUMMARY and emits it), and
+> `_fragments/event-vocabulary.md` § Bug pipeline for the canonical
+> phase→`type` token table (pass/fail tokens per phase, `bug-skipped`
+> pre-loop skip shape). Emitted tokens MUST come from that table.
 
 The orchestrator is the only actor that calls `store-cli emit` for phase
 events. All bug-phase events use `sprintId="bugs"` (the reserved virtual
