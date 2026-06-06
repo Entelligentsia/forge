@@ -136,8 +136,21 @@ function main() {
     if (rel === null) fail(`--also path outside the project root: ${p}`);
     stage.push(rel);
   }
-  const stageSet = [...new Set(stage)];
+  let stageSet = [...new Set(stage)];
   if (stageSet.length === 0) fail('nothing to stage — no artifact dir, no provenance, no --also paths');
+
+  // Pre-filter gitignored paths (live-run finding, forge-engineering#40):
+  // `git add` of the whole set is all-or-nothing — one ignored path aborts
+  // everything. check-ignore each path; warn-skip the ignored ones.
+  const ignored = [];
+  for (const rel of stageSet) {
+    const ci = git(root, ['check-ignore', '-q', '--', rel], { allowFail: true });
+    if (ci.status === 0) ignored.push(rel);
+  }
+  if (ignored.length > 0) {
+    warnings.push(`gitignored path(s) skipped from the staging set: ${ignored.join(', ')} — track them or stage explicitly with git add -f outside this tool.`);
+    stageSet = stageSet.filter((p) => !ignored.includes(p));
+  }
 
   for (const w of warnings) console.error(`commit-task: warning: ${w}`);
 
@@ -154,30 +167,47 @@ function main() {
     fail(`index already has staged changes — refusing to sweep them into the ${opts.recordId} commit:\n${preStaged}\nUnstage them (git reset) or commit them separately, then re-run.`);
   }
 
-  // 6. Stage exactly the derived set.
+  // 6. Terminal status transition helper — through store-cli (single source
+  //    of truth for transition legality — never reimplemented here).
+  const target = TERMINAL_STATUS[opts.entityKind];
+  const transition = (context) => {
+    const updArgs = [path.join(__dirname, 'store-cli.cjs'), 'update-status', opts.entityKind, opts.recordId, 'status', target];
+    if (opts.force) updArgs.push('--force'); // --force bypasses the transition map too (user-invoked re-runs)
+    const upd = spawnSync(process.execPath, updArgs, { cwd: root, encoding: 'utf8' });
+    if (upd.status !== 0) {
+      fail(`${context} but status transition to '${target}' failed:\n${(upd.stderr || upd.stdout || '').trim()}`);
+    }
+  };
+
+  // 7. Stage exactly the derived set. A clean staging set is a legitimate
+  //    terminal state (e.g. a bug whose fix is already at HEAD): no commit,
+  //    but the record is still sealed (live-run finding, forge-engineering#40).
+  const noop = (why) => {
+    console.error(`commit-task: ${why} — nothing to commit; sealing the record without a commit.`);
+    transition('no-op commit');
+    process.stdout.write(JSON.stringify(
+      { ok: true, committed: false, reason: 'nothing-to-commit', skippedIgnored: ignored, status: target }, null, 2) + '\n');
+  };
+  if (stageSet.length === 0) {
+    noop('entire staging set is gitignored');
+    return;
+  }
   git(root, ['add', '--', ...stageSet]);
   const staged = git(root, ['diff', '--cached', '--name-only']).stdout.trim().split('\n').filter(Boolean);
   if (staged.length === 0) {
-    fail('staging set produced no changes — nothing to commit (working tree already clean for these paths?)');
+    noop('working tree already clean for the staging set');
+    return;
   }
 
-  // 7. Commit. Message comes from the agent; the optional trailer is appended
+  // 8. Commit. Message comes from the agent; the optional trailer is appended
   //    after a blank line per git convention.
   const message = opts.trailer ? `${opts.message.trim()}\n\n${opts.trailer.trim()}\n` : `${opts.message.trim()}\n`;
   git(root, ['commit', '-m', message]);
   const sha = git(root, ['rev-parse', 'HEAD']).stdout.trim();
 
-  // 8. Terminal status transition through store-cli (single source of truth
-  //    for transition legality — never reimplemented here).
-  const target = TERMINAL_STATUS[opts.entityKind];
-  const updArgs = [path.join(__dirname, 'store-cli.cjs'), 'update-status', opts.entityKind, opts.recordId, 'status', target];
-  if (opts.force) updArgs.push('--force'); // --force bypasses the transition map too (user-invoked re-runs)
-  const upd = spawnSync(process.execPath, updArgs, { cwd: root, encoding: 'utf8' });
-  if (upd.status !== 0) {
-    fail(`commit ${sha} created but status transition to '${target}' failed:\n${(upd.stderr || upd.stdout || '').trim()}`);
-  }
+  transition(`commit ${sha} created`);
 
-  process.stdout.write(JSON.stringify({ ok: true, sha, staged, status: target }, null, 2) + '\n');
+  process.stdout.write(JSON.stringify({ ok: true, committed: true, sha, staged, status: target }, null, 2) + '\n');
 }
 
 try {

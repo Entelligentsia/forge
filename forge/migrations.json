@@ -1,4 +1,18 @@
 {
+  "1.2.20": {
+    "version": "1.2.21",
+    "date": "2026-06-06",
+    "notes": "commit-task.cjs hardening from its first live firing (HELLO-BUG-002 transcript analysis, forge-engineering#40). (1) Gitignored staging paths are pre-filtered with git check-ignore and warn-skipped — previously one ignored path aborted the all-or-nothing git add and the agent retried the identical command. (2) A clean staging set is now a legitimate no-op SUCCESS: the tool seals the record's terminal status and returns {ok:true, committed:false, reason:nothing-to-commit} — a bug whose fix is already at HEAD ends fixed without improvised manual transitions. Result JSON gains an explicit committed flag. meta-commit.md: forge_commit named tool is the primary surface on forgecli (typed args — no shell-quoting of the commit message); bash form stays as the Claude Code fallback; no-op outcome documented as success.",
+    "target": "tools:commit-task,workflows:commit_task",
+    "regenerate": [
+      "tools",
+      "workflows"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild tools workflows to refresh .forge/tools/commit-task.cjs and .forge/workflows/commit_task.md."
+    ]
+  },
   "1.2.19": {
     "version": "1.2.20",
     "date": "2026-06-06",
