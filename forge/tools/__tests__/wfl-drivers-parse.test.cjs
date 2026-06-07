@@ -63,3 +63,54 @@ describe('base-pack wfl-*.js drivers parse under the Workflow harness contract',
     });
   }
 });
+
+// ── Workflow-API contract (forge#112) ────────────────────────────────────────
+//
+// The harness's API shapes that wfl-init.js violated in the field:
+//   - phase(title) takes ONLY a title — a callback second arg is silently
+//     discarded (the entire phase body no-ops while reporting success).
+//   - parallel() takes thunks (() => agent(...)), not in-flight promises.
+//   - agent(prompt, opts) — model goes in opts.model, never as first arg.
+
+describe('wfl-*.js drivers respect the Workflow API contract (forge#112)', () => {
+  for (const f of driverFiles) {
+    const src = fs.readFileSync(path.join(WFL_DIR, f), 'utf8');
+
+    test(`${f}: phase() is title-only — no callback argument`, () => {
+      assert.ok(
+        !/phase\(\s*['"][^'"]+['"]\s*,/.test(src),
+        `${f}: phase('Title', ...) found — the harness ignores everything after the title; phase bodies must run inline`
+      );
+    });
+
+    test(`${f}: parallel() receives thunks, not bare agent() promises`, () => {
+      assert.ok(
+        !/parallel\(\s*\[\s*agent\(/.test(src),
+        `${f}: parallel([agent(...)]) found — parallel() takes thunks: parallel([() => agent(...)])`
+      );
+    });
+
+    test(`${f}: agent() first arg is the prompt, not a model tier`, () => {
+      assert.ok(
+        !/agent\(\s*ROLE_TIER\b/.test(src),
+        `${f}: agent(ROLE_TIER[...], ...) found — signature is agent(prompt, { model, ... })`
+      );
+    });
+  }
+
+  test('wfl-init.js: every referenced init/**.md rulebook exists in plugin source', () => {
+    const src = fs.readFileSync(path.join(WFL_DIR, 'wfl-init.js'), 'utf8');
+    const refs = new Set(
+      (src.match(/init\/[a-z-]+\/[a-z0-9-]+\.md/g) || [])
+    );
+    assert.ok(refs.size > 0, 'expected wfl-init.js to reference init/**.md rulebooks');
+    const initRoot = path.resolve(__dirname, '..', '..');
+    for (const ref of refs) {
+      assert.ok(
+        fs.existsSync(path.join(initRoot, ref)),
+        `wfl-init.js references ${ref} but it does not exist under forge/ — ` +
+        'it would be missing from the vendored .forge/ too (build-payload bundles what exists)'
+      );
+    }
+  });
+});

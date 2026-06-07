@@ -5,6 +5,30 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.4.2] — 2026-06-07
+
+### Fixed
+
+- **`wfl-init.js` ran zero agents but reported fabricated success
+  ([forge#112](https://github.com/Entelligentsia/forge/issues/112)).** Four
+  Workflow-API misuses: `phase(title, callback)` callbacks (containing every
+  phase body) were silently discarded by the harness; `parallel()` received
+  in-flight promises instead of thunks; `agent()` got the model tier as first
+  arg instead of `opts.model`; structured results lacked `opts.schema` so
+  `.ok` reads were undefined. `/forge:init` "completed" in ~3 ms with 0 agents
+  and hardcoded `ok: true`. Phase bodies now run inline, fan-outs use thunks,
+  every agent call is `agent(prompt, { model, label, phase, schema })`, and
+  the final report reflects real phase results (halts return `ok: false` with
+  the failure reason). Rulebook reads use vendored `.forge/init/...` paths
+  with a direct-analysis fallback for absent prompt files. Fix ported from
+  the field-validated patch authored against the live testbench run.
+
+### Added
+
+- **`wfl-drivers-parse.test.cjs` API-contract gates** — all drivers checked
+  for phase-callback misuse, promise-instead-of-thunk `parallel()` calls,
+  reversed `agent()` args, and dead `init/**.md` rulebook references.
+
 ## [1.4.1] — 2026-06-07
 
 ### Fixed

@@ -16,39 +16,36 @@ export const meta = {
 // Why a script: init is a deterministic 4-phase FSM with mechanical verify
 // gates (verify-phase.cjs --phase N), bounded retries (max 1), fan-out steps
 // (5 discovery scans, 7 KB docs), and escalate-don't-continue semantics.
-// In the prose orchestrator that loop is hand-run turn-by-turn. Here JS holds
-// the phase index, the verify-gate routing, the retry counters, and the fan-out;
-// subagents only execute one phase rulebook each.
+// JS holds the phase index, the verify-gate routing, the retry counters, and
+// the fan-out; subagents only execute one phase rulebook each.
+//
+// WORKFLOW-API CONTRACT (forge#112 — field failure; enforced by
+// wfl-drivers-parse.test.cjs):
+//   - Exactly ONE export: the meta literal. The body runs at top level in the
+//     harness's async context (top-level await/return valid; args is a global).
+//   - phase(title) takes ONLY a title — a callback second arg is silently
+//     discarded. Phase bodies run inline after the phase() call.
+//   - parallel() takes thunks: parallel([() => agent(...), ...]).
+//   - agent(prompt, opts) — model goes in opts.model; structured results
+//     REQUIRE opts.schema (otherwise agent() returns plain text and .ok
+//     reads are undefined).
 //
 // CLI-FIRST BOOTSTRAP ADR (doc/decisions/cli-first-bootstrap.md):
-//   `4ge init claude .` runs first (deterministic, zero tokens):
-//   scaffolds .forge/, vendors tools, installs .claude/commands/ + .claude/workflows/
-//   including THIS FILE as wfl-init.js. By the time Claude Code opens and runs
-//   /forge:init → workflow('wfl:init'), this driver is already installed.
-//   Therefore: name-dispatch only (no scriptPath, no plugin-root path variable).
+//   `4ge init claude .` runs first (deterministic, zero tokens): scaffolds
+//   .forge/ as a complete vendored Forge root (tools, schemas, hooks, init/,
+//   .base-pack/, meta/) and installs THIS FILE into .claude/workflows/.
+//   All rulebook reads use vendored .forge/init/... paths; discovery prompts
+//   fall back to direct project analysis if a prompt file is absent.
 //
-// SIDE-EFFECT OWNERSHIP — READ BEFORE EDITING:
-//   This script has NO filesystem/shell access. Each per-phase subagent owns:
-//   preflight-gate, the phase rulebook execution (which writes its own artifacts,
-//   init-progress.json checkpoints, verify runs), token sidecar, and its own
-//   canonical phase event. The JS driver holds ONLY control flow: phase index,
-//   retry counters, verdict routing, fan-out, and escalation decision.
+// SIDE-EFFECT OWNERSHIP: this script has NO filesystem/shell access. Each
+// per-phase subagent owns rulebook execution (artifact writes, checkpoint
+// writes, verify runs). The JS driver holds ONLY control flow.
 //
-//   Timestamps: the Workflow sandbox prohibits timestamp minting functions
-//   (Date.now is blocked, Math.random is blocked, and the zero-arg Date
-//   constructor is blocked). The command wrapper (init.md) supplies
-//   args.isoTimestamp for any labeling the driver must do. Subagents mint
-//   their own timestamps for their own artifacts (their sandbox is different).
+// Timestamps: the Workflow sandbox blocks Date.now/Math.random/new Date().
+// The command wrapper supplies args.isoTimestamp.
 //
-//   No plugin-path variables: all subagent tool calls use the vendored
-//   .forge/tools/ path (forge-root-retirement ADR + CLI-first bootstrap).
-//   The forgeRoot arg (resolved abs path to the .forge/ directory) is passed
-//   to subagents that need to resolve the project root.
-//
-// MODEL TIERING:
-//   ROLE_TIER maps role → model tier name. All generation/discovery → sonnet.
-//   All deterministic gates/registration → haiku. No opus (init has no
-//   review/approve gates — those live in run-task/fix-bug pipelines).
+// MODEL TIERING: generation/discovery → sonnet; deterministic gates and
+// registration → haiku. No opus (init has no review/approve gates).
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Schemas
@@ -58,7 +55,7 @@ const DISCOVERY_SCHEMA = {
   type: 'object',
   properties: {
     domain:      { type: 'string', description: 'discovery domain name (stack|routing|processes|database|testing)' },
-    findings:    { type: 'object', description: 'domain-specific structured findings per discover-*.md output format' },
+    findings:    { type: 'object', description: 'domain-specific structured findings' },
     confidence:  { type: 'number', description: '0–1 confidence in completeness of scan' },
     warnings:    { type: 'array',  items: { type: 'string' }, description: 'ambiguities or partial coverage notes' },
   },
@@ -87,9 +84,29 @@ const PHASE_RESULT_SCHEMA = {
       items: { type: 'string' },
       description: 'skill IDs matching project tech stack (from skill-recommendations.md)',
     },
+    confidence: { type: 'number', description: '0–1 confidence' },
     ok: { type: 'boolean', description: 'true if phase completed and verify passed' },
   },
   required: ['verifyExit', 'ok'],
+};
+
+const OK_SCHEMA = {
+  type: 'object',
+  properties: {
+    ok:    { type: 'boolean', description: 'true if all steps completed' },
+    error: { type: 'string',  description: 'error message if ok=false' },
+  },
+  required: ['ok'],
+};
+
+const REGISTER_SCHEMA = {
+  type: 'object',
+  properties: {
+    ok:             { type: 'boolean', description: 'true if all register steps completed' },
+    error:          { type: 'string',  description: 'error message if ok=false' },
+    pendingActions: { type: 'array', items: { type: 'string' }, description: 'orchestrator-owned follow-ups, e.g. ["refresh-kb-links"]' },
+  },
+  required: ['ok'],
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,379 +132,317 @@ function halt(lastPhase, reason, extra) {
   return { ok: false, lastPhase, failure: reason, ...extra };
 }
 
+const VENDORED = 'Use only .forge/tools/ paths for all tool invocations (vendored-tools world).';
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Main workflow body
-//
-// Runs at top level in the Workflow harness's async context — the harness
-// permits exactly ONE export (the meta literal above); a second `export`
-// (e.g. `export default function`) is a SyntaxError at launch. `args` is the
-// global passed via workflow('wfl:init', {...}). Top-level `return` is valid.
+// Main workflow body (top-level async context; top-level return is valid)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const {
-    forgeRoot,
-    kbFolder       = 'engineering',
-    startPhase     = 1,
-    createClaudeMd = null,
-    isoTimestamp,
-    rawArguments   = '',
-  } = args || {};
+  forgeRoot,
+  kbFolder       = 'engineering',
+  startPhase     = 1,
+  createClaudeMd = null,
+  isoTimestamp,
+  rawArguments   = '',
+} = args || {};
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Phase 1 — Collect (startPhase <= 1)
-  // ───────────────────────────────────────────────────────────────────────────
-  let phase1Result;
-  if (startPhase <= 1) {
-    await phase('Collect', async () => {
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 1 — Collect (startPhase <= 1)
+// ─────────────────────────────────────────────────────────────────────────────
+let phase1Result;
+if (startPhase <= 1) {
+  phase('Collect');
 
-      // Fan-out: 5 parallel discovery agents
-      const discoveryResults = await parallel([
-        agent(ROLE_TIER['discovery'], `
-You are a codebase discovery agent. Read the file
-\`init/discovery/discover-stack.md\` from the Forge init discovery prompts
-and execute its instructions against the current project.
-Return a StructuredOutput matching this JSON Schema:
-${JSON.stringify(DISCOVERY_SCHEMA, null, 2)}
-Set domain="stack". Use .forge/tools/ paths for any tool invocations.
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world).
-`),
-        agent(ROLE_TIER['discovery'], `
-You are a codebase discovery agent. Read the file
-\`init/discovery/discover-routing.md\` from the Forge init discovery prompts
-and execute its instructions against the current project.
-Return a StructuredOutput matching this JSON Schema:
-${JSON.stringify(DISCOVERY_SCHEMA, null, 2)}
-Set domain="routing". Use .forge/tools/ paths for any tool invocations.
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world).
-`),
-        agent(ROLE_TIER['discovery'], `
-You are a codebase discovery agent. Read the file
-\`init/discovery/discover-processes.md\` from the Forge init discovery prompts
-and execute its instructions against the current project.
-Return a StructuredOutput matching this JSON Schema:
-${JSON.stringify(DISCOVERY_SCHEMA, null, 2)}
-Set domain="processes". Use .forge/tools/ paths for any tool invocations.
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world).
-`),
-        agent(ROLE_TIER['discovery'], `
-You are a codebase discovery agent. Read the file
-\`init/discovery/discover-database.md\` from the Forge init discovery prompts
-and execute its instructions against the current project.
-Return a StructuredOutput matching this JSON Schema:
-${JSON.stringify(DISCOVERY_SCHEMA, null, 2)}
-Set domain="database". Use .forge/tools/ paths for any tool invocations.
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world).
-`),
-        agent(ROLE_TIER['discovery'], `
-You are a codebase discovery agent. Read the file
-\`init/discovery/discover-testing.md\` from the Forge init discovery prompts
-and execute its instructions against the current project.
-Return a StructuredOutput matching this JSON Schema:
-${JSON.stringify(DISCOVERY_SCHEMA, null, 2)}
-Set domain="testing". Use .forge/tools/ paths for any tool invocations.
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world).
-`),
-      ]);
+  // Fan-out: 5 parallel discovery agents
+  const DOMAINS = ['stack', 'routing', 'processes', 'database', 'testing'];
+  const discoveryResults = await parallel(
+    DOMAINS.map((domain) => () =>
+      agent(`
+You are a codebase discovery agent for the "${domain}" domain.
+1. Read \`.forge/init/discovery/discover-${domain}.md\` if it exists and follow
+   its instructions against the current project.
+2. If that file does NOT exist, read \`.forge/init/phases/phase-1-collect.md\`
+   Step 2 for context, then perform a best-effort "${domain}" discovery of the
+   project directly (read manifests, source files, configs) and add a warning
+   noting the missing discovery prompt file.
+Set domain="${domain}" in your structured output. ${VENDORED}
+`, { model: ROLE_TIER['discovery'], label: `discover:${domain}`, phase: 'Collect', schema: DISCOVERY_SCHEMA })
+    )
+  );
 
-      // Config-writer agent: merge findings, write config, verify Phase 1
-      const configResult = await agent(ROLE_TIER['config'], `
+  // Config-writer agent: merge findings, write config, verify Phase 1
+  const configResult = await agent(`
 You are the Forge init config-writer agent. You have received the following
 discovery findings from 5 parallel discovery agents:
 
-${JSON.stringify(discoveryResults, null, 2)}
+${JSON.stringify(discoveryResults.filter(Boolean), null, 2)}
 
 Execute the Phase 1 Collect rulebook steps:
-1. Read \`init/phases/phase-1-collect.md\` for the full step list.
+1. Read \`.forge/init/phases/phase-1-collect.md\` for the full step list.
 2. Call \`node .forge/tools/manage-config.cjs\` to write the config. If kbFolder
    is non-default, set paths.engineering="${kbFolder}". Set mode=full.
-3. Compute skill-recommendation matches from meta/skill-recommendations.md and
-   the output of \`node .forge/tools/list-skills.js\`. Do NOT install — return
-   { matches, alreadyInstalled } only.
-4. Write init-progress.json: { lastPhase: 1, timestamp: "${isoTimestamp}" }.
+3. Compute skill-recommendation matches from .forge/meta/skill-recommendations.md
+   and the output of \`node .forge/tools/list-skills.js\`. Do NOT install —
+   report matches in skillMatches only.
+4. Write .forge/init-progress.json: { "lastPhase": 1, "timestamp": "${isoTimestamp}" }.
 5. Run: node .forge/tools/verify-phase.cjs --phase 1
-6. Return a StructuredOutput matching this JSON Schema:
-${JSON.stringify(PHASE_RESULT_SCHEMA, null, 2)}
-with verifyExit=<exit code>, verifyError=<stderr if non-zero>, stack=<summary>,
-skillMatches=[<matched skill ids>], ok=(verifyExit===0).
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world). Use .forge/tools/ paths.
+6. In your structured output set verifyExit=<exit code>,
+   verifyError=<stderr if non-zero>, stack=<one-line stack summary>,
+   skillMatches=[<matched skill ids>], confidence=<0-1>, ok=(verifyExit===0).
+${VENDORED}
 kbFolder="${kbFolder}", isoTimestamp="${isoTimestamp}".
-`);
+`, { model: ROLE_TIER['config'], label: 'config-writer', phase: 'Collect', schema: PHASE_RESULT_SCHEMA });
 
-      // Verify routing: one retry on failure
-      if (configResult && configResult.verifyExit !== 0) {
-        const retryResult = await agent(ROLE_TIER['config'], `
-Phase 1 verify failed. Error:
+  // Verify routing: one retry on failure
+  if (configResult && configResult.verifyExit !== 0) {
+    const retryResult = await agent(`
+Phase 1 of Forge init verify failed. Error:
 ${configResult.verifyError || '(no error text)'}
 
-Read the JSON error carefully. Fix the config by re-running
+Read the error carefully. Fix the config by re-running
 \`node .forge/tools/manage-config.cjs\` with the correct values, then
 re-run \`node .forge/tools/verify-phase.cjs --phase 1\`.
-Return a StructuredOutput matching:
-${JSON.stringify(PHASE_RESULT_SCHEMA, null, 2)}
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world).
-`);
-        if (!retryResult || retryResult.verifyExit !== 0) {
-          phase1Result = halt(1, 'Phase 1 verify failed after retry', {
-            verifyError: retryResult ? retryResult.verifyError : 'retry agent returned null',
-          });
-          return;
-        }
-        phase1Result = retryResult;
-      } else {
-        phase1Result = configResult || halt(1, 'config-writer agent returned null');
-      }
-    });
+In your structured output set verifyExit=<exit code>, ok=(verifyExit===0).
+${VENDORED}
+`, { model: ROLE_TIER['config'], label: 'config-writer:retry', phase: 'Collect', schema: PHASE_RESULT_SCHEMA });
+    if (!retryResult || retryResult.verifyExit !== 0) {
+      return halt(1, 'Phase 1 verify failed after retry', {
+        verifyError: retryResult ? retryResult.verifyError : 'retry agent returned null',
+      });
+    }
+    phase1Result = { ...configResult, ...retryResult };
+  } else if (configResult) {
+    phase1Result = configResult;
   } else {
-    phase1Result = { ok: true, lastPhase: 1, skipped: true };
+    return halt(1, 'config-writer agent returned null');
   }
 
-  if (phase1Result && !phase1Result.ok) {
-    return halt(1, phase1Result.failure || 'Phase 1 failed', {
+  if (!phase1Result.ok) {
+    return halt(1, 'Phase 1 failed', {
       verifyError: phase1Result.verifyError,
       stack: phase1Result.stack,
     });
   }
+} else {
+  phase1Result = { ok: true, lastPhase: 1, skipped: true };
+}
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Phase 2 — Discover (startPhase <= 2)
-  // ───────────────────────────────────────────────────────────────────────────
-  let phase2Result;
-  if (startPhase <= 2) {
-    await phase('Discover', async () => {
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 2 — Discover (startPhase <= 2)
+// ─────────────────────────────────────────────────────────────────────────────
+let phase2Result;
+const KB_DOC_IDS = [
+  'architecture/stack',
+  'architecture/processes',
+  'architecture/routing',
+  'architecture/database',
+  'architecture/testing',
+  'business-domain/domain-model',
+  'business-domain/domain-concepts',
+];
 
-      // Gate+scaffold agent: verify Phase 1 passed, mkdir scaffold
-      const gateResult = await agent(ROLE_TIER['gate'], `
+if (startPhase <= 2) {
+  phase('Discover');
+
+  // Gate+scaffold agent: verify Phase 1 passed, mkdir scaffold
+  const gateResult = await agent(`
 You are the Forge init Phase 2 gate agent. Execute these steps in order:
 1. Run: node .forge/tools/verify-phase.cjs --phase 1
-   If exit non-zero, return { ok: false, error: <stderr> } immediately.
-2. Read \`init/phases/phase-2-discover.md\` Step 2 (scaffold mkdir commands)
-   and execute them. Create the KB directory structure under ${kbFolder}/.
-3. Return { ok: true }.
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world). Use .forge/tools/ paths.
-`);
+   If exit non-zero, set ok=false and error=<stderr> in your output and stop.
+2. Read \`.forge/init/phases/phase-2-discover.md\` Step 2 (scaffold mkdir
+   commands) and execute them. Create the KB directory structure under ${kbFolder}/.
+3. Set ok=true.
+${VENDORED}
+`, { model: ROLE_TIER['gate'], label: 'phase2-gate', phase: 'Discover', schema: OK_SCHEMA });
 
-      if (!gateResult || !gateResult.ok) {
-        phase2Result = halt(2, 'Phase 2 gate failed — Phase 1 verify did not pass', {
-          verifyError: gateResult ? gateResult.error : 'gate agent returned null',
-        });
-        return;
-      }
+  if (!gateResult || !gateResult.ok) {
+    return halt(2, 'Phase 2 gate failed — Phase 1 verify did not pass', {
+      verifyError: gateResult ? gateResult.error : 'gate agent returned null',
+    });
+  }
 
-      // Fan-out: 7 parallel KB-doc agents
-      // KB-doc IDs per phase-2-discover.md table
-      const KB_DOC_IDS = [
-        'architecture/stack',
-        'architecture/processes',
-        'architecture/routing',
-        'architecture/database',
-        'architecture/testing',
-        'business-domain/domain-model',
-        'business-domain/domain-concepts',
-      ];
-
-      const kbDocResults = await parallel(
-        KB_DOC_IDS.map((docId) =>
-          agent(ROLE_TIER['kb-doc'], `
+  // Fan-out: 7 parallel KB-doc agents
+  const kbDocPrompt = (docId) => `
 You are a Forge KB-doc generation agent. Your doc id is: "${docId}".
-1. Read \`init/phases/phase-2-discover.md\` for the full doc spec for "${docId}".
-2. Read \`init/generation/generate-kb-doc.md\` for the generation rulebook.
-3. Generate the doc using all available project context.
+1. Read \`.forge/init/phases/phase-2-discover.md\` for the full doc spec for "${docId}".
+2. If \`.forge/init/generation/generate-kb-doc.md\` exists, read it for the
+   generation rulebook; otherwise follow the doc spec from step 1 directly.
+3. Generate the doc using all available project context (including
+   .forge/config.json written in Phase 1).
 4. Write the doc to the correct path under ${kbFolder}/.
-5. Return a StructuredOutput:
-${JSON.stringify(KB_DOC_SCHEMA, null, 2)}
-Set id="${docId}", ok=<true if written>, confidence=<0-1>, error=<if not ok>.
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world). Use .forge/tools/ paths.
-`)
-        )
-      );
+5. Set id="${docId}", ok=<true if written>, confidence=<0-1>, error=<if not ok>.
+${VENDORED}
+`;
 
-      // JS-held retry-once for any failed KB-doc
-      const failedDocs = (kbDocResults || []).filter((r) => !r || !r.ok);
-      let retryResults = [];
-      if (failedDocs.length > 0) {
-        retryResults = await parallel(
-          failedDocs.map((failed) =>
-            agent(ROLE_TIER['kb-doc'], `
-KB-doc "${failed ? failed.id : 'unknown'}" failed on first attempt.
-Error: ${failed && failed.error ? failed.error : '(no error)'}
-Retry: read the doc spec from \`init/phases/phase-2-discover.md\` again,
-fix any issues, regenerate, and return:
-${JSON.stringify(KB_DOC_SCHEMA, null, 2)}
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world). Use .forge/tools/ paths.
-`)
-          )
-        );
-        const stillFailed = retryResults.filter((r) => !r || !r.ok);
-        if (stillFailed.length > 0) {
-          const ids = stillFailed.map((r) => (r && r.id) || 'unknown').join(', ');
-          phase2Result = halt(2, `KB-doc generation failed after retry for: ${ids}`, {
-            failedDocs: ids,
-          });
-          return;
-        }
-      }
+  const kbDocResults = await parallel(
+    KB_DOC_IDS.map((docId) => () =>
+      agent(kbDocPrompt(docId), { model: ROLE_TIER['kb-doc'], label: `kb-doc:${docId}`, phase: 'Discover', schema: KB_DOC_SCHEMA })
+    )
+  );
 
-      // Sequential index agent (after all leaf docs — real data dependency)
-      const indexResult = await agent(ROLE_TIER['index'], `
+  // JS-held retry-once for any failed KB-doc
+  const failedDocs = KB_DOC_IDS.filter((docId, i) => !kbDocResults[i] || !kbDocResults[i].ok);
+  if (failedDocs.length > 0) {
+    const retryResults = await parallel(
+      failedDocs.map((docId) => () =>
+        agent(`
+KB-doc "${docId}" failed on first attempt. Retry it:
+${kbDocPrompt(docId)}
+`, { model: ROLE_TIER['kb-doc'], label: `kb-doc-retry:${docId}`, phase: 'Discover', schema: KB_DOC_SCHEMA })
+      )
+    );
+    const stillFailed = failedDocs.filter((docId, i) => !retryResults[i] || !retryResults[i].ok);
+    if (stillFailed.length > 0) {
+      return halt(2, `KB-doc generation failed after retry for: ${stillFailed.join(', ')}`, {
+        failedDocs: stillFailed.join(', '),
+      });
+    }
+  }
+
+  // Sequential index agent (after all leaf docs — real data dependency)
+  const indexResult = await agent(`
 You are the Forge init index agent. All 7 KB architecture docs have been generated.
-Read \`init/phases/phase-2-discover.md\` Step 4 (index files).
+Read \`.forge/init/phases/phase-2-discover.md\` Step 4 (index files).
 Generate the 3 INDEX files:
   - ${kbFolder}/architecture/INDEX.md
   - ${kbFolder}/business-domain/INDEX.md
   - ${kbFolder}/INDEX.md
-Return { ok: true } when done, or { ok: false, error: <message> }.
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world). Use .forge/tools/ paths.
-`);
+Set ok=true when done, or ok=false with error=<message>.
+${VENDORED}
+`, { model: ROLE_TIER['index'], label: 'index', phase: 'Discover', schema: OK_SCHEMA });
 
-      if (!indexResult || !indexResult.ok) {
-        phase2Result = halt(2, 'Index agent failed', { error: indexResult ? indexResult.error : 'null result' });
-        return;
-      }
+  if (!indexResult || !indexResult.ok) {
+    return halt(2, 'Index agent failed', { error: indexResult ? indexResult.error : 'null result' });
+  }
 
-      // Context agent: project-context.json + calibration + init-progress.json + verify
-      const contextResult = await agent(ROLE_TIER['context'], `
+  // Context agent: project-context.json + calibration + init-progress.json + verify
+  const contextResult = await agent(`
 You are the Forge init context agent. KB docs and index files are complete.
-Execute \`init/phases/phase-2-discover.md\` Steps 5–6:
-5. Write project-context.json (combined structured context from all discovery findings).
-   Write calibration baseline.
-6. Write init-progress.json: { lastPhase: 2, timestamp: "${isoTimestamp}" }.
+Execute \`.forge/init/phases/phase-2-discover.md\` Steps 5–6:
+5. Write project-context.json (combined structured context from all discovery
+   findings). Write calibration baseline.
+6. Write .forge/init-progress.json: { "lastPhase": 2, "timestamp": "${isoTimestamp}" }.
    Run: node .forge/tools/verify-phase.cjs --phase 2
-Return a StructuredOutput matching:
-${JSON.stringify(PHASE_RESULT_SCHEMA, null, 2)}
-with verifyExit=<exit code>, verifyError=<stderr if non-zero>, ok=(verifyExit===0).
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world). Use .forge/tools/ paths.
-`);
+Set verifyExit=<exit code>, verifyError=<stderr if non-zero>, ok=(verifyExit===0).
+${VENDORED}
+`, { model: ROLE_TIER['context'], label: 'context', phase: 'Discover', schema: PHASE_RESULT_SCHEMA });
 
-      // Verify routing: one retry on failure
-      if (contextResult && contextResult.verifyExit !== 0) {
-        const verifyRetry = await agent(ROLE_TIER['context'], `
-Phase 2 verify failed. Error:
+  // Verify routing: one retry on failure
+  if (contextResult && contextResult.verifyExit !== 0) {
+    const verifyRetry = await agent(`
+Phase 2 of Forge init verify failed. Error:
 ${contextResult.verifyError || '(no error text)'}
 Read the error, fix the missing or malformed outputs, re-run
 \`node .forge/tools/verify-phase.cjs --phase 2\`.
-Return a StructuredOutput matching:
-${JSON.stringify(PHASE_RESULT_SCHEMA, null, 2)}
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world).
-`);
-        if (!verifyRetry || verifyRetry.verifyExit !== 0) {
-          phase2Result = halt(2, 'Phase 2 verify failed after retry', {
-            verifyError: verifyRetry ? verifyRetry.verifyError : 'retry returned null',
-          });
-          return;
-        }
-        phase2Result = verifyRetry;
-      } else {
-        phase2Result = contextResult || halt(2, 'context agent returned null');
-      }
-    });
+Set verifyExit=<exit code>, ok=(verifyExit===0).
+${VENDORED}
+`, { model: ROLE_TIER['context'], label: 'context:retry', phase: 'Discover', schema: PHASE_RESULT_SCHEMA });
+    if (!verifyRetry || verifyRetry.verifyExit !== 0) {
+      return halt(2, 'Phase 2 verify failed after retry', {
+        verifyError: verifyRetry ? verifyRetry.verifyError : 'retry returned null',
+      });
+    }
+    phase2Result = verifyRetry;
+  } else if (contextResult) {
+    phase2Result = contextResult;
   } else {
-    phase2Result = { ok: true, lastPhase: 2, skipped: true };
+    return halt(2, 'context agent returned null');
   }
 
-  if (phase2Result && !phase2Result.ok) {
-    return halt(2, phase2Result.failure || 'Phase 2 failed', {
-      verifyError: phase2Result.verifyError,
-      failedDocs: phase2Result.failedDocs,
-    });
+  if (!phase2Result.ok) {
+    return halt(2, 'Phase 2 failed', { verifyError: phase2Result.verifyError });
   }
+} else {
+  phase2Result = { ok: true, lastPhase: 2, skipped: true };
+}
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Phase 3 — Materialize (startPhase <= 3)
-  // ───────────────────────────────────────────────────────────────────────────
-  let phase3Result;
-  if (startPhase <= 3) {
-    await phase('Materialize', async () => {
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 3 — Materialize (startPhase <= 3)
+// ─────────────────────────────────────────────────────────────────────────────
+let phase3Result;
+if (startPhase <= 3) {
+  phase('Materialize');
 
-      // Single haiku agent — deterministic shell steps
-      const materializeResult = await agent(ROLE_TIER['materialize'], `
-You are the Forge init materialize agent. Execute these deterministic steps:
+  // Single haiku agent — deterministic shell steps
+  const materializeResult = await agent(`
+You are the Forge init materialize agent. Read
+\`.forge/init/phases/phase-3-materialize.md\` for the rulebook, then execute
+these deterministic steps:
 1. Run: node .forge/tools/build-init-context.cjs
 2. Run: node .forge/tools/substitute-placeholders.cjs
 3. Record generation-manifest entries for all materialized assets.
 4. Run a build-overlay smoke check: node .forge/tools/build-overlay.cjs --check
-5. Write init-progress.json: { lastPhase: 3, timestamp: "${isoTimestamp}" }
+5. Write .forge/init-progress.json: { "lastPhase": 3, "timestamp": "${isoTimestamp}" }
 6. Run: node .forge/tools/verify-phase.cjs --phase 3
-Return a StructuredOutput matching:
-${JSON.stringify(PHASE_RESULT_SCHEMA, null, 2)}
-with verifyExit=<exit code>, verifyError=<stderr if non-zero>, ok=(verifyExit===0).
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world). Use .forge/tools/ paths.
+Set verifyExit=<exit code>, verifyError=<stderr if non-zero>, ok=(verifyExit===0).
+${VENDORED}
 IMPORTANT: If verify-phase exits non-zero, report it faithfully — do NOT retry.
 Phase 3 verify failure is a hard halt. The rulebook says: rebuild or restart init.
-`);
+`, { model: ROLE_TIER['materialize'], label: 'materialize', phase: 'Materialize', schema: PHASE_RESULT_SCHEMA });
 
-      // Phase 3: hard halt on verify failure (no retry)
-      if (!materializeResult || materializeResult.verifyExit !== 0) {
-        const verifyError = materializeResult ? materializeResult.verifyError : 'materialize agent returned null';
-        phase3Result = halt(3, [
-          'Phase 3 (Materialize) verify failed. This is a hard halt — no retry.',
-          'Per the phase-3-materialize.md rulebook: you must rebuild or restart /forge:init.',
-          'Run: /forge:init (or `4ge init claude .` to re-scaffold, then /forge:init).',
-          `Verify error: ${verifyError}`,
-        ].join(' '), { verifyError, rebuild: true, restart: true });
-        return;
-      }
-
-      phase3Result = materializeResult;
-    });
-  } else {
-    phase3Result = { ok: true, lastPhase: 3, skipped: true };
+  // Phase 3: hard halt on verify failure (no retry)
+  if (!materializeResult || materializeResult.verifyExit !== 0) {
+    const verifyError = materializeResult ? materializeResult.verifyError : 'materialize agent returned null';
+    return halt(3, [
+      'Phase 3 (Materialize) verify failed. This is a hard halt — no retry.',
+      'Per the phase-3-materialize.md rulebook: you must rebuild or restart /forge:init.',
+      'Run: /forge:init (or `4ge init claude .` to re-scaffold, then /forge:init).',
+      `Verify error: ${verifyError}`,
+    ].join(' '), { verifyError, rebuild: true, restart: true });
   }
 
-  if (phase3Result && !phase3Result.ok) {
-    return halt(3, phase3Result.failure || 'Phase 3 failed', {
-      verifyError: phase3Result.verifyError,
-      rebuild: phase3Result.rebuild,
-    });
-  }
+  phase3Result = materializeResult;
+} else {
+  phase3Result = { ok: true, lastPhase: 3, skipped: true };
+}
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Phase 4 — Register (startPhase <= 4)
-  // ───────────────────────────────────────────────────────────────────────────
-  let phase4Result;
-  if (startPhase <= 4) {
-    await phase('Register', async () => {
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 4 — Register (startPhase <= 4)
+// ─────────────────────────────────────────────────────────────────────────────
+let phase4Result;
+if (startPhase <= 4) {
+  phase('Register');
 
-      const registerResult = await agent(ROLE_TIER['register'], `
+  const registerResult = await agent(`
 You are the Forge init register agent. Execute the content-register steps:
-1. Read \`init/phases/phase-4-register.md\` for the full step list.
+1. Read \`.forge/init/phases/phase-4-register.md\` for the full step list.
 2. Execute steps 1–10 and step 12 verbatim.
 3. Step 13 (CLAUDE.md file creation): ${createClaudeMd === true
-        ? 'createClaudeMd=true — execute this step (create the CLAUDE.md file).'
-        : 'createClaudeMd is not true — SKIP step 13 (the prompt was hoisted to the wrapper).'}
+      ? 'createClaudeMd=true — execute this step (create the CLAUDE.md file).'
+      : 'createClaudeMd is not true — SKIP step 13 (the prompt was hoisted to the wrapper).'}
 4. Step 11 (Tomoshibi forge:refresh-kb-links): DO NOT execute. This is
-   orchestrator-owned. Return pendingActions=["refresh-kb-links"] and the
+   orchestrator-owned. Set pendingActions=["refresh-kb-links"] and the
    wrapper (init.md) will run it post-workflow.
-5. Delete init-progress.json (phase 4 complete — no resume needed).
-6. Return { ok: true, pendingActions: ["refresh-kb-links"] }.
-Use only .forge/tools/ paths for all tool invocations (vendored-tools world). Use .forge/tools/ paths.
+5. Delete .forge/init-progress.json (phase 4 complete — no resume needed).
+6. Set ok=true, pendingActions=["refresh-kb-links"].
+${VENDORED}
 createClaudeMd=${JSON.stringify(createClaudeMd)}, isoTimestamp="${isoTimestamp}".
-`);
+`, { model: ROLE_TIER['register'], label: 'register', phase: 'Register', schema: REGISTER_SCHEMA });
 
-      phase4Result = registerResult || halt(4, 'register agent returned null');
-    });
-  } else {
-    phase4Result = { ok: true, lastPhase: 4, skipped: true };
+  if (!registerResult || !registerResult.ok) {
+    return halt(4, registerResult ? (registerResult.error || 'Phase 4 failed') : 'register agent returned null');
   }
+  phase4Result = registerResult;
+} else {
+  phase4Result = { ok: true, lastPhase: 4, skipped: true };
+}
 
-  if (phase4Result && !phase4Result.ok) {
-    return halt(4, phase4Result.failure || 'Phase 4 failed');
-  }
+// ─────────────────────────────────────────────────────────────────────────────
+// Report
+// ─────────────────────────────────────────────────────────────────────────────
+phase('Report');
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Report
-  // ───────────────────────────────────────────────────────────────────────────
-  await phase('Report', async () => {});
-
-  return {
-    ok: true,
-    lastPhase: 4,
-    stack:          phase1Result && phase1Result.stack,
-    skillMatches:   phase1Result && phase1Result.skillMatches,
-    counts: {
-      kbDocs:    7,
-      workflows: 4,  // wfl-run-task, wfl-run-sprint, wfl-fix-bug, wfl-init
-      commands:  3,  // run-task, run-sprint, fix-bug (init.md is the wrapper, not a base-pack command)
-    },
-    confidence:     phase1Result && phase1Result.confidence,
-    pendingActions: (phase4Result && phase4Result.pendingActions) || ['refresh-kb-links'],
-  };
+return {
+  ok: true,
+  lastPhase: 4,
+  stack:          phase1Result && phase1Result.stack,
+  skillMatches:   phase1Result && phase1Result.skillMatches,
+  counts: {
+    kbDocs:    KB_DOC_IDS.length,
+    workflows: 4,  // wfl-run-task, wfl-run-sprint, wfl-fix-bug, wfl-init (installed by the CLI half)
+    commands:  3,  // run-task, run-sprint, fix-bug (init.md is the wrapper, not a base-pack command)
+  },
+  confidence:     phase1Result && phase1Result.confidence,
+  pendingActions: (phase4Result && phase4Result.pendingActions) || ['refresh-kb-links'],
+};

@@ -2950,5 +2950,18 @@
     "manual": [
       "Projects bootstrapped with the broken driver: re-run '4ge init claude .' (idempotent repair overwrites .claude/workflows/wfl-init.js)."
     ]
+  },
+  "1.4.1": {
+    "version": "1.4.2",
+    "date": "2026-06-07",
+    "notes": "wfl-init.js Workflow-API rewrite (forge#112): the driver mis-used the harness API four ways — phase(title, callback) callbacks were silently discarded so init ran 0 agents while reporting fabricated ok:true; parallel() received promises instead of thunks; agent() had model as first arg instead of opts.model; structured results lacked opts.schema. Phase bodies now run inline at top level, fan-outs use thunks, all agents use agent(prompt, {model, label, phase, schema}), and the report reflects real phase results. Rulebook reads use vendored .forge/init/... paths with direct-analysis fallback. Contract enforced by wfl-drivers-parse.test.cjs (phase-callback, thunk, arg-order, referenced-rulebook-exists gates).",
+    "target": "init:base-pack:workflows-js:wfl-init",
+    "regenerate": [
+      "workflows"
+    ],
+    "breaking": false,
+    "manual": [
+      "Projects bootstrapped with the broken driver: re-run '4ge init claude .' (idempotent repair overwrites .claude/workflows/wfl-init.js)."
+    ]
   }
 }
