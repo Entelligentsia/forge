@@ -86,13 +86,32 @@ const FRAGMENT_MAP = [
 //     Resolved at require() time relative to this file's directory so the
 //     constant is valid wherever build-manifest.cjs is installed.
 //     Test files (*.test.cjs) and lib test files are excluded.
+//
+//     Plugin-development tools are also excluded: they exist in forge/tools/
+//     for plugin-repo CI and release engineering, but are never vendored into
+//     project instances — the structure manifest describes what an INSTANCE
+//     must contain, and expecting dev tools produces false "missing tools"
+//     gaps in /forge:health (observed in the first CLI-first field test).
+//     Keep in sync with the test's DEV_ONLY_TOOLS mirror.
+const DEV_ONLY_TOOLS = new Set([
+  'build-base-pack.cjs',
+  'build-enum-catalog.cjs',
+  'build-manifest.cjs',
+  'check-no-skipped-tests.cjs',
+  'estimate-usage.cjs',
+  'gen-integrity.cjs',
+  'migrate-slug-maxlen.cjs',
+  'proposal-normalize.cjs',
+  'rewrite-plugin-urls.cjs',
+  'token-forensics.cjs',
+]);
 const _toolsDir = path.join(__dirname);
 const _toolsLibDir = path.join(__dirname, 'lib');
 const TOOLS_FILES = (() => {
   const topLevel = [];
   try {
     for (const f of fs.readdirSync(_toolsDir)) {
-      if (f.endsWith('.cjs') && !f.endsWith('.test.cjs')) {
+      if (f.endsWith('.cjs') && !f.endsWith('.test.cjs') && !DEV_ONLY_TOOLS.has(f)) {
         topLevel.push(f);
       }
     }

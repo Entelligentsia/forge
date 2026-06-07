@@ -5,6 +5,28 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.4.4] — 2026-06-07
+
+First full CLI-first field test (git.git, ~500 source files) — `/forge:init`
+passed all phases; gap analysis surfaced three config/manifest defects.
+
+### Fixed
+
+- **`paths.commands` config drift** — `phase-1-collect.md` still carried a
+  prefix-derived instruction ("if prefix is `HELLO`, write
+  `.claude/commands/hello`") that survived the 1.4.0 namespace redesign; the
+  config-writer followed it and check-structure reported commands 0/14. The
+  path is ALWAYS `.claude/commands/forge`.
+- **`paths.forgeRoot` written as an absolute npm-global payload path** — no
+  rulebook said what to write, so the register agent improvised. New explicit
+  `generate-tools.md` step: `paths.forgeRoot = ".forge"` (the vendored
+  `.forge/` IS the Forge root; absolute paths break on upgrades/nvm switches).
+- **False "missing tools" gaps (49/59)** — `build-manifest.cjs` now excludes
+  the 10 plugin-development tools (`build-manifest`, `gen-integrity`,
+  `token-forensics`, …) from the `tools` namespace: the structure manifest
+  describes project instances, and dev tools are never vendored.
+  `structure-manifest.json` regenerated; instance expectation is now 49/49.
+
 ## [1.4.3] — 2026-06-07
 
 ### Fixed

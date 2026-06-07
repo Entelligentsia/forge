@@ -84,7 +84,7 @@ Using your discovery findings, write `.forge/config.json` with this structure:
 }
 ```
 
-`<prefix-lowercased>` = the `project.prefix` value you chose, lowercased. For example, if prefix is `HELLO`, write `".claude/commands/hello"`.
+`paths.commands` is ALWAYS `".claude/commands/forge"` — the command namespace is fixed (CLI-first redesign); it does NOT derive from the project prefix.
 
 Write using:
 ```sh

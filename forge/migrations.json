@@ -2974,5 +2974,16 @@
     ],
     "breaking": false,
     "manual": []
+  },
+  "1.4.3": {
+    "version": "1.4.4",
+    "date": "2026-06-07",
+    "notes": "First full CLI-first field-test gap fixes (config drift + manifest scope): (1) phase-1-collect.md no longer instructs the config-writer to derive paths.commands from the project prefix — it is ALWAYS '.claude/commands/forge' (the prefix-derived instruction survived the 1.4.0 namespace redesign and produced paths.commands='.claude/commands/git' -> check-structure 0/14). (2) generate-tools.md gains an explicit step writing paths.forgeRoot='.forge' — without it the register agent improvised an absolute npm-global payload path, which breaks on version upgrades and nvm switches. (3) build-manifest.cjs excludes 10 plugin-development tools from the tools namespace — the structure manifest describes instances, and expecting dev tools produced false 49/59 'missing tools' gaps in /forge:health.",
+    "target": "init:phases:phase-1-collect,init:generation:generate-tools,tools:build-manifest,schemas:structure-manifest",
+    "regenerate": [],
+    "breaking": false,
+    "manual": [
+      "Existing CLI-first projects with drifted config: run node .forge/tools/manage-config.cjs set paths.commands '\".claude/commands/forge\"' and set paths.forgeRoot '\".forge\"', then re-run '4ge init claude .' to refresh .forge/schemas/structure-manifest.json."
+    ]
   }
 }
