@@ -41,7 +41,8 @@ export const meta = {
 // per-phase subagent owns rulebook execution (artifact writes, checkpoint
 // writes, verify runs). The JS driver holds ONLY control flow.
 //
-// Timestamps: the Workflow sandbox blocks Date.now/Math.random/new Date().
+// Timestamps: the Workflow sandbox blocks timestamp minting (Date.now,
+// Math.random, and the zero-arg Date constructor are all unavailable).
 // The command wrapper supplies args.isoTimestamp.
 //
 // MODEL TIERING: generation/discovery → sonnet; deterministic gates and
