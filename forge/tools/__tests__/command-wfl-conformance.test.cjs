@@ -195,24 +195,55 @@ describe('buildBasePack() generates wfl: command bodies for the three affected c
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Test 7: FORGE-S31-T04 task-boundary assertion
-// init.md conformance is gated on FORGE-S31-T05 (which authors the full
-// init.md command wrapper + wfl:init dispatch). wfl-init.js was authored
-// in T04; init.md ships in T05. This test self-verifies the task boundary
-// is correct: init.md must NOT yet be present in base-pack/commands/.
-// When T05 lands, this test will fail and must be updated to assert presence
-// (and add the full workflow() conformance assertion).
+// Test 7: FORGE-S31-T05 — base-pack/commands/init.md presence + conformance
+// init.md was authored in T05 as the project-local command wrapper that
+// dispatches workflow('wfl:init'). This test asserts PRESENCE and conformance:
+//   - init.md exists in base-pack/commands/
+//   - contains workflow('wfl:init' dispatch
+//   - frontmatter includes name: init
+//   - does NOT contain $FORGE_ROOT or ${CLAUDE_PLUGIN_ROOT} in execution core
+//     (base-pack commands must use vendored .forge/tools/ paths only)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('FORGE-S31-T04/T05 boundary — init.md not yet present in base-pack', () => {
+describe('FORGE-S31-T05 — base-pack/commands/init.md presence + wfl:init conformance', () => {
 
-  it('Test 7: base-pack/commands/ does NOT contain init.md yet (T05 owns this)', () => {
+  it('Test 7: base-pack/commands/init.md EXISTS (authored by T05)', () => {
     const initMdPath = path.join(BASE_PACK_COMMANDS, 'init.md');
     assert.ok(
-      !fs.existsSync(initMdPath),
-      'init.md found in base-pack/commands/ — this test asserts the T04/T05 boundary.\n' +
-      'If init.md has been authored by T05, update this test to assert its workflow() conformance:\n' +
-      '  assert.ok(content.includes("workflow(\'wfl:init\'"), ...)'
+      fs.existsSync(initMdPath),
+      'init.md not found in base-pack/commands/ — T05 must author this file.'
+    );
+  });
+
+  it('Test 7b: init.md contains workflow(\'wfl:init\') dispatch', () => {
+    const initMdPath = path.join(BASE_PACK_COMMANDS, 'init.md');
+    if (!fs.existsSync(initMdPath)) return; // depends on Test 7
+    const content = fs.readFileSync(initMdPath, 'utf8');
+    assert.ok(
+      content.includes("workflow('wfl:init'"),
+      'base-pack/commands/init.md must contain workflow(\'wfl:init\') dispatch line.\n' +
+      'The project-local wrapper must dispatch the wfl:init driver, not read sdlc-init.md.'
+    );
+  });
+
+  it('Test 7c: init.md frontmatter includes "name: init"', () => {
+    const initMdPath = path.join(BASE_PACK_COMMANDS, 'init.md');
+    if (!fs.existsSync(initMdPath)) return; // depends on Test 7
+    const content = fs.readFileSync(initMdPath, 'utf8');
+    assert.ok(
+      content.includes('name: init'),
+      'base-pack/commands/init.md frontmatter must include "name: init".'
+    );
+  });
+
+  it('Test 7d: init.md does NOT reference $FORGE_ROOT or ${CLAUDE_PLUGIN_ROOT}', () => {
+    const initMdPath = path.join(BASE_PACK_COMMANDS, 'init.md');
+    if (!fs.existsSync(initMdPath)) return; // depends on Test 7
+    const content = fs.readFileSync(initMdPath, 'utf8');
+    assert.ok(
+      !content.includes('$FORGE_ROOT') && !content.includes('${CLAUDE_PLUGIN_ROOT}'),
+      'base-pack/commands/init.md must NOT reference $FORGE_ROOT or ${CLAUDE_PLUGIN_ROOT}.\n' +
+      'Base-pack commands are installed as project-local wrappers — use .forge/tools/ paths instead.'
     );
   });
 

@@ -1,4 +1,15 @@
 {
+  "1.2.21": {
+    "version": "1.3.0",
+    "date": "2026-06-07",
+    "notes": "CLI-first bootstrap: /forge:init now dispatches workflow('wfl:init') — the dynamic JS driver added in S31-T04. init.md command wrapper hoists interactive prompts (KB folder, CLAUDE.md offer, marketplace-skills offer). Phase-1 and Phase-4 rulebooks annotated with orchestrator-owned step markers. sdlc-init.md reduced to a spec pointer. New base-pack/commands/init.md project-local wrapper authored. No change to installed projects (init.md is a plugin command, not a materialized base-pack command).",
+    "target": "commands:init,init:wfl-init,init:phases:phase-1-collect,init:phases:phase-4-register,init:sdlc-init,init:base-pack:commands:init",
+    "regenerate": [],
+    "breaking": false,
+    "manual": [
+      "No action required for existing initialized projects. New inits use the dynamic wfl:init driver. The Workflow tool is required; upgrade Claude Code if not available."
+    ]
+  },
   "1.2.20": {
     "version": "1.2.21",
     "date": "2026-06-06",

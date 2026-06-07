@@ -9,6 +9,10 @@ parent directory — the folder containing `meta/` and `init/`).
 
 ## Pre-flight — Knowledge Base Folder
 
+> **Orchestrator note:** If your orchestrator (e.g. the `wfl:init` driver or the CLI-first
+> wrapper) has already supplied a `kbFolder` value, use it directly — skip this prompt.
+> This interactive block applies only to unmediated orchestrator-free execution.
+
 Before Phase 1 begins, ask the user where to create the knowledge base folder:
 
 ```
@@ -102,6 +106,10 @@ and non-empty: `version`, `project.name`, `project.prefix`, `stack`,
 If any key is missing or empty, fix it now before proceeding.
 
 ### Step 5 — Marketplace Skills
+
+> **Orchestrator note:** If your orchestrator handles the skills install offer post-workflow
+> (e.g. the `init.md` wrapper does this after `wfl:init` returns), skip this step. Return
+> `{ matches, alreadyInstalled }` from the config-writer agent instead.
 
 Read `$FORGE_ROOT/meta/skill-recommendations.md` for the full mapping.
 

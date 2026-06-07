@@ -5,6 +5,45 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.3.0] — 2026-06-07
+
+### Added
+
+- **`init/base-pack/commands/init.md`** — new project-local command wrapper
+  installed by `4ge init claude .` into `.claude/commands/forge/`. Contains
+  the full hoisted-prompt flow (KB folder prompt, CLAUDE.md offer, timestamp
+  minting), dispatches `workflow('wfl:init', args)`, handles the
+  Workflow-tool-missing error explicitly, presents the marketplace-skills offer
+  from `result.skillMatches` post-workflow, invokes `forge:refresh-kb-links`
+  via the Skill tool, and emits the final report (KB doc count, workflow count,
+  command count, accepted/skipped skills). Uses vendored `.forge/tools/` paths
+  only — no `$FORGE_ROOT` / `${CLAUDE_PLUGIN_ROOT}` references.
+
+### Changed
+
+- **`commands/init.md` (plugin-side)** — Execute section rewritten to dispatch
+  `workflow('wfl:init', args)` with hoisted interactive prompts (KB folder
+  prompt, CLAUDE.md offer, timestamp minting). Replaces the previous
+  `Read $FORGE_ROOT/init/sdlc-init.md` instruction. Includes the explicit
+  Workflow-tool-missing error halt (Iron Law 5 — no silent degradation or
+  fallback to `sdlc-init.md`).
+
+- **`init/phases/phase-1-collect.md`** — Pre-flight Knowledge Base Folder block
+  and Step 5 (Marketplace Skills) annotated as orchestrator-owned when the
+  orchestrator pre-supplies the values. Annotations are informational — no step
+  renames or renumbers (forge-cli `run-phases.ts` glob freeze maintained).
+
+- **`init/phases/phase-4-register.md`** — Step 11 (Tomoshibi/refresh-kb-links)
+  and Step 13 (CLAUDE.md prompt) annotated as orchestrator-owned. Same
+  semantics-preserving annotation policy.
+
+- **`init/sdlc-init.md`** — Body reduced to a spec-pointer paragraph: points
+  to `wfl-init.js` (orchestration), `commands/init.md` (dispatch surface), and
+  `init/phases/` (canonical per-phase contracts). Phase/verify table preserved
+  for human readers. File not deleted.
+
+---
+
 ## [1.2.21] — 2026-06-06
 
 ### Fixed

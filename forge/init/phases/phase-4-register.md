@@ -102,6 +102,10 @@ console.log('ノ update-check-cache.json written');
 
 ### Step 11 — Tomoshibi (refresh-kb-links)
 
+> **Orchestrator note:** This step is orchestrator-owned. When running under `wfl:init`, the
+> register agent returns `pendingActions: ["refresh-kb-links"]` and the command wrapper
+> invokes the Skill. Do NOT execute this step if your orchestrator owns it.
+
 Use the Skill tool:
 ```
 skill: "forge:refresh-kb-links"
@@ -133,6 +137,10 @@ Fallback if unavailable:
    Emit `〇 Appended .forge/store/events/ to .gitignore.`
 
 ### Step 13 — Agent instruction file linking
+
+> **Orchestrator note:** If your orchestrator pre-answered the CLAUDE.md creation prompt
+> (via `args.createClaudeMd`), use that value directly — skip the interactive prompt.
+> Execute the file creation only if `createClaudeMd === true`.
 
 Check whether any agent instruction file exists at the project root:
 ```sh
