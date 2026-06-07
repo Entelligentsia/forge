@@ -10,7 +10,7 @@ Add a task to an existing sprint without re-running the full sprint planner.
 ## Setup
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 Read project config values:
@@ -256,8 +256,8 @@ Display a summary (substitute `{PREFIX}` with `PROJECT_PREFIX.toLowerCase()`):
    Pipeline:   {PIPELINE}
 
 ── Next steps:
-   1. Run /{PREFIX}:run-task {TASK_ID} to execute the full pipeline.
-   2. Or run /{PREFIX}:plan {TASK_ID} to plan it first.
+   1. Run /forge:run-task {TASK_ID} to execute the full pipeline.
+   2. Or run /forge:plan {TASK_ID} to plan it first.
 ```
 
 ---

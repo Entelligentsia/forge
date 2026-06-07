@@ -1,8 +1,8 @@
 'use strict';
 
-// Iron Law 2: failing tests written BEFORE implementation.
-// This test file imports paths.cjs — which does not yet export the functions.
-// All tests must fail until the implementation is written.
+// CLI-first redesign: getCommandsSubdir() returns the fixed 'forge' namespace.
+// Project-prefix command namespaces (/acme:*, /hello:*) are retired — every
+// project gets the same /forge:* surface, matching the 4ge bootstrap vendor.
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -10,25 +10,15 @@ const assert = require('node:assert/strict');
 const { getCommandsSubdir } = require('./paths.cjs');
 
 describe('getCommandsSubdir', () => {
-  test('returns lowercased prefix for uppercase input', () => {
-    assert.equal(getCommandsSubdir('ACME'), 'acme');
-  });
-
-  test('returns lowercased prefix for mixed-case input', () => {
-    assert.equal(getCommandsSubdir('MyProj'), 'myproj');
-  });
-
-  test('returns same string for already-lowercased input', () => {
+  test("returns 'forge' for any prefix (namespace is fixed)", () => {
+    assert.equal(getCommandsSubdir('ACME'), 'forge');
+    assert.equal(getCommandsSubdir('MyProj'), 'forge');
     assert.equal(getCommandsSubdir('forge'), 'forge');
   });
 
-  test('throws for empty string', () => {
-    assert.throws(() => getCommandsSubdir(''), /must be a non-empty string/);
-  });
-
-  test('throws for non-string input', () => {
-    assert.throws(() => getCommandsSubdir(null), /must be a non-empty string/);
-    assert.throws(() => getCommandsSubdir(undefined), /must be a non-empty string/);
-    assert.throws(() => getCommandsSubdir(42), /must be a non-empty string/);
+  test("returns 'forge' when prefix is absent or empty (arg is vestigial)", () => {
+    assert.equal(getCommandsSubdir(), 'forge');
+    assert.equal(getCommandsSubdir(''), 'forge');
+    assert.equal(getCommandsSubdir(null), 'forge');
   });
 });

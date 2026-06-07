@@ -78,7 +78,7 @@ Using your discovery findings, write `.forge/config.json` with this structure:
     "engineering": "engineering",
     "store": ".forge/store",
     "workflows": ".forge/workflows",
-    "commands": ".claude/commands/<prefix-lowercased>",
+    "commands": ".claude/commands/forge",
     "templates": ".forge/templates"
   }
 }

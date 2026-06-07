@@ -12,7 +12,7 @@ Quick overview of the current sprint and task state.
 ## Locate plugin root
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 ## Locate project config

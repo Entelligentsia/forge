@@ -3,14 +3,14 @@ name: check-agent
 description: Verify an agent has loaded and understood the project knowledge base
 ---
 
-# /{{PREFIX}}:check-agent
+# /forge:check-agent
 
 Read the check-agent workflow and follow it.
 
 ## Locate the Forge plugin
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 ## Execute

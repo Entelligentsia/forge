@@ -195,7 +195,7 @@ describe('checkNamespaces', () => {
     assert.equal(result.missing.length, 2);
   });
 
-  test('prefixed namespace resolves dir with project.prefix from config', () => {
+  test('prefixed namespace resolves to fixed forge/ subdir regardless of project.prefix', () => {
     const manifest = {
       namespaces: {
         commands: {
@@ -207,9 +207,11 @@ describe('checkNamespaces', () => {
       },
     };
 
+    // CLI-first redesign: prefix 'ACME' no longer affects the commands dir —
+    // files live at the fixed .claude/commands/forge/ namespace.
     const structure = {
-      '.claude/commands/acme/plan.md': '---\ndescription: plan\neffort: high\n---\n',
-      '.claude/commands/acme/run-task.md': '---\ndescription: run\neffort: high\n---\n',
+      '.claude/commands/forge/plan.md': '---\ndescription: plan\neffort: high\n---\n',
+      '.claude/commands/forge/run-task.md': '---\ndescription: run\neffort: high\n---\n',
       '.forge/config.json': JSON.stringify({ project: { prefix: 'ACME' }, paths: {} }),
     };
 
@@ -298,7 +300,7 @@ describe('checkNamespaces', () => {
     assert.equal(result.missing.length, 0);
   });
 
-  test('FR-006: uses getCommandsSubdir for prefixed commands path resolution', () => {
+  test('FR-006 (revised): getCommandsSubdir resolves the fixed forge/ subdir', () => {
     const manifest = {
       namespaces: {
         commands: {
@@ -310,9 +312,9 @@ describe('checkNamespaces', () => {
       },
     };
 
-    // Use prefix 'MYCORP' — getCommandsSubdir('MYCORP') returns 'mycorp'
+    // CLI-first redesign: getCommandsSubdir('MYCORP') returns 'forge'
     const structure = {
-      '.claude/commands/mycorp/plan.md': '---\neffort: high\n---\n',
+      '.claude/commands/forge/plan.md': '---\neffort: high\n---\n',
       '.forge/config.json': JSON.stringify({ project: { prefix: 'MYCORP' }, paths: {} }),
     };
 

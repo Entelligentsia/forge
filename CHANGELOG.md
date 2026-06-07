@@ -5,6 +5,37 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.4.0] — 2026-06-07
+
+### Changed — △ Breaking
+
+- **Fixed `/forge:*` command namespace (CLI-first redesign).** Project-prefix
+  command namespaces (`/acme:*`, `/hello:*`) are retired — every project gets
+  the same `/forge:*` surface, with full parity between Claude Code and the
+  pure CLI (`4ge`):
+  - `tools/lib/paths.cjs` — `getCommandsSubdir()` returns `'forge'`
+    unconditionally (prefix arg is vestigial, kept for caller compat).
+  - `init/base-pack/commands/*.md` — `/{{PREFIX}}:` → literal `/forge:`
+    (26 occurrences, 17 files). Command templates are now fully static.
+  - `tools/substitute-placeholders.cjs` — materializes commands to
+    `.claude/commands/forge/` regardless of project prefix.
+  - Rulebooks updated: `generate-commands.md`, `phase-3-materialize.md`,
+    `phase-1-collect.md` (config `paths.commands` example), `meta-migrate.md`,
+    `migrate_structural.md`, `commands/add-task.md` next-steps text.
+  - The prefix-derived namespace existed to avoid collisions with the Forge
+    *plugin's* own `/forge:*` commands — moot now that the plugin mechanism
+    is retired in favour of project-vendored commands.
+  - **Migration:** existing projects keep working with their old
+    `.claude/commands/<prefix>/` files; re-materialize to get
+    `.claude/commands/forge/`, then delete the prefix directory.
+
+- **`FORGE_ROOT` vendored fallback in every command.** All 33 resolution
+  lines across `commands/*.md` and `init/base-pack/commands/*.md` change from
+  `${CLAUDE_PLUGIN_ROOT}` to `${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}` — in a
+  plugin-installed session the plugin root still wins; in a plugin-less
+  project bootstrapped by `4ge init claude` the vendored `.forge/` (tools,
+  schemas, hooks, init, meta) serves as the Forge root.
+
 ## [1.3.0] — 2026-06-07
 
 ### Added

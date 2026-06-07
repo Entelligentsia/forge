@@ -880,17 +880,21 @@ describe('FR-004: _fragments ghost nesting', () => {
   });
 });
 
-// ── Test Group 12: FR-006 — Commands path uses prefix-derived subdir ────────────
+// ── Test Group 12: FR-006 (revised) — Commands path is the fixed forge/ subdir ──
 //
-// Verify that the commands output directory is .claude/commands/{prefix-lowercased}/
-// NOT the hardcoded .claude/commands/forge/
+// CLI-first redesign: project-prefix command namespaces (/acme:*, /hello:*) are
+// retired. Every project gets the same /forge:* surface — commands materialize
+// to .claude/commands/forge/ regardless of project prefix, matching what the
+// 4ge bootstrap vendors. Supersedes the original FR-006 (prefix-derived subdir),
+// which existed to avoid collisions with the Forge *plugin's* own /forge:*
+// commands — moot now that the plugin mechanism is retired.
 
-describe('FR-006: commands path uses prefix-derived subdir', () => {
-  test('commands output directory uses {prefix-lowercased}/, not hardcoded forge/', () => {
+describe('FR-006 (revised): commands path uses fixed forge/ subdir', () => {
+  test('commands output directory is forge/ regardless of project prefix', () => {
     const dir = tmpDir();
     try {
       const basePack = path.join(dir, 'base-pack');
-      writeFile(path.join(basePack, 'commands', 'plan.md'), '---\ndescription: plan\n---\n# /{{PREFIX}}:plan\n');
+      writeFile(path.join(basePack, 'commands', 'plan.md'), '---\ndescription: plan\n---\n# /forge:plan for {{PREFIX}}\n');
 
       const configFile = path.join(dir, 'config.json');
       fs.writeFileSync(configFile, JSON.stringify({
@@ -909,15 +913,15 @@ describe('FR-006: commands path uses prefix-derived subdir', () => {
 
       assert.equal(result.status, 0, `CLI exited ${result.status}: ${result.stderr}`);
 
-      // Correct path: .claude/commands/acme/plan.md must exist
-      const correctPath = path.join(outDir, '.claude', 'commands', 'acme', 'plan.md');
+      // Correct path: .claude/commands/forge/plan.md must exist
+      const correctPath = path.join(outDir, '.claude', 'commands', 'forge', 'plan.md');
       assert.ok(fs.existsSync(correctPath), `command file must exist at ${correctPath}`);
 
-      // Wrong path: .claude/commands/forge/ must NOT exist
-      const wrongDir = path.join(outDir, '.claude', 'commands', 'forge');
-      assert.ok(!fs.existsSync(wrongDir), `hardcoded 'forge/' directory must NOT exist, but found at ${wrongDir}`);
+      // Wrong path: prefix-derived .claude/commands/acme/ must NOT exist
+      const wrongDir = path.join(outDir, '.claude', 'commands', 'acme');
+      assert.ok(!fs.existsSync(wrongDir), `prefix-derived 'acme/' directory must NOT exist, but found at ${wrongDir}`);
 
-      // Verify substitution was applied
+      // Non-namespace substitutions still apply
       const content = fs.readFileSync(correctPath, 'utf8');
       assert.ok(content.includes('ACME'), `command content must have PREFIX substituted, got: ${content}`);
     } finally {

@@ -32,7 +32,7 @@ Assess the health and currency of the project's SDLC knowledge base.
 
 First, resolve the plugin root and project root:
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 Open the run with the oracle hero + subtitle:

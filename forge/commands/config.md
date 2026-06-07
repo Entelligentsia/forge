@@ -11,7 +11,7 @@ commands (e.g. `paths.forgeRoot` is refreshed by `/forge:update`).
 ## Locate the Forge plugin
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 Read `.forge/config.json`. If it does not exist, stop and emit:

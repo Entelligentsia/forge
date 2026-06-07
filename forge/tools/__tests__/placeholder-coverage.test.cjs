@@ -117,9 +117,14 @@ describe('base-pack meta-backed skills contain project context placeholder', () 
   }
 });
 
-// ── Commands: every file must contain {{PREFIX}} ────────────────────────────
+// ── Commands: fixed /forge: namespace, no {{PREFIX}} ────────────────────────
+//
+// CLI-first redesign: command templates are fully static. The /forge:*
+// namespace is literal (no per-project prefix substitution), so {{PREFIX}}
+// must NOT appear — the 4ge bootstrap vendors these files verbatim, with no
+// substitution pass.
 
-describe('base-pack commands contain {{PREFIX}} placeholder', () => {
+describe('base-pack commands are static /forge:* files (no {{PREFIX}})', () => {
   const COMMAND_FILES = [
     'commands/approve.md',
     'commands/collate.md',
@@ -140,12 +145,16 @@ describe('base-pack commands contain {{PREFIX}} placeholder', () => {
   ];
 
   for (const f of COMMAND_FILES) {
-    test(`${f} contains {{PREFIX}}`, () => {
+    test(`${f} is static: /forge: namespace present, no {{PREFIX}}`, () => {
       const content = readBP(f);
       assert.ok(content !== null, `${f} must exist`);
       assert.ok(
-        content.includes('{{PREFIX}}'),
-        `${f} must contain {{PREFIX}} placeholder`
+        !content.includes('{{PREFIX}}'),
+        `${f} must NOT contain {{PREFIX}} — command templates are static /forge:* files`
+      );
+      assert.ok(
+        content.includes('/forge:'),
+        `${f} must reference the fixed /forge: namespace`
       );
     });
   }

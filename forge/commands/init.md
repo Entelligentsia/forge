@@ -13,7 +13,7 @@ AI software development lifecycle for the codebase in the current working direct
 Set `$FORGE_ROOT` to the plugin root provided by Claude Code:
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 `$FORGE_ROOT` is the directory containing `meta/`, `init/`, `hooks/`, and `commands/`.

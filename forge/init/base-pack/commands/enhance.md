@@ -3,14 +3,14 @@ name: enhance
 description: Progressive project-specific enrichment of structural elements
 ---
 
-# /{{PREFIX}}:enhance
+# /forge:enhance
 
 Run the enhancement agent to enrich structural elements with project-specific knowledge.
 
 ## Locate the Forge plugin
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 ## Purpose

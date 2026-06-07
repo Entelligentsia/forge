@@ -3,14 +3,14 @@ name: collate
 description: Regenerate KB documents from the JSON store
 ---
 
-# /{{PREFIX}}:collate
+# /forge:collate
 
 Read the collate workflow and follow it.
 
 ## Locate the Forge plugin
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 ## Execute

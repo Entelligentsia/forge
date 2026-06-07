@@ -2,40 +2,37 @@
 
 ## Purpose
 
-Generate standalone slash commands in `.claude/commands/{prefix}/` that serve as
-entry points to the generated workflows. Commands are namespaced under the project
-prefix (e.g. `/acme:plan`, `/ember:fix-bug`) to prevent collisions with other plugins.
+Generate standalone slash commands in `.claude/commands/forge/` that serve as
+entry points to the generated workflows. The namespace is FIXED to `forge`
+(CLI-first redesign): every project gets the same `/forge:*` surface, matching
+what the `4ge` bootstrap vendors. Project-prefix namespaces (`/acme:*`,
+`/ember:*`) are retired — they existed to avoid collisions with the Forge
+*plugin's* own commands, moot now that the plugin mechanism is retired.
 
 ## Inputs
 
 - Generated workflows (from Phase 5) — their exact filenames and paths
-- `.forge/config.json` — project prefix, paths
+- `.forge/config.json` — paths (project prefix no longer affects the command namespace)
 
 ## Outputs
 
-Read the project prefix from config before writing any file:
-
-```sh
-PREFIX=$(node -e "try{console.log(require('./.forge/config.json').project.prefix.toLowerCase())}catch{console.log('')}")
-```
-
-`.claude/commands/{PREFIX}/` with namespaced commands:
-- `new-sprint.md` → `/{PREFIX}:new-sprint`
-- `plan.md` → `/{PREFIX}:plan {TASK_ID}`
-- `review-plan.md` → `/{PREFIX}:review-plan {TASK_ID}`
-- `implement.md` → `/{PREFIX}:implement {TASK_ID}`
-- `review-code.md` → `/{PREFIX}:review-code {TASK_ID}`
-- `fix-bug.md` → `/{PREFIX}:fix-bug {BUG_ID}`
-- `plan-sprint.md` → `/{PREFIX}:plan-sprint`
-- `run-task.md` → `/{PREFIX}:run-task {TASK_ID}`
-- `run-sprint.md` → `/{PREFIX}:run-sprint {SPRINT_ID} [--parallel]`
-- `collate.md` → `/{PREFIX}:collate [SPRINT_ID]`
-- `retro.md` → `/{PREFIX}:retro {SPRINT_ID}`
-- `approve.md` → `/{PREFIX}:approve {TASK_ID}`
-- `commit.md` → `/{PREFIX}:commit {TASK_ID}`
-- `check-agent.md` → `/{PREFIX}:check-agent $ARGUMENTS`
-- `enhance.md` → `/{PREFIX}:enhance $ARGUMENTS`
-- `validate.md` → `/{PREFIX}:validate {TASK_ID}`
+`.claude/commands/forge/` with the fixed-namespace commands:
+- `new-sprint.md` → `/forge:new-sprint`
+- `plan.md` → `/forge:plan {TASK_ID}`
+- `review-plan.md` → `/forge:review-plan {TASK_ID}`
+- `implement.md` → `/forge:implement {TASK_ID}`
+- `review-code.md` → `/forge:review-code {TASK_ID}`
+- `fix-bug.md` → `/forge:fix-bug {BUG_ID}`
+- `plan-sprint.md` → `/forge:plan-sprint`
+- `run-task.md` → `/forge:run-task {TASK_ID}`
+- `run-sprint.md` → `/forge:run-sprint {SPRINT_ID} [--parallel]`
+- `collate.md` → `/forge:collate [SPRINT_ID]`
+- `retro.md` → `/forge:retro {SPRINT_ID}`
+- `approve.md` → `/forge:approve {TASK_ID}`
+- `commit.md` → `/forge:commit {TASK_ID}`
+- `check-agent.md` → `/forge:check-agent $ARGUMENTS`
+- `enhance.md` → `/forge:enhance $ARGUMENTS`
+- `validate.md` → `/forge:validate {TASK_ID}`
 
 ## Instructions
 
@@ -48,7 +45,7 @@ wrappers, and unrecognised files must be left completely untouched.
    (old non-namespaced location). If it does, treat it as non-conformant — overwrite into
    the namespaced path and log: `Replaced flat command (now namespaced): <filename>`.
 2. If the file does not exist at either path — write it fresh to the namespaced path.
-3. If the file exists at the namespaced path `.claude/commands/{PREFIX}/{filename}.md` — read it
+3. If the file exists at the namespaced path `.claude/commands/forge/{filename}.md` — read it
    and extract the workflow path it references (the `.forge/workflows/` path).
    - If it does NOT reference `.forge/workflows/` — overwrite and log: `Replaced stale command: <filename>`.
    - If it references `.forge/workflows/` but that workflow file **does not exist on disk** — overwrite and log: `Replaced command pointing to missing workflow: <filename>`.
@@ -129,7 +126,7 @@ not appropriate for user command files.
 
 After writing each command file, record it in the generation manifest:
 ```sh
-node "$FORGE_ROOT/tools/generation-manifest.cjs" record {paths.commands}/{PREFIX}/{filename}.md
+node "$FORGE_ROOT/tools/generation-manifest.cjs" record {paths.commands}/forge/{filename}.md
 ```
 
 (`FORGE_ROOT` is available from the parent init flow; tool invocations use `$FORGE_ROOT/tools/` throughout.)
@@ -159,7 +156,7 @@ subdirectory).
     .claude/commands/implement.md
     ... (list each found file)
 
-  These have been replaced by namespaced commands under .claude/commands/{PREFIX}/.
+  These have been replaced by namespaced commands under .claude/commands/forge/.
   Remove them now? (yes / skip)
   ```
 

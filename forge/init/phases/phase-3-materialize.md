@@ -63,7 +63,7 @@ node "$FORGE_ROOT/tools/substitute-placeholders.cjs" \
 ```
 
 Output directories (managed by the tool's `SUBDIR_OUTPUT_MAP`):
-- `base-pack/commands/`     → `.claude/commands/<prefix-lowercased>/`
+- `base-pack/commands/`     → `.claude/commands/forge/`  (fixed namespace — CLI-first redesign)
 - `base-pack/personas/`     → `.forge/personas/`
 - `base-pack/skills/`       → `.forge/skills/`
 - `base-pack/workflows/`    → `.forge/workflows/`

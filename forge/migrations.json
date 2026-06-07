@@ -2924,5 +2924,18 @@
     ],
     "breaking": false,
     "manual": []
+  },
+  "1.3.0": {
+    "version": "1.4.0",
+    "date": "2026-06-07",
+    "notes": "Fixed /forge:* command namespace (CLI-first redesign). Project-prefix command namespaces (/acme:*, /hello:*) are retired: getCommandsSubdir() now returns 'forge' unconditionally, base-pack command templates carry literal /forge: headings ({{PREFIX}} removed), and substitute-placeholders materializes commands to .claude/commands/forge/. All command .md files (plugin commands/ + base-pack commands/) resolve FORGE_ROOT with a vendored fallback: ${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge} — full parity for plugin-less projects bootstrapped by '4ge init claude' where tools/schemas/hooks are vendored under .forge/. Rulebooks (generate-commands, phase-3-materialize, phase-1-collect, meta-migrate, migrate_structural) updated to the fixed namespace.",
+    "target": "tools:lib:paths,tools:substitute-placeholders,commands:*,init:base-pack:commands:*,init:generation:generate-commands,init:phases:phase-1-collect,init:phases:phase-3-materialize,meta:workflows:meta-migrate,init:base-pack:workflows:migrate_structural",
+    "regenerate": [
+      "commands"
+    ],
+    "breaking": true,
+    "manual": [
+      "Existing projects with prefix-namespaced commands (.claude/commands/<prefix>/): re-run materialization (or /forge:rebuild) to produce .claude/commands/forge/, then delete the old .claude/commands/<prefix>/ directory. The old commands keep working until removed but will not receive updates."
+    ]
   }
 }

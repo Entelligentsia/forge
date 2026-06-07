@@ -12,7 +12,7 @@ project's generated artifacts.
 ## Locate plugin root
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 Detect install mode:
@@ -442,7 +442,7 @@ install changes the cache path (e.g. `…/cache/forge/forge/0.9.6/` →
 this command is stale.
 
 ```sh
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 If the re-derived `FORGE_ROOT` differs from the original value, print:
@@ -916,7 +916,7 @@ consolidated prompt. **Nothing is written without the user saying yes.**
 ### 5a — Locate tools
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 All tools are invoked directly from the plugin:

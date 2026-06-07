@@ -3,7 +3,7 @@ name: init
 description: Bootstrap Forge's LLM half — KB discovery, config generation, and artifact registration. Run once after `4ge init claude .` has scaffolded the project structure.
 ---
 
-# /{{PREFIX}}:init
+# /forge:init
 
 You are the Forge init orchestrator. Your job is to run the LLM half of the
 Forge bootstrap — knowledge-base discovery, config generation, and artifact
@@ -149,7 +149,7 @@ Starting from Phase {startPhase}.
 Proceed? [Y/n]: ___
 ```
 
-If the user declines, stop and advise them to run `/{{PREFIX}}:init` again when ready.
+If the user declines, stop and advise them to run `/forge:init` again when ready.
 
 ## Workflow Dispatch
 
@@ -171,7 +171,7 @@ Where `forgeRoot` is resolved from `.forge/config.json`'s `paths.forgeRoot` fiel
 **Workflow-tool-missing error** — if the Workflow tool is unavailable, halt immediately
 with this message:
 
-> The Workflow tool is required to run `/{{PREFIX}}:init`. This Claude Code build does not
+> The Workflow tool is required to run `/forge:init`. This Claude Code build does not
 > support the Workflow tool. Upgrade Claude Code and try again.
 >
 > (Alternatively, run `4ge init claude .` again to re-scaffold, then upgrade Claude Code.)
@@ -202,9 +202,9 @@ Your project is now configured with:
   · Sprint-ready store in .forge/store/
 
 Next steps:
-  · /{{PREFIX}}:new-sprint — plan your first sprint
-  · /{{PREFIX}}:health     — verify store health
-  · /{{PREFIX}}:plan       — plan a single task
+  · /forge:new-sprint — plan your first sprint
+  · /forge:health     — verify store health
+  · /forge:plan       — plan a single task
 ```
 
 ### Marketplace Skills Offer
@@ -233,7 +233,7 @@ Skill('forge:refresh-kb-links')
 If the Skill tool is unavailable or the skill fails, emit:
 
 ```
-△ Could not auto-refresh KB links — run /{{PREFIX}}:refresh-kb-links manually
+△ Could not auto-refresh KB links — run /forge:refresh-kb-links manually
   to wire your CLAUDE.md to your new KB docs.
 ```
 
@@ -248,7 +248,7 @@ Forge init complete.
   Skills accepted:     {acceptedCount}
   Skills skipped:      {skippedCount}
 
-Run `/{{PREFIX}}:health` to verify the installation.
+Run `/forge:health` to verify the installation.
 ```
 
 ## Post-Workflow (on failure)
@@ -263,7 +263,7 @@ Failure details:
 {result.failure as formatted JSON}
 
 This looks like a Forge bug. Would you like to file a report?
-Run `/{{PREFIX}}:report-bug` — I'll pre-fill the report from this conversation.
+Run `/forge:report-bug` — I'll pre-fill the report from this conversation.
 ```
 
 ## Arguments
@@ -275,4 +275,4 @@ $ARGUMENTS
 If any step above fails unexpectedly, describe what went wrong and ask:
 
 > "This looks like a Forge bug. Would you like to file a report to help improve it?
-> Run `/{{PREFIX}}:report-bug` — I'll pre-fill the report from this conversation."
+> Run `/forge:report-bug` — I'll pre-fill the report from this conversation."

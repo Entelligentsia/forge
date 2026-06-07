@@ -19,7 +19,7 @@ $ARGUMENTS
 
 1. Resolve the plugin root:
    ```
-   FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+   FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
    ```
 
 2. Run the four-phase repair workflow below. If `--dry-run` is in `$ARGUMENTS`,
