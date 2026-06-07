@@ -8,6 +8,10 @@
 //
 // Tests 1–5 are static assertions against source files.
 // Test 6 exercises the real buildBasePack() generator via tmpdir.
+// Test 7 (FORGE-S31-T04): task-boundary assertion — init.md base-pack conformance
+//   is gated on FORGE-S31-T05 (which authors init.md + the full command wrapper).
+//   wfl-init.js was authored in T04; init.md ships in T05. This test verifies the
+//   T04/T05 boundary is respected: init.md must NOT yet be present in base-pack.
 //
 // Iron Law 2: this file was written BEFORE any implementation change —
 // all tests fail on the pre-implementation source, proving the test is
@@ -185,6 +189,30 @@ describe('buildBasePack() generates wfl: command bodies for the three affected c
     assert.ok(
       !content.includes('Read `.forge/workflows/fix_bug.md`'),
       "generated fix-bug.md must NOT contain the old Read prose path"
+    );
+  });
+
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test 7: FORGE-S31-T04 task-boundary assertion
+// init.md conformance is gated on FORGE-S31-T05 (which authors the full
+// init.md command wrapper + wfl:init dispatch). wfl-init.js was authored
+// in T04; init.md ships in T05. This test self-verifies the task boundary
+// is correct: init.md must NOT yet be present in base-pack/commands/.
+// When T05 lands, this test will fail and must be updated to assert presence
+// (and add the full workflow() conformance assertion).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('FORGE-S31-T04/T05 boundary — init.md not yet present in base-pack', () => {
+
+  it('Test 7: base-pack/commands/ does NOT contain init.md yet (T05 owns this)', () => {
+    const initMdPath = path.join(BASE_PACK_COMMANDS, 'init.md');
+    assert.ok(
+      !fs.existsSync(initMdPath),
+      'init.md found in base-pack/commands/ — this test asserts the T04/T05 boundary.\n' +
+      'If init.md has been authored by T05, update this test to assert its workflow() conformance:\n' +
+      '  assert.ok(content.includes("workflow(\'wfl:init\'"), ...)'
     );
   });
 

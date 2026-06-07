@@ -36,13 +36,28 @@ const BASE_PACK_JS = path.join(
 // Generated output directory (dogfooding project's .claude/workflows/)
 const GENERATED_DIR = path.join(REPO_ROOT, '.claude', 'workflows');
 
-// The three JS workflow files covered by the drift guard
+// The three JS workflow files covered by the drift guard.
+// NOTE: wfl-init.js is intentionally NOT in this list — see META_CONTRACT_WORKFLOWS below.
 // (wfl-fix-bug.js was authored in T04 and is already present in both
 //  base-pack/workflows-js/ and .claude/workflows/ — drift-coverage-only addition)
 const JS_WORKFLOWS = [
   'wfl-run-task.js',
   'wfl-run-sprint.js',
   'wfl-fix-bug.js',
+];
+
+// wfl-init.js is the fourth driver (FORGE-S31-T04). It lives at
+// init/base-pack/workflows-js/wfl-init.js but is NOT generated into
+// .claude/workflows/ via /forge:rebuild — it installs there via the
+// `4ge init claude .` CLI bootstrap (CLI-first bootstrap ADR,
+// doc/decisions/cli-first-bootstrap.md). The drift guard covers only the
+// three rebuild-generated drivers; wfl-init bypasses the rebuild path by
+// design. The meta contract and FORGE_ROOT guards cover all four drivers.
+const META_CONTRACT_WORKFLOWS = [
+  'wfl-run-task.js',
+  'wfl-run-sprint.js',
+  'wfl-fix-bug.js',
+  'wfl-init.js',
 ];
 
 /**
@@ -103,6 +118,35 @@ describe('workflows-js drift guard — base-pack source matches generated copy',
   }
 });
 
+// FORGE-S31-T04: wfl-init.js is the fourth driver but is NOT a rebuild-generated
+// target. Assert explicitly that wfl-init.js is absent from the drift guard's
+// JS_WORKFLOWS array (it installs via `4ge init claude .` CLI bootstrap, not via
+// /forge:rebuild — see CLI-first bootstrap ADR, doc/decisions/cli-first-bootstrap.md).
+describe('wfl-init.js drift-guard scope — intentionally excluded from rebuild drift check', () => {
+  it('wfl-init.js is NOT in JS_WORKFLOWS (the drift-guarded rebuild targets)', () => {
+    assert.ok(
+      !JS_WORKFLOWS.includes('wfl-init.js'),
+      'wfl-init.js must NOT be in JS_WORKFLOWS — it installs via CLI bootstrap, not rebuild.'
+    );
+  });
+
+  it('wfl-init.js IS in META_CONTRACT_WORKFLOWS (meta contract applies to all four drivers)', () => {
+    assert.ok(
+      META_CONTRACT_WORKFLOWS.includes('wfl-init.js'),
+      'wfl-init.js must be in META_CONTRACT_WORKFLOWS — the meta contract covers all four drivers.'
+    );
+  });
+
+  it('wfl-init.js base-pack source exists (driver was authored in FORGE-S31-T04)', () => {
+    const srcPath = path.join(BASE_PACK_JS, 'wfl-init.js');
+    assert.ok(
+      fs.existsSync(srcPath),
+      `wfl-init.js source not found at: ${srcPath}\n` +
+      'Expected the fourth driver authored by FORGE-S31-T04.'
+    );
+  });
+});
+
 // Regression guard for the wfl-fix-bug.js meta defect (shipped in v1.2.0): the
 // driver used `desc:`/`steps:` instead of `description:`/`phases:`, so the
 // Workflow runtime rejected it ("meta.description must be a non-empty string")
@@ -119,7 +163,9 @@ describe('workflows-js meta contract — each driver is launchable by the Workfl
     return end === -1 ? rest : rest.slice(0, end);
   }
 
-  for (const filename of JS_WORKFLOWS) {
+  // All four drivers are covered by the meta contract (wfl-init uses the same
+  // export const meta pattern even though it is not drift-guarded above).
+  for (const filename of META_CONTRACT_WORKFLOWS) {
     const srcPath = path.join(BASE_PACK_JS, filename);
 
     it(`${filename}: meta has name + non-empty description + phases (not desc/steps)`, () => {
@@ -167,7 +213,8 @@ describe('workflows-js orchestration-logic guards', () => {
 
   // FORGE-S29-T02: after call-site rewrite, zero $FORGE_ROOT permitted in any driver.
   // Tools are vendored in .forge/tools/ (T01), so no subagent needs to resolve a plugin path.
-  for (const filename of JS_WORKFLOWS) {
+  // All four drivers (including wfl-init.js) must pass this guard.
+  for (const filename of META_CONTRACT_WORKFLOWS) {
     it(`${filename}: no $FORGE_ROOT call-sites remain (tools are vendored in .forge/tools/)`, () => {
       const src = read(filename);
       assert.doesNotMatch(

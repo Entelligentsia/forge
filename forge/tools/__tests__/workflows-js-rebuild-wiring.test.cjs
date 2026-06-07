@@ -47,6 +47,28 @@ describe('workflows-js rebuild/update wiring', () => {
     );
   });
 
+  // FORGE-S31-T04: wfl-init.js is the fourth driver but is NOT a rebuild sub-target.
+  // It installs via `4ge init claude .` CLI bootstrap (CLI-first bootstrap ADR,
+  // doc/decisions/cli-first-bootstrap.md). Assert this boundary explicitly to
+  // prevent future sprints from accidentally adding wfl-init to rebuild wiring.
+  it('rebuild.md workflows-js category does NOT list wfl-init as a sub-target', () => {
+    const s = read('rebuild.md');
+    // Find the workflows-js category section
+    const wflJsIdx = s.indexOf('Category: `workflows-js`');
+    if (wflJsIdx !== -1) {
+      // Extract up to the next ## heading or end of file
+      const section = s.slice(wflJsIdx, s.indexOf('\n## ', wflJsIdx + 1) || s.length);
+      assert.ok(
+        !section.includes('wfl-init'),
+        'rebuild.md workflows-js section must NOT list wfl-init — ' +
+        'wfl-init.js installs via CLI bootstrap (4ge init claude .), not via /forge:rebuild'
+      );
+    } else {
+      // If the section doesn't exist, wfl-init can't be in it — pass
+      assert.ok(true, 'workflows-js category not found in rebuild.md — wfl-init cannot be listed');
+    }
+  });
+
   it('update.md lists workflows-js as a recognised regenerate target', () => {
     const s = read('update.md');
     // The recognised-targets sentence enumerates valid migration targets.
