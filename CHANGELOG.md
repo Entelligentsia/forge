@@ -5,6 +5,24 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.4.1] — 2026-06-07
+
+### Fixed
+
+- **`wfl-init.js` failed to launch — "SyntaxError: Unexpected keyword 'export'".**
+  The driver shipped wrapped in `export default async function wflInit(args)`,
+  but the Workflow harness permits exactly one export (the leading `meta`
+  literal) and evaluates the remainder as an async function body. The body now
+  runs at top level reading the `args` global, matching the other three
+  drivers. Every `/forge:init` → `workflow('wfl:init')` dispatch was dead on
+  arrival before this fix.
+
+### Added
+
+- **`wfl-drivers-parse.test.cjs`** — regression gate that parses all base-pack
+  `wfl-*.js` drivers exactly the way the Workflow harness does (single meta
+  export, body as async function body with workflow globals in scope).
+
 ## [1.4.0] — 2026-06-07
 
 ### Changed — △ Breaking

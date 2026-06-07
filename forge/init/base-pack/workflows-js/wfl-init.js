@@ -116,11 +116,15 @@ function halt(lastPhase, reason, extra) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Main workflow function
+// Main workflow body
+//
+// Runs at top level in the Workflow harness's async context — the harness
+// permits exactly ONE export (the meta literal above); a second `export`
+// (e.g. `export default function`) is a SyntaxError at launch. `args` is the
+// global passed via workflow('wfl:init', {...}). Top-level `return` is valid.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default async function wflInit(args) {
-  const {
+const {
     forgeRoot,
     kbFolder       = 'engineering',
     startPhase     = 1,
@@ -487,4 +491,3 @@ createClaudeMd=${JSON.stringify(createClaudeMd)}, isoTimestamp="${isoTimestamp}"
     confidence:     phase1Result && phase1Result.confidence,
     pendingActions: (phase4Result && phase4Result.pendingActions) || ['refresh-kb-links'],
   };
-}

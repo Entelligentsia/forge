@@ -2937,5 +2937,18 @@
     "manual": [
       "Existing projects with prefix-namespaced commands (.claude/commands/<prefix>/): re-run materialization (or /forge:rebuild) to produce .claude/commands/forge/, then delete the old .claude/commands/<prefix>/ directory. The old commands keep working until removed but will not receive updates."
     ]
+  },
+  "1.4.0": {
+    "version": "1.4.1",
+    "date": "2026-06-07",
+    "notes": "wfl-init.js Workflow-harness parse fix: the driver shipped wrapped in 'export default async function wflInit(args)' — the Workflow tool permits exactly one export (the meta literal) and evaluates the rest as an async function body, so every /forge:init dispatch failed at launch with \"SyntaxError: Unexpected keyword 'export'\". Body now runs at top level reading the global args. New regression test (wfl-drivers-parse.test.cjs) parses all four base-pack drivers exactly the way the harness does.",
+    "target": "init:base-pack:workflows-js:wfl-init",
+    "regenerate": [
+      "workflows"
+    ],
+    "breaking": false,
+    "manual": [
+      "Projects bootstrapped with the broken driver: re-run '4ge init claude .' (idempotent repair overwrites .claude/workflows/wfl-init.js)."
+    ]
   }
 }
