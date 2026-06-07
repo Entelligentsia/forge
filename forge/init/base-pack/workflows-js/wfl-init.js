@@ -324,7 +324,7 @@ Execute \`.forge/init/phases/phase-2-discover.md\` Steps 5–6:
 5. Write project-context.json (combined structured context from all discovery
    findings). Write calibration baseline.
 6. Write .forge/init-progress.json: { "lastPhase": 2, "timestamp": "${isoTimestamp}" }.
-   Run: node .forge/tools/verify-phase.cjs --phase 2
+   Run: node .forge/tools/verify-phase.cjs --phase 2 --kb-path "${kbFolder}"
 Set verifyExit=<exit code>, verifyError=<stderr if non-zero>, ok=(verifyExit===0).
 ${VENDORED}
 `, { model: ROLE_TIER['context'], label: 'context', phase: 'Discover', schema: PHASE_RESULT_SCHEMA });
@@ -335,7 +335,7 @@ ${VENDORED}
 Phase 2 of Forge init verify failed. Error:
 ${contextResult.verifyError || '(no error text)'}
 Read the error, fix the missing or malformed outputs, re-run
-\`node .forge/tools/verify-phase.cjs --phase 2\`.
+\`node .forge/tools/verify-phase.cjs --phase 2 --kb-path "${kbFolder}"\`.
 Set verifyExit=<exit code>, ok=(verifyExit===0).
 ${VENDORED}
 `, { model: ROLE_TIER['context'], label: 'context:retry', phase: 'Discover', schema: PHASE_RESULT_SCHEMA });

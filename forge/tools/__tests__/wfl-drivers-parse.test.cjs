@@ -114,3 +114,34 @@ describe('wfl-*.js drivers respect the Workflow API contract (forge#112)', () =>
     }
   });
 });
+
+// ── verify-phase.cjs CLI contract (forge#112 follow-up) ──────────────────────
+//
+// The tool supports --phase 1|2|3 only, and --phase 2 REQUIRES --kb-path
+// (exit 2 on bad args). Driver prompts must match the real CLI.
+
+describe('wfl-init.js verify-phase invocations match the tool CLI', () => {
+  const src = fs.readFileSync(path.join(WFL_DIR, 'wfl-init.js'), 'utf8');
+  const invocations = src.match(/verify-phase\.cjs[^\n`]*/g) || [];
+
+  test('at least one verify-phase invocation exists', () => {
+    assert.ok(invocations.length > 0);
+  });
+
+  test('every --phase value is 1, 2, or 3 (tool exits 2 otherwise)', () => {
+    for (const inv of invocations.filter((i) => i.includes('--phase'))) {
+      const m = inv.match(/--phase\s+(\d+)/);
+      if (!m) continue; // prose placeholder like "--phase N"
+      assert.ok(['1', '2', '3'].includes(m[1]), `verify-phase.cjs supports phases 1-3 only, found: ${inv}`);
+    }
+  });
+
+  test('every --phase 2 invocation carries --kb-path (required by the tool)', () => {
+    for (const inv of invocations.filter((i) => /--phase\s+2/.test(i))) {
+      assert.ok(
+        inv.includes('--kb-path'),
+        `--phase 2 requires --kb-path <path> (tool exits 2 without it): ${inv}`
+      );
+    }
+  });
+});

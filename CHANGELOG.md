@@ -5,6 +5,18 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.4.3] — 2026-06-07
+
+### Fixed
+
+- **`wfl-init.js` Phase 2 verify invocations matched the tool's real CLI**
+  ([forge#112](https://github.com/Entelligentsia/forge/issues/112) follow-up).
+  Prompts said `verify-phase.cjs --phase 2` bare; the tool requires
+  `--phase 2 --kb-path <path>` and exits 2 without it. Both invocations now
+  pass `--kb-path "${kbFolder}"`. Contract gates added: every driver
+  verify-phase invocation must use a supported phase (1–3) and `--phase 2`
+  must carry `--kb-path`.
+
 ## [1.4.2] — 2026-06-07
 
 ### Fixed

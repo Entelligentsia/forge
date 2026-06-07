@@ -2963,5 +2963,16 @@
     "manual": [
       "Projects bootstrapped with the broken driver: re-run '4ge init claude .' (idempotent repair overwrites .claude/workflows/wfl-init.js)."
     ]
+  },
+  "1.4.2": {
+    "version": "1.4.3",
+    "date": "2026-06-07",
+    "notes": "wfl-init.js verify-phase CLI alignment (forge#112 follow-up): the Phase 2 verify prompts invoked 'verify-phase.cjs --phase 2' bare, but the tool requires '--phase 2 --kb-path <path>' (exit 2 without it). Both Phase 2 invocations now pass --kb-path \"${kbFolder}\". New contract gates in wfl-drivers-parse.test.cjs assert every driver verify-phase invocation uses a supported phase (1-3) and that --phase 2 always carries --kb-path.",
+    "target": "init:base-pack:workflows-js:wfl-init",
+    "regenerate": [
+      "workflows"
+    ],
+    "breaking": false,
+    "manual": []
   }
 }
