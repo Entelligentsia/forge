@@ -84,6 +84,30 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: ./test/e2e/tmp-smoke.sh
 
+      - name: Assert phase-file glob compatibility (run-phases.ts contract)
+        # FORGE-S31-T07: verify that phase-${n}-*.md files exist in the installed
+        # payload for n=1..4. Defends the run-phases.ts filename contract against
+        # plugin-side phase renames. Red on any phase-N file removal.
+        working-directory: forge-cli-driver
+        run: |
+          set -e
+          # The installed payload lives at the global-install prefix inside
+          # .tmp-smoke-out. FORGE_TMP_SMOKE_PLUGIN_SRC rsync'd the in-tree plugin
+          # source over the payload dir in place, so phases are at this path.
+          PAYLOAD_DIR=".tmp-smoke-out/install-prefix/lib/node_modules/@entelligentsia/forgecli/dist/forge-payload"
+          PHASES_DIR="$PAYLOAD_DIR/init/phases"
+          MISSING=0
+          for n in 1 2 3 4; do
+            MATCH=$(find "$PHASES_DIR" -maxdepth 1 -name "phase-${n}-*.md" 2>/dev/null | wc -l)
+            if [[ "$MATCH" -eq 0 ]]; then
+              echo "FAIL: phase-${n}-*.md missing from $PHASES_DIR"
+              MISSING=$((MISSING+1))
+            else
+              echo "PASS: phase-${n}-*.md present (count=$MATCH)"
+            fi
+          done
+          exit $MISSING
+
       - name: Upload tmp-smoke SUMMARY artifact
         if: always()
         uses: actions/upload-artifact@v4
