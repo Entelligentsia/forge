@@ -1,4 +1,15 @@
 {
+  "1.4.5": {
+    "version": "1.4.6",
+    "date": "2026-06-09",
+    "notes": "Security hardening of the forge-permissions auto-approver (forge-engineering#42). The Bash auto-allow patterns were unanchored command prefixes (`cat *`, `cp *`, `gh issue *`, `git push *`, `node .../tools/*`), so a prompt-injected agent could read a secret and exfiltrate/execute it with no permission prompt. Patterns are now anchored to their argument shape: `cat`/`cp` only within `.forge/`/`engineering/`, `node` tools only from a trusted Forge root ($FORGE_ROOT/$CLAUDE_PLUGIN_ROOT, plugin cache, or a /.forge path), `gh issue` only against the current repo (no -R/--repo), `git push` only to a named remote (no explicit http(s)/ssh/git/file URL). A non-match falls through to Claude Code's normal permission flow (the human is asked) — it never blocks. Legit in-tree Forge workflow commands still auto-allow, so no new prompt storm. New test forge/hooks/__tests__/forge-permissions.test.cjs pins both directions.",
+    "target": "hooks:forge-permissions",
+    "regenerate": [],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update to pick up the hardened forge-permissions hook. Interactive Claude Code sessions may now see a one-time permission prompt for commands outside the Forge working set (e.g. reading files outside .forge/, pushing to an explicit remote URL) — approve as normal. Autonomous forge-cli (pi) runs are unaffected (pi has no permission gate)."
+    ]
+  },
   "1.2.21": {
     "version": "1.3.0",
     "date": "2026-06-07",
