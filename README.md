@@ -16,6 +16,7 @@
 
 [⚡ Quick Start](#quick-start) &nbsp;·&nbsp;
 [📦 Install](#install) &nbsp;·&nbsp;
+[📡 Distribution](#distribution) &nbsp;·&nbsp;
 [🚀 Get Started](#get-started) &nbsp;·&nbsp;
 [📖 Philosophy](docs/philosophy.md) &nbsp;·&nbsp;
 [🔁 Default Flow](docs/default-flow.md) &nbsp;·&nbsp;
@@ -30,9 +31,11 @@
 
 ## Summary
 
-Forge is a Claude Code plugin that turns your codebase into a self-improving AI engineering team. Run it once on any project — it reads your stack, generates a complete set of project-specific agents, workflows, and a structured knowledge base, then deploys them as slash commands. Every sprint, the system learns from what it builds and gets sharper.
+Forge is **software that adds a self-building SDLC to Claude Code** — installed and managed by the `4ge` command-line tool, not a marketplace plugin. Run it once on any project — it reads your stack, generates a complete set of project-specific agents, workflows, deterministic tools, and a structured knowledge base, then deploys them as slash commands. Every sprint, the system learns from what it builds and gets sharper.
 
-**One install. One init. A full engineering practice that improves with every task.**
+**One CLI. One init. A full engineering practice that improves with every task.**
+
+> **Forge is not a Claude Code plugin** — it is software that *adds pluggable features to* Claude Code. The `4ge` CLI scaffolds Forge's commands, tools, hooks, and knowledge base directly into your project (`4ge init claude .`) and removes them just as cleanly (`4ge uninstall claude`). The same CLI also runs the full Forge SDLC headless on other runtimes. See [Distribution](#distribution). The marketplace install still works but is **deprecated** in favour of `4ge init`.
 
 > **Forge is not for every project.** It is designed for non-trivial software with real accountability requirements. If you are building a small script, a one-page website, or creating content, Forge adds process without benefit. See [Philosophy](docs/philosophy.md) for the full positioning.
 
@@ -42,25 +45,26 @@ Forge is a Claude Code plugin that turns your codebase into a self-improving AI 
 
 ## Quick Start
 
-**1. Install Forge** (once, works across all your projects):
-```
-# Stable (recommended)
-/plugin marketplace add Entelligentsia/skillforge
-/plugin install forge@skillforge
-
-# Canary (latest development build)
-/plugin marketplace add Entelligentsia/forge
-/plugin install forge@forge
+**1. Install the Forge CLI** (once, works across all your projects):
+```sh
+npm install -g @entelligentsia/forgecli
 ```
 
-**2. Bootstrap your project:**
-```
+**2. Add Forge to your project:**
+```sh
 cd /path/to/your/project
+4ge init claude .
+```
+This scaffolds Forge into the project in seconds — zero tokens, zero network, pure file copy.
+
+**3. Generate your project-specific knowledge base:**
+```
+# open Claude Code in the project, then:
 /forge:init
 ```
 No config files to fill in. Review lines marked `[?]` in `engineering/` before your first sprint.
 
-**3. Run your first sprint:**
+**4. Run your first sprint:**
 ```
 /forge:new-sprint    # Capture sprint requirements in a structured interview
 /forge:plan-sprint   # Break requirements into tasks with estimates and dependencies
@@ -158,19 +162,54 @@ During init, Forge checks the Claude Code marketplace for skills relevant to you
 
 ## Install
 
-**Prerequisites:** [Claude Code](https://claude.ai/code) v1.0.33+
+**Prerequisites:** [Node.js](https://nodejs.org) 18+ and [Claude Code](https://claude.ai/code) v1.0.33+
+
+**Recommended — the `4ge` CLI:**
+```sh
+npm install -g @entelligentsia/forgecli
+cd /path/to/your/project
+4ge init claude .
+```
+
+`4ge init` deterministically scaffolds Forge into the project — commands, deterministic tools, hooks, schemas, and the dynamic-workflow drivers — from a version-pinned bundle, in seconds, with zero tokens and zero network. `/forge:init`, `/forge:health`, `/forge:rebuild`, and `/forge:report-bug` are then available in that project. Remove it any time with `4ge uninstall claude` (your store and knowledge base are preserved unless you pass `--purge`).
+
+<details>
+<summary><strong>Marketplace install (deprecated)</strong></summary>
+
+The Claude Code marketplace install still works, but is **deprecated** in favour of `4ge init` — see [Distribution](#distribution) for the reasoning. Prefer the CLI for new projects.
 
 ```
-# Stable (recommended)
+# Stable
 /plugin marketplace add Entelligentsia/skillforge
 /plugin install forge@skillforge
 
-# Canary (latest development build)
+# Canary
 /plugin marketplace add Entelligentsia/forge
 /plugin install forge@forge
 ```
 
-`/forge:init`, `/forge:health`, `/forge:rebuild`, and `/forge:report-bug` are now available in any project.
+</details>
+
+---
+
+## Distribution
+
+**Forge is software that adds pluggable features to Claude Code — not a Claude Code plugin.** That distinction drives how it ships.
+
+A marketplace plugin is a passive bundle Claude Code loads. Forge is not passive: it *scaffolds project-specific software into your repository* — deterministic `.cjs` tools written in your project's own conventions, hooks wired into `.claude/settings.json`, JSON schemas, a structured knowledge base, and the JS dynamic-workflow drivers that orchestrate every task. That is an install-and-generate operation, not a plugin load. The `4ge` CLI owns it:
+
+| | `4ge init` (recommended) | Marketplace (deprecated) |
+|---|---|---|
+| **Install** | `npm i -g @entelligentsia/forgecli` → `4ge init claude .` | `/plugin marketplace add …` → `/plugin install …` |
+| **What lands** | Version-pinned bundle scaffolded into the project — auditable, in your git history | Plugin loaded into Claude Code's plugin directory |
+| **Tokens / network at install** | Zero — pure file copy | Plugin fetch |
+| **Determinism** | Exact, pinned payload version | Marketplace ref resolution |
+| **Removal** | `4ge uninstall claude` (preserves your store + KB) | `/plugin uninstall` |
+| **Runtimes** | Claude Code **and** headless on other runtimes | Claude Code only |
+
+The CLI is also the product surface for running Forge *outside* Claude Code: the same [`@entelligentsia/forgecli`](https://www.npmjs.com/package/@entelligentsia/forgecli) package runs the full plan → review → implement → review → approve → commit pipeline headless on the [pi](https://github.com/earendil-works/pi) runtime, against the provider of your choice.
+
+> **Deprecation notice.** The skillforge marketplace distribution remains available and still receives releases for now, but is **deprecated**. New installs should use `4ge init claude`. A future release will stop publishing new marketplace versions; existing installs keep working and can migrate by running `4ge init claude .` in the same project (it is idempotent and preserves your store).
 
 ---
 
@@ -282,7 +321,7 @@ Full lifecycle documentation — inputs, outputs, gate checks, revision loops, a
 | `/forge:run-task TASK-ID` | Drives a single task through the full pipeline end-to-end | [→](docs/commands/task-pipeline/run-task.md) |
 | `/forge:fix-bug BUG-ID` | Triage, root-cause, and fix a bug with knowledge base writeback | [→](docs/commands/task-pipeline/fix-bug.md) |
 
-### Forge plugin commands
+### Forge project commands
 
 | Command | What it does | Reference |
 |---|---|---|
@@ -291,7 +330,7 @@ Full lifecycle documentation — inputs, outputs, gate checks, revision loops, a
 | `/forge:status` | Show current sprint, task statuses, and recent activity | [→](docs/commands/forge/status.md) |
 | `/forge:ask` | Ask Tomoshibi about project status, config, workflows, or version | [→](docs/commands/forge/ask.md) |
 | `/forge:rebuild [target]` | Refresh workflows, templates, tools, or knowledge-base docs | [→](docs/commands/forge/rebuild.md) |
-| `/forge:update` | Propagate a plugin version upgrade into project artifacts | [→](docs/commands/forge/update.md) |
+| `/forge:update` | Propagate a Forge version upgrade into project artifacts | [→](docs/commands/forge/update.md) |
 | `/forge:add-pipeline [name]` | Add or manage a custom task pipeline in `.forge/config.json` | [→](docs/commands/forge/add-pipeline.md) |
 | `/forge:add-task` | Add a task to an existing sprint mid-flight | [→](docs/commands/forge/add-task.md) |
 | `/forge:search` | Query the Forge store by natural language or exact flags | [→](docs/commands/forge/search.md) |
