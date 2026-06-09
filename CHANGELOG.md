@@ -5,6 +5,23 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.4.5] — 2026-06-09
+
+Collate-workflow KB-link refresh is orchestrator-owned under forge-cli. The
+generated collate workflow no longer instructs the collator subagent to invoke
+the `forge:refresh-kb-links` Skill tool — forge-cli subagents run via the Pi
+runtime, which has no Skill tool, so the instruction triggered a multi-call
+bash-probe loop before falling back. The Claude Code TUI standalone path still
+uses the Skill tool; under forge-cli the run-task orchestrator owns the KB
+refresh after the writeback phase. Prose-only change to `collator_agent.md`
+(base-pack) and `meta-collate.md`.
+
+**Regenerate:** workflows:collator_agent
+
+> Manual: run `/forge:update` (or `/forge:rebuild`) to regenerate the collate workflow.
+
+---
+
 ## [1.4.4] — 2026-06-07
 
 First full CLI-first field test (git.git, ~500 source files) — `/forge:init`

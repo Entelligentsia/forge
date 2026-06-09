@@ -5,6 +5,7 @@ Reports are filed as versioned artifacts in this directory.
 
 | Version | Date | Report | Summary |
 |---------|------|--------|---------|
+| 1.4.5 | 2026-06-09 | [scan-v1.4.5.md](scan-v1.4.5.md) | first 1.4.x scan (delta vs 1.3.0 + executable-surface sweep); collate-workflow KB-refresh prose change — 0 critical, 0 warnings, 2 info (carried) — SAFE TO USE |
 | 1.3.0 | 2026-06-07 | [scan-v1.3.0.md](scan-v1.3.0.md) | delta vs 1.2.21 baseline; CLI-first bootstrap prose refactor — 0 critical, 0 warnings, 2 info (carried) — SAFE TO USE |
 | 1.2.21 | 2026-06-06 | [scan-v1.2.21.md](scan-v1.2.21.md) | delta vs 1.2.18 baseline; commit-task check-ignore + no-op path — 0 critical, 0 warnings, 2 info (carried) — SAFE TO USE |
 | 1.2.20 | 2026-06-06 | [scan-v1.2.20.md](scan-v1.2.20.md) | delta vs 1.2.18 baseline; new commit-task.cjs line-reviewed — 0 critical, 0 warnings, 2 info (carried) — SAFE TO USE |
