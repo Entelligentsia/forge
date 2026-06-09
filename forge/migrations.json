@@ -2985,5 +2985,18 @@
     "manual": [
       "Existing CLI-first projects with drifted config: run node .forge/tools/manage-config.cjs set paths.commands '\".claude/commands/forge\"' and set paths.forgeRoot '\".forge\"', then re-run '4ge init claude .' to refresh .forge/schemas/structure-manifest.json."
     ]
+  },
+  "1.4.4": {
+    "version": "1.4.5",
+    "date": "2026-06-09",
+    "notes": "Collate-workflow KB-link refresh is orchestrator-owned under forge-cli. collator_agent.md (base-pack) + meta-collate.md (meta source) no longer instruct the collator subagent to invoke the forge:refresh-kb-links Skill tool: forge-cli subagents run via the Pi runtime, which has no Skill tool, so the instruction triggered a multi-call bash-probe loop before falling back. The Claude Code TUI standalone path still uses the Skill tool; under forge-cli the run-task orchestrator owns the KB refresh (runRefreshKbLinks) after the writeback phase. Prose-only change to the generated collate workflow.",
+    "target": "workflows:collator_agent,meta:meta-collate",
+    "regenerate": [
+      "workflows:collator_agent"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update (or /forge:rebuild) to regenerate the collate workflow (collator_agent.md) with the orchestrator-owned KB-refresh guidance."
+    ]
   }
 }
