@@ -10,7 +10,7 @@ Single conversational entry point for all Forge intent.
 ## Locate plugin root
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 ## Open with oracle banner

@@ -12,7 +12,7 @@ release engineering, significant refactors).
 ## Locate plugin root
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 ## Arguments

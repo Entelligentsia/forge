@@ -3,14 +3,14 @@ name: approve
 description: Final architect approval gate for a completed task
 ---
 
-# /{{PREFIX}}:approve
+# /forge:approve
 
 Read the approve workflow and follow it.
 
 ## Locate the Forge plugin
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 ## Execute

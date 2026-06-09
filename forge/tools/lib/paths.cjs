@@ -7,23 +7,24 @@
  * consistent across substitute-placeholders.cjs, check-structure.cjs, etc.
  *
  * Exported API:
- *   getCommandsSubdir(prefix) — returns prefix.toLowerCase()
+ *   getCommandsSubdir() — returns 'forge' (fixed namespace)
  */
 
 /**
- * Compute the commands subdirectory name from a project prefix.
+ * Commands subdirectory name under .claude/commands/.
  *
- * The canonical commands subfolder under .claude/commands/ is derived
- * from the project prefix (lowercased), NOT hardcoded as 'forge'.
+ * CLI-first redesign: the namespace is FIXED to 'forge'. Project-prefix
+ * command namespaces (/acme:*, /hello:*) are retired — every project gets
+ * the same /forge:* surface, matching what the 4ge bootstrap vendors into
+ * .claude/commands/forge/. The prefix-derived namespace existed to avoid
+ * collisions with the Forge *plugin's* own /forge:* commands; moot now
+ * that the plugin mechanism is retired.
  *
- * @param {string} prefix — project prefix (e.g. 'ACME', 'FORGE')
- * @returns {string} lowercased prefix (e.g. 'acme', 'forge')
+ * @param {string} [_prefix] — vestigial, ignored (kept for caller compat)
+ * @returns {string} always 'forge'
  */
-function getCommandsSubdir(prefix) {
-  if (typeof prefix !== 'string' || prefix.length === 0) {
-    throw new Error('paths.getCommandsSubdir: prefix must be a non-empty string');
-  }
-  return prefix.toLowerCase();
+function getCommandsSubdir(_prefix) {
+  return 'forge';
 }
 
 module.exports = { getCommandsSubdir };

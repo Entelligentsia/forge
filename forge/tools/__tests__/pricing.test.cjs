@@ -242,3 +242,63 @@ describe('pricing.cjs — computeCost', () => {
     assert.ok(Math.abs(outputOnly - 15.00) < 0.001, `output-only cost should be ~15.00, got ${outputOnly}`);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Opus 4.x pricing correction (verified against Anthropic support + pi vendor
+// table 2026-06-08): all Opus 4.5/4.6/4.7/4.8 bill at input $5, output $25,
+// cacheRead $0.50, cacheWrite $3.75→ $6.25 (5-min TTL). Forge phases run inside
+// the 5-min cache window, so the 5-min cache-write rate is canonical.
+// Pre-fix, opus-4-5/4-7 were stale at $15/$75/$1.50/$18.75 and opus-4-6/4-8
+// were absent (canonicalize → null, cost not recomputable).
+// ---------------------------------------------------------------------------
+describe('pricing.cjs — Opus 4.x rate correction', () => {
+  const OPUS_GENERATIONS = ['claude-opus-4-5', 'claude-opus-4-6', 'claude-opus-4-7', 'claude-opus-4-8'];
+  // input $5 + output $25 + cacheRead $0.50 + cacheWrite $6.25 = $36.75 per 1M-each
+  const EXPECTED_PER_MTOK_EACH = 36.75;
+
+  for (const model of OPUS_GENERATIONS) {
+    test(`canonicalizes ${model}`, () => {
+      const result = canonicalizeModel(model);
+      assert.ok(result !== null, `${model} should canonicalize, not return null`);
+      assert.equal(result.canonical, model);
+    });
+
+    test(`${model} has correct $5/$25/$0.50/$6.25 rates`, () => {
+      const rates = MODEL_PRICING[model];
+      assert.ok(rates !== undefined, `MODEL_PRICING should contain ${model}`);
+      assert.ok(Math.abs(rates.input - 5.00 / 1_000_000) < 1e-12, `${model}.input should be $5/MTok`);
+      assert.ok(Math.abs(rates.output - 25.00 / 1_000_000) < 1e-12, `${model}.output should be $25/MTok`);
+      assert.ok(Math.abs(rates.cacheRead - 0.50 / 1_000_000) < 1e-12, `${model}.cacheRead should be $0.50/MTok`);
+      assert.ok(Math.abs(rates.cacheWrite - 6.25 / 1_000_000) < 1e-12, `${model}.cacheWrite should be $6.25/MTok`);
+    });
+
+    test(`computeCost(${model}) sums to $36.75 for 1M of each token class`, () => {
+      const result = computeCost({
+        inputTokens: 1_000_000,
+        outputTokens: 1_000_000,
+        cacheReadTokens: 1_000_000,
+        cacheWriteTokens: 1_000_000,
+        model,
+      });
+      assert.ok(result !== null, `${model} should return a cost, not null`);
+      assert.ok(Math.abs(result - EXPECTED_PER_MTOK_EACH) < 0.001, `expected ~${EXPECTED_PER_MTOK_EACH}, got ${result}`);
+    });
+  }
+
+  test('opus-4-7 is no longer billed at the stale $110.25 (old $15/$75 rate)', () => {
+    const result = computeCost({
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+      cacheReadTokens: 1_000_000,
+      cacheWriteTokens: 1_000_000,
+      model: 'claude-opus-4-7',
+    });
+    assert.ok(Math.abs(result - 110.25) > 0.001, 'opus-4-7 must NOT use the stale $110.25 total');
+  });
+
+  test('opus-4-8 short alias normalizes to claude-opus-4-8', () => {
+    const result = canonicalizeModel('opus-4-8');
+    assert.ok(result !== null, 'opus-4-8 short alias should canonicalize');
+    assert.equal(result.canonical, 'claude-opus-4-8');
+  });
+});

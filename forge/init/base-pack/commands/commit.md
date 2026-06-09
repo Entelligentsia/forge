@@ -3,14 +3,14 @@ name: commit
 description: Stage and commit completed task artifacts
 ---
 
-# /{{PREFIX}}:commit
+# /forge:commit
 
 Read the commit workflow and follow it.
 
 ## Locate the Forge plugin
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 ## Execute

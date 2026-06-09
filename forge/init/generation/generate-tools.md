@@ -94,7 +94,19 @@ node "$FORGE_ROOT/tools/validate-store.cjs" --dry-run
 
 If it exits non-zero, report the error. Do not proceed to Phase 9 until this passes.
 
-### Step 4 — Record hashes
+### Step 4 — Register the Forge root
+
+Write the project-relative Forge root into config. In the CLI-first vendored
+world the `.forge/` directory IS the Forge root (tools, schemas, hooks, init,
+meta are all vendored there) — NEVER write an absolute path (plugin cache,
+npm global payload, …): absolute paths break on version upgrades, nvm/node
+switches, and machine moves.
+
+```sh
+node .forge/tools/manage-config.cjs set paths.forgeRoot '".forge"'
+```
+
+### Step 5 — Record hashes
 
 Record all generated artifacts in the generation manifest so health checks
 can detect later modifications:

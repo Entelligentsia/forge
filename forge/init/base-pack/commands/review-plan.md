@@ -3,14 +3,14 @@ name: review-plan
 description: Architectural review of a task implementation plan
 ---
 
-# /{{PREFIX}}:review-plan
+# /forge:review-plan
 
 Read the review-plan workflow and follow it.
 
 ## Locate the Forge plugin
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 ## Execute

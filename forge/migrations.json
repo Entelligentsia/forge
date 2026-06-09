@@ -1,4 +1,15 @@
 {
+  "1.2.21": {
+    "version": "1.3.0",
+    "date": "2026-06-07",
+    "notes": "CLI-first bootstrap: /forge:init now dispatches workflow('wfl:init') — the dynamic JS driver added in S31-T04. init.md command wrapper hoists interactive prompts (KB folder, CLAUDE.md offer, marketplace-skills offer). Phase-1 and Phase-4 rulebooks annotated with orchestrator-owned step markers. sdlc-init.md reduced to a spec pointer. New base-pack/commands/init.md project-local wrapper authored. No change to installed projects (init.md is a plugin command, not a materialized base-pack command).",
+    "target": "commands:init,init:wfl-init,init:phases:phase-1-collect,init:phases:phase-4-register,init:sdlc-init,init:base-pack:commands:init",
+    "regenerate": [],
+    "breaking": false,
+    "manual": [
+      "No action required for existing initialized projects. New inits use the dynamic wfl:init driver. The Workflow tool is required; upgrade Claude Code if not available."
+    ]
+  },
   "1.2.20": {
     "version": "1.2.21",
     "date": "2026-06-06",
@@ -2913,5 +2924,66 @@
     ],
     "breaking": false,
     "manual": []
+  },
+  "1.3.0": {
+    "version": "1.4.0",
+    "date": "2026-06-07",
+    "notes": "Fixed /forge:* command namespace (CLI-first redesign). Project-prefix command namespaces (/acme:*, /hello:*) are retired: getCommandsSubdir() now returns 'forge' unconditionally, base-pack command templates carry literal /forge: headings ({{PREFIX}} removed), and substitute-placeholders materializes commands to .claude/commands/forge/. All command .md files (plugin commands/ + base-pack commands/) resolve FORGE_ROOT with a vendored fallback: ${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge} — full parity for plugin-less projects bootstrapped by '4ge init claude' where tools/schemas/hooks are vendored under .forge/. Rulebooks (generate-commands, phase-3-materialize, phase-1-collect, meta-migrate, migrate_structural) updated to the fixed namespace.",
+    "target": "tools:lib:paths,tools:substitute-placeholders,commands:*,init:base-pack:commands:*,init:generation:generate-commands,init:phases:phase-1-collect,init:phases:phase-3-materialize,meta:workflows:meta-migrate,init:base-pack:workflows:migrate_structural",
+    "regenerate": [
+      "commands"
+    ],
+    "breaking": true,
+    "manual": [
+      "Existing projects with prefix-namespaced commands (.claude/commands/<prefix>/): re-run materialization (or /forge:rebuild) to produce .claude/commands/forge/, then delete the old .claude/commands/<prefix>/ directory. The old commands keep working until removed but will not receive updates."
+    ]
+  },
+  "1.4.0": {
+    "version": "1.4.1",
+    "date": "2026-06-07",
+    "notes": "wfl-init.js Workflow-harness parse fix: the driver shipped wrapped in 'export default async function wflInit(args)' — the Workflow tool permits exactly one export (the meta literal) and evaluates the rest as an async function body, so every /forge:init dispatch failed at launch with \"SyntaxError: Unexpected keyword 'export'\". Body now runs at top level reading the global args. New regression test (wfl-drivers-parse.test.cjs) parses all four base-pack drivers exactly the way the harness does.",
+    "target": "init:base-pack:workflows-js:wfl-init",
+    "regenerate": [
+      "workflows"
+    ],
+    "breaking": false,
+    "manual": [
+      "Projects bootstrapped with the broken driver: re-run '4ge init claude .' (idempotent repair overwrites .claude/workflows/wfl-init.js)."
+    ]
+  },
+  "1.4.1": {
+    "version": "1.4.2",
+    "date": "2026-06-07",
+    "notes": "wfl-init.js Workflow-API rewrite (forge#112): the driver mis-used the harness API four ways — phase(title, callback) callbacks were silently discarded so init ran 0 agents while reporting fabricated ok:true; parallel() received promises instead of thunks; agent() had model as first arg instead of opts.model; structured results lacked opts.schema. Phase bodies now run inline at top level, fan-outs use thunks, all agents use agent(prompt, {model, label, phase, schema}), and the report reflects real phase results. Rulebook reads use vendored .forge/init/... paths with direct-analysis fallback. Contract enforced by wfl-drivers-parse.test.cjs (phase-callback, thunk, arg-order, referenced-rulebook-exists gates).",
+    "target": "init:base-pack:workflows-js:wfl-init",
+    "regenerate": [
+      "workflows"
+    ],
+    "breaking": false,
+    "manual": [
+      "Projects bootstrapped with the broken driver: re-run '4ge init claude .' (idempotent repair overwrites .claude/workflows/wfl-init.js)."
+    ]
+  },
+  "1.4.2": {
+    "version": "1.4.3",
+    "date": "2026-06-07",
+    "notes": "wfl-init.js verify-phase CLI alignment (forge#112 follow-up): the Phase 2 verify prompts invoked 'verify-phase.cjs --phase 2' bare, but the tool requires '--phase 2 --kb-path <path>' (exit 2 without it). Both Phase 2 invocations now pass --kb-path \"${kbFolder}\". New contract gates in wfl-drivers-parse.test.cjs assert every driver verify-phase invocation uses a supported phase (1-3) and that --phase 2 always carries --kb-path.",
+    "target": "init:base-pack:workflows-js:wfl-init",
+    "regenerate": [
+      "workflows"
+    ],
+    "breaking": false,
+    "manual": []
+  },
+  "1.4.3": {
+    "version": "1.4.4",
+    "date": "2026-06-07",
+    "notes": "First full CLI-first field-test gap fixes (config drift + manifest scope): (1) phase-1-collect.md no longer instructs the config-writer to derive paths.commands from the project prefix — it is ALWAYS '.claude/commands/forge' (the prefix-derived instruction survived the 1.4.0 namespace redesign and produced paths.commands='.claude/commands/git' -> check-structure 0/14). (2) generate-tools.md gains an explicit step writing paths.forgeRoot='.forge' — without it the register agent improvised an absolute npm-global payload path, which breaks on version upgrades and nvm switches. (3) build-manifest.cjs excludes 10 plugin-development tools from the tools namespace — the structure manifest describes instances, and expecting dev tools produced false 49/59 'missing tools' gaps in /forge:health.",
+    "target": "init:phases:phase-1-collect,init:generation:generate-tools,tools:build-manifest,schemas:structure-manifest",
+    "regenerate": [],
+    "breaking": false,
+    "manual": [
+      "Existing CLI-first projects with drifted config: run node .forge/tools/manage-config.cjs set paths.commands '\".claude/commands/forge\"' and set paths.forgeRoot '\".forge\"', then re-run '4ge init claude .' to refresh .forge/schemas/structure-manifest.json."
+    ]
   }
 }

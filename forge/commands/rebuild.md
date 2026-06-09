@@ -10,7 +10,7 @@ Re-run generation phases using the current state of the project. Use `--enrich` 
 ## Locate the Forge plugin
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 Read `.forge/config.json`. If it does not exist, stop and tell the user to run
@@ -18,7 +18,7 @@ Read `.forge/config.json`. If it does not exist, stop and tell the user to run
 
 Resolve tools from the plugin:
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 All tool invocations in this command use `node "$FORGE_ROOT/tools/<tool>.cjs"`.
@@ -709,7 +709,7 @@ When `$ARGUMENTS` contains `--enrich`, run the enhancement workflow instead of r
 This is the v1.0 replacement for the removed `/forge:enhance` command.
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 1. Check that `$FORGE_ROOT/meta/workflows/meta-enhance.md` exists. If absent:

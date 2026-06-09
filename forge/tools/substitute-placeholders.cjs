@@ -9,7 +9,7 @@
  * output to the appropriate output directories.
  *
  * Output path mapping (--target claude-code, default):
- *   base-pack/commands/  → <outRoot>/.claude/commands/<prefix>/
+ *   base-pack/commands/  → <outRoot>/.claude/commands/forge/  (fixed namespace)
  *   base-pack/personas/  → <outRoot>/.forge/personas/
  *   base-pack/skills/    → <outRoot>/.forge/skills/
  *   base-pack/workflows/ → <outRoot>/.forge/workflows/
@@ -116,8 +116,8 @@ const RUNTIME_PASSTHROUGH_KEYS = new Set([
 
 /**
  * Maps a base-pack subdirectory name to an output directory path relative to
- * the project root. The 'commands' entry is computed dynamically from the
- * project prefix via getCommandsSubdir() — see walkBasePack.
+ * the project root. The 'commands' entry is the fixed 'forge' namespace via
+ * getCommandsSubdir() — see walkBasePack.
  */
 const SUBDIR_OUTPUT_MAP = {
   personas:       path.join('.forge', 'personas'),
@@ -392,9 +392,8 @@ function renderDeploymentTable(envs) {
 function walkBasePack(basePack, map, outRoot, dryRun, io, categoryFilter) {
   const warn = (io && io.warn) || ((msg) => process.stderr.write(msg + '\n'));
 
-  // Extract prefix from substitution map for commands path computation
-  const prefix = map.get('PREFIX') || '';
-  const commandsSubdir = prefix ? getCommandsSubdir(prefix) : 'forge';
+  // Commands namespace is fixed to 'forge' (CLI-first redesign)
+  const commandsSubdir = getCommandsSubdir();
 
   // Sorted readdir for deterministic idempotent output (Advisory Note 7)
   const topEntries = fs.readdirSync(basePack).sort();

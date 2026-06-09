@@ -21,7 +21,7 @@ nothing is deleted until you confirm explicitly.
 Read the configured KB path and project prefix from config:
 
 ```sh
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 KB_PATH: !`node -e "try{console.log(require('./.forge/config.json').paths.engineering)}catch{console.log('engineering')}"`
 PREFIX: !`node -e "try{console.log(require('./.forge/config.json').project.prefix.toLowerCase())}catch{console.log('')}"`
 ```

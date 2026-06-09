@@ -10,7 +10,7 @@ description: Conversational pipeline manager — add, customize, view, or remove
 ## Setup
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 Read project config values:

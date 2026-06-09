@@ -13,7 +13,7 @@ AI software development lifecycle for the codebase in the current working direct
 Set `$FORGE_ROOT` to the plugin root provided by Claude Code:
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 `$FORGE_ROOT` is the directory containing `meta/`, `init/`, `hooks/`, and `commands/`.
@@ -136,13 +136,68 @@ Any other input (including 0, 5+, or non-numeric text) re-prompts with the same 
 If a `$ARGUMENTS` phase number is provided (e.g. `3`), skip the pre-flight
 table and go straight to the specified phase.
 
-Read `$FORGE_ROOT/init/sdlc-init.md` — that document is your complete orchestration.
-Follow it exactly. It defines 4 phases:
+Before dispatching, gather the following values interactively:
 
-1. **Collect** — 5 parallel discovery prompts, KB folder prompt, `config.json`
-2. **Discover** — KB doc fan-out + inline `project-context.json` construction
-3. **Materialize** — `substitute-placeholders.cjs` + `build-overlay.cjs` smoke test
-4. **Register** — tools, versioning, manifest, cache, store seed, Tomoshibi, `.gitignore` update (unconditional), CLAUDE.md KB-link offer
+**KB Folder Prompt:**
+
+```
+What should your engineering knowledge base folder be named?
+  Default: engineering
+
+KB folder name [engineering]: ___
+```
+
+If the user provides a custom name, write it:
+```sh
+node "$FORGE_ROOT/tools/manage-config.cjs" set paths.engineering "{name}"
+```
+Set `kbFolder` to the chosen name (default: `"engineering"`).
+
+**CLAUDE.md Offer:**
+
+```sh
+ls CLAUDE.md AGENTS.md CLAUDE.local.md .cursorrules 2>/dev/null
+```
+
+If NONE of those files exist, ask:
+```
+No CLAUDE.md / AGENTS.md found. Create a minimal CLAUDE.md with Forge KB links? [Y/n]: ___
+```
+Set `createClaudeMd = true` (default Y) or `false`.
+If any file exists, set `createClaudeMd = false` (skip silently).
+
+**Timestamp:** `isoTimestamp = new Date().toISOString()`
+
+Execute the workflow:
+
+```
+workflow('wfl:init', {
+  forgeRoot: FORGE_ROOT,
+  kbFolder,
+  startPhase,
+  createClaudeMd,
+  isoTimestamp,
+  rawArguments: $ARGUMENTS
+})
+```
+
+If the Workflow tool is unavailable, halt immediately with the following message:
+
+> The Workflow tool is required to run `/forge:init`. This Claude Code build does not
+> support the Workflow tool. Upgrade Claude Code and try again.
+>
+> (Alternatively, run `4ge init claude .` again to re-scaffold, then upgrade Claude Code.)
+
+Do NOT fall back to reading `sdlc-init.md` or any other document — Iron Law 5.
+
+**Post-workflow:** on `result.ok === true`, render closing banners (use `banners.cjs forge`
+and `--subtitle "灯 SDLC ready…"`), emit the welcome block, present the marketplace-skills
+offer from `result.skillMatches` (install accepted skills via `manage-config.cjs set
+installedSkills.{id} true`), invoke `forge:refresh-kb-links` via the Skill tool, and
+print the final report (KB doc count, workflow count, command count, accepted/skipped skills).
+
+On `result.ok === false`: surface `result.failure` as formatted JSON and offer
+`/forge:report-bug`.
 
 The current working directory is the target project. All generated artifacts go into
 `.forge/`, the configured KB folder (default: `engineering/`), and `.claude/commands/`

@@ -3,14 +3,14 @@ name: implement
 description: Execute the approved implementation plan for a task
 ---
 
-# /{{PREFIX}}:implement
+# /forge:implement
 
 Read the implement workflow and follow it.
 
 ## Locate the Forge plugin
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 ## Execute

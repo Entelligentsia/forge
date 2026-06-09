@@ -3,14 +3,14 @@ name: review-code
 description: Code quality review of a completed task implementation
 ---
 
-# /{{PREFIX}}:review-code
+# /forge:review-code
 
 Read the review-code workflow and follow it.
 
 ## Locate the Forge plugin
 
 ```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT}"`
+FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
 ```
 
 ## Execute

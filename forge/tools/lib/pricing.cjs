@@ -13,9 +13,15 @@
  *                              Returns number (may be 0), or null for unknown model.
  *
  * This module is a pure library — no CLI, no process.exit.
- * Published Anthropic pricing (USD/MTok → divide by 1,000,000 for per-token rate):
- *   claude-opus-4-5:   input $15.00, output $75.00, cacheRead $1.50, cacheWrite $18.75
- *   claude-opus-4-7:   input $15.00, output $75.00, cacheRead $1.50, cacheWrite $18.75
+ * Published Anthropic pricing (USD/MTok → divide by 1,000,000 for per-token rate).
+ * Verified against Anthropic support + the pi vendor model table on 2026-06-08.
+ * cacheWrite uses the 5-minute-TTL rate; Forge phases run inside the 5-min cache
+ * window, so the 5-min write rate is the one that bills (1-hour TTL is higher but
+ * not used). All Opus 4.x generations share one rate tier:
+ *   claude-opus-4-5:   input $5.00,  output $25.00, cacheRead $0.50, cacheWrite $6.25
+ *   claude-opus-4-6:   input $5.00,  output $25.00, cacheRead $0.50, cacheWrite $6.25
+ *   claude-opus-4-7:   input $5.00,  output $25.00, cacheRead $0.50, cacheWrite $6.25
+ *   claude-opus-4-8:   input $5.00,  output $25.00, cacheRead $0.50, cacheWrite $6.25
  *   claude-sonnet-4-5: input $3.00,  output $15.00, cacheRead $0.30, cacheWrite $3.75
  *   claude-sonnet-4-6: input $3.00,  output $15.00, cacheRead $0.30, cacheWrite $3.75
  *   claude-haiku-3-5:  input $0.80,  output $4.00,  cacheRead $0.08, cacheWrite $1.00
@@ -24,16 +30,28 @@
 // All rates in USD per token (divide MTok rate by 1,000,000)
 const MODEL_PRICING = Object.freeze({
   'claude-opus-4-5': {
-    input:      15.00  / 1_000_000,
-    output:     75.00  / 1_000_000,
-    cacheRead:   1.50  / 1_000_000,
-    cacheWrite: 18.75  / 1_000_000,
+    input:       5.00  / 1_000_000,
+    output:     25.00  / 1_000_000,
+    cacheRead:   0.50  / 1_000_000,
+    cacheWrite:  6.25  / 1_000_000,
+  },
+  'claude-opus-4-6': {
+    input:       5.00  / 1_000_000,
+    output:     25.00  / 1_000_000,
+    cacheRead:   0.50  / 1_000_000,
+    cacheWrite:  6.25  / 1_000_000,
   },
   'claude-opus-4-7': {
-    input:      15.00  / 1_000_000,
-    output:     75.00  / 1_000_000,
-    cacheRead:   1.50  / 1_000_000,
-    cacheWrite: 18.75  / 1_000_000,
+    input:       5.00  / 1_000_000,
+    output:     25.00  / 1_000_000,
+    cacheRead:   0.50  / 1_000_000,
+    cacheWrite:  6.25  / 1_000_000,
+  },
+  'claude-opus-4-8': {
+    input:       5.00  / 1_000_000,
+    output:     25.00  / 1_000_000,
+    cacheRead:   0.50  / 1_000_000,
+    cacheWrite:  6.25  / 1_000_000,
   },
   'claude-sonnet-4-5': {
     input:       3.00  / 1_000_000,
@@ -63,7 +81,9 @@ const MODEL_PRICING = Object.freeze({
  */
 const MODEL_FAMILIES = [
   // Opus family
+  'claude-opus-4-8',
   'claude-opus-4-7',
+  'claude-opus-4-6',
   'claude-opus-4-5',
   // Sonnet family
   'claude-sonnet-4-6',

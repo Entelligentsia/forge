@@ -5,6 +5,152 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.4.4] — 2026-06-07
+
+First full CLI-first field test (git.git, ~500 source files) — `/forge:init`
+passed all phases; gap analysis surfaced three config/manifest defects.
+
+### Fixed
+
+- **`paths.commands` config drift** — `phase-1-collect.md` still carried a
+  prefix-derived instruction ("if prefix is `HELLO`, write
+  `.claude/commands/hello`") that survived the 1.4.0 namespace redesign; the
+  config-writer followed it and check-structure reported commands 0/14. The
+  path is ALWAYS `.claude/commands/forge`.
+- **`paths.forgeRoot` written as an absolute npm-global payload path** — no
+  rulebook said what to write, so the register agent improvised. New explicit
+  `generate-tools.md` step: `paths.forgeRoot = ".forge"` (the vendored
+  `.forge/` IS the Forge root; absolute paths break on upgrades/nvm switches).
+- **False "missing tools" gaps (49/59)** — `build-manifest.cjs` now excludes
+  the 10 plugin-development tools (`build-manifest`, `gen-integrity`,
+  `token-forensics`, …) from the `tools` namespace: the structure manifest
+  describes project instances, and dev tools are never vendored.
+  `structure-manifest.json` regenerated; instance expectation is now 49/49.
+
+## [1.4.3] — 2026-06-07
+
+### Fixed
+
+- **`wfl-init.js` Phase 2 verify invocations matched the tool's real CLI**
+  ([forge#112](https://github.com/Entelligentsia/forge/issues/112) follow-up).
+  Prompts said `verify-phase.cjs --phase 2` bare; the tool requires
+  `--phase 2 --kb-path <path>` and exits 2 without it. Both invocations now
+  pass `--kb-path "${kbFolder}"`. Contract gates added: every driver
+  verify-phase invocation must use a supported phase (1–3) and `--phase 2`
+  must carry `--kb-path`.
+
+## [1.4.2] — 2026-06-07
+
+### Fixed
+
+- **`wfl-init.js` ran zero agents but reported fabricated success
+  ([forge#112](https://github.com/Entelligentsia/forge/issues/112)).** Four
+  Workflow-API misuses: `phase(title, callback)` callbacks (containing every
+  phase body) were silently discarded by the harness; `parallel()` received
+  in-flight promises instead of thunks; `agent()` got the model tier as first
+  arg instead of `opts.model`; structured results lacked `opts.schema` so
+  `.ok` reads were undefined. `/forge:init` "completed" in ~3 ms with 0 agents
+  and hardcoded `ok: true`. Phase bodies now run inline, fan-outs use thunks,
+  every agent call is `agent(prompt, { model, label, phase, schema })`, and
+  the final report reflects real phase results (halts return `ok: false` with
+  the failure reason). Rulebook reads use vendored `.forge/init/...` paths
+  with a direct-analysis fallback for absent prompt files. Fix ported from
+  the field-validated patch authored against the live testbench run.
+
+### Added
+
+- **`wfl-drivers-parse.test.cjs` API-contract gates** — all drivers checked
+  for phase-callback misuse, promise-instead-of-thunk `parallel()` calls,
+  reversed `agent()` args, and dead `init/**.md` rulebook references.
+
+## [1.4.1] — 2026-06-07
+
+### Fixed
+
+- **`wfl-init.js` failed to launch — "SyntaxError: Unexpected keyword 'export'".**
+  The driver shipped wrapped in `export default async function wflInit(args)`,
+  but the Workflow harness permits exactly one export (the leading `meta`
+  literal) and evaluates the remainder as an async function body. The body now
+  runs at top level reading the `args` global, matching the other three
+  drivers. Every `/forge:init` → `workflow('wfl:init')` dispatch was dead on
+  arrival before this fix.
+
+### Added
+
+- **`wfl-drivers-parse.test.cjs`** — regression gate that parses all base-pack
+  `wfl-*.js` drivers exactly the way the Workflow harness does (single meta
+  export, body as async function body with workflow globals in scope).
+
+## [1.4.0] — 2026-06-07
+
+### Changed — △ Breaking
+
+- **Fixed `/forge:*` command namespace (CLI-first redesign).** Project-prefix
+  command namespaces (`/acme:*`, `/hello:*`) are retired — every project gets
+  the same `/forge:*` surface, with full parity between Claude Code and the
+  pure CLI (`4ge`):
+  - `tools/lib/paths.cjs` — `getCommandsSubdir()` returns `'forge'`
+    unconditionally (prefix arg is vestigial, kept for caller compat).
+  - `init/base-pack/commands/*.md` — `/{{PREFIX}}:` → literal `/forge:`
+    (26 occurrences, 17 files). Command templates are now fully static.
+  - `tools/substitute-placeholders.cjs` — materializes commands to
+    `.claude/commands/forge/` regardless of project prefix.
+  - Rulebooks updated: `generate-commands.md`, `phase-3-materialize.md`,
+    `phase-1-collect.md` (config `paths.commands` example), `meta-migrate.md`,
+    `migrate_structural.md`, `commands/add-task.md` next-steps text.
+  - The prefix-derived namespace existed to avoid collisions with the Forge
+    *plugin's* own `/forge:*` commands — moot now that the plugin mechanism
+    is retired in favour of project-vendored commands.
+  - **Migration:** existing projects keep working with their old
+    `.claude/commands/<prefix>/` files; re-materialize to get
+    `.claude/commands/forge/`, then delete the prefix directory.
+
+- **`FORGE_ROOT` vendored fallback in every command.** All 33 resolution
+  lines across `commands/*.md` and `init/base-pack/commands/*.md` change from
+  `${CLAUDE_PLUGIN_ROOT}` to `${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}` — in a
+  plugin-installed session the plugin root still wins; in a plugin-less
+  project bootstrapped by `4ge init claude` the vendored `.forge/` (tools,
+  schemas, hooks, init, meta) serves as the Forge root.
+
+## [1.3.0] — 2026-06-07
+
+### Added
+
+- **`init/base-pack/commands/init.md`** — new project-local command wrapper
+  installed by `4ge init claude .` into `.claude/commands/forge/`. Contains
+  the full hoisted-prompt flow (KB folder prompt, CLAUDE.md offer, timestamp
+  minting), dispatches `workflow('wfl:init', args)`, handles the
+  Workflow-tool-missing error explicitly, presents the marketplace-skills offer
+  from `result.skillMatches` post-workflow, invokes `forge:refresh-kb-links`
+  via the Skill tool, and emits the final report (KB doc count, workflow count,
+  command count, accepted/skipped skills). Uses vendored `.forge/tools/` paths
+  only — no `$FORGE_ROOT` / `${CLAUDE_PLUGIN_ROOT}` references.
+
+### Changed
+
+- **`commands/init.md` (plugin-side)** — Execute section rewritten to dispatch
+  `workflow('wfl:init', args)` with hoisted interactive prompts (KB folder
+  prompt, CLAUDE.md offer, timestamp minting). Replaces the previous
+  `Read $FORGE_ROOT/init/sdlc-init.md` instruction. Includes the explicit
+  Workflow-tool-missing error halt (Iron Law 5 — no silent degradation or
+  fallback to `sdlc-init.md`).
+
+- **`init/phases/phase-1-collect.md`** — Pre-flight Knowledge Base Folder block
+  and Step 5 (Marketplace Skills) annotated as orchestrator-owned when the
+  orchestrator pre-supplies the values. Annotations are informational — no step
+  renames or renumbers (forge-cli `run-phases.ts` glob freeze maintained).
+
+- **`init/phases/phase-4-register.md`** — Step 11 (Tomoshibi/refresh-kb-links)
+  and Step 13 (CLAUDE.md prompt) annotated as orchestrator-owned. Same
+  semantics-preserving annotation policy.
+
+- **`init/sdlc-init.md`** — Body reduced to a spec-pointer paragraph: points
+  to `wfl-init.js` (orchestration), `commands/init.md` (dispatch surface), and
+  `init/phases/` (canonical per-phase contracts). Phase/verify table preserved
+  for human readers. File not deleted.
+
+---
+
 ## [1.2.21] — 2026-06-06
 
 ### Fixed

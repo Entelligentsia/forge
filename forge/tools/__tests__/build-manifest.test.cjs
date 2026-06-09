@@ -352,6 +352,34 @@ describe('build-manifest.cjs — --check mode (FORGE-S25-T28)', () => {
 describe('build-manifest.cjs — tools namespace (FORGE-S29-T01)', () => {
   const os = require('os');
 
+  // Plugin-development tools — exist in forge/tools/ for plugin-repo CI and
+  // release engineering, but are NEVER vendored into project instances.
+  // Mirrors DEV_ONLY_TOOLS in build-manifest.cjs.
+  const DEV_ONLY_TOOLS = new Set([
+    'build-base-pack.cjs',
+    'build-enum-catalog.cjs',
+    'build-manifest.cjs',
+    'check-no-skipped-tests.cjs',
+    'estimate-usage.cjs',
+    'gen-integrity.cjs',
+    'migrate-slug-maxlen.cjs',
+    'proposal-normalize.cjs',
+    'rewrite-plugin-urls.cjs',
+    'token-forensics.cjs',
+  ]);
+
+  // Instance-scope contract: dev-only tools must NOT be expected in projects —
+  // check-structure runs against instances where only the runtime closure is
+  // vendored; expecting dev tools produces false "missing tools" gaps.
+  test('tools namespace excludes plugin-development tools (instance scope)', () => {
+    const FORGE_ROOT = path.join(__dirname, '..', '..');
+    const manifest = buildManifest(FORGE_ROOT);
+    const ns = manifest.namespaces.tools;
+    for (const dev of DEV_ONLY_TOOLS) {
+      assert.ok(!ns.files.includes(dev), `tools namespace must NOT expect dev-only tool ${dev} in instances`);
+    }
+  });
+
   // Test 1: tools namespace in generated structure-manifest.json lists all .cjs
   // tool files and lib/*.cjs files (reads committed manifest — fails until
   // buildManifest is updated and manifest is regenerated).
@@ -385,10 +413,11 @@ describe('build-manifest.cjs — tools namespace (FORGE-S29-T01)', () => {
     assert.equal(ns.logicalKey, 'tools', 'tools namespace logicalKey must be "tools"');
     assert.ok(Array.isArray(ns.files), 'tools namespace files must be an array');
     assert.ok(ns.files.length > 0, 'tools namespace must enumerate at least one file');
-    // Dynamic enumeration must include top-level tools/*.cjs
+    // Dynamic enumeration must include top-level tools/*.cjs — except the
+    // plugin-development tools, which are never vendored into instances.
     const toolsDir = path.join(FORGE_ROOT, 'tools');
     const expectedTopLevel = fs.readdirSync(toolsDir)
-      .filter(f => f.endsWith('.cjs') && !f.endsWith('.test.cjs'))
+      .filter(f => f.endsWith('.cjs') && !f.endsWith('.test.cjs') && !DEV_ONLY_TOOLS.has(f))
       .sort();
     for (const f of expectedTopLevel) {
       assert.ok(ns.files.includes(f), `tools files must include top-level ${f}`);
