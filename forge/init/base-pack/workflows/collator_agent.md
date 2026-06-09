@@ -75,12 +75,11 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
      }
      ```
      The orchestrator reads this file directly to compose the collation event narrative. Do NOT call `set-summary` to register it — that would mutate the store in violation of Iron Law 1.
-   - Invoke Tomoshibi via Skill tool to refresh KB and workflow links in agent
-     instruction files:
-     ```
-     Use the Skill tool:
-       skill: "forge:refresh-kb-links"
-     ```
+   - KB link refresh (best-effort; skip if unavailable):
+     When running standalone in the Claude Code TUI, invoke via the Skill tool
+     (`skill: "forge:refresh-kb-links"`).
+     When running as a subagent within forge-cli (Pi runtime), the TS orchestrator
+     calls `runRefreshKbLinks` directly after this phase — skip this step.
 ```
 
 <!-- See _fragments/generation-instructions.md for Generation Instructions template -->
