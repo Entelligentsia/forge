@@ -5,6 +5,31 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.4.7] — 2026-06-10
+
+Declarative payload manifest + source-drift check (FORGE-S32-T02). A new
+`payload-manifest.json` at the payload root names every shipped artifact —
+source path (under `forge/forge/`) → bundle path (`dist/forge-payload/`) →
+install destination (bootstrapped project root) → removal owner (uninstall
+grouping) — spec'd by the sibling `schemas/payload-manifest.schema.json`. This
+replaces the implicit contract previously spread across `build-payload.cjs`,
+`bootstrap.ts`, and `uninstall.ts` hand-maintained copy lists that caused the
+FORGE-BUG-030 / FORGE-BUG-036 `MODULE_NOT_FOUND` class.
+
+### Added
+- `tools/check-payload-manifest.cjs` — deterministic, CI-only source-drift
+  check. Exits non-zero on a manifest entry pointing at a missing source, or a
+  file under a recursively-copied payload tree that no manifest entry claims.
+  Wired into `plugin-ci.yml`. Not vendored into project instances
+  (`build-manifest.cjs` `DEV_ONLY_TOOLS` excludes it).
+
+The three forge-cli consumers are rewired to read the manifest in FORGE-S32-T03.
+
+**Regenerate:** none (build/bootstrap infrastructure; not a materialized
+instance artifact).
+
+---
+
 ## [1.4.5] — 2026-06-09
 
 Collate-workflow KB-link refresh is orchestrator-owned under forge-cli. The

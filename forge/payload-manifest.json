@@ -1,0 +1,316 @@
+{
+  "$schema": "./schemas/payload-manifest.schema.json",
+  "_doc": "Declarative inventory of the default (non --include-full) Forge payload. Each entry maps a source path under forge/forge/ to its bundle path (dist/forge-payload/), install destination (bootstrapped project root), and removal owner (uninstall grouping). Authored in FORGE-S32-T02 from build-payload.cjs Pass-2, bootstrap.ts Steps 2-5, and uninstall.ts. FORGE-S32-T03 wires the three consumers to read this file. The owner enum and select shape are provisional pending T03. --include-full superset entries are intentionally out of scope.",
+  "entries": [
+    {
+      "source": "tools",
+      "kind": "dir",
+      "bundle": "tools/",
+      "install": ".forge/tools/",
+      "owner": "forge-scaffold",
+      "select": {
+        "recursive": false,
+        "ext": [".cjs", ".js"],
+        "include": [
+          "substitute-placeholders.cjs",
+          "build-init-context.cjs",
+          "build-overlay.cjs",
+          "manage-versions.cjs",
+          "generation-manifest.cjs",
+          "build-persona-pack.cjs",
+          "build-context-pack.cjs",
+          "seed-store.cjs",
+          "manage-config.cjs",
+          "banners.cjs",
+          "validate-store.cjs",
+          "collate.cjs",
+          "store-cli.cjs",
+          "store.cjs",
+          "store-query.cjs",
+          "preflight-gate.cjs",
+          "postflight-gate.cjs",
+          "read-verdict.cjs",
+          "parse-gates.cjs",
+          "friction-emit.cjs",
+          "backfill-provider.cjs",
+          "check-structure.cjs",
+          "list-skills.js",
+          "verify-integrity.cjs",
+          "queue-drain.cjs",
+          "compression-gate.cjs",
+          "judge-proposal.cjs",
+          "delete-candidate-detector.cjs",
+          "replay-scoring.cjs",
+          "artifact.cjs",
+          "artifact-store.cjs",
+          "verify-apply.cjs",
+          "verify-phase.cjs",
+          "commit-task.cjs",
+          "query-logger.cjs",
+          "forge-preflight.cjs"
+        ]
+      },
+      "note": "Curated TOOLS_TO_COPY allowlist (build-payload Pass-2 2a). Forward-checked only — an unlisted tool is a deliberate minimal-payload exclusion, not drift. New runtime-required tools MUST be added here (FORGE-BUG-030/036 MODULE_NOT_FOUND class)."
+    },
+    {
+      "source": "tools/package.json",
+      "kind": "file",
+      "bundle": "tools/package.json",
+      "install": ".forge/tools/",
+      "owner": "forge-scaffold",
+      "synthesized": true,
+      "note": "FORGE-BUG-030: build-payload.cjs WRITES this {\"type\":\"commonjs\"} scope marker (no source file on disk) so bundled lib/*.js resolve as CommonJS inside \"type\":\"module\" host projects."
+    },
+    {
+      "source": "tools/lib",
+      "kind": "dir",
+      "bundle": "tools/lib/",
+      "install": ".forge/tools/lib/",
+      "owner": "forge-scaffold",
+      "select": {
+        "recursive": false,
+        "ext": [".cjs", ".js"],
+        "include": [
+          "artifact-kinds.cjs",
+          "forge-root.cjs",
+          "frontmatter.cjs",
+          "fsutil.cjs",
+          "json-io.cjs",
+          "paths.cjs",
+          "pricing.cjs",
+          "project-root.cjs",
+          "result.js",
+          "schema-loader.cjs",
+          "slug.cjs",
+          "suggest.cjs",
+          "validate.js",
+          "store-facade.cjs",
+          "store-nlp.cjs",
+          "store-query-exec.cjs"
+        ]
+      },
+      "note": "Curated LIB_ALLOWLIST (build-payload Pass-2 2a). Excludes *.test.cjs. Forward-checked only."
+    },
+    {
+      "source": "hooks",
+      "kind": "dir",
+      "bundle": "hooks/",
+      "install": ".forge/tools/hooks/",
+      "owner": "forge-scaffold",
+      "select": {
+        "recursive": false,
+        "ext": [".cjs"],
+        "exclude": ["hooks.json", "README.md"]
+      },
+      "note": "Top-level *.cjs hooks (build-payload Pass-2 2e4). hooks.json and README.md are intentionally not bundled. Installed under .forge/tools/hooks/ and wired into .claude/settings.json."
+    },
+    {
+      "source": "hooks/lib",
+      "kind": "dir",
+      "bundle": "hooks/lib/",
+      "install": ".forge/tools/hooks/lib/",
+      "owner": "forge-scaffold",
+      "select": {
+        "recursive": false,
+        "ext": [".cjs", ".js"]
+      },
+      "note": "Hook runtime deps (common.cjs, write-registry.js, ...) — required or every PostToolUse hook fails with MODULE_NOT_FOUND."
+    },
+    {
+      "source": "schemas",
+      "kind": "dir",
+      "bundle": ".schemas/",
+      "install": ".forge/schemas/",
+      "owner": "forge-scaffold",
+      "select": {
+        "recursive": true,
+        "ext": [".schema.json"],
+        "exclude": ["__tests__"]
+      },
+      "note": "Recursive *.schema.json incl. _defs/ (build-payload Pass-2 2e). Bundled to BOTH .schemas/ (tool resolution) and schemas/ (command prose $FORGE_ROOT/schemas/). Installed (incl. _defs/) to .forge/schemas/."
+    },
+    {
+      "source": "schemas/enum-catalog.json",
+      "kind": "file",
+      "bundle": ".schemas/enum-catalog.json",
+      "install": ".forge/schemas/",
+      "owner": "forge-scaffold",
+      "note": "Non-schema JSON consumed by catalog-loader.ts / transition-guard.ts (build-payload Pass-2 2e1b)."
+    },
+    {
+      "source": "schemas/structure-manifest.json",
+      "kind": "file",
+      "bundle": "schemas/structure-manifest.json",
+      "install": ".forge/schemas/",
+      "owner": "forge-scaffold",
+      "note": "Read by check-structure.cjs (__dirname/../schemas/structure-manifest.json). Bundled via the non-dot schemas/ all-JSON mirror."
+    },
+    {
+      "source": "schemas/transitions",
+      "kind": "dir",
+      "bundle": ".schemas/transitions/",
+      "install": ".forge/schemas/",
+      "owner": "forge-scaffold",
+      "select": {
+        "recursive": false,
+        "ext": [".json"]
+      },
+      "note": "FSM transition tables (build-payload Pass-2 2e1b)."
+    },
+    {
+      "source": "migrations.json",
+      "kind": "file",
+      "bundle": ".schemas/migrations.json",
+      "install": ".forge/schemas/",
+      "owner": "forge-scaffold",
+      "note": "Payload-root migrations.json copied into .schemas/ for migration-engine.ts (build-payload Pass-2 2e1)."
+    },
+    {
+      "source": "commands",
+      "kind": "dir",
+      "bundle": "commands/",
+      "install": ".claude/commands/forge/",
+      "owner": "claude-commands",
+      "select": {
+        "recursive": false,
+        "ext": [".md"]
+      },
+      "note": "Plugin utility slash-commands (build-payload Pass-2 2e2). Loser on name collision with .base-pack/commands/ during bootstrap Step 4b."
+    },
+    {
+      "source": "init/base-pack",
+      "kind": "dir",
+      "bundle": ".base-pack/",
+      "install": ".forge/.base-pack/",
+      "owner": "forge-scaffold",
+      "select": {
+        "recursive": true
+      },
+      "note": "Recursive base-pack tree (build-payload Pass-2 2d). Vendored wholesale to .forge/.base-pack/; subsets re-installed by the two entries below."
+    },
+    {
+      "source": "init/base-pack/commands",
+      "kind": "dir",
+      "bundle": ".base-pack/commands/",
+      "install": ".claude/commands/forge/",
+      "owner": "claude-commands",
+      "select": {
+        "recursive": false,
+        "ext": [".md"]
+      },
+      "note": "Sprint-workflow command shims. Winner on name collision with commands/ (bootstrap Step 4a)."
+    },
+    {
+      "source": "init/base-pack/workflows-js",
+      "kind": "dir",
+      "bundle": ".base-pack/workflows-js/",
+      "install": ".claude/workflows/",
+      "owner": "workflows",
+      "select": {
+        "recursive": false,
+        "ext": [".js"],
+        "prefix": ["wfl-"]
+      },
+      "note": "wfl-*.js workflow drivers installed to .claude/workflows/ (bootstrap Step 5)."
+    },
+    {
+      "source": "init/phases",
+      "kind": "dir",
+      "bundle": "init/phases/",
+      "install": ".forge/init/phases/",
+      "owner": "forge-scaffold",
+      "select": {
+        "recursive": false,
+        "ext": [".md"]
+      },
+      "note": "Init rulebook phase prompts read by run-phases.ts / wfl-init.js (build-payload Pass-2 2e-pre)."
+    },
+    {
+      "source": "init/discovery",
+      "kind": "dir",
+      "bundle": "init/discovery/",
+      "install": ".forge/init/discovery/",
+      "owner": "forge-scaffold",
+      "select": {
+        "recursive": false,
+        "ext": [".md"]
+      },
+      "note": "Per-domain discovery prompts (build-payload Pass-2 2e-pre). The curated .init/discovery/discover-*.md bundle subset is a separate build-payload target; install uses the full set."
+    },
+    {
+      "source": "init/generation",
+      "kind": "dir",
+      "bundle": "init/generation/",
+      "install": ".forge/init/generation/",
+      "owner": "forge-scaffold",
+      "select": {
+        "recursive": false,
+        "ext": [".md"]
+      },
+      "note": "Generation prompts (build-payload Pass-2 2e-pre, full set to init/generation/). The curated .init/generation/generate-kb-doc.md bundle subset is a separate target."
+    },
+    {
+      "source": "init/workflow-gen-plan.json",
+      "kind": "file",
+      "bundle": "init/workflow-gen-plan.json",
+      "install": ".forge/init/",
+      "owner": "forge-scaffold",
+      "note": "Referenced by vendored commands (rebuild.md reads .forge/init/workflow-gen-plan.json). INIT_ROOT_FILES (build-payload Pass-2 2e-pre)."
+    },
+    {
+      "source": "meta",
+      "kind": "dir",
+      "bundle": "meta/",
+      "install": ".forge/meta/",
+      "owner": "forge-scaffold",
+      "select": {
+        "recursive": true
+      },
+      "note": "Personas + skills source-of-truth, recursive (build-payload Pass-2 2a2). build-persona-pack.cjs hashes meta/ for the pack cache key (forge-cli#25 defect A)."
+    },
+    {
+      "source": ".claude-plugin/plugin.json",
+      "kind": "file",
+      "bundle": ".claude-plugin/plugin.json",
+      "install": ".forge/.claude-plugin/",
+      "owner": "forge-scaffold",
+      "note": "Plugin manifest / version source (build-payload Pass-2 2f)."
+    },
+    {
+      "source": "agents",
+      "kind": "dir",
+      "bundle": "agents/",
+      "install": ".claude/agents/",
+      "owner": "claude-assets",
+      "select": {
+        "recursive": false,
+        "ext": [".md"]
+      },
+      "note": "Plugin Claude Code subagents (tomoshibi, store-query-validator). Tracked by integrity.json (build-payload Pass-2 2e3)."
+    },
+    {
+      "source": "skills",
+      "kind": "dir",
+      "bundle": "skills/",
+      "install": ".claude/skills/",
+      "owner": "claude-assets",
+      "select": {
+        "include": [
+          "store-custodian",
+          "store-query-grammar",
+          "store-query-nlp",
+          "refresh-kb-links"
+        ]
+      },
+      "note": "Curated SKILLS_TO_COPY (build-payload Pass-2 2i). Each entry is a skill directory (SKILL.md). Forward-checked only."
+    },
+    {
+      "source": "integrity.json",
+      "kind": "file",
+      "bundle": "integrity.json",
+      "install": ".forge/",
+      "owner": "forge-scaffold",
+      "note": "Plugin-tampering manifest resolved at forge-root by verify-integrity.cjs (build-payload Pass-2 2e0b)."
+    }
+  ]
+}

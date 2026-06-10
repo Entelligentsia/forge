@@ -41,6 +41,13 @@ jobs:
         # node forge/tools/build-manifest.cjs --forge-root forge/ then commit.
         run: node forge/tools/build-manifest.cjs --forge-root forge/ --check
 
+      - name: Payload manifest drift check
+        # FORGE-S32-T02: exits 1 if payload-manifest.json points at a missing
+        # source or a file under a recursively-copied payload tree has no
+        # covering manifest entry. Fix locally: update forge/payload-manifest.json
+        # (and add new runtime-required tools to build-payload.cjs TOOLS_TO_COPY).
+        run: node forge/tools/check-payload-manifest.cjs --forge-root forge/
+
       - name: Integrity verification
         run: node forge/tools/verify-integrity.cjs
 

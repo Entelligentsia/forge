@@ -1,6 +1,6 @@
 {
-  "version": "1.4.3",
-  "generatedAt": "2026-06-07T14:06:39.707Z",
+  "version": "1.4.7",
+  "generatedAt": "2026-06-10T15:58:06.605Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -126,6 +126,7 @@
         "event-sidecar.schema.json",
         "event.schema.json",
         "feature.schema.json",
+        "payload-manifest.schema.json",
         "progress-entry.schema.json",
         "project-context.schema.json",
         "project-overlay.schema.json",

@@ -360,6 +360,7 @@ describe('build-manifest.cjs — tools namespace (FORGE-S29-T01)', () => {
     'build-enum-catalog.cjs',
     'build-manifest.cjs',
     'check-no-skipped-tests.cjs',
+    'check-payload-manifest.cjs',
     'estimate-usage.cjs',
     'gen-integrity.cjs',
     'migrate-slug-maxlen.cjs',

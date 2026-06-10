@@ -98,6 +98,7 @@ const DEV_ONLY_TOOLS = new Set([
   'build-enum-catalog.cjs',
   'build-manifest.cjs',
   'check-no-skipped-tests.cjs',
+  'check-payload-manifest.cjs',
   'estimate-usage.cjs',
   'gen-integrity.cjs',
   'migrate-slug-maxlen.cjs',

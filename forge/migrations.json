@@ -1,4 +1,13 @@
 {
+  "1.4.6": {
+    "version": "1.4.7",
+    "date": "2026-06-10",
+    "notes": "Declarative payload manifest + source-drift check (FORGE-S32-T02). NEW forge/forge/payload-manifest.json names every shipped artifact (source -> bundle -> install -> removal owner), spec'd by NEW forge/forge/schemas/payload-manifest.schema.json, replacing the implicit contract previously spread across build-payload.cjs / bootstrap.ts / uninstall.ts hand-maintained copy lists (the FORGE-BUG-030/036 MODULE_NOT_FOUND class). NEW forge/forge/tools/check-payload-manifest.cjs is a CI-only dev tool (not vendored to instances) that exits non-zero on a missing source or an orphan file under a recursive payload tree; wired into plugin-ci.yml. The three forge-cli consumers are rewired to read the manifest in FORGE-S32-T03. build-manifest.cjs DEV_ONLY_TOOLS now excludes check-payload-manifest.cjs; structure-manifest.json regenerated to list the newly-vendored payload-manifest.schema.json.",
+    "target": "tools:check-payload-manifest,schemas:payload-manifest,schemas:structure-manifest,tools:build-manifest",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "1.4.5": {
     "version": "1.4.6",
     "date": "2026-06-09",
