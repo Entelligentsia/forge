@@ -18,7 +18,17 @@
     "entry": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source", "bundle", "install", "owner", "kind"],
+      "required": ["source", "bundle", "owner", "kind"],
+      "if": {
+        "properties": { "bundleOnly": { "const": true } },
+        "required": ["bundleOnly"]
+      },
+      "then": {
+        "not": { "required": ["install"] }
+      },
+      "else": {
+        "required": ["install"]
+      },
       "properties": {
         "source": {
           "type": "string",
@@ -30,7 +40,11 @@
         },
         "install": {
           "type": "string",
-          "description": "Destination inside a bootstrapped project, relative to project root (e.g. .forge/tools/, .claude/commands/forge/)."
+          "description": "Destination inside a bootstrapped project, relative to project root (e.g. .forge/tools/, .claude/commands/forge/). Required unless bundleOnly:true (the if/then/else contract); forbidden when bundleOnly:true."
+        },
+        "bundleOnly": {
+          "type": "boolean",
+          "description": "True when the artifact ships to dist/forge-payload/ for tool/migration-engine resolution but is NOT installed into a bootstrapped project's tree. Such entries MUST NOT declare install (enforced by the if/then/else contract and check-payload-manifest.cjs). FORGE-BUG-044."
         },
         "owner": {
           "type": "string",

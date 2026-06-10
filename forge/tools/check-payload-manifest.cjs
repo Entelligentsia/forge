@@ -107,6 +107,24 @@ function checkManifest(forgeRoot) {
 
   const missing = [];
   const orphans = [];
+  const inconsistencies = [];
+
+  // ── Pass 0: bundle-only self-consistency (FORGE-BUG-044) ──────────────────
+  // A non-bundleOnly entry MUST declare a non-empty install destination; a
+  // bundleOnly entry MUST NOT declare one (it ships to dist/forge-payload only
+  // and is never installed into a bootstrapped project's tree). Mirrors the
+  // declarative if/then/else contract in payload-manifest.schema.json so the
+  // over-broad install field that FORGE-BUG-044 fixed cannot recur silently.
+  for (const entry of entries) {
+    const hasInstall = typeof entry.install === 'string' && entry.install.length > 0;
+    if (entry.bundleOnly === true) {
+      if (hasInstall) {
+        inconsistencies.push({ source: entry.source, reason: 'bundleOnly entry must NOT declare install' });
+      }
+    } else if (!hasInstall) {
+      inconsistencies.push({ source: entry.source, reason: 'non-bundleOnly entry must declare a non-empty install' });
+    }
+  }
 
   // ── Pass 1: missing-source + kind + curated include ──────────────────────
   for (const entry of entries) {
@@ -150,7 +168,12 @@ function checkManifest(forgeRoot) {
     }
   }
 
-  return { missing, orphans, ok: missing.length === 0 && orphans.length === 0 };
+  return {
+    missing,
+    orphans,
+    inconsistencies,
+    ok: missing.length === 0 && orphans.length === 0 && inconsistencies.length === 0,
+  };
 }
 
 module.exports = { checkManifest, matchesFilter, isClaimed, walkFiles };
@@ -175,7 +198,7 @@ if (require.main === module) {
       }
     }
 
-    const { missing, orphans, ok } = checkManifest(forgeRoot);
+    const { missing, orphans, inconsistencies, ok } = checkManifest(forgeRoot);
 
     if (missing.length > 0) {
       process.stdout.write('× Missing / mistyped sources:\n');
@@ -189,13 +212,19 @@ if (require.main === module) {
         process.stdout.write(`    × ${o.file} (under ${o.entry})\n`);
       }
     }
+    if (inconsistencies.length > 0) {
+      process.stdout.write('× Install / bundleOnly inconsistencies:\n');
+      for (const c of inconsistencies) {
+        process.stdout.write(`    × ${c.source} — ${c.reason}\n`);
+      }
+    }
 
     if (ok) {
       process.stdout.write('〇 Payload manifest check: source tree matches the manifest.\n');
       process.exit(0);
     }
     process.stdout.write(
-      `── Payload manifest drift: ${missing.length} missing, ${orphans.length} orphan(s).\n`,
+      `── Payload manifest drift: ${missing.length} missing, ${orphans.length} orphan(s), ${inconsistencies.length} inconsistenc(ies).\n`,
     );
     process.exit(1);
   } catch (err) {

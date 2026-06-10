@@ -149,21 +149,21 @@
       "source": "schemas/transitions",
       "kind": "dir",
       "bundle": ".schemas/transitions/",
-      "install": ".forge/schemas/",
+      "bundleOnly": true,
       "owner": "forge-scaffold",
       "select": {
         "recursive": false,
         "ext": [".json"]
       },
-      "note": "FSM transition tables (build-payload Pass-2 2e1b)."
+      "note": "FSM transition tables (build-payload Pass-2 2e1b). Bundle-only: shipped to dist/forge-payload/.schemas/transitions/ for transition-guard.ts resolution, NOT installed into .forge/schemas/ (the historical install tree never vendored transitions/). FORGE-BUG-044."
     },
     {
       "source": "migrations.json",
       "kind": "file",
       "bundle": ".schemas/migrations.json",
-      "install": ".forge/schemas/",
+      "bundleOnly": true,
       "owner": "forge-scaffold",
-      "note": "Payload-root migrations.json copied into .schemas/ for migration-engine.ts (build-payload Pass-2 2e1)."
+      "note": "Payload-root migrations.json copied into .schemas/ for migration-engine.ts (build-payload Pass-2 2e1). Bundle-only: shipped to dist/forge-payload/.schemas/ for migration-engine resolution, NOT installed into .forge/schemas/. FORGE-BUG-044."
     },
     {
       "source": "commands",

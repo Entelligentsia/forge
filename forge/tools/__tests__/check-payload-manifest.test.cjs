@@ -174,6 +174,68 @@ describe('checkManifest', () => {
   });
 });
 
+describe('bundle-only invariant (FORGE-BUG-044)', () => {
+  let root;
+  afterEach(() => {
+    if (root) {
+      rm(root);
+      root = null;
+    }
+  });
+
+  test('bundleOnly:true entry with no install → ok:true, no inconsistencies', () => {
+    root = makeForgeRoot({ 'migrations.json': '{}' });
+    writeManifest(root, {
+      entries: [
+        { source: 'migrations.json', kind: 'file', bundle: '.schemas/migrations.json', owner: 'forge-scaffold', bundleOnly: true },
+      ],
+    });
+    const res = checkManifest(root);
+    assert.equal(res.ok, true, JSON.stringify(res));
+    assert.deepEqual(res.inconsistencies, []);
+  });
+
+  test('bundleOnly:true entry that ALSO declares install → reported, ok:false', () => {
+    root = makeForgeRoot({ 'migrations.json': '{}' });
+    writeManifest(root, {
+      entries: [
+        { source: 'migrations.json', kind: 'file', bundle: '.schemas/migrations.json', install: '.forge/schemas/', owner: 'forge-scaffold', bundleOnly: true },
+      ],
+    });
+    const res = checkManifest(root);
+    assert.equal(res.ok, false, JSON.stringify(res));
+    assert.equal(res.inconsistencies.length, 1);
+    assert.match(res.inconsistencies[0].source, /migrations\.json/);
+    assert.match(res.inconsistencies[0].reason, /bundleOnly/i);
+  });
+
+  test('non-bundleOnly entry missing install → reported, ok:false', () => {
+    root = makeForgeRoot({ 'tools/store-cli.cjs': '// tool' });
+    writeManifest(root, {
+      entries: [
+        { source: 'tools/store-cli.cjs', kind: 'file', bundle: 'tools/store-cli.cjs', owner: 'forge-scaffold' },
+      ],
+    });
+    const res = checkManifest(root);
+    assert.equal(res.ok, false, JSON.stringify(res));
+    assert.equal(res.inconsistencies.length, 1);
+    assert.match(res.inconsistencies[0].source, /store-cli\.cjs/);
+    assert.match(res.inconsistencies[0].reason, /install/i);
+  });
+
+  test('non-bundleOnly entry with non-empty install → ok:true', () => {
+    root = makeForgeRoot({ 'tools/store-cli.cjs': '// tool' });
+    writeManifest(root, {
+      entries: [
+        { source: 'tools/store-cli.cjs', kind: 'file', bundle: 'tools/store-cli.cjs', install: '.forge/tools/', owner: 'forge-scaffold' },
+      ],
+    });
+    const res = checkManifest(root);
+    assert.equal(res.ok, true, JSON.stringify(res));
+    assert.deepEqual(res.inconsistencies, []);
+  });
+});
+
 describe('check-payload-manifest CLI', () => {
   let root;
   afterEach(() => {

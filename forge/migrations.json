@@ -1,4 +1,13 @@
 {
+  "1.4.7": {
+    "version": "1.4.8",
+    "date": "2026-06-10",
+    "notes": "FORGE-BUG-044: payload-manifest.json declared install:'.forge/schemas/' for the schemas/transitions dir entry and the migrations.json file entry, but neither is ever vendored into a bootstrapped project's .forge/schemas/ (they are bundle-only — shipped to dist/forge-payload/.schemas/ for transition-guard.ts / migration-engine.ts resolution). A manifest-driven bootstrap honouring install (FORGE-S32-T03) would have installed >=4 phantom files, breaking AC4 byte-parity. Fix: NEW bundleOnly boolean in payload-manifest.schema.json with a draft-07 if/then/else contract (install forbidden when bundleOnly:true, else required; install dropped from base required[]); the two entries now declare bundleOnly:true and drop install; check-payload-manifest.cjs gains a bundle-only self-consistency pass (inconsistencies[] folded into ok + CLI exit) so the over-broad install field cannot recur. Declarative + tooling-enforced; no store-record migration.",
+    "target": "schemas:payload-manifest,tools:check-payload-manifest",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "1.4.6": {
     "version": "1.4.7",
     "date": "2026-06-10",
