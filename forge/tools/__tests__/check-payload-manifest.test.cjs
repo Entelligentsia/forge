@@ -273,4 +273,23 @@ describe('real forge/forge tree', () => {
     const res = checkManifest(REAL_FORGE_ROOT);
     assert.equal(res.ok, true, `missing=${JSON.stringify(res.missing)}\norphans=${JSON.stringify(res.orphans)}`);
   });
+
+  // FORGE-BUG-045 regression lock: integrity.json ships to dist/forge-payload/
+  // for verify-integrity.cjs resolution but is NEVER vendored into a bootstrapped
+  // project's .forge/ tree (the historical install set has no .forge/integrity.json).
+  // It must therefore be bundleOnly with no install, eliminating the last
+  // over-broad-install divergence that broke FORGE-S32-T03 AC4 byte-parity.
+  test('integrity.json entry is bundleOnly with no install (FORGE-BUG-045)', () => {
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(REAL_FORGE_ROOT, 'payload-manifest.json'), 'utf8'),
+    );
+    const entry = manifest.entries.find((e) => e.source === 'integrity.json');
+    assert.ok(entry, 'integrity.json entry must exist in payload-manifest.json');
+    assert.equal(entry.bundleOnly, true, 'integrity.json must be bundleOnly:true');
+    assert.equal(
+      'install' in entry,
+      false,
+      'integrity.json must NOT declare install (it is never vendored into .forge/)',
+    );
+  });
 });

@@ -308,9 +308,9 @@
       "source": "integrity.json",
       "kind": "file",
       "bundle": "integrity.json",
-      "install": ".forge/",
+      "bundleOnly": true,
       "owner": "forge-scaffold",
-      "note": "Plugin-tampering manifest resolved at forge-root by verify-integrity.cjs (build-payload Pass-2 2e0b)."
+      "note": "Plugin-tampering manifest resolved at forge-root by verify-integrity.cjs (build-payload Pass-2 2e0b). Bundle-only: shipped to dist/forge-payload/integrity.json for verify-integrity.cjs resolution, NOT installed into a bootstrapped project's .forge/ (the historical install tree never vendored integrity.json — bootstrap only hashes it). FORGE-BUG-045."
     }
   ]
 }

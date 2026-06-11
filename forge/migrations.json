@@ -1,4 +1,13 @@
 {
+  "1.4.8": {
+    "version": "1.4.9",
+    "date": "2026-06-11",
+    "notes": "FORGE-BUG-045: payload-manifest.json's integrity.json entry declared install:'.forge/' but is never vendored into a bootstrapped project's .forge/ tree — the historical bootstrap only HASHES payloadRoot/integrity.json for the .bootstrap-manifest.json integrity field, never installs it. It is bundle-only (shipped to dist/forge-payload/integrity.json for verify-integrity.cjs forge-root resolution). This was the last over-broad-install entry missed by the FORGE-BUG-044 sweep; a manifest-driven bootstrap honouring install (FORGE-S32-T03) would install a phantom .forge/integrity.json, breaking AC4 byte-parity. Fix: the entry now declares bundleOnly:true and drops install (validating against the existing bundleOnly if/then/else contract from FORGE-BUG-044 — no schema or checker code change); a regression-lock test pins the corrected entry. Declarative data correction; no store-record migration.",
+    "target": "schemas:payload-manifest",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "1.4.7": {
     "version": "1.4.8",
     "date": "2026-06-10",
