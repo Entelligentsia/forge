@@ -47,7 +47,8 @@
           "verify-phase.cjs",
           "commit-task.cjs",
           "query-logger.cjs",
-          "forge-preflight.cjs"
+          "forge-preflight.cjs",
+          "reset-plan.cjs"
         ]
       },
       "note": "Curated TOOLS_TO_COPY allowlist (build-payload Pass-2 2a). Forward-checked only — an unlisted tool is a deliberate minimal-payload exclusion, not drift. New runtime-required tools MUST be added here (FORGE-BUG-030/036 MODULE_NOT_FOUND class)."

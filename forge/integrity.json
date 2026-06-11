@@ -1,6 +1,6 @@
 {
-  "version": "1.4.7",
-  "generated": "2026-06-10",
+  "version": "1.4.11",
+  "generated": "2026-06-11",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
     "commands/add-pipeline.md": "ed4e666b38542d959287116ff6f25e8f51b10c2f18d1fc54974a996fdaf9d8f7",
@@ -15,6 +15,7 @@
     "commands/remove.md": "3044c58c699047e94bea4bb26bbe0e8d81425cba1ef2afc7243968e2ee8ab483",
     "commands/repair.md": "90dd34c87768aef50a46224a21280047ed2376ca59785ecf6403cae3177dfc2f",
     "commands/report-bug.md": "ae4eb28b54d171de20e89250daadc2a0859887f1d59845a895bd9543b0c1db6f",
+    "commands/reset.md": "b8a97d31c7f8bde5b92d34d1ac42e8795c789e40b58552dbe72db707d60aeb44",
     "commands/search.md": "befc4ba9f3146e7599308b35b95ec315e16895c0c18c9c2bab7549619d79bf1c",
     "commands/status.md": "d1f5e9295b472553fafcd270e34be00560beadfb18b98d4b696845fb794102eb",
     "commands/update.md": "00cf09b7fa6e84b7bd137a543a11e52c3dbfe3dfe463982dbd6224435ba52345",
@@ -30,7 +31,7 @@
     "schemas/transitions/bug.json": "27b17da42d1cebffbd4f61ab3dcd432a0017aa71997d548ed80d22c2fc3fad6a",
     "schemas/transitions/sprint.json": "2e0a629396e687b0ca88e1814ac3e35d84533a5d55b25237ab67feddce3c9deb",
     "schemas/transitions/task.json": "4c71849747baa0d585756e57c56325ff6219c078178374e60815dff91e25e3e7",
-    "schemas/enum-catalog.json": "893ff4a1834f7ed7a400d4579f8838d0c4d54f9acb3b9bf59d58dcd1a33d63ba",
+    "schemas/enum-catalog.json": "98da96c6495497f2a91edac3a4d66e178ab8cfd6835a5fc9255badca6517c440",
     "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
   }
 }

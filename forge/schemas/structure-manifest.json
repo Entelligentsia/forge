@@ -1,6 +1,6 @@
 {
-  "version": "1.4.7",
-  "generatedAt": "2026-06-10T15:58:06.605Z",
+  "version": "1.4.11",
+  "generatedAt": "2026-06-11T06:08:57.968Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -166,6 +166,7 @@
         "queue-drain.cjs",
         "read-verdict.cjs",
         "replay-scoring.cjs",
+        "reset-plan.cjs",
         "seed-store.cjs",
         "store-cli.cjs",
         "store-query.cjs",

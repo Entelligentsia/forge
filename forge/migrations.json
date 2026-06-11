@@ -1,4 +1,13 @@
 {
+  "1.4.10": {
+    "version": "1.4.11",
+    "date": "2026-06-11",
+    "notes": "FEAT-009 T03: new /forge:reset command + reset-plan.cjs tool — a guardrailed, NLP-backed pipeline-state reset. reset-plan.cjs is a pure, read-only PLANNER: given a task/bug/sprint and a target phase it computes the status transition(s) plus cross-entity referential-integrity warnings (committed-work git divergence, parent-sprint incoherence, dependents resting on rewound work, and sprint cascade of transitive dependents) WITHOUT mutating the store. The /forge:reset command interprets a natural-language request, runs the planner, presents the transitions + integrity implications, requires explicit confirmation, then applies via store-cli update-status --force. Complements forge-cli's deterministic `4ge reset` (single-entity task/bug). New tool + command; structure-manifest/enum-catalog/integrity regenerated. No store-record migration.",
+    "target": "commands:reset,tools:reset-plan",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "1.4.9": {
     "version": "1.4.10",
     "date": "2026-06-11",
