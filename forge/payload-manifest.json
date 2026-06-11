@@ -176,7 +176,7 @@
         "recursive": false,
         "ext": [".md"]
       },
-      "note": "Plugin utility slash-commands (build-payload Pass-2 2e2). Loser on name collision with .base-pack/commands/ during bootstrap Step 4b."
+      "note": "Unified Forge slash-command tree (build-payload Pass-2 2e2). Single source of truth for ALL /forge:* commands — the 13 plugin-utility commands plus the materialized base-pack sprint-workflow shims and the three former-collision winners (init, check-agent, enhance). Installed verbatim to .claude/commands/forge/; delegateMarkdownCommand reads <forgeRoot>/commands/<name>.md. The former second tree (init/base-pack/commands/) was collapsed into this one in FORGE-S32-T06 — no more union/collision ordering."
     },
     {
       "source": "init/base-pack",
@@ -187,19 +187,7 @@
       "select": {
         "recursive": true
       },
-      "note": "Recursive base-pack tree (build-payload Pass-2 2d). Vendored wholesale to .forge/.base-pack/; subsets re-installed by the two entries below."
-    },
-    {
-      "source": "init/base-pack/commands",
-      "kind": "dir",
-      "bundle": ".base-pack/commands/",
-      "install": ".claude/commands/forge/",
-      "owner": "claude-commands",
-      "select": {
-        "recursive": false,
-        "ext": [".md"]
-      },
-      "note": "Sprint-workflow command shims. Winner on name collision with commands/ (bootstrap Step 4a)."
+      "note": "Recursive base-pack tree (build-payload Pass-2 2d). Vendored wholesale to .forge/.base-pack/; the workflows-js subset is re-installed by the entry below. The commands/ subtree was collapsed into the unified commands/ entry above in FORGE-S32-T06 — base-pack no longer carries a commands/ subdir."
     },
     {
       "source": "init/base-pack/workflows-js",

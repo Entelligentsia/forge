@@ -9,9 +9,14 @@
  *   2. Applying structural transformations per category (persona, skill, workflow)
  *   3. Applying genericization rules from build-base-pack-rules.json
  *      (replacing hardcoded "Forge" persona names with {{PROJECT_NAME}} placeholders)
- *   4. Generating command files from the explicit 16-entry metadata table
- *   5. Copying verbatim where no meta source exists (run_sprint.md, quiz_agent.md,
- *      base-pack-only personas/skills, templates, enhance.md)
+ *   4. Copying verbatim where no meta source exists (run_sprint.md, quiz_agent.md,
+ *      base-pack-only personas/skills, templates)
+ *
+ * NOTE (FORGE-S32-T06): commands are NO LONGER generated here. The former
+ * base-pack/commands/ second tree was collapsed into the unified
+ * forge/forge/commands/ tree. COMMAND_METADATA / generateCommand remain
+ * exported for backward-compatible unit tests but are no longer invoked by the
+ * build.
  *
  * CLI:
  *   node build-base-pack.cjs [--forge-root <path>] [--out <path>]
@@ -535,7 +540,6 @@ function buildBasePack({ forgeRoot, outRoot }) {
   ensureDir(path.join(outRoot, 'workflows'));
   ensureDir(path.join(outRoot, 'workflows', '_fragments'));
   ensureDir(path.join(outRoot, 'templates'));
-  ensureDir(path.join(outRoot, 'commands'));
 
   const rules = GENERICIZATION_RULES;
 
@@ -715,24 +719,12 @@ function buildBasePack({ forgeRoot, outRoot }) {
     writeFile(path.join(outRoot, 'templates', fname), content);
   }
 
-  // ── 5. Commands ───────────────────────────────────────────────────────────────
+  // ── Commands: NOT generated here since FORGE-S32-T06 ──────────────────────────
   //
-  // 15 files generated from metadata table.
-  // 1 file (enhance.md) copied verbatim from existing base-pack (ENHANCE_AGENT_SENTINEL).
-
-  for (const meta of COMMAND_METADATA) {
-    if (meta.workflow === 'ENHANCE_AGENT_SENTINEL') {
-      // Copy verbatim from existing base-pack
-      const src = path.join(basePackDir, 'commands', meta.file);
-      let content = fs.readFileSync(src, 'utf8');
-      content = applyGenericizationRules(content, rules);
-      writeFile(path.join(outRoot, 'commands', meta.file), content);
-    } else {
-      let content = generateCommand(meta.file, meta);
-      content = applyGenericizationRules(content, rules);
-      writeFile(path.join(outRoot, 'commands', meta.file), content);
-    }
-  }
+  // The former base-pack/commands/ second tree was collapsed into the unified
+  // forge/forge/commands/ tree (single source of truth, installed verbatim by
+  // bootstrap). base-pack no longer assembles a commands/ subtree, so there is
+  // no Section 5 generation loop and no commands/*.md validation below.
 
   // ── Validation: verify all expected output files exist ────────────────────────
 
@@ -764,12 +756,8 @@ function buildBasePack({ forgeRoot, outRoot }) {
     'templates/PLAN_TEMPLATE.md', 'templates/PROGRESS_TEMPLATE.md',
     'templates/RETROSPECTIVE_TEMPLATE.md', 'templates/SPRINT_MANIFEST_TEMPLATE.md',
     'templates/SPRINT_REQUIREMENTS_TEMPLATE.md', 'templates/TASK_PROMPT_TEMPLATE.md',
-    // Commands (16)
-    'commands/approve.md', 'commands/collate.md', 'commands/commit.md', 'commands/enhance.md',
-    'commands/fix-bug.md', 'commands/implement.md', 'commands/plan.md', 'commands/check-agent.md',
-    'commands/retro.md', 'commands/review-code.md', 'commands/review-plan.md',
-    'commands/run-sprint.md', 'commands/run-task.md', 'commands/new-sprint.md',
-    'commands/plan-sprint.md', 'commands/validate.md',
+    // Commands: collapsed into the unified forge/forge/commands/ tree
+    // (FORGE-S32-T06) — base-pack no longer assembles a commands/ subtree.
   ];
 
   const missing = expectedFiles.filter(f => !fs.existsSync(path.join(outRoot, f)));

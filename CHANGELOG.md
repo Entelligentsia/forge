@@ -5,6 +5,35 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.4.13] — 2026-06-11
+
+Command-tree unification (FORGE-S32-T06). The two payload command trees
+(`forge/forge/commands/` and `forge/forge/init/base-pack/commands/`) are
+collapsed into one. `forge/forge/commands/` is now the single source of truth
+for every `/forge:*` command — "which copy wins" is no longer a question.
+
+### Changed
+- Materialized the union into `forge/forge/commands/`: folded in the 14
+  non-colliding base-pack sprint-workflow shims (`approve`, `collate`, `commit`,
+  `fix-bug`, `implement`, `new-sprint`, `plan`, `plan-sprint`, `retro`,
+  `review-code`, `review-plan`, `run-sprint`, `run-task`, `validate`) and
+  overwrote the three collisions (`init`, `check-agent`, `enhance`) with the
+  base-pack winner bytes. Installed `.claude/commands/forge/` is byte-for-byte
+  identical to the prior union output.
+- `payload-manifest.json` carries a single `commands` entry (the
+  `init/base-pack/commands` entry is removed); `bootstrap` copies one directory
+  with no union/collision ordering.
+- Plugin-channel semantic delta: the plugin-served `init`/`check-agent`/
+  `enhance` bytes now match the base-pack winners. The plugin channel is retired
+  at T07.
+
+### Removed
+- Deleted `forge/forge/init/base-pack/commands/` (17 files). `build-base-pack.cjs`
+  no longer regenerates it — the Section-5 command-generation loop and the
+  `expectedFiles` "Commands (16)" block were removed.
+
+---
+
 ## [1.4.7] — 2026-06-10
 
 Declarative payload manifest + source-drift check (FORGE-S32-T02). A new

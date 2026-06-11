@@ -1,4 +1,13 @@
 {
+  "1.4.12": {
+    "version": "1.4.13",
+    "date": "2026-06-11",
+    "notes": "FORGE-S32-T06: command-tree unification. The two payload command trees were collapsed into one. forge/forge/commands/ is now the single source of truth for ALL /forge:* commands: the 14 non-colliding base-pack sprint-workflow shims (approve, collate, commit, fix-bug, implement, new-sprint, plan, plan-sprint, retro, review-code, review-plan, run-sprint, run-task, validate) were folded in, and the three former-collision winners (init, check-agent, enhance) overwrite the plugin copies with the base-pack winner bytes. forge/forge/init/base-pack/commands/ was deleted AND build-base-pack.cjs no longer regenerates it (Section-5 command-generation loop + expectedFiles 'Commands (16)' block removed). The payload manifest drops its init/base-pack/commands entry; build-payload bundles one commands/ tree and base-pack/ no longer carries a commands/ subdir; bootstrap copies one directory with no union/collision ordering; registerAllForgeCommands enumerates dist/forge-payload/commands/ (forge:reset added to EXPLICITLY_REGISTERED_NAMES so the repoint introduces no new auto-stub). Installed .claude/commands/forge/ is byte-for-byte identical to the prior union output (AC3 parity preserved) and the frozen expected-install-set.json drops the 17 vendored .forge/.base-pack/commands/*.md entries. Plugin-channel semantic delta: the plugin-served init/check-agent/enhance bytes change to the base-pack winners; the plugin channel is retired at T07. See doc/decisions/command-model.md. No store-record migration; existing projects keep their installed commands and converge on the next 4ge update / re-bootstrap (idempotent).",
+    "target": "commands:*,init:base-pack:commands:*,payload-manifest:commands,tools:build-base-pack,tools:substitute-placeholders,tools:build-manifest",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "1.4.11": {
     "version": "1.4.12",
     "date": "2026-06-11",
