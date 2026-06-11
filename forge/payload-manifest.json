@@ -128,7 +128,7 @@
         "ext": [".schema.json"],
         "exclude": ["__tests__"]
       },
-      "note": "Recursive *.schema.json incl. _defs/ (build-payload Pass-2 2e). Bundled to BOTH .schemas/ (tool resolution) and schemas/ (command prose $FORGE_ROOT/schemas/). Installed (incl. _defs/) to .forge/schemas/."
+      "note": "Recursive *.schema.json incl. _defs/ (build-payload Pass-2 2e). Bundled to BOTH .schemas/ (forge-cli tool resolution) and the non-dot schemas/ mirror (command prose $FORGE_ROOT/schemas/). The dual bundle is INTENTIONAL and load-bearing (FORGE-S32-T05 reconciliation): health.md:58 + update.md:674 read $FORGE_ROOT/schemas/ with NO .schemas/ fallback, and $FORGE_ROOT resolves to the bundle in plugin mode but the installed non-dot .forge/schemas/ in fallback mode — so neither dir can be dropped without breaking /forge:health or /forge:update. Installed (incl. _defs/) to non-dot .forge/schemas/."
     },
     {
       "source": "schemas/enum-catalog.json",
@@ -144,7 +144,7 @@
       "bundle": "schemas/structure-manifest.json",
       "install": ".forge/schemas/",
       "owner": "forge-scaffold",
-      "note": "Read by check-structure.cjs (__dirname/../schemas/structure-manifest.json). Bundled via the non-dot schemas/ all-JSON mirror."
+      "note": "Read by check-structure.cjs (__dirname/../schemas/structure-manifest.json) — resolved via /forge:health step 8 with NO --forge-root, against installed projects. Bundled via the non-dot schemas/ all-JSON mirror; load-bearing and retained deliberately (FORGE-S32-T05 reconciliation, audit verdict refuted)."
     },
     {
       "source": "schemas/transitions",
@@ -246,9 +246,18 @@
       "owner": "forge-scaffold",
       "select": {
         "recursive": false,
-        "ext": [".md"]
+        "ext": [".md"],
+        "include": [
+          "generate-commands.md",
+          "generate-kb-doc.md",
+          "generate-persona.md",
+          "generate-skill.md",
+          "generate-template.md",
+          "generate-tools.md",
+          "generate-workflows.md"
+        ]
       },
-      "note": "Generation prompts (build-payload Pass-2 2e-pre, full set to init/generation/). The curated .init/generation/generate-kb-doc.md bundle subset is a separate target."
+      "note": "Generation prompts (build-payload Pass-2 2e-pre). Curated to the per-subagent rulebooks actually cited at runtime (rebuild.md, phase-2-discover.md, phase-4-register.md, build-manifest.cjs, vendored-tools-closure/command-wfl-conformance tests). FORGE-S32-T05 removed the four superseded orchestrator placeholders (generate-knowledge-base/personas/skills/templates.md) — each had zero live runtime citation (only historical vision/ docs + migration notes). The curated .init/generation/generate-kb-doc.md bundle subset is a separate target."
     },
     {
       "source": "init/workflow-gen-plan.json",

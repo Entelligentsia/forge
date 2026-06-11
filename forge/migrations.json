@@ -1,4 +1,13 @@
 {
+  "1.4.11": {
+    "version": "1.4.12",
+    "date": "2026-06-11",
+    "notes": "FORGE-S32-T05: dead-payload trim via manifest. Removed the four superseded init/generation orchestrator placeholders (generate-knowledge-base.md, generate-personas.md, generate-skills.md, generate-templates.md) — each had zero live runtime citation (only historical vision/ docs + migration notes); the live per-subagent rulebooks generate-{commands,kb-doc,persona,skill,template,tools,workflows}.md are retained and the payload-manifest init/generation entry now carries an explicit curated include list. On the builder side (forge-cli) the dead build-payload Pass-1 substitute-placeholders bundle-root output (personas/skills/workflows/templates/) and its --include-full restore branch were removed; runtime re-substitutes from .base-pack/ at init Phase 3b, so that output was never consumed. DELIBERATELY RETAINED (audit verdicts refuted, reconciled): the non-dot schemas/ mirror (health.md/update.md read $FORGE_ROOT/schemas/ with no .schemas/ fallback in both plugin and fallback $FORGE_ROOT modes), schemas/structure-manifest.json (check-structure.cjs reads it via /forge:health step 8 with no --forge-root against installed projects), and the tools/lib store-{nlp,query-exec,facade}.cjs facades (required by store-query.cjs). No store-record migration; existing installs keep their generation copies until /forge:update narrows them.",
+    "target": "payload:init/generation-trim,build-payload:pass1-removed",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "1.4.10": {
     "version": "1.4.11",
     "date": "2026-06-11",
