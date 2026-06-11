@@ -51,6 +51,49 @@ jobs:
       - name: Integrity verification
         run: node forge/tools/verify-integrity.cjs
 
+  payload-require-gate:
+    # FORGE-S32-T04 — payload-completeness require-walker, plugin side.
+    # Auth-free (no ANTHROPIC_API_KEY): clones forge-cli at HEAD, builds the
+    # payload from THIS in-tree plugin source (build-payload resolves
+    # package.json forge.forgeRoot = ../forge/forge, i.e. the sibling checkout),
+    # then runs the forge-cli walker against the freshly-built payload. Gates
+    # every push/PR so a plugin change that drops a required sibling from the
+    # bundle is caught red here — the MODULE_NOT_FOUND drift class
+    # (FORGE-BUG-030 / FORGE-BUG-036) cannot ship. Kept as its own job (not
+    # inside tmp-smoke) precisely so it needs no API key.
+    name: payload-require-gate (forge-cli walker against in-tree payload)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout plugin (in-tree)
+        uses: actions/checkout@v4
+        with:
+          path: forge
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Clone forge-cli at HEAD
+        run: |
+          set -e
+          git clone --depth 1 --branch main https://github.com/Entelligentsia/forge-cli.git forge-cli-driver
+
+      - name: Install forge-cli deps
+        working-directory: forge-cli-driver
+        run: npm ci
+
+      - name: Build payload from in-tree plugin source
+        # build-payload.cjs reads forge.forgeRoot (../forge/forge) relative to
+        # the forge-cli-driver root, i.e. this workspace's checked-out plugin.
+        working-directory: forge-cli-driver
+        run: npm run build
+
+      - name: Payload require gate
+        working-directory: forge-cli-driver
+        run: node tools/check-payload-requires.cjs dist/forge-payload
+
   tmp-smoke:
     # FORGE-S25-T03 — shared-surface contract. Clones forge-cli at main and
     # runs the tmp-smoke driver with FORGE_TMP_SMOKE_PLUGIN_SRC pointing at the
