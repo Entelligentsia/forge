@@ -1,4 +1,13 @@
 {
+  "1.4.9": {
+    "version": "1.4.10",
+    "date": "2026-06-11",
+    "notes": "FORGE-BUG-047: store.cjs FSImpl.writeFeature() read data.feature_id, but feature records key on `id` (matching the schema, the store-cli template, and every FEAT-00x record; writeTask uses data.taskId and writeBug uses data.bugId correctly). data.feature_id was always undefined, so writes misfiled to features/undefined.json — features could not be created or updated through the sanctioned store-cli gateway at all, and store-cli reported exit 0 so the failure was silent. The pre-existing store.test.cjs round-trip used a mock store keyed on yet another name (data.featureId), so it never exercised the real FSImpl and never caught this. Fix: writeFeature now reads data.id; a new real-FSImpl round-trip test (write by id, read back, assert no features/undefined.json) locks it. Tool fix; no store-record migration.",
+    "target": "tools:store",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "1.4.8": {
     "version": "1.4.9",
     "date": "2026-06-11",
