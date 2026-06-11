@@ -94,6 +94,7 @@ const FRAGMENT_MAP = [
 //     gaps in /forge:health (observed in the first CLI-first field test).
 //     Keep in sync with the test's DEV_ONLY_TOOLS mirror.
 const DEV_ONLY_TOOLS = new Set([
+  'apply-plugin-shim.cjs',
   'build-base-pack.cjs',
   'build-enum-catalog.cjs',
   'build-manifest.cjs',

@@ -356,6 +356,7 @@ describe('build-manifest.cjs — tools namespace (FORGE-S29-T01)', () => {
   // release engineering, but are NEVER vendored into project instances.
   // Mirrors DEV_ONLY_TOOLS in build-manifest.cjs.
   const DEV_ONLY_TOOLS = new Set([
+    'apply-plugin-shim.cjs',
     'build-base-pack.cjs',
     'build-enum-catalog.cjs',
     'build-manifest.cjs',

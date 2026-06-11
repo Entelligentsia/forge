@@ -1,4 +1,15 @@
 {
+  "1.4.13": {
+    "version": "1.5.0",
+    "date": "2026-06-11",
+    "notes": "FORGE-S32-T07: plugin v1.5.0 — shim-only sunset release. The stable skillforge marketplace channel stops being a parallel distribution mechanism and becomes a one-way migration ramp to the CLI-first install (npm @entelligentsia/forgecli, the 4ge binary). NEW forge/forge/tools/apply-plugin-shim.cjs is a release-branch shim-overlay generator (sibling of rewrite-plugin-urls.cjs): it overwrites the release-branch forge/forge/commands/*.md with two template tiers — a FULL consent-gated migration shim for init/update/rebuild (migration explanation + node/npm preflight + prose-only consent-gated `npm i -g @entelligentsia/forgecli && 4ge init claude .` offer + print-only fallback) and a SHORT redirect notice ('run /forge:init to migrate') for every other command — then regenerates integrity.json so /forge:health verification still passes on plugin installs. CRITICAL: the shim is a RELEASE-BRANCH OVERLAY only; main's forge/forge/commands/ stays the real unified T06 tree because build-payload.cjs copies it verbatim into the CLI npm bundle — shimming main would poison the CLI payload. The tool refuses to apply without --target release (mirrors rewrite-plugin-urls --target discipline). README + skillforge marketplace listing are rewritten CLI-first; the marketplace appears only as a deprecation/migration note. The forge-releaser ritual wires apply-plugin-shim into Step 2 on the release branch and makes the build-payload-from-main + verify-publish gate explicit. The dual-path code strip and the retirement of apply-plugin-shim.cjs itself are deferred to S34 (mechanical). No store-record or schema migration; installed, already-bootstrapped projects keep their materialized .claude/commands/forge/ and converge on the next 4ge update / re-bootstrap (idempotent — preserves config/store/KB).",
+    "target": "tools:apply-plugin-shim,commands:release-shim-overlay,release:plugin-sunset",
+    "regenerate": [],
+    "breaking": false,
+    "manual": [
+      "The Forge marketplace plugin is being sunset. Migrate to the CLI-first install: `npm i -g @entelligentsia/forgecli` then `4ge init claude .` in your project. The migration is idempotent and preserves .forge/config.json, .forge/store/** and your knowledge-base folder. On the v1.5.0 plugin, running /forge:init (or /forge:update / /forge:rebuild) walks you through this migration with explicit consent."
+    ]
+  },
   "1.4.12": {
     "version": "1.4.13",
     "date": "2026-06-11",

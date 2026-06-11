@@ -5,6 +5,53 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.5.0] — 2026-06-11
+
+Plugin **shim-only sunset release** (FORGE-S32-T07). The stable skillforge
+marketplace channel stops being a parallel distribution mechanism and becomes a
+one-way migration ramp to the CLI-first install (`npm i -g @entelligentsia/forgecli`,
+the `4ge` binary). A plugin user who invokes `/forge:init` (or `/forge:update` /
+`/forge:rebuild`) on v1.5.0 is shown what changed and — with one explicit consent —
+is migrated to the CLI, with project data (`.forge/config.json`, `.forge/store/**`,
+the KB folder) preserved byte-for-byte.
+
+### Added
+- `forge/forge/tools/apply-plugin-shim.cjs` — a **release-branch** shim-overlay
+  generator (sibling of `rewrite-plugin-urls.cjs`). It overlays the
+  `release`-branch `forge/forge/commands/*.md` with two template tiers and
+  regenerates `integrity.json` so `/forge:health` verification still passes:
+  - **Full consent-gated shim** for `init` / `update` / `rebuild`: migration
+    explanation (what is preserved) + node/npm preflight + a **prose-only**,
+    consent-gated `npm i -g @entelligentsia/forgecli && 4ge init claude .` offer
+    (never auto-executed) + a print-only fallback.
+  - **Short redirect notice** for every other command ("retired; run
+    `/forge:init` to migrate").
+  The tool **refuses to apply without `--target release`** (mirrors the
+  `rewrite-plugin-urls` `--target` discipline) — guarding against a destructive
+  run on `main`.
+
+### Changed
+- README and the skillforge marketplace listing read **CLI-first**; the
+  marketplace appears only as a deprecation / migration note naming v1.5.0 as the
+  shim and the following release as the dual-path strip.
+- `forge-releaser` ritual wires `apply-plugin-shim` into Step 2 on the `release`
+  branch and makes the **build-payload-from-main** + `verify-publish` gate
+  explicit: the CLI npm payload is poured from **main** (real T03–T06 commands)
+  while the plugin carries the release-overlay shims. The channel divergence is
+  intentional and gated.
+
+### Notes
+- **Critical channel split:** the shim is a release-branch overlay **only**.
+  Main's `forge/forge/commands/` stays the real unified T06 tree because
+  `build-payload.cjs` copies it verbatim into the CLI bundle — shimming main would
+  poison the CLI payload. The canary `forge@forge` channel tracks main and is
+  intentionally **not** shimmed.
+- The dual-path code strip and the retirement of `apply-plugin-shim.cjs` itself
+  are deferred to S34 (mechanical). Non-breaking; installed projects converge on
+  the next `4ge update` / re-bootstrap.
+
+---
+
 ## [1.4.13] — 2026-06-11
 
 Command-tree unification (FORGE-S32-T06). The two payload command trees

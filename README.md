@@ -174,9 +174,9 @@ cd /path/to/your/project
 `4ge init` deterministically scaffolds Forge into the project — commands, deterministic tools, hooks, schemas, and the dynamic-workflow drivers — from a version-pinned bundle, in seconds, with zero tokens and zero network. `/forge:init`, `/forge:health`, `/forge:rebuild`, and `/forge:report-bug` are then available in that project. Remove it any time with `4ge uninstall claude` (your store and knowledge base are preserved unless you pass `--purge`).
 
 <details>
-<summary><strong>Marketplace install (deprecated)</strong></summary>
+<summary><strong>Marketplace install (sunset — migrate to the CLI)</strong></summary>
 
-The Claude Code marketplace install still works, but is **deprecated** in favour of `4ge init` — see [Distribution](#distribution) for the reasoning. Prefer the CLI for new projects.
+The Claude Code marketplace plugin is being **sunset**. As of **v1.5.0 it is a shim**: running `/forge:init` (or `/forge:update` / `/forge:rebuild`) walks you through migrating to the CLI-first install, and the following release drops the plugin distribution path entirely. Use `4ge init` for all new projects — see [Distribution](#distribution). Existing plugin installs keep working and migrate by running `4ge init claude .` (idempotent; preserves your config, store and KB).
 
 ```
 # Stable
@@ -209,7 +209,7 @@ A marketplace plugin is a passive bundle Claude Code loads. Forge is not passive
 
 The CLI is also the product surface for running Forge *outside* Claude Code: the same [`@entelligentsia/forgecli`](https://www.npmjs.com/package/@entelligentsia/forgecli) package runs the full plan → review → implement → review → approve → commit pipeline headless on the [pi](https://github.com/earendil-works/pi) runtime, against the provider of your choice.
 
-> **Deprecation notice.** The skillforge marketplace distribution remains available and still receives releases for now, but is **deprecated**. New installs should use `4ge init claude`. A future release will stop publishing new marketplace versions; existing installs keep working and can migrate by running `4ge init claude .` in the same project (it is idempotent and preserves your store).
+> **Sunset notice.** The skillforge marketplace distribution is being **sunset**. **v1.5.0 is the shim release** — the plugin's commands now redirect to the CLI, and `/forge:init` / `/forge:update` / `/forge:rebuild` carry a consent-gated migration to `4ge`. The **following release drops the plugin distribution path** (dual-path code strip). New installs should use `4ge init claude`. Existing installs keep working and migrate by running `4ge init claude .` in the same project — it is idempotent and preserves your config, store and KB.
 
 ---
 
