@@ -1,22 +1,15 @@
 ---
 name: check-agent
-description: Verify an agent has loaded and understood the project knowledge base
+description: "[SUNSET] /forge:check-agent is retired in the Forge shim release — run /forge:init to migrate to the CLI."
 ---
 
-# /forge:check-agent
+# /forge:check-agent — retired (Forge has moved to the CLI)
 
-Read the check-agent workflow and follow it.
+This command is **retired** in the Forge shim release. The Forge marketplace
+plugin is being sunset in favour of the CLI-first distribution (`4ge`, npm
+`@entelligentsia/forgecli`).
 
-## Locate the Forge plugin
-
-```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
-```
-
-## Execute
-
-Read `.forge/workflows/quiz_agent.md` and follow it.
-
-## Arguments
-
-$ARGUMENTS
+Run **`/forge:init`** to migrate this project to the CLI — the migration is
+idempotent and preserves `.forge/config.json`, `.forge/store/**` and your
+knowledge-base folder. After migrating, use the `4ge` binary (or the
+CLI-installed `/forge:*` commands) instead of this plugin command.

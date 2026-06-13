@@ -1,22 +1,15 @@
 ---
 name: run-task
-description: Orchestrate the full plan→implement→review→approve pipeline for a task
+description: "[SUNSET] /forge:run-task is retired in the Forge shim release — run /forge:init to migrate to the CLI."
 ---
 
-# /forge:run-task
+# /forge:run-task — retired (Forge has moved to the CLI)
 
-Read the run-task workflow and follow it.
+This command is **retired** in the Forge shim release. The Forge marketplace
+plugin is being sunset in favour of the CLI-first distribution (`4ge`, npm
+`@entelligentsia/forgecli`).
 
-## Locate the Forge plugin
-
-```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
-```
-
-## Execute
-
-workflow('wfl:run-task', $ARGUMENTS)
-
-## Arguments
-
-$ARGUMENTS
+Run **`/forge:init`** to migrate this project to the CLI — the migration is
+idempotent and preserves `.forge/config.json`, `.forge/store/**` and your
+knowledge-base folder. After migrating, use the `4ge` binary (or the
+CLI-installed `/forge:*` commands) instead of this plugin command.

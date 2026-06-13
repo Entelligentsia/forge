@@ -1,37 +1,15 @@
 ---
 name: enhance
-description: Progressive project-specific enrichment of structural elements
+description: "[SUNSET] /forge:enhance is retired in the Forge shim release — run /forge:init to migrate to the CLI."
 ---
 
-# /forge:enhance
+# /forge:enhance — retired (Forge has moved to the CLI)
 
-Run the enhancement agent to enrich structural elements with project-specific knowledge.
+This command is **retired** in the Forge shim release. The Forge marketplace
+plugin is being sunset in favour of the CLI-first distribution (`4ge`, npm
+`@entelligentsia/forgecli`).
 
-## Locate the Forge plugin
-
-```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
-```
-
-## Purpose
-
-The enhancement agent observes the project and enriches structural elements
-over time. It makes absolutely essential minimal modifications, preferring
-runtime mix-in (KB references, `{{placeholder}}` substitution, `project-context.json`)
-over modifying base artifacts.
-
-## Behavior
-
-1. Read `structure-versions.json` to determine current overlay level
-2. Read `project-context.json` for current project specifics
-3. Read KB changes since last enhancement
-4. Scan codebase for patterns discovered since last enhancement
-5. Compare current `.forge/` artifacts against base-pack baseline
-6. For each artifact, determine what project-specific enrichment is warranted
-7. Apply the minimal modification principle
-8. Propose diffs (Phase 2+) or auto-apply (Phase 1)
-9. Create new overlay version in `structure-versions.json` if needed
-
-## Arguments
-
-$ARGUMENTS
+Run **`/forge:init`** to migrate this project to the CLI — the migration is
+idempotent and preserves `.forge/config.json`, `.forge/store/**` and your
+knowledge-base folder. After migrating, use the `4ge` binary (or the
+CLI-installed `/forge:*` commands) instead of this plugin command.

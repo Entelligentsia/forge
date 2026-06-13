@@ -1,22 +1,15 @@
 ---
 name: new-sprint
-description: Elicit and structure requirements for a new sprint
+description: "[SUNSET] /forge:new-sprint is retired in the Forge shim release — run /forge:init to migrate to the CLI."
 ---
 
-# /forge:new-sprint
+# /forge:new-sprint — retired (Forge has moved to the CLI)
 
-Read the new-sprint workflow and follow it.
+This command is **retired** in the Forge shim release. The Forge marketplace
+plugin is being sunset in favour of the CLI-first distribution (`4ge`, npm
+`@entelligentsia/forgecli`).
 
-## Locate the Forge plugin
-
-```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
-```
-
-## Execute
-
-Read `.forge/workflows/architect_sprint_intake.md` and follow it.
-
-## Arguments
-
-$ARGUMENTS
+Run **`/forge:init`** to migrate this project to the CLI — the migration is
+idempotent and preserves `.forge/config.json`, `.forge/store/**` and your
+knowledge-base folder. After migrating, use the `4ge` binary (or the
+CLI-installed `/forge:*` commands) instead of this plugin command.

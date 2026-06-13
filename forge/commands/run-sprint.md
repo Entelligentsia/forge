@@ -1,22 +1,15 @@
 ---
 name: run-sprint
-description: Execute all tasks in a sprint (sequential or parallel)
+description: "[SUNSET] /forge:run-sprint is retired in the Forge shim release — run /forge:init to migrate to the CLI."
 ---
 
-# /forge:run-sprint
+# /forge:run-sprint — retired (Forge has moved to the CLI)
 
-Read the run-sprint workflow and follow it.
+This command is **retired** in the Forge shim release. The Forge marketplace
+plugin is being sunset in favour of the CLI-first distribution (`4ge`, npm
+`@entelligentsia/forgecli`).
 
-## Locate the Forge plugin
-
-```
-FORGE_ROOT: !`echo "${CLAUDE_PLUGIN_ROOT:-$(pwd)/.forge}"`
-```
-
-## Execute
-
-workflow('wfl:run-sprint', $ARGUMENTS)
-
-## Arguments
-
-$ARGUMENTS
+Run **`/forge:init`** to migrate this project to the CLI — the migration is
+idempotent and preserves `.forge/config.json`, `.forge/store/**` and your
+knowledge-base folder. After migrating, use the `4ge` binary (or the
+CLI-installed `/forge:*` commands) instead of this plugin command.
