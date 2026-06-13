@@ -1,4 +1,89 @@
 {
+  "1.4.13": {
+    "version": "1.5.0",
+    "date": "2026-06-11",
+    "notes": "FORGE-S32-T07: plugin v1.5.0 — shim-only sunset release. The stable skillforge marketplace channel stops being a parallel distribution mechanism and becomes a one-way migration ramp to the CLI-first install (npm @entelligentsia/forgecli, the 4ge binary). NEW forge/forge/tools/apply-plugin-shim.cjs is a release-branch shim-overlay generator (sibling of rewrite-plugin-urls.cjs): it overwrites the release-branch forge/forge/commands/*.md with two template tiers — a FULL consent-gated migration shim for init/update/rebuild (migration explanation + node/npm preflight + prose-only consent-gated `npm i -g @entelligentsia/forgecli && 4ge init claude .` offer + print-only fallback) and a SHORT redirect notice ('run /forge:init to migrate') for every other command — then regenerates integrity.json so /forge:health verification still passes on plugin installs. CRITICAL: the shim is a RELEASE-BRANCH OVERLAY only; main's forge/forge/commands/ stays the real unified T06 tree because build-payload.cjs copies it verbatim into the CLI npm bundle — shimming main would poison the CLI payload. The tool refuses to apply without --target release (mirrors rewrite-plugin-urls --target discipline). README + skillforge marketplace listing are rewritten CLI-first; the marketplace appears only as a deprecation/migration note. The forge-releaser ritual wires apply-plugin-shim into Step 2 on the release branch and makes the build-payload-from-main + verify-publish gate explicit. The dual-path code strip and the retirement of apply-plugin-shim.cjs itself are deferred to S34 (mechanical). No store-record or schema migration; installed, already-bootstrapped projects keep their materialized .claude/commands/forge/ and converge on the next 4ge update / re-bootstrap (idempotent — preserves config/store/KB).",
+    "target": "tools:apply-plugin-shim,commands:release-shim-overlay,release:plugin-sunset",
+    "regenerate": [],
+    "breaking": false,
+    "manual": [
+      "The Forge marketplace plugin is being sunset. Migrate to the CLI-first install: `npm i -g @entelligentsia/forgecli` then `4ge init claude .` in your project. The migration is idempotent and preserves .forge/config.json, .forge/store/** and your knowledge-base folder. On the v1.5.0 plugin, running /forge:init (or /forge:update / /forge:rebuild) walks you through this migration with explicit consent."
+    ]
+  },
+  "1.4.12": {
+    "version": "1.4.13",
+    "date": "2026-06-11",
+    "notes": "FORGE-S32-T06: command-tree unification. The two payload command trees were collapsed into one. forge/forge/commands/ is now the single source of truth for ALL /forge:* commands: the 14 non-colliding base-pack sprint-workflow shims (approve, collate, commit, fix-bug, implement, new-sprint, plan, plan-sprint, retro, review-code, review-plan, run-sprint, run-task, validate) were folded in, and the three former-collision winners (init, check-agent, enhance) overwrite the plugin copies with the base-pack winner bytes. forge/forge/init/base-pack/commands/ was deleted AND build-base-pack.cjs no longer regenerates it (Section-5 command-generation loop + expectedFiles 'Commands (16)' block removed). The payload manifest drops its init/base-pack/commands entry; build-payload bundles one commands/ tree and base-pack/ no longer carries a commands/ subdir; bootstrap copies one directory with no union/collision ordering; registerAllForgeCommands enumerates dist/forge-payload/commands/ (forge:reset added to EXPLICITLY_REGISTERED_NAMES so the repoint introduces no new auto-stub). Installed .claude/commands/forge/ is byte-for-byte identical to the prior union output (AC3 parity preserved) and the frozen expected-install-set.json drops the 17 vendored .forge/.base-pack/commands/*.md entries. Plugin-channel semantic delta: the plugin-served init/check-agent/enhance bytes change to the base-pack winners; the plugin channel is retired at T07. See doc/decisions/command-model.md. No store-record migration; existing projects keep their installed commands and converge on the next 4ge update / re-bootstrap (idempotent).",
+    "target": "commands:*,init:base-pack:commands:*,payload-manifest:commands,tools:build-base-pack,tools:substitute-placeholders,tools:build-manifest",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "1.4.11": {
+    "version": "1.4.12",
+    "date": "2026-06-11",
+    "notes": "FORGE-S32-T05: dead-payload trim via manifest. Removed the four superseded init/generation orchestrator placeholders (generate-knowledge-base.md, generate-personas.md, generate-skills.md, generate-templates.md) — each had zero live runtime citation (only historical vision/ docs + migration notes); the live per-subagent rulebooks generate-{commands,kb-doc,persona,skill,template,tools,workflows}.md are retained and the payload-manifest init/generation entry now carries an explicit curated include list. On the builder side (forge-cli) the dead build-payload Pass-1 substitute-placeholders bundle-root output (personas/skills/workflows/templates/) and its --include-full restore branch were removed; runtime re-substitutes from .base-pack/ at init Phase 3b, so that output was never consumed. DELIBERATELY RETAINED (audit verdicts refuted, reconciled): the non-dot schemas/ mirror (health.md/update.md read $FORGE_ROOT/schemas/ with no .schemas/ fallback in both plugin and fallback $FORGE_ROOT modes), schemas/structure-manifest.json (check-structure.cjs reads it via /forge:health step 8 with no --forge-root against installed projects), and the tools/lib store-{nlp,query-exec,facade}.cjs facades (required by store-query.cjs). No store-record migration; existing installs keep their generation copies until /forge:update narrows them.",
+    "target": "payload:init/generation-trim,build-payload:pass1-removed",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "1.4.10": {
+    "version": "1.4.11",
+    "date": "2026-06-11",
+    "notes": "FEAT-009 T03: new /forge:reset command + reset-plan.cjs tool — a guardrailed, NLP-backed pipeline-state reset. reset-plan.cjs is a pure, read-only PLANNER: given a task/bug/sprint and a target phase it computes the status transition(s) plus cross-entity referential-integrity warnings (committed-work git divergence, parent-sprint incoherence, dependents resting on rewound work, and sprint cascade of transitive dependents) WITHOUT mutating the store. The /forge:reset command interprets a natural-language request, runs the planner, presents the transitions + integrity implications, requires explicit confirmation, then applies via store-cli update-status --force. Complements forge-cli's deterministic `4ge reset` (single-entity task/bug). New tool + command; structure-manifest/enum-catalog/integrity regenerated. No store-record migration.",
+    "target": "commands:reset,tools:reset-plan",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "1.4.9": {
+    "version": "1.4.10",
+    "date": "2026-06-11",
+    "notes": "FORGE-BUG-047: store.cjs FSImpl.writeFeature() read data.feature_id, but feature records key on `id` (matching the schema, the store-cli template, and every FEAT-00x record; writeTask uses data.taskId and writeBug uses data.bugId correctly). data.feature_id was always undefined, so writes misfiled to features/undefined.json — features could not be created or updated through the sanctioned store-cli gateway at all, and store-cli reported exit 0 so the failure was silent. The pre-existing store.test.cjs round-trip used a mock store keyed on yet another name (data.featureId), so it never exercised the real FSImpl and never caught this. Fix: writeFeature now reads data.id; a new real-FSImpl round-trip test (write by id, read back, assert no features/undefined.json) locks it. Tool fix; no store-record migration.",
+    "target": "tools:store",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "1.4.8": {
+    "version": "1.4.9",
+    "date": "2026-06-11",
+    "notes": "FORGE-BUG-045: payload-manifest.json's integrity.json entry declared install:'.forge/' but is never vendored into a bootstrapped project's .forge/ tree — the historical bootstrap only HASHES payloadRoot/integrity.json for the .bootstrap-manifest.json integrity field, never installs it. It is bundle-only (shipped to dist/forge-payload/integrity.json for verify-integrity.cjs forge-root resolution). This was the last over-broad-install entry missed by the FORGE-BUG-044 sweep; a manifest-driven bootstrap honouring install (FORGE-S32-T03) would install a phantom .forge/integrity.json, breaking AC4 byte-parity. Fix: the entry now declares bundleOnly:true and drops install (validating against the existing bundleOnly if/then/else contract from FORGE-BUG-044 — no schema or checker code change); a regression-lock test pins the corrected entry. Declarative data correction; no store-record migration.",
+    "target": "schemas:payload-manifest",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "1.4.7": {
+    "version": "1.4.8",
+    "date": "2026-06-10",
+    "notes": "FORGE-BUG-044: payload-manifest.json declared install:'.forge/schemas/' for the schemas/transitions dir entry and the migrations.json file entry, but neither is ever vendored into a bootstrapped project's .forge/schemas/ (they are bundle-only — shipped to dist/forge-payload/.schemas/ for transition-guard.ts / migration-engine.ts resolution). A manifest-driven bootstrap honouring install (FORGE-S32-T03) would have installed >=4 phantom files, breaking AC4 byte-parity. Fix: NEW bundleOnly boolean in payload-manifest.schema.json with a draft-07 if/then/else contract (install forbidden when bundleOnly:true, else required; install dropped from base required[]); the two entries now declare bundleOnly:true and drop install; check-payload-manifest.cjs gains a bundle-only self-consistency pass (inconsistencies[] folded into ok + CLI exit) so the over-broad install field cannot recur. Declarative + tooling-enforced; no store-record migration.",
+    "target": "schemas:payload-manifest,tools:check-payload-manifest",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "1.4.6": {
+    "version": "1.4.7",
+    "date": "2026-06-10",
+    "notes": "Declarative payload manifest + source-drift check (FORGE-S32-T02). NEW forge/forge/payload-manifest.json names every shipped artifact (source -> bundle -> install -> removal owner), spec'd by NEW forge/forge/schemas/payload-manifest.schema.json, replacing the implicit contract previously spread across build-payload.cjs / bootstrap.ts / uninstall.ts hand-maintained copy lists (the FORGE-BUG-030/036 MODULE_NOT_FOUND class). NEW forge/forge/tools/check-payload-manifest.cjs is a CI-only dev tool (not vendored to instances) that exits non-zero on a missing source or an orphan file under a recursive payload tree; wired into plugin-ci.yml. The three forge-cli consumers are rewired to read the manifest in FORGE-S32-T03. build-manifest.cjs DEV_ONLY_TOOLS now excludes check-payload-manifest.cjs; structure-manifest.json regenerated to list the newly-vendored payload-manifest.schema.json.",
+    "target": "tools:check-payload-manifest,schemas:payload-manifest,schemas:structure-manifest,tools:build-manifest",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "1.4.5": {
+    "version": "1.4.6",
+    "date": "2026-06-09",
+    "notes": "Security hardening of the forge-permissions auto-approver (forge-engineering#42). The Bash auto-allow patterns were unanchored command prefixes (`cat *`, `cp *`, `gh issue *`, `git push *`, `node .../tools/*`), so a prompt-injected agent could read a secret and exfiltrate/execute it with no permission prompt. Patterns are now anchored to their argument shape: `cat`/`cp` only within `.forge/`/`engineering/`, `node` tools only from a trusted Forge root ($FORGE_ROOT/$CLAUDE_PLUGIN_ROOT, plugin cache, or a /.forge path), `gh issue` only against the current repo (no -R/--repo), `git push` only to a named remote (no explicit http(s)/ssh/git/file URL). A non-match falls through to Claude Code's normal permission flow (the human is asked) — it never blocks. Legit in-tree Forge workflow commands still auto-allow, so no new prompt storm. New test forge/hooks/__tests__/forge-permissions.test.cjs pins both directions.",
+    "target": "hooks:forge-permissions",
+    "regenerate": [],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update to pick up the hardened forge-permissions hook. Interactive Claude Code sessions may now see a one-time permission prompt for commands outside the Forge working set (e.g. reading files outside .forge/, pushing to an explicit remote URL) — approve as normal. Autonomous forge-cli (pi) runs are unaffected (pi has no permission gate)."
+    ]
+  },
   "1.2.21": {
     "version": "1.3.0",
     "date": "2026-06-07",

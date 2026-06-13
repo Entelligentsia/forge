@@ -589,11 +589,13 @@ describe('buildBasePack: validates all expected output files exist', () => {
     assert.equal(files.length, 10, `expected 10 template files, got ${files.length}: ${files.join(', ')}`);
   });
 
-  test('all 16 command files created in output/commands/', () => {
+  // FORGE-S32-T06: command generation was retired — the former base-pack/commands/
+  // tree was collapsed into the unified forge/forge/commands/ tree (installed
+  // verbatim by bootstrap). build-base-pack no longer assembles a commands/ subtree.
+  test('build does NOT create an output/commands/ subtree (unified tree, FORGE-S32-T06)', () => {
     mod = mod || require(SCRIPT_PATH);
     const cmdDir = path.join(outDir, 'commands');
-    const files = fs.readdirSync(cmdDir).filter(f => f.endsWith('.md'));
-    assert.equal(files.length, 16, `expected 16 command files, got ${files.length}: ${files.join(', ')}`);
+    assert.ok(!fs.existsSync(cmdDir), 'build-base-pack must not regenerate a commands/ subtree');
   });
 
   // FR-007-7a: migrate_structural.md must be in base-pack output

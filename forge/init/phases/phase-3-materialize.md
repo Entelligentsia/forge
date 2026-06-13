@@ -63,12 +63,16 @@ node "$FORGE_ROOT/tools/substitute-placeholders.cjs" \
 ```
 
 Output directories (managed by the tool's `SUBDIR_OUTPUT_MAP`):
-- `base-pack/commands/`     → `.claude/commands/forge/`  (fixed namespace — CLI-first redesign)
 - `base-pack/personas/`     → `.forge/personas/`
 - `base-pack/skills/`       → `.forge/skills/`
 - `base-pack/workflows/`    → `.forge/workflows/`
 - `base-pack/templates/`    → `.forge/templates/`
 - `base-pack/workflows-js/` → `.claude/workflows/` (JS orchestration workflows — FORGE-S28-T01)
+
+> Commands are no longer materialised here. Since FORGE-S32-T06 the unified
+> slash-command tree (`forge/forge/commands/`) is installed verbatim to
+> `.claude/commands/forge/` by the bootstrap manifest's single `commands` entry —
+> base-pack no longer carries a `commands/` subdir.
 
 ### Step 3a — Record generated JS workflows in the generation manifest
 

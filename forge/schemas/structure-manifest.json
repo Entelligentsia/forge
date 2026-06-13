@@ -1,6 +1,6 @@
 {
-  "version": "1.4.3",
-  "generatedAt": "2026-06-07T14:06:39.707Z",
+  "version": "1.4.11",
+  "generatedAt": "2026-06-11T06:08:57.968Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -126,6 +126,7 @@
         "event-sidecar.schema.json",
         "event.schema.json",
         "feature.schema.json",
+        "payload-manifest.schema.json",
         "progress-entry.schema.json",
         "project-context.schema.json",
         "project-overlay.schema.json",
@@ -165,6 +166,7 @@
         "queue-drain.cjs",
         "read-verdict.cjs",
         "replay-scoring.cjs",
+        "reset-plan.cjs",
         "seed-store.cjs",
         "store-cli.cjs",
         "store-query.cjs",

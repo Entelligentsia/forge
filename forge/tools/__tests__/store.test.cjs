@@ -202,6 +202,21 @@ describe('store.cjs', () => {
       assert.equal(sprints.length, 2);
     });
 
+    // FORGE-BUG-047: feature records key on `id` (like every FEAT-00x record and
+    // the store-cli template), but writeFeature historically read data.feature_id
+    // (always undefined) — silently misfiling to features/undefined.json. This
+    // exercises the REAL FSImpl (not the mock) to lock the round-trip on `id`.
+    test('writeFeature creates file keyed on id and getFeature reads it back', () => {
+      impl.writeFeature({ id: 'FEAT-001', status: 'draft', title: 'Round-trip' });
+      const result = impl.getFeature('FEAT-001');
+      assert.ok(result, 'getFeature should return the written record');
+      assert.equal(result.id, 'FEAT-001');
+      assert.equal(result.title, 'Round-trip');
+      // Regression: the write must NOT land in features/undefined.json.
+      const undef = impl._getPath('feature', undefined);
+      assert.ok(!fs.existsSync(undef), `must not misfile to ${undef}`);
+    });
+
     test('_matches filters records correctly', () => {
       const record = { taskId: 'T-001', status: 'implementing', sprintId: 'S-001' };
       assert.ok(impl._matches(record, { status: 'implementing' }));

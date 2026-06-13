@@ -5,6 +5,107 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.5.0] — 2026-06-11
+
+Plugin **shim-only sunset release** (FORGE-S32-T07). The stable skillforge
+marketplace channel stops being a parallel distribution mechanism and becomes a
+one-way migration ramp to the CLI-first install (`npm i -g @entelligentsia/forgecli`,
+the `4ge` binary). A plugin user who invokes `/forge:init` (or `/forge:update` /
+`/forge:rebuild`) on v1.5.0 is shown what changed and — with one explicit consent —
+is migrated to the CLI, with project data (`.forge/config.json`, `.forge/store/**`,
+the KB folder) preserved byte-for-byte.
+
+### Added
+- `forge/forge/tools/apply-plugin-shim.cjs` — a **release-branch** shim-overlay
+  generator (sibling of `rewrite-plugin-urls.cjs`). It overlays the
+  `release`-branch `forge/forge/commands/*.md` with two template tiers and
+  regenerates `integrity.json` so `/forge:health` verification still passes:
+  - **Full consent-gated shim** for `init` / `update` / `rebuild`: migration
+    explanation (what is preserved) + node/npm preflight + a **prose-only**,
+    consent-gated `npm i -g @entelligentsia/forgecli && 4ge init claude .` offer
+    (never auto-executed) + a print-only fallback.
+  - **Short redirect notice** for every other command ("retired; run
+    `/forge:init` to migrate").
+  The tool **refuses to apply without `--target release`** (mirrors the
+  `rewrite-plugin-urls` `--target` discipline) — guarding against a destructive
+  run on `main`.
+
+### Changed
+- README and the skillforge marketplace listing read **CLI-first**; the
+  marketplace appears only as a deprecation / migration note naming v1.5.0 as the
+  shim and the following release as the dual-path strip.
+- `forge-releaser` ritual wires `apply-plugin-shim` into Step 2 on the `release`
+  branch and makes the **build-payload-from-main** + `verify-publish` gate
+  explicit: the CLI npm payload is poured from **main** (real T03–T06 commands)
+  while the plugin carries the release-overlay shims. The channel divergence is
+  intentional and gated.
+
+### Notes
+- **Critical channel split:** the shim is a release-branch overlay **only**.
+  Main's `forge/forge/commands/` stays the real unified T06 tree because
+  `build-payload.cjs` copies it verbatim into the CLI bundle — shimming main would
+  poison the CLI payload. The canary `forge@forge` channel tracks main and is
+  intentionally **not** shimmed.
+- The dual-path code strip and the retirement of `apply-plugin-shim.cjs` itself
+  are deferred to S34 (mechanical). Non-breaking; installed projects converge on
+  the next `4ge update` / re-bootstrap.
+
+---
+
+## [1.4.13] — 2026-06-11
+
+Command-tree unification (FORGE-S32-T06). The two payload command trees
+(`forge/forge/commands/` and `forge/forge/init/base-pack/commands/`) are
+collapsed into one. `forge/forge/commands/` is now the single source of truth
+for every `/forge:*` command — "which copy wins" is no longer a question.
+
+### Changed
+- Materialized the union into `forge/forge/commands/`: folded in the 14
+  non-colliding base-pack sprint-workflow shims (`approve`, `collate`, `commit`,
+  `fix-bug`, `implement`, `new-sprint`, `plan`, `plan-sprint`, `retro`,
+  `review-code`, `review-plan`, `run-sprint`, `run-task`, `validate`) and
+  overwrote the three collisions (`init`, `check-agent`, `enhance`) with the
+  base-pack winner bytes. Installed `.claude/commands/forge/` is byte-for-byte
+  identical to the prior union output.
+- `payload-manifest.json` carries a single `commands` entry (the
+  `init/base-pack/commands` entry is removed); `bootstrap` copies one directory
+  with no union/collision ordering.
+- Plugin-channel semantic delta: the plugin-served `init`/`check-agent`/
+  `enhance` bytes now match the base-pack winners. The plugin channel is retired
+  at T07.
+
+### Removed
+- Deleted `forge/forge/init/base-pack/commands/` (17 files). `build-base-pack.cjs`
+  no longer regenerates it — the Section-5 command-generation loop and the
+  `expectedFiles` "Commands (16)" block were removed.
+
+---
+
+## [1.4.7] — 2026-06-10
+
+Declarative payload manifest + source-drift check (FORGE-S32-T02). A new
+`payload-manifest.json` at the payload root names every shipped artifact —
+source path (under `forge/forge/`) → bundle path (`dist/forge-payload/`) →
+install destination (bootstrapped project root) → removal owner (uninstall
+grouping) — spec'd by the sibling `schemas/payload-manifest.schema.json`. This
+replaces the implicit contract previously spread across `build-payload.cjs`,
+`bootstrap.ts`, and `uninstall.ts` hand-maintained copy lists that caused the
+FORGE-BUG-030 / FORGE-BUG-036 `MODULE_NOT_FOUND` class.
+
+### Added
+- `tools/check-payload-manifest.cjs` — deterministic, CI-only source-drift
+  check. Exits non-zero on a manifest entry pointing at a missing source, or a
+  file under a recursively-copied payload tree that no manifest entry claims.
+  Wired into `plugin-ci.yml`. Not vendored into project instances
+  (`build-manifest.cjs` `DEV_ONLY_TOOLS` excludes it).
+
+The three forge-cli consumers are rewired to read the manifest in FORGE-S32-T03.
+
+**Regenerate:** none (build/bootstrap infrastructure; not a materialized
+instance artifact).
+
+---
+
 ## [1.4.5] — 2026-06-09
 
 Collate-workflow KB-link refresh is orchestrator-owned under forge-cli. The

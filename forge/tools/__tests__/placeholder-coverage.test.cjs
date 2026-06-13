@@ -17,9 +17,18 @@ const fs = require('fs');
 const path = require('path');
 
 const BASE_PACK = path.join(__dirname, '..', '..', 'init', 'base-pack');
+// FORGE-S32-T06: the former base-pack/commands/ tree was collapsed into the
+// unified forge/forge/commands/ tree. Command coverage now reads from there.
+const FORGE_ROOT = path.join(__dirname, '..', '..');
 
 function readBP(subPath) {
   const full = path.join(BASE_PACK, subPath);
+  if (!fs.existsSync(full)) return null;
+  return fs.readFileSync(full, 'utf8');
+}
+
+function readCmd(file) {
+  const full = path.join(FORGE_ROOT, 'commands', file);
   if (!fs.existsSync(full)) return null;
   return fs.readFileSync(full, 'utf8');
 }
@@ -124,30 +133,31 @@ describe('base-pack meta-backed skills contain project context placeholder', () 
 // must NOT appear — the 4ge bootstrap vendors these files verbatim, with no
 // substitution pass.
 
-describe('base-pack commands are static /forge:* files (no {{PREFIX}})', () => {
+describe('unified commands are static /forge:* files (no {{PREFIX}})', () => {
+  // FORGE-S32-T06: read from the unified forge/forge/commands/ tree.
   const COMMAND_FILES = [
-    'commands/approve.md',
-    'commands/collate.md',
-    'commands/commit.md',
-    'commands/enhance.md',
-    'commands/fix-bug.md',
-    'commands/implement.md',
-    'commands/plan.md',
-    'commands/check-agent.md',
-    'commands/retro.md',
-    'commands/review-code.md',
-    'commands/review-plan.md',
-    'commands/run-sprint.md',
-    'commands/run-task.md',
-    'commands/new-sprint.md',
-    'commands/plan-sprint.md',
-    'commands/validate.md',
+    'approve.md',
+    'collate.md',
+    'commit.md',
+    'enhance.md',
+    'fix-bug.md',
+    'implement.md',
+    'plan.md',
+    'check-agent.md',
+    'retro.md',
+    'review-code.md',
+    'review-plan.md',
+    'run-sprint.md',
+    'run-task.md',
+    'new-sprint.md',
+    'plan-sprint.md',
+    'validate.md',
   ];
 
   for (const f of COMMAND_FILES) {
-    test(`${f} is static: /forge: namespace present, no {{PREFIX}}`, () => {
-      const content = readBP(f);
-      assert.ok(content !== null, `${f} must exist`);
+    test(`commands/${f} is static: /forge: namespace present, no {{PREFIX}}`, () => {
+      const content = readCmd(f);
+      assert.ok(content !== null, `commands/${f} must exist`);
       assert.ok(
         !content.includes('{{PREFIX}}'),
         `${f} must NOT contain {{PREFIX}} — command templates are static /forge:* files`

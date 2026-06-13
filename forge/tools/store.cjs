@@ -234,7 +234,10 @@ class FSImpl {
   getFeature(id) { return this._readJson(this._getPath('feature', id)); }
   listFeatures(filter) { return this._listEntities('features', filter); }
   writeFeature(data) {
-    return this._writeJson(this._getPath('feature', data.feature_id), data);
+    // FORGE-BUG-047: feature records key on `id` (matching the schema, the
+    // store-cli template, and every FEAT-00x record) — not `feature_id`, which
+    // was always undefined and misfiled writes to features/undefined.json.
+    return this._writeJson(this._getPath('feature', data.id), data);
   }
   deleteFeature(id) {
     const p = this._getPath('feature', id);

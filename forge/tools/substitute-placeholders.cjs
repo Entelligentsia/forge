@@ -9,7 +9,6 @@
  * output to the appropriate output directories.
  *
  * Output path mapping (--target claude-code, default):
- *   base-pack/commands/  → <outRoot>/.claude/commands/forge/  (fixed namespace)
  *   base-pack/personas/  → <outRoot>/.forge/personas/
  *   base-pack/skills/    → <outRoot>/.forge/skills/
  *   base-pack/workflows/ → <outRoot>/.forge/workflows/
@@ -20,7 +19,13 @@
  *   base-pack/skills/    → <outRoot>/skills/
  *   base-pack/workflows/ → <outRoot>/workflows/  (including _fragments/)
  *   base-pack/templates/ → <outRoot>/templates/
- *   base-pack/commands/  → SKIPPED (pi commands are registered programmatically)
+ *
+ * Commands are NO LONGER materialised here. The unified slash-command tree
+ * lives at forge/forge/commands/ (FORGE-S32-T06 collapsed the former
+ * base-pack/commands/ second tree into it) and is installed verbatim by the
+ * bootstrap manifest's single `commands` entry. base-pack/ no longer carries a
+ * commands/ subdir, so the walker's commands branch below is inert; pi commands
+ * remain registered programmatically.
  *
  * CLI:
  *   node substitute-placeholders.cjs
@@ -409,6 +414,9 @@ function walkBasePack(basePack, map, outRoot, dryRun, io, categoryFilter) {
 
     let relOutputDir;
     if (subdir === 'commands') {
+      // Inert since FORGE-S32-T06: base-pack/commands/ was collapsed into the
+      // unified forge/forge/commands/ tree (installed verbatim by bootstrap).
+      // Retained so a stray base-pack commands/ subdir still maps correctly.
       relOutputDir = path.join('.claude', 'commands', commandsSubdir);
     } else {
       relOutputDir = SUBDIR_OUTPUT_MAP[subdir];
