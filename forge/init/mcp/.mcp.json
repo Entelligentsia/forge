@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "forge": {
+      "command": "node",
+      "args": [".forge/mcp/server.cjs"],
+      "env": {
+        "CLAUDE_PROJECT_DIR": "${projectRoot}"
+      }
+    }
+  }
+}
