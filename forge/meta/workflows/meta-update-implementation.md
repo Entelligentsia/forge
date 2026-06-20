@@ -31,7 +31,7 @@ Update the implementation of a task based on a "Revision Required" verdict from 
 
 - Address every "Revision Required" item from the review artifact at the correct code location; do not paper over them with comments. If a finding is wrong, escalate rather than ignore.
 - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
+- All store I/O via `forge_store`. Never edit `.forge/store/*.json` directly.
 
 ## Store-Write Verification
 
@@ -55,7 +55,7 @@ Update the implementation of a task based on a "Revision Required" verdict from 
    - Update PROGRESS.md with a summary of the revisions
 
 4. Finalize:
-   - Update task status via `node .forge/tools/store-cli.cjs update-status task {taskId} status implemented`
+   - Update task status via `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "implemented`"] })
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 ```
 

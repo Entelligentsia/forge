@@ -309,6 +309,22 @@
       "bundleOnly": true,
       "owner": "forge-scaffold",
       "note": "Plugin-tampering manifest resolved at forge-root by verify-integrity.cjs (build-payload Pass-2 2e0b). Bundle-only: shipped to dist/forge-payload/integrity.json for verify-integrity.cjs resolution, NOT installed into a bootstrapped project's .forge/ (the historical install tree never vendored integrity.json — bootstrap only hashes it). FORGE-BUG-045."
+    },
+    {
+      "source": "mcp/server.cjs",
+      "kind": "file",
+      "bundle": "mcp/server.cjs",
+      "install": ".forge/mcp/",
+      "owner": "forge-scaffold",
+      "note": "Self-contained esbuild node-only MCP stdio server (T03/T04). Vendored to .forge/mcp/server.cjs by bootstrap (T06). Claude Code spawns it via .mcp.json. Must be re-synced from forge-cli/dist/mcp/server.cjs at each release (T09)."
+    },
+    {
+      "source": "init/mcp/.mcp.json",
+      "kind": "file",
+      "bundle": "init/mcp/.mcp.json",
+      "bundleOnly": true,
+      "owner": "forge-scaffold",
+      "note": "Template consumed by bootstrap.ts idempotent .mcp.json writer (T06). bundleOnly: NOT installed verbatim; bootstrap merges the forge server entry into the project .mcp.json."
     }
   ]
 }

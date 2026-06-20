@@ -21,7 +21,7 @@ An Iron Laws section MUST contain exactly these three bullets in this order:
 
 - {WORKFLOW_SPECIFIC_LAW}
 - Read `.forge/personas/{persona}.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
+- All store I/O via `forge_store`. Never edit `.forge/store/*.json` directly.
 ```
 
 ### Slot definitions

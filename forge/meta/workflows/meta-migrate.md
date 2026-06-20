@@ -35,7 +35,7 @@ or when `.forge/structure-versions.json` is absent (pre-T05 install detected).
 
 - Migration operations are reversible and user-confirmed before any destructive writes. Do not skip the Phase 2 confirmation gate — proceed only after the user explicitly accepts the migration plan.
 - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
+- All store I/O via `forge_store`. Never edit `.forge/store/*.json` directly.
 
 ## Pre-conditions
 
@@ -276,7 +276,7 @@ Write `.forge/project-context.json` with the synthesised content.
 
 Validate via the store tool:
 ```sh
-node .forge/tools/validate-store.cjs --dry-run
+forge_validate_store({ dryRun: true })
 ```
 
 If this exits non-zero, report the validation errors to the user and HALT. Do
@@ -349,7 +349,7 @@ rm .forge/archive/pre-migration/.migration-in-progress
 
 ```sh
 # 1. Validate the store
-node .forge/tools/validate-store.cjs --dry-run
+forge_validate_store({ dryRun: true })
 
 # 2. Verify substitution outputs are non-empty
 ls .forge/personas/*.md .forge/skills/*.md .forge/workflows/*.md .forge/templates/*.md
@@ -376,8 +376,8 @@ Read that file and extract the `sprintId` field. If no sprint files exist, use
 
 ```sh
 MIGRATION_END=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-node .forge/tools/store-cli.cjs emit "{projectSprintId}" '{
-  "eventId": "migration-'"$(date -u +%Y%m%dT%H%M%SZ)"'",
+forge_store({ command: "emit", args: [""{projectSprintId}"", '{
+  "eventId": "migration-'] })"$(date -u +%Y%m%dT%H%M%SZ)"'",
   "taskId": "migration",
   "sprintId": "{projectSprintId}",
   "role": "migration-agent",

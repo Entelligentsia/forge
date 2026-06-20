@@ -28,8 +28,8 @@ Notes for subagents:
   Do not `write` a task back with a new `status` field; the FSM is enforced
   by `update-status`. Syntax requires the field keyword `status` as the third
   argument — four args total:
-  `node .forge/tools/store-cli.cjs update-status task {taskId} status {value}`
-  The three-arg form `update-status task {taskId} {value}` is WRONG and will
+  `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "{value}"] })`
+  The three-arg form (omitting the `status` keyword between the id and the value) is WRONG and will
   error. Always include `status` between the id and the value.
 - **`emit`** appends an event. There is no `append-event` / `add-event`.
 - **`set-summary <id> <phase>`** / **`set-bug-summary <id> <phase>`** link a
@@ -65,7 +65,7 @@ Notes for subagents:
   These spellings are parsed literally by tools (`preflight-gate.cjs`,
   `collate.cjs`) — do not invent new spellings or rename them in prose.
 - If you need a verb not on this list, run
-  `node .forge/tools/store-cli.cjs --help` before improvising.
+  `forge_store({ command: "--help" })` before improvising.
 - If you supply an unknown verb, entity type, enum value, or field name,
   store-cli appends a **Did you mean?** suggestion to the error message.
   Suggestions use Levenshtein distance (≤ 2) and a curated drift map for

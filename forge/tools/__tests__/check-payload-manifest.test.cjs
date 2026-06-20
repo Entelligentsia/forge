@@ -268,6 +268,76 @@ describe('check-payload-manifest CLI', () => {
   });
 });
 
+describe('MCP server bundle (FORGE-S34-T05)', () => {
+  let root;
+  afterEach(() => {
+    if (root) {
+      rm(root);
+      root = null;
+    }
+  });
+
+  // Build a fixture forge-root that has both T05 artifacts present and a
+  // manifest that registers them with the correct bundleOnly contract.
+  function makeMcpFixtureRoot() {
+    root = makeForgeRoot({
+      'mcp/server.cjs': '// mcp server stub',
+      'init/mcp/.mcp.json': '{"mcpServers":{}}',
+    });
+    writeManifest(root, {
+      entries: [
+        {
+          source: 'mcp/server.cjs',
+          kind: 'file',
+          bundle: 'mcp/server.cjs',
+          install: '.forge/mcp/server.cjs',
+          owner: 'forge-scaffold',
+        },
+        {
+          source: 'init/mcp/.mcp.json',
+          kind: 'file',
+          bundle: 'init/mcp/.mcp.json',
+          bundleOnly: true,
+          owner: 'forge-scaffold',
+        },
+      ],
+    });
+    return root;
+  }
+
+  test('mutation-detection (server bundle): removing mcp/server.cjs makes checkManifest() return ok:false', () => {
+    makeMcpFixtureRoot();
+    // Remove the server bundle source
+    fs.rmSync(path.join(root, 'mcp', 'server.cjs'));
+    const res = checkManifest(root);
+    assert.equal(res.ok, false, `expected ok:false after removing mcp/server.cjs; got ${JSON.stringify(res)}`);
+    assert.ok(
+      res.missing.length >= 1,
+      `expected at least one missing entry; got ${JSON.stringify(res.missing)}`,
+    );
+    assert.ok(
+      res.missing.some((m) => /mcp\/server\.cjs/.test(m.source) || /mcp[/\\]server\.cjs/.test(m.source)),
+      `expected missing entry for mcp/server.cjs; got ${JSON.stringify(res.missing)}`,
+    );
+  });
+
+  test('mutation-detection (.mcp.json template): removing init/mcp/.mcp.json makes checkManifest() return ok:false', () => {
+    makeMcpFixtureRoot();
+    // Remove the .mcp.json template source
+    fs.rmSync(path.join(root, 'init', 'mcp', '.mcp.json'));
+    const res = checkManifest(root);
+    assert.equal(res.ok, false, `expected ok:false after removing init/mcp/.mcp.json; got ${JSON.stringify(res)}`);
+    assert.ok(
+      res.missing.length >= 1,
+      `expected at least one missing entry; got ${JSON.stringify(res.missing)}`,
+    );
+    assert.ok(
+      res.missing.some((m) => /init\/mcp\/.mcp\.json/.test(m.source) || /init[/\\]mcp[/\\]\.mcp\.json/.test(m.source)),
+      `expected missing entry for init/mcp/.mcp.json; got ${JSON.stringify(res.missing)}`,
+    );
+  });
+});
+
 describe('real forge/forge tree', () => {
   test('authored payload-manifest.json is green against HEAD', () => {
     const res = checkManifest(REAL_FORGE_ROOT);

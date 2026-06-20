@@ -20,7 +20,7 @@ deps:
 
 - Orchestrator-only: this workflow runs with full tool access in the orchestrator session. NEVER delegate it to a subagent.
 - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
+- All store I/O via `forge_store`. Never edit `.forge/store/*.json` directly.
 - Phase 1 only touches `{{KEY}}` token text; never rewrite persona prose, algorithm steps, or role definitions.
 
 <!-- See _fragments/store-write-verification.md — NOTE: this file uses an intentionally abbreviated
@@ -180,7 +180,7 @@ Invoked by T09 post-init hook (`--auto`) or manually via `/forge:rebuild --enric
 
 7. **Emit enhancement event** to the store:
    ```sh
-   node .forge/tools/store-cli.cjs emit enhancement '{
+   forge_store({ command: "emit", args: ["enhancement", '{
      "eventId": "<ISO timestamp slug>_enhance_phase1",
      "taskId": "enhancement",
      "sprintId": "enhancement",
@@ -189,7 +189,7 @@ Invoked by T09 post-init hook (`--auto`) or manually via `/forge:rebuild --enric
      "phase": "post-init",
      "iteration": 1,
      "notes": "{\"phase\":1,\"fillCount\":<N>,\"snapshotCreated\":<true|false>}"
-   }'
+   }'] })
    ```
 
 8. **Report**:

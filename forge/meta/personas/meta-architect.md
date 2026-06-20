@@ -64,7 +64,7 @@ When generating a project-specific Architect persona, incorporate:
 
 **Persona block format** — every generated workflow for this persona must open by running the identity banner using the Bash tool:
 ```bash
-node .forge/tools/banners.cjs north
+forge_banner({ name: "north" })
 ```
 Use `--badge` for compact inline contexts. The plain-text fallback for non-terminal output is:
 `🗻 **{Project} Architect** — I hold the shape of the whole. I give final sign-off.`

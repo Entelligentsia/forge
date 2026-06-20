@@ -37,7 +37,7 @@ deps:
    - If `--force` is present in the invocation arguments, skip this step entirely.
    - If `entity_kind == "bug"`, skip this step entirely (bug state is managed by meta-fix-bug.md).
    - Read current task state:
-     `node .forge/tools/store-cli.cjs read task {record_id} --json`
+     `node .forge/tools/store-cli.cjs read task {record_id} --fields status`
    - Extract the `status` field from the JSON output.
    - Allowed states for this phase: `draft`, `planned`, `plan-revision-required`.
    - If the current status is NOT in the allowed set:

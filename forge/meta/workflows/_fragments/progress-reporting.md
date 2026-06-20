@@ -22,10 +22,10 @@ orchestrator monitors in real time.
 | `status` | One of: `start`, `progress`, `done`, `error` | `progress` |
 | `detail` | Free text (no pipe characters) | `Reading codebase` |
 
-**Writing entries:** Use `store-cli progress`:
+**Writing entries:** Use `forge_store`:
 
 ```
-node .forge/tools/store-cli.cjs progress {sprintId} {agentName} {bannerKey} {status} "detail text"
+forge_store({ command: "progress", args: ["{sprintId}", "{agentName}", "{bannerKey}", "{status}", "detail text"] })
 ```
 
 **Monitoring:** The orchestrator starts a Monitor on the progress log before
@@ -34,5 +34,5 @@ spawning each subagent and stops it after the subagent returns.
 **Clearing:** The orchestrator clears the progress log at task start:
 
 ```
-node .forge/tools/store-cli.cjs progress-clear {sprintId}
+forge_store({ command: "progress-clear", args: ["{sprintId}"] })
 ```

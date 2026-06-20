@@ -1,4 +1,25 @@
 {
+  "1.5.1": {
+    "version": "1.6.0",
+    "date": "2026-06-20",
+    "notes": "FORGE-S34: MCP tool surface. A vendored stdio MCP server (forge/forge/mcp/server.cjs) exposes all 14 forge_* tools to Claude Code. 4ge init claude . writes an idempotent project-scoped .mcp.json; model-facing markdown (commands, workflows, skills, personas) migrated from Bash/node .forge/tools/*.cjs call-sites to mcp__forge__* invocations. forge_ask_user reimplemented over MCP elicitation; forge_markdown carries its remark/mdast engine in the bundle. On first run after /forge:update, Claude Code prompts to approve the forge MCP server.",
+    "target": "mcp:server,init:.mcp.json,commands:*,workflows:*,skills:*,personas:*",
+    "regenerate": ["commands:*", "workflows:*", "skills:*", "personas:*"],
+    "breaking": false,
+    "manual": [
+      "After /forge:update, restart Claude Code and approve the 'forge' MCP server when prompted (project-scoped .mcp.json).",
+      "The forge_* tools are now available as mcp__forge__* — commands and workflows have been updated to use them automatically."
+    ]
+  },
+  "1.5.0": {
+    "version": "1.5.1",
+    "date": "2026-06-19",
+    "notes": "Store-read token efficiency. (1) store-cli.cjs `read` gains a `--format flat` mode that emits non-JSON `key: value` lines (nested objects → dotted keys, primitive arrays → comma-joined, object arrays → indexed dotted keys) — a token-efficient alternative to JSON for whole-record reads; honours existing `--fields`/`--no-summaries` projection; default read and `--json` behaviour are unchanged (back-compat). (2) The six phase-gate workflows (plan_task, review_plan, implement_plan, review_code, validate_task, architect_approve) now read task state with `--fields status` instead of `--json` — projecting only the field the state check needs instead of pulling the whole record (~2,100 → ~7 tokens on a fat task record with summaries). No store-record or schema change; status-gate semantics are identical.",
+    "target": "tools:store-cli,workflows:plan_task,workflows:review_plan,workflows:implement_plan,workflows:review_code,workflows:validate_task,workflows:architect_approve",
+    "regenerate": ["workflows:plan_task", "workflows:review_plan", "workflows:implement_plan", "workflows:review_code", "workflows:validate_task", "workflows:architect_approve"],
+    "breaking": false,
+    "manual": []
+  },
   "1.4.13": {
     "version": "1.5.0",
     "date": "2026-06-11",
