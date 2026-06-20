@@ -32,7 +32,7 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
 
 0a. Pre-flight Gate Check:
    - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
-   - Run: `node .forge/tools/preflight-gate.cjs --phase implement --{entity_kind} {record_id}`
+   - Run: `forge_preflight({ phase: "implement", {entity_kind}: "{record_id}`" })
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
@@ -41,7 +41,7 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
    - If `--force` is present in the invocation arguments, skip this step entirely.
    - If `entity_kind == "bug"`, skip this step entirely (bug state is managed by meta-fix-bug.md).
    - Read current task state:
-     `node .forge/tools/store-cli.cjs read task {record_id} --json`
+     `forge_store({ command: "read", args: ["task", "{record_id}", "--fields"] }) status`
    - Extract the `status` field from the JSON output.
    - Allowed states for this phase: `plan-approved`.
    - If the current status is NOT in the allowed set:
@@ -82,10 +82,10 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
        - Out-of-band escapes (any state): `plan-revision-required`, `code-revision-required`, `blocked`, `escalated`, `abandoned`
        Update status — check current state first:
        - If predecessor is `planned` or `implementing`:
-         `node .forge/tools/store-cli.cjs update-status task {taskId} status implemented`
+         `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "implemented`"] })
        - If predecessor is `plan-approved` (two-step mandatory — FSM forbids skipping `implementing`):
-         `node .forge/tools/store-cli.cjs update-status task {taskId} status implementing`
-         `node .forge/tools/store-cli.cjs update-status task {taskId} status implemented`
+         `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "implementing`"] })
+         `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "implemented`"] })
      - **Bug mode** — NO status write. The bug remains `in-progress` until the commit phase transitions it to `fixed`. Writing `bug.status` here violates `meta-fix-bug.md § Iron Laws #2`.
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry plus the SUMMARY you write next. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (Plan 11 / Slice 2). Write the SUMMARY and return.
 
@@ -115,7 +115,7 @@ require summaries.implementation.verdict == n/a
 
 - Follow the Algorithm step by step. Execute the approved PLAN.md exactly; do not invent scope or skip steps without updating the plan first.
 - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
+- All store I/O via `forge_store`. Never edit `.forge/store/*.json` directly.
 - Run the full test suite before declaring the task implemented. Silent continuation past test failures is never acceptable.
 
 ## Store-Write Verification

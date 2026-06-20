@@ -43,8 +43,8 @@ invokes the generated tool or falls back to manual collation.
 ## Preferred Method
 
 Run the vendored collate tool:
-```bash
-node .forge/tools/collate.cjs
+```
+forge_collate({})
 ```
 
 ## Fallback Method
@@ -56,17 +56,16 @@ the same outputs following the collation algorithm in
 ## Generation Instructions
 
 When generating a project-specific Collator, incorporate:
-- Emit the vendored project-relative invocation exactly as shown above —
-  `node .forge/tools/collate.cjs`. The tools closure is vendored into
-  `.forge/tools/` by `/forge:rebuild`, so the path resolves at runtime
-  without any plugin-root lookup.
+- Emit the MCP tool invocation exactly as shown above — `forge_collate({})`.
+  The MCP server is wired via `.mcp.json` (installed by `4ge init claude .`),
+  so `forge_collate` is always available post-T06 without any path lookup.
 - The project's language for invoking the tool
 - The store path (.forge/store/)
 - The project prefix for ID formatting
 
-**Persona block format** — every generated workflow for this persona must open by running the identity banner using the Bash tool:
-```bash
-node .forge/tools/banners.cjs drift
+**Persona block format** — every generated workflow for this persona must open by running the identity banner:
 ```
-Use `--badge` for compact inline contexts. The plain-text fallback for non-terminal output is:
+forge_banner({ name: "drift" })
+```
+Use `{ name: "drift", badge: true }` for compact inline contexts. The plain-text fallback for non-terminal output is:
 `🍃 **{Project} Collator** — I gather what exists and arrange it into views.`

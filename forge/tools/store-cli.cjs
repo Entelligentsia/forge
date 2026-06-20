@@ -561,6 +561,36 @@ function cmdWrite() {
   if (VERBOSE) console.log(JSON.stringify({ ok: true, entity, id: data[ENTITY_ID_FIELD[entity]], dryRun: DRY_RUN }));
 }
 
+// Flatten a record to `key: value` lines for `--format flat` — a non-JSON,
+// token-efficient read mode. Nested objects → dotted keys; arrays of primitives
+// → comma-joined; arrays of objects → indexed dotted keys. Built-ins only.
+function toFlatLines(obj, prefix) {
+  const lines = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const key = prefix ? `${prefix}.${k}` : k;
+    if (v === null || v === undefined) {
+      lines.push(`${key}: ${v === null ? 'null' : ''}`);
+    } else if (Array.isArray(v)) {
+      if (v.length === 0) {
+        lines.push(`${key}: []`);
+      } else if (v.every((x) => x === null || typeof x !== 'object')) {
+        lines.push(`${key}: ${v.map((x) => (x === null ? 'null' : String(x))).join(', ')}`);
+      } else {
+        v.forEach((item, i) => {
+          if (item && typeof item === 'object') lines.push(...toFlatLines(item, `${key}[${i}]`));
+          else lines.push(`${key}[${i}]: ${item === null ? 'null' : String(item)}`);
+        });
+      }
+    } else if (typeof v === 'object') {
+      const nested = toFlatLines(v, key);
+      lines.push(...(nested.length ? nested : [`${key}: {}`]));
+    } else {
+      lines.push(`${key}: ${String(v)}`);
+    }
+  }
+  return lines;
+}
+
 function cmdRead() {
   const entity = args[1];
   const id = args[2];
@@ -573,8 +603,14 @@ function cmdRead() {
     fieldsProjection = args[fieldsIdx + 1].split(',').map((f) => f.trim()).filter(Boolean);
   }
 
+  let format = null;
+  const formatIdx = args.indexOf('--format');
+  if (formatIdx !== -1 && args[formatIdx + 1] && !args[formatIdx + 1].startsWith('--')) {
+    format = args[formatIdx + 1].trim();
+  }
+
   if (!entity || !id) {
-    console.error('Usage: store-cli.cjs read <entity> <id> [--json] [--no-summaries] [--fields <comma-list>]');
+    console.error('Usage: store-cli.cjs read <entity> <id> [--json] [--format flat] [--no-summaries] [--fields <comma-list>]');
     process.exit(1);
   }
 
@@ -612,7 +648,9 @@ function cmdRead() {
     projected = Object.fromEntries(fieldsProjection.map((f) => [f, projected[f]]).filter(([, v]) => v !== undefined));
   }
 
-  if (asJson) {
+  if (format === 'flat') {
+    console.log(toFlatLines(projected).join('\n'));
+  } else if (asJson) {
     console.log(JSON.stringify(projected));
   } else {
     console.log(JSON.stringify(projected, null, 2));

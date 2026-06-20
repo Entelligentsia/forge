@@ -314,7 +314,7 @@
       "source": "mcp/server.cjs",
       "kind": "file",
       "bundle": "mcp/server.cjs",
-      "install": ".forge/mcp/server.cjs",
+      "install": ".forge/mcp/",
       "owner": "forge-scaffold",
       "note": "Self-contained esbuild node-only MCP stdio server (T03/T04). Vendored to .forge/mcp/server.cjs by bootstrap (T06). Claude Code spawns it via .mcp.json. Must be re-synced from forge-cli/dist/mcp/server.cjs at each release (T09)."
     },

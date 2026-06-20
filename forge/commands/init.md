@@ -63,9 +63,9 @@ the file, and set `startPhase = 1`.
 
 Render the Forge hero block once per session:
 
-```sh
-node .forge/tools/banners.cjs forge
-node .forge/tools/banners.cjs --subtitle "AI SDLC bootstrapper · forge:init"
+```
+forge_banner({ name: "forge" })
+forge_banner({ name: "forge", subtitle: "AI SDLC bootstrapper · forge:init" })
 ```
 
 The hero runs once. If the user resumes mid-init, do NOT re-render the hero —
@@ -97,8 +97,8 @@ KB folder name [engineering]: ___
 
 If the user provides a custom name (non-empty, not "engineering"), write it now:
 
-```sh
-node .forge/tools/manage-config.cjs set paths.engineering "{name}"
+```
+forge_config({ subcommand: "set", key: "paths.engineering", value: "{name}" })
 ```
 
 Set `kbFolder` to the chosen name (default: `"engineering"`).
@@ -184,9 +184,9 @@ When `workflow('wfl:init', ...)` returns with `result.ok === true`:
 
 ### Closing Banner
 
-```sh
-node .forge/tools/banners.cjs forge
-node .forge/tools/banners.cjs --subtitle "灯 SDLC ready — welcome to your Forge SDLC"
+```
+forge_banner({ name: "forge" })
+forge_banner({ name: "forge", subtitle: "灯 SDLC ready — welcome to your Forge SDLC" })
 ```
 
 ### Welcome Block
@@ -215,8 +215,8 @@ Ask: `Install recommended skills? [Y/n]` (per bucket or all at once — your cal
 
 For each skill the user accepts:
 
-```sh
-node .forge/tools/manage-config.cjs set installedSkills.{skillId} true
+```
+forge_config({ subcommand: "set", key: "installedSkills.{skillId}", value: "true" })
 ```
 
 Track accepted/skipped counts for the final report. **If the user skips the

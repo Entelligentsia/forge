@@ -1,7 +1,13 @@
 'use strict';
 // Structural invariant test: every atomic phase workflow file must invoke
-// preflight-gate.cjs before producing its artifact. A new phase workflow added
-// later cannot silently skip the guard — this test will fail loudly.
+// the forge_preflight MCP tool (or preflight-gate.cjs in hook contexts)
+// before producing its artifact. A new phase workflow added later cannot
+// silently skip the guard — this test will fail loudly.
+//
+// Updated by FORGE-S34-T07: call-site migration replaced Bash
+// `node .forge/tools/preflight-gate.cjs --phase <p>` with
+// `forge_preflight({ phase: "<p>", ... })` throughout model-facing markdown.
+// Tests now match the MCP tool pattern instead of the old .cjs invocation.
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -11,51 +17,70 @@ const WORKFLOWS_DIR = path.resolve(__dirname, '..', '..', 'meta', 'workflows');
 
 // Phase workflow files (atomic, invoked by the orchestrator or directly by a
 // user-level /command). Keyed by filename → expected phase name passed to
-// preflight-gate.cjs.
+// forge_preflight({ phase: "<p>", ... }).
+// Note: meta-commit.md delegates preflight to forge_commit (which calls
+// preflight-gate.cjs internally) — it is excluded here and covered by a
+// dedicated test below.
 const PHASE_WORKFLOWS = {
   'meta-plan-task.md':             'plan',
   'meta-implement.md':             'implement',
   'meta-review-plan.md':           'review-plan',
   'meta-review-implementation.md': 'review-code',
   'meta-approve.md':               'approve',
-  'meta-commit.md':                'commit',
   'meta-validate.md':              'validate',
 };
 
 describe('phase-workflow-guards :: preflight invocation invariant', () => {
   for (const [file, phase] of Object.entries(PHASE_WORKFLOWS)) {
-    test(`${file} invokes preflight-gate.cjs with --phase ${phase}`, () => {
+    test(`${file} invokes forge_preflight with phase "${phase}"`, () => {
       const p = path.join(WORKFLOWS_DIR, file);
       assert.ok(fs.existsSync(p), `expected workflow file at ${p}`);
       const contents = fs.readFileSync(p, 'utf8');
 
+      // After FORGE-S34-T07 migration, the MCP tool name is the marker.
       assert.match(
         contents,
-        /preflight-gate\.cjs/,
-        `${file} does not invoke preflight-gate.cjs — safety net missing`,
+        /forge_preflight/,
+        `${file} does not invoke forge_preflight — safety net missing`,
       );
-      const phaseFlagRegex = new RegExp(`--phase\\s+${phase}\\b`);
+      // The phase value must appear in the forge_preflight call.
+      const phaseArgRegex = new RegExp(`forge_preflight\\(.*?phase.*?${phase.replace('-', '[-_]')}.*?\\)`, 's');
       assert.match(
         contents,
-        phaseFlagRegex,
-        `${file} invokes preflight-gate but not with "--phase ${phase}"`,
+        phaseArgRegex,
+        `${file} invokes forge_preflight but not with phase "${phase}"`,
       );
     });
   }
 
-  test('meta-orchestrate.md invokes preflight-gate before every subagent spawn', () => {
+  test('meta-orchestrate.md invokes forge_preflight before every subagent spawn', () => {
     const p = path.join(WORKFLOWS_DIR, 'meta-orchestrate.md');
     const contents = fs.readFileSync(p, 'utf8');
-    assert.match(contents, /preflight-gate\.cjs/);
+    assert.match(contents, /forge_preflight/);
     // Verdicts are read from the store via read-verdict.cjs (the former
     // parse-verdict.cjs markdown reader was removed; issue #111 Phase 2).
+    // read-verdict.cjs is an orchestrator-internal tool — not in the 14-tool
+    // MCP surface — so it remains as a .cjs reference (allowlisted in mcp-callsite-gate).
     assert.match(contents, /read-verdict\.cjs/);
   });
 
-  test('meta-fix-bug.md invokes preflight-gate before every subagent spawn', () => {
+  test('meta-fix-bug.md invokes preflight-gate (via forge-preflight.cjs orchestrator tool)', () => {
     const p = path.join(WORKFLOWS_DIR, 'meta-fix-bug.md');
     const contents = fs.readFileSync(p, 'utf8');
-    assert.match(contents, /preflight-gate\.cjs/);
+    // meta-fix-bug.md uses forge-preflight.cjs (orchestrator-internal, not in the 14-tool
+    // MCP surface) rather than the model-facing forge_preflight. Both are allowlisted.
+    assert.match(contents, /forge-preflight\.cjs|forge_preflight/);
+  });
+
+  test('meta-commit.md delegates preflight to forge_commit (tool handles it internally)', () => {
+    const p = path.join(WORKFLOWS_DIR, 'meta-commit.md');
+    const contents = fs.readFileSync(p, 'utf8');
+    // The commit workflow calls forge_commit which owns the preflight gate internally.
+    // The workflow mentions the internal preflight gate in its tool documentation.
+    assert.match(contents, /forge_commit/,
+      'meta-commit.md must invoke forge_commit — preflight is delegated to the tool');
+    assert.match(contents, /preflight/,
+      'meta-commit.md must mention preflight (delegated to forge_commit internally)');
   });
 });
 

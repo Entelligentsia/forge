@@ -31,7 +31,7 @@ Seal a completed and approved task by committing its artifacts to the VCS and up
 
 - Commit only the artifacts produced for this task; do not sweep unrelated working-tree changes into the commit. The commit boundary mirrors the task boundary.
 - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
+- All store I/O via `forge_store`. Never edit `.forge/store/*.json` directly.
 - **Never run `git add`/`git commit`/`git reset` yourself** — `commit-task.cjs` owns staging, boundary checks, committing, and the terminal transition (#40). Your judgement input is the message.
 - **Commit writes NO summary** (`commit` ∉ `VALID_SUMMARY_PHASES` — any `set-summary` is rejected); the tool's terminal `update-status` is this phase's only store write.
 
@@ -64,7 +64,7 @@ Seal a completed and approved task by committing its artifacts to the VCS and up
    - If the `forge_commit` named tool is available (forgecli): call it —
      `forge_commit({ entity:"{entity_kind}", id:"{record_id}", message:"<message>", trailer:"<line>" })`.
      Never pass the message through a bash string when the typed tool exists.
-   - Otherwise (Claude Code): `node .forge/tools/commit-task.cjs --{entity_kind} {record_id} --message "<message>" [--trailer "<Co-authored-by line>"]`
+   - Otherwise (Claude Code): `forge_commit({ entity: "{entity_kind}", id: "{record_id}", message: "<message>" }) [--trailer "<Co-authored-by line>"]`
    - The tool owns the choreography: preflight gate (`preflight-gate.cjs --phase commit`
      internally), status precondition (task `approved` / bug `in-progress` — wrong-state runs
      halt with `× {record_id} is in state '{status}' …; /forge:approve must complete first`),

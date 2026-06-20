@@ -23,7 +23,7 @@ Capture sprint requirements via a structured interview and document them for pla
 
 - Capture requirements accurately; do not editorialize or pre-select options on the user's behalf. The product manager documents what the user says, not what the agent thinks is best.
 - Read `.forge/personas/product-manager.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
-- All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
+- All store I/O via `forge_store`. Never edit `.forge/store/*.json` directly.
 
 ## Algorithm
 
@@ -56,7 +56,7 @@ Capture sprint requirements via a structured interview and document them for pla
    - Ensure all deliverables are measurable and testable
 
 5. Finalize:
-   - Update sprint status via `node .forge/tools/store-cli.cjs update-status sprint {sprintId} status planning`
+   - Update sprint status via `forge_store({ command: "update-status", args: ["sprint", "{sprintId}", "status", "planning`"] })
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 ```
 
@@ -79,6 +79,6 @@ Capture sprint requirements via a structured interview and document them for pla
      - Set token fields to `null`: `"inputTokens": null, "outputTokens": null, "estimatedCostUSD": null`.
      - Add `"source": "missing"` to sidecar JSON.
      - Log: "Token data unavailable (cost probe failed). Backfill later via estimate-usage.cjs."
-  4. Write the usage sidecar via `node .forge/tools/store-cli.cjs emit {sprintId} '{sidecar-json}' --sidecar`.
+  4. Write the usage sidecar via `forge_store({ command: "emit", args: ["{sprintId}", '{sidecar-json}'] }) --sidecar`.
   5. **NEVER skip sidecar write.** Always emit (reported or placeholder with nulls).
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

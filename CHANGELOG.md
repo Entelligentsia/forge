@@ -5,6 +5,28 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.5.1] — 2026-06-19
+
+Store-read token efficiency.
+
+### Added
+- `store-cli.cjs read --format flat` — a non-JSON read mode that emits flat
+  `key: value` lines (nested objects → dotted keys, primitive arrays →
+  comma-joined, object arrays → indexed dotted keys). A token-efficient
+  alternative to JSON for whole-record reads; honours the existing
+  `--fields` / `--no-summaries` projection. Default `read` and `--json`
+  output are unchanged (back-compat).
+
+### Changed
+- The six phase-gate workflows (`plan_task`, `review_plan`, `implement_plan`,
+  `review_code`, `validate_task`, `architect_approve`) now read task state with
+  `--fields status` instead of `--json` for the user-invoked state check. They
+  only need the `status` field; projecting it instead of pulling the whole
+  record cuts a status-gate read from ~2,100 to ~7 tokens on a fat task record
+  with summaries. Gate semantics are identical.
+
+---
+
 ## [1.5.0] — 2026-06-11
 
 Plugin **shim-only sunset release** (FORGE-S32-T07). The stable skillforge

@@ -148,7 +148,7 @@ Each phase subagent is responsible for reporting its own token usage via a sidec
    Do NOT shell out to a `cost-cli.cjs` — there is no such tool.
 2. Parse the output for the five fields:
    `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `estimatedCostUSD`.
-3. Write the usage sidecar via `node .forge/tools/store-cli.cjs emit {sprintId} '{sidecar-json}' --sidecar` with the exact format:
+3. Write the usage sidecar via `forge_store({ command: "emit", args: ["{sprintId}", '{sidecar-json}'] }) --sidecar` with the exact format:
    ```json
    {
      "inputTokens": <integer>,
@@ -361,7 +361,7 @@ for each task in dependency_sorted(tasks):
 
   # --- Clear progress log for this sprint ---
   progress_log_path = f".forge/store/events/{sprint_id}/progress.log"
-  run_bash(f'node .forge/tools/store-cli.cjs progress-clear {sprint_id}')
+  run_bash(f'forge_store({ command: "progress-clear", args: ["{sprint_id}')"] })
 
   while i < len(phases):
     phase = phases[i]
@@ -426,7 +426,7 @@ for each task in dependency_sorted(tasks):
     #                        work; leave unchanged here.
     emoji, persona_name, tagline = PERSONA_MAP.get(phase.role, ("🌊", "Orchestrator", "I move tasks through their lifecycle."))
     banner_name = BANNER_MAP.get(phase.role, "forge")
-    run_bash(f'node .forge/tools/banners.cjs --badge {banner_name} --quiet')
+    run_bash(f'forge_banner({ name: "--badge" }) {banner_name} --quiet')
     print(f"  → {task_id}  [{display_model}]\n")
 
     # --- Start progress Monitor before spawning subagent ---
@@ -442,7 +442,7 @@ for each task in dependency_sorted(tasks):
     # Resolve FORGE_ROOT once (needed for meta/workflows fragment reads below).
     FORGE_ROOT = resolve_forge_root()
     preflight_result = run_bash(
-      f'node .forge/tools/preflight-gate.cjs --phase {phase.role} --task {task_id}'
+      f'forge_preflight({ phase: "{phase.role}", task: "{task_id}'" })
     )
     if preflight_result.exit_code == 1:
       # Gate failed: halt the orchestrator loop for THIS task. Do not retry,
@@ -463,7 +463,7 @@ for each task in dependency_sorted(tasks):
       append_progress(progress_log_path, f"❌ Gate failed for {phase.role}: {gate_notes}")
       emit_event(task, phase, action="gate_failed", notes=gate_notes)
       # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
-      run_bash(f'node .forge/tools/store-cli.cjs update-status task {task_id} status escalated')
+      run_bash(f'forge_store({ command: "update-status", args: ["task", "{task_id}", "status", "escalated')"] })
       emit_event(task, phase, eventId=event_id, iteration=iteration,
                  action="escalated", verdict="escalated",
                  notes=gate_notes)
@@ -475,7 +475,7 @@ for each task in dependency_sorted(tasks):
       # Misconfiguration (unknown phase, malformed gates block). Fail loud.
       print(f"  ⚠ {task_id}  {phase.role}  — gate misconfigured\n{preflight_result.stderr}")
       # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
-      run_bash(f'node .forge/tools/store-cli.cjs update-status task {task_id} status escalated')
+      run_bash(f'forge_store({ command: "update-status", args: ["task", "{task_id}", "status", "escalated')"] })
       emit_event(task, phase, eventId=event_id, iteration=iteration,
                  action="escalated", verdict="escalated",
                  notes=f"gate_misconfigured: {preflight_result.stderr}")
@@ -603,7 +603,7 @@ for each task in dependency_sorted(tasks):
           emit_event(task, phase, action="subagent_escalated",
                      notes=f"second failure: {subagent_failure_reason(result)}")
           # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
-          run_bash(f'node .forge/tools/store-cli.cjs update-status task {task_id} status escalated')
+          run_bash(f'forge_store({ command: "update-status", args: ["task", "{task_id}", "status", "escalated')"] })
           emit_event(task, phase, eventId=event_id, iteration=iteration,
                      action="escalated", verdict="escalated",
                      notes=f"subagent failed after retry: {subagent_failure_reason(result)}")
@@ -616,7 +616,7 @@ for each task in dependency_sorted(tasks):
         emit_event(task, phase, action="subagent_escalated",
                    notes=f"second failure: {subagent_failure_reason(result)}")
         # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
-        run_bash(f'node .forge/tools/store-cli.cjs update-status task {task_id} status escalated')
+        run_bash(f'forge_store({ command: "update-status", args: ["task", "{task_id}", "status", "escalated')"] })
         emit_event(task, phase, eventId=event_id, iteration=iteration,
                    action="escalated", verdict="escalated",
                    notes=f"subagent failed after retry: {subagent_failure_reason(result)}")
@@ -625,11 +625,11 @@ for each task in dependency_sorted(tasks):
         break
 
     # --- Sidecar merge: merge token usage written by subagent via custodian ---
-    # The subagent wrote the sidecar via node .forge/tools/store-cli.cjs emit {sprintId} '{sidecar-json}' --sidecar
+    # The subagent wrote the sidecar via forge_store({ command: "emit", args: ["{sprintId}", '{sidecar-json}'] }) --sidecar
     # Merge the sidecar into the canonical event and delete the sidecar file
-    run: node .forge/tools/store-cli.cjs merge-sidecar {sprint_id} {event_id}
+    run: forge_store({ command: "merge-sidecar", args: ["{sprint_id}", "{event_id}"] })
     # merge-sidecar reads the sidecar, merges token fields into the canonical event, and deletes the sidecar
-    # If the sidecar does not exist, merge-sidecar exits 1 — treat as non-fatal (subagent may have skipped it)
+    # If the sidecar does not exist, merge-sidecar returns an error — treat as non-fatal (subagent may have skipped it)
     emit_event(task, phase, action="complete")
 
     # --- Phase-exit signal ---
@@ -665,7 +665,7 @@ for each task in dependency_sorted(tasks):
       emit_event(task, phase, action="verdict_malformed",
                  notes=f"read-verdict stdout='{verdict_token}' exit={verdict_result.exit_code}")
       # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
-      run_bash(f'node .forge/tools/store-cli.cjs update-status task {task_id} status escalated')
+      run_bash(f'forge_store({ command: "update-status", args: ["task", "{task_id}", "status", "escalated')"] })
       emit_event(task, phase, eventId=event_id, iteration=iteration,
                  action="escalated", verdict="escalated",
                  notes="verdict_malformed: no verdict recorded in the phase summary / record")
@@ -690,7 +690,7 @@ for each task in dependency_sorted(tasks):
 
       if iteration_counts[phase.command] >= phase.maxIterations: # default 3
         # ---- ESCALATION (mandatory hard stop — do NOT continue) ----
-        run_bash(f'node .forge/tools/store-cli.cjs update-status task {task_id} status escalated')
+        run_bash(f'forge_store({ command: "update-status", args: ["task", "{task_id}", "status", "escalated')"] })
         emit_event(task, phase, eventId=event_id, iteration=iteration,
                    action="escalated", verdict="escalated",
                    notes="max iterations reached")
@@ -808,7 +808,7 @@ applies the bug-specific phase→summary map.)
 
 When escalating to the human:
 
-1. Update task status via `node .forge/tools/store-cli.cjs update-status task {taskId} status escalated`
+1. Update task status via `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "escalated`"] })
 2. Emit a final event with `verdict: "escalated"` and `notes` explaining the reason
 3. Output a clear message:
    ```
@@ -967,7 +967,7 @@ subagent returns, the orchestrator:
 4. Composes the canonical event with `eventId`, `taskId`, `sprintId`, `role`,
    `action`, `phase`, `iteration` from its own task state and `tokenSource:
    "reported"` when the runtime surfaced usage.
-5. Calls `node .forge/tools/store-cli.cjs emit {sprintId} '{event-json}'`
+5. Calls `forge_store({ command: "emit", args: ["{sprintId}", '{event-json}'] })`
    with the complete record.
 
 Do not include hardcoded example `model` or `provider` strings in the
@@ -991,9 +991,9 @@ Refer subagents to `.forge/schemas/event.schema.json` instead.
   Do NOT generate a "Model Assignments" table — the Model Resolution section
   above is the single source of truth.
 - **Include the sidecar merge pattern.** After each subagent returns, run
-  `node .forge/tools/store-cli.cjs merge-sidecar {sprintId} {eventId}` to merge token fields from the
+  `forge_store({ command: "merge-sidecar", args: ["{sprintId}", "{eventId}"] })` to merge token fields from the
   sidecar into the canonical event and delete the sidecar. If the sidecar does not
-  exist (merge-sidecar exits 1), treat as non-fatal and emit the event without token
+  exist (merge-sidecar returns an error), treat as non-fatal and emit the event without token
   fields (graceful fallback — no error).
 - **Include the role-to-noun mapping table.** The generated orchestrator MUST include
   a `ROLE_TO_NOUN` dictionary (or equivalent in the host language) that maps every
@@ -1019,7 +1019,7 @@ Refer subagents to `.forge/schemas/event.schema.json` instead.
   subagents do not display banners. Instead, include progress reporting instructions
   in the subagent prompt with the agent name, progress log path, and banner key.
 - **Include the progress IPC pattern.** Each generated orchestrator MUST:
-  1. Clear the progress log at task start: `node .forge/tools/store-cli.cjs progress-clear {sprintId}`
+  1. Clear the progress log at task start: `forge_store({ command: "progress-clear", args: ["{sprintId}`"] })
   2. Compute the agent name before each spawn: `{taskId}:{persona_noun}:{phase.role}:{iteration}`
   3. Start a Monitor on the progress log before each subagent spawn
   4. Include progress reporting instructions in the subagent prompt (agent name,
