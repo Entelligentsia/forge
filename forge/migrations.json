@@ -1,4 +1,16 @@
 {
+  "1.5.1": {
+    "version": "1.6.0",
+    "date": "2026-06-20",
+    "notes": "FORGE-S34: MCP tool surface. A vendored stdio MCP server (forge/forge/mcp/server.cjs) exposes all 14 forge_* tools to Claude Code. 4ge init claude . writes an idempotent project-scoped .mcp.json; model-facing markdown (commands, workflows, skills, personas) migrated from Bash/node .forge/tools/*.cjs call-sites to mcp__forge__* invocations. forge_ask_user reimplemented over MCP elicitation; forge_markdown carries its remark/mdast engine in the bundle. On first run after /forge:update, Claude Code prompts to approve the forge MCP server.",
+    "target": "mcp:server,init:.mcp.json,commands:*,workflows:*,skills:*,personas:*",
+    "regenerate": ["commands:*", "workflows:*", "skills:*", "personas:*"],
+    "breaking": false,
+    "manual": [
+      "After /forge:update, restart Claude Code and approve the 'forge' MCP server when prompted (project-scoped .mcp.json).",
+      "The forge_* tools are now available as mcp__forge__* — commands and workflows have been updated to use them automatically."
+    ]
+  },
   "1.5.0": {
     "version": "1.5.1",
     "date": "2026-06-19",

@@ -31015,7 +31015,7 @@ CJS tools invoke vendored .forge/tools/*.cjs via node subprocess (no shell inter
 `.trim();
 function createForgeServer(projectRoot, toolDir) {
   const server = new Server(
-    { name: "forge", version: "1.0.41" },
+    { name: "forge", version: "1.0.42" },
     {
       capabilities: { tools: {} },
       instructions: SERVER_INSTRUCTIONS

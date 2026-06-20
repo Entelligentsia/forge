@@ -5,6 +5,35 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.6.0] — 2026-06-20
+
+MCP tool surface — first release of the vendored stdio MCP server.
+
+### Added
+- **MCP server** (`forge/forge/mcp/server.cjs`) — a vendored esbuild-bundled
+  stdio MCP server exposing all 14 `forge_*` tools to Claude Code. Spawned via
+  `node` by Claude Code from a project-scoped `.mcp.json`; no `node_modules`
+  required (self-contained bundle).
+- **`.mcp.json` bootstrap** — `4ge init claude .` writes an idempotent
+  project-scoped `.mcp.json` declaring the `forge` MCP server. First run
+  prompts Claude Code to approve the server; subsequent runs are no-ops.
+- **forge_markdown** (native) — remark/mdast AST engine bundled into the server;
+  no external deps at runtime.
+- **forge_ask_user** (native) — MCP elicitation protocol with a non-interactive
+  `FORGE_YES=1` / env-default fallback.
+
+### Changed
+- **Model-facing call-sites migrated** — all commands, workflows, skills, and
+  personas that previously called `node .forge/tools/*.cjs` via Bash now invoke
+  the corresponding `mcp__forge__*` tool. Hook scripts are excluded (they run
+  outside the LLM loop and keep exec'ing `.cjs` directly).
+
+### Security
+- Security scan of MCP server source and vendored bundle completed; no
+  unresolved high-severity findings.
+
+---
+
 ## [1.5.1] — 2026-06-19
 
 Store-read token efficiency.

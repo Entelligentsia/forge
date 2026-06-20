@@ -1,6 +1,6 @@
 {
-  "version": "1.5.0",
-  "generated": "2026-06-11",
+  "version": "1.6.0",
+  "generated": "2026-06-20",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
     "commands/add-pipeline.md": "ed4e666b38542d959287116ff6f25e8f51b10c2f18d1fc54974a996fdaf9d8f7",
@@ -15,7 +15,7 @@
     "commands/fix-bug.md": "d38e6de69a7dd840271155de861fd79feb83bc1ac59409d3df5b93ebc97cab3d",
     "commands/health.md": "d92d81ab8614608c383a01f4788fa9aa17a9b07c0d62caebad264a6459b45d58",
     "commands/implement.md": "cdec3d802b86634fbfde48a8d08b18d84db4df41cdc7142ee85dacd3df19ace0",
-    "commands/init.md": "37fa5ada63b9428bd8356d34c6ece7781338dc74840007be3ddf053e3eb7205c",
+    "commands/init.md": "f37181a8906a67d726cf8bae82f726f2b771919518c47203cb1f5ab8d9a34101",
     "commands/new-sprint.md": "be6a9c059937e2d13dc68f07f9183c51cbd06fd6ab092e41b538692ee9de37ce",
     "commands/plan-sprint.md": "bfde817baf6f51cd27626abef2553d3d0de9968bc67905c9a939386bd27221e8",
     "commands/plan.md": "8f882d644345bed7d115e46a11e2a83fd1d5d7a39df23fdca2851b04f2e5cce5",
