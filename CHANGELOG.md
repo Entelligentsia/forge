@@ -5,6 +5,26 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.6.3] — 2026-06-21
+
+### Fixed
+- **Postflight gate false-halted on slugged artifact directories.** The postflight
+  gate reconstructed each phase's artifact directory from bare IDs
+  (`sprints/<sprintId>/<taskId>/`), so on projects whose on-disk dirs carry slugs
+  (sprintId `S39` → `sprint_39_helpdesk_front_door`, taskId `WI-S39-T01` →
+  `WI-S39-T01-inbound-email-threading`) it looked for `PLAN.md` at
+  `engineering/sprints/S39/WI-S39-T01/` and reported `output-missing` for an
+  artifact that existed at the slug path — halting a pipeline whose plan phase had
+  succeeded. The plan phase, `forge_artifact`, and the **preflight** gate all
+  resolve via the task record's authoritative `path` field; postflight did not, so
+  the gates disagreed. Postflight now derives `{sprint}`/`{task}` from `rec.path`
+  using the same `deriveSprintTaskFromArtifactPath` helper the preflight gate uses,
+  and only falls back to ID reconstruction when no usable path is present. One fix
+  covers every phase (plan/implement/review/validate/approve/commit) — they share a
+  single substitution map.
+
+---
+
 ## [1.6.2] — 2026-06-21
 
 ### Fixed

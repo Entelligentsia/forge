@@ -280,3 +280,72 @@ describe('postflight-gate.cjs :: real workflow shapes (CART-S03-T01 regression)'
     assert.equal(subs.task, 'CART-BUG-001');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WI-S39-T01 false-halt regression (walkinto.in S39):
+//   The plan phase wrote PLAN.md to the AUTHORITATIVE slugged artifact dir
+//   recorded in task.path —
+//     engineering/sprints/sprint_39_helpdesk_front_door/WI-S39-T01-inbound-email-threading/
+//   but postflight reconstructed the dir from bare IDs (sprints/S39/WI-S39-T01),
+//   reported output-missing, and halted a pipeline whose artifact existed.
+//   The preflight gate already derives {sprint}/{task} from task.path via
+//   deriveSprintTaskFromArtifactPath; postflight must use the same rule so the
+//   two gates agree on the artifact location for EVERY phase.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('postflight-gate.cjs :: slugged artifact paths (WI-S39-T01 regression)', () => {
+  test('buildSubstitutions: slugged task.path drives {sprint}/{task} (not bare IDs)', () => {
+    const { buildSubstitutions } = require(POSTFLIGHT_GATE);
+    const subs = buildSubstitutions({
+      taskRecord: {
+        sprintId: 'S39',
+        path: 'engineering/sprints/sprint_39_helpdesk_front_door/WI-S39-T01-inbound-email-threading/',
+      },
+      engineeringRoot: 'engineering',
+      entityId: 'WI-S39-T01',
+    });
+    assert.equal(subs.engineering, 'engineering');
+    assert.equal(subs.sprint, 'sprints/sprint_39_helpdesk_front_door',
+      'slugged sprint dir must come from task.path, not sprints/<sprintId>');
+    assert.equal(subs.task, 'WI-S39-T01-inbound-email-threading',
+      'slugged task dir must come from task.path, not the bare task id');
+  });
+
+  test('buildSubstitutions: absent path still falls back to sprints/<sprintId>', () => {
+    const { buildSubstitutions } = require(POSTFLIGHT_GATE);
+    const subs = buildSubstitutions({
+      taskRecord: { sprintId: 'CART-S03' },
+      engineeringRoot: 'engineering',
+      entityId: 'CART-S03-T01',
+    });
+    assert.equal(subs.sprint, 'sprints/CART-S03');
+    assert.equal(subs.task, 'CART-S03-T01');
+  });
+
+  test('canonical template resolves to the slugged artifact location', () => {
+    const { postflight, buildSubstitutions } = require(POSTFLIGHT_GATE);
+    const engRoot = path.join(tmpDir, 'engineering');
+    const artifactDir = path.join(
+      engRoot, 'sprints', 'sprint_39_helpdesk_front_door', 'WI-S39-T01-inbound-email-threading',
+    );
+    fs.mkdirSync(artifactDir, { recursive: true });
+    fs.writeFileSync(path.join(artifactDir, 'PLAN.md'), 'x'.repeat(300), 'utf8');
+    const subs = buildSubstitutions({
+      taskRecord: {
+        sprintId: 'S39',
+        // path shares the engineeringRoot prefix, as the real CLI passes it
+        path: path.join(engRoot, 'sprints', 'sprint_39_helpdesk_front_door', 'WI-S39-T01-inbound-email-threading') + '/',
+      },
+      engineeringRoot: engRoot,
+      entityId: 'WI-S39-T01',
+    });
+    const outputs = {
+      plan: {
+        artifacts: [{ path: '{engineering}/{sprint}/{task}/PLAN.md', minBytes: 200 }],
+        require: [],
+      },
+    };
+    const result = postflight({ phase: 'plan', outputs, state: {}, substitutions: subs });
+    assert.equal(result.ok, true, `expected slugged artifact found; got: ${result.detail}`);
+  });
+});

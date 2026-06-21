@@ -1,4 +1,15 @@
 {
+  "1.6.2": {
+    "version": "1.6.3",
+    "date": "2026-06-21",
+    "notes": "Fix postflight-gate false-halt on slugged artifact directories. The postflight gate's buildSubstitutions reconstructed the artifact dir from bare IDs (sprints/<sprintId>/<taskId>), so on projects whose on-disk dirs carry slugs (sprintId 'S39' -> 'sprint_39_helpdesk_front_door', taskId 'WI-S39-T01' -> 'WI-S39-T01-inbound-email-threading') it looked for PLAN.md at engineering/sprints/S39/WI-S39-T01/ and reported output-missing for an artifact that existed at the slug path — halting a pipeline whose plan phase succeeded. The plan phase, forge_artifact, and the preflight gate all resolve via the task record's authoritative `path` field, but postflight did not, so the two gates disagreed for every phase. postflight now derives {sprint}/{task} from rec.path using the same deriveSprintTaskFromArtifactPath helper the preflight gate already uses (prepending the `sprints/` segment per postflight's {sprint} convention), and falls back to ID reconstruction only when no usable path is present. Single fix covers every phase (plan/implement/review/validate/approve/commit) since they share one substitution map.",
+    "target": "tools:postflight-gate",
+    "regenerate": [],
+    "breaking": false,
+    "manual": [
+      "After /forge:update, re-run any task that false-halted with 'output-missing: artifact absent: engineering/sprints/<ID>/<ID>/PLAN.md' — the artifact already exists at the slug path and the gate now finds it."
+    ]
+  },
   "1.6.1": {
     "version": "1.6.2",
     "date": "2026-06-21",

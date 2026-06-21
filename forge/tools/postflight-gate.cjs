@@ -20,6 +20,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { deriveSprintTaskFromArtifactPath } = require('./preflight-gate.cjs');
 
 /**
  * postflight({ phase, outputs, state, substitutions })
@@ -118,11 +119,38 @@ function readField(dottedPath, state) {
  *   bugs:  <engineering>/bugs/<bugId>/
  * {sprint} is defined as the path segment under <engineering> that contains
  * the entity dir — `sprints/<sprintId>` for tasks, `bugs` for bugs.
- * (CART-S03-T01 false-halt: {sprint} was substituted with the bare sprintId,
- * dropping the `sprints/` segment, so every artifact check missed.)
+ *
+ * PREFERRED resolution: derive {sprint}/{task} from the entity's stored
+ * artifact path (rec.path) — the authoritative on-disk location written at
+ * creation time and where the phases actually write PLAN.md / REVIEW.md / etc.
+ * This is slug- and nesting-accurate, so it covers projects whose directory
+ * names don't equal the bare IDs (sprintId "S39" → dir
+ * "sprint_39_helpdesk_front_door", taskId "WI-S39-T01" → dir
+ * "WI-S39-T01-inbound-email-threading"). Reusing the SAME helper the preflight
+ * gate uses (deriveSprintTaskFromArtifactPath) keeps the two gates in agreement
+ * about the artifact location for every phase.
+ * (WI-S39-T01 false-halt: postflight reconstructed sprints/S39/WI-S39-T01 from
+ * IDs and reported output-missing for a PLAN.md that existed under the slug dir.
+ * CART-S03-T01 false-halt: {sprint} dropped the `sprints/` segment entirely.)
+ *
+ * FALLBACK (no usable rec.path — legacy records, or a non-`sprints/` path such
+ * as a bug dir): reconstruct from IDs.
  */
 function buildSubstitutions({ taskRecord, engineeringRoot, entityId }) {
   const rec = taskRecord || {};
+
+  // deriveSprintTaskFromArtifactPath returns {sprint} as the segments BELOW
+  // `sprints/` (preflight's template re-adds the literal `sprints/`). Postflight's
+  // {sprint} convention INCLUDES the `sprints/` segment, so prepend it here.
+  const derived = deriveSprintTaskFromArtifactPath(rec.path, engineeringRoot);
+  if (derived) {
+    return {
+      engineering: engineeringRoot,
+      sprint: `sprints/${derived.sprint}`,
+      task: derived.task,
+    };
+  }
+
   const isBug = Boolean(rec.bugId) || /-BUG-/.test(String(entityId || ''));
   let sprint;
   if (isBug) {
