@@ -1,4 +1,13 @@
 {
+  "1.6.1": {
+    "version": "1.6.2",
+    "date": "2026-06-21",
+    "notes": "Fix wfl:run-task spurious escalation at commit. The driver's hardcoded default pipeline mapped the `writeback` phase to update_implementation.md — the engineer's revision-applier, which sets task status back to 'implemented'. Running after `approve` (status='approved'), writeback reset the status, then the `commit` phase (commit-task.cjs requires status 'approved') tripped its precondition and escalated the task. writeback is the COLLATOR phase per meta-orchestrate (role->persona: writeback->collator); it now correctly maps to collator_agent.md, which writes markdown KB views + WRITEBACK-SUMMARY.json only and does NOT change task status — so commit still sees 'approved'. Also corrects the driver's ROLE_TO_NOUN and banner map for writeback (engineer -> collator).",
+    "target": "workflows-js:wfl-run-task",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "1.6.0": {
     "version": "1.6.1",
     "date": "2026-06-21",

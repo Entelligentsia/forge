@@ -5,6 +5,21 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.6.2] — 2026-06-21
+
+### Fixed
+- **`wfl:run-task` spuriously escalated tasks at commit.** The driver's default
+  pipeline mapped the `writeback` phase to `update_implementation.md` — the
+  engineer's revision-applier, which sets status back to `implemented`. Running
+  after `approve`, writeback un-approved the task; the `commit` phase
+  (`commit-task.cjs` requires `approved`) then tripped its precondition and
+  escalated. `writeback` is the **collator** phase (meta-orchestrate role→persona)
+  and now maps to `collator_agent.md`, which writes KB views + `WRITEBACK-SUMMARY.json`
+  only and does **not** change task status — so commit still sees `approved`. Also
+  fixes the driver's `ROLE_TO_NOUN`/banner for writeback (engineer → collator).
+
+---
+
 ## [1.6.1] — 2026-06-21
 
 MCP reliability fixes + deterministic Workflow token accounting.

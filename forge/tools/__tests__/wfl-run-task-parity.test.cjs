@@ -381,11 +381,22 @@ describe('wfl-run-task-parity — LOW #20: writeback in default pipeline', () =>
     );
   });
 
-  it('AC #20b: writeback maps to update_implementation.md in role-to-workflow list', () => {
+  it('AC #20b: writeback maps to collator_agent.md (status-safe), NOT update_implementation.md', () => {
     const s = getSrc();
+    // writeback is the COLLATOR phase (meta-orchestrate § role-to-persona:
+    // writeback -> collator). It must map to collator_agent.md — which writes
+    // markdown views only and does NOT touch task status. Mapping it to
+    // update_implementation.md (the engineer revision-applier) set status back
+    // to "implemented" after approve, tripping commit-task.cjs's "requires
+    // approved" precondition and escalating every task at commit.
+    // Match the literal arrow-mapping form (not prose that merely mentions both).
     assert.ok(
-      s.includes('update_implementation.md'),
-      'No "update_implementation.md" found — writeback must map to update_implementation.md per orchestrate_task.md §3.'
+      s.includes('writeback→collator_agent.md'),
+      'writeback must map to collator_agent.md (status-safe KB writeback).'
+    );
+    assert.ok(
+      !s.includes('writeback→update_implementation.md'),
+      'writeback must NOT map to update_implementation.md — it resets status to "implemented" and breaks commit.'
     );
   });
 });

@@ -203,7 +203,7 @@ const BANNER_MAP = {
   'validate':    'forge-validator',
   'approve':     'forge-architect',
   'commit':      'forge-engineer',
-  'writeback':   'forge-engineer',
+  'writeback':   'forge-collator',
 }
 
 // Role → persona noun mapping for role-block injection (Gap #8).
@@ -215,7 +215,7 @@ const ROLE_TO_NOUN = {
   'validate':    'validator',
   'approve':     'architect',
   'commit':      'engineer',
-  'writeback':   'engineer',
+  'writeback':   'collator',
 }
 
 const RESOLVE_SCHEMA = {
@@ -493,7 +493,12 @@ const resolved = await agent(
     'The hardcoded default is: plan → review-plan → implement → review-code → validate → approve → writeback → commit,',
     'mapping roles to workflow files: plan→plan_task.md, review-plan→review_plan.md, implement→implement_plan.md,',
     'review-code→review_code.md, validate→validate_task.md, approve→architect_approve.md,',
-    'writeback→update_implementation.md, commit→commit_task.md.',
+    'writeback→collator_agent.md, commit→commit_task.md.',
+    'CRITICAL: writeback is the COLLATOR phase (gather task artifacts into KB views) — it maps to',
+    'collator_agent.md, which writes markdown views only and does NOT change task status. Do NOT map',
+    'writeback to update_implementation.md (the engineer revision-applier): that sets status back to',
+    '"implemented" after approve, and the commit phase requires status "approved" — every task would',
+    'then escalate at commit. Commit must see the task still "approved" after writeback.',
     'maxIterations defaults to 3 for review roles (review-plan, review-code, validate) and 1 otherwise.',
     'Return taskId, sprintId, taskStatus, and the ordered phases[]. Read-only — do NOT modify anything.',
   ].join(' '),
