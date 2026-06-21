@@ -8,7 +8,7 @@
 // AC2: Path A = [implement, review-code, approve, commit, finalize]; Path B = [plan/plan-fix, review-plan, ...PathA]; decided once, no switching
 // AC3: bug_skipped guard on SKIP_STATUS=[blocked,escalated,fixed,abandoned], emits event
 // AC4: triage→triaged→in-progress (two calls); commit→fixed; virtual sprintId='bugs'; --bug flag; start/complete bracketing
-// AC5: finalize runs collate.cjs --purge-events then preflight-gate --phase finalize --bug; gate failure escalates without touching bug.status
+// AC5: finalize runs mcp__forge__collate (purgeEvents) then mcp__forge__preflight (phase=finalize, bug); gate failure escalates without touching bug.status
 // AC6: escalateBug() helper present; null-dispatch retry-once-then-escalate
 // AC7: file exists, node --check passes, all tests green
 
@@ -240,18 +240,23 @@ describe('wfl-fix-bug — AC4: status writes, virtual sprintId, --bug flag, brac
 describe('wfl-fix-bug — AC5: finalize phase', () => {
   let src;
 
-  it('finalize runs collate.cjs with --purge-events', () => {
+  it('finalize purges events via mcp__forge__collate', () => {
     if (!src) src = fs.readFileSync(SRC, 'utf8');
+    // Post-MCP migration: finalize calls mcp__forge__collate with purgeEvents:true
+    // (was: node .forge/tools/collate.cjs {bugId} --purge-events).
     assert.ok(
-      src.includes('--purge-events'),
-      'No "--purge-events" found — finalize must call collate.cjs {bugId} --purge-events.'
+      src.includes('mcp__forge__collate') && src.includes('purgeEvents'),
+      'finalize must call mcp__forge__collate with purgeEvents:true (purge this bug\'s events).'
     );
   });
 
-  it('finalize runs preflight-gate with --phase finalize and --bug', () => {
+  it('finalize runs the finalize gate via mcp__forge__preflight', () => {
     if (!src) src = fs.readFileSync(SRC, 'utf8');
-    const hasFinalizeGate = src.includes('--phase finalize') || src.includes("phase finalize");
-    assert.ok(hasFinalizeGate, 'No --phase finalize found — finalize must run preflight-gate --phase finalize --bug {bugId}.');
+    // Post-MCP migration: finalize gate is mcp__forge__preflight { phase:"finalize", bug }
+    // (was: node .forge/tools/preflight-gate.cjs --phase finalize --bug {bugId}).
+    const hasFinalizeGate = src.includes('mcp__forge__preflight') &&
+      (src.includes('"phase": "finalize"') || src.includes('"phase":"finalize"'));
+    assert.ok(hasFinalizeGate, 'finalize must call mcp__forge__preflight with phase:"finalize".');
   });
 
   it('escalateBug helper present (used for finalize gate failure without status write)', () => {
@@ -299,10 +304,17 @@ describe('wfl-fix-bug — AC6: escalateBug helper and null-dispatch retry', () =
 describe('wfl-fix-bug — inherited T02 verdict routing', () => {
   let src;
 
-  it('STDOUT token routing used in review phases (not exit code)', () => {
+  it('review phases route on the structured summary verdict (not exit code)', () => {
     if (!src) src = fs.readFileSync(SRC, 'utf8');
-    const hasStdout = src.includes('stdout') || src.includes('STDOUT');
-    assert.ok(hasStdout, 'No STDOUT routing found — review phases must route on STDOUT token, not exit code.');
+    // Post-MCP migration: read-verdict.cjs (which printed a STDOUT token) is
+    // replaced by reading summaries.<phase>.verdict directly from the record
+    // via mcp__forge__store read. Route on that value, never an exit code.
+    const readsSummaryVerdict = /summaries\.['"+ ]*\+?\s*phase\.role/.test(src) ||
+      src.includes('summaries.') && src.includes('.verdict');
+    assert.ok(
+      readsSummaryVerdict && src.includes('mcp__forge__store'),
+      'review phases must read summaries.<phase>.verdict via mcp__forge__store read, not an exit code.'
+    );
   });
 
   it('n/a maps to malformed', () => {
@@ -318,10 +330,15 @@ describe('wfl-fix-bug — inherited T02 verdict routing', () => {
     }
   });
 
-  it('unknown maps to malformed', () => {
+  it('any other / missing verdict value maps to malformed', () => {
     if (!src) src = fs.readFileSync(SRC, 'utf8');
-    assert.ok(src.includes('unknown'), '"unknown" not found in source.');
-    assert.ok(src.includes('malformed'), '"malformed" not found — unknown must map to malformed.');
+    // Post-MCP migration: the catch-all is "missing / n/a / any other value → malformed"
+    // (was: STDOUT "unknown" token → malformed).
+    assert.ok(src.includes('malformed'), '"malformed" not found in source.');
+    assert.ok(
+      src.includes('any other') || src.includes('n/a'),
+      'verdict mapping must route missing / n/a / any other value → malformed.'
+    );
   });
 
   it('exit code not used to determine verdict (no "Map exit code" routing)', () => {

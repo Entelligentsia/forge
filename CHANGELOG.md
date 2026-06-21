@@ -5,6 +5,45 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.6.1] — 2026-06-21
+
+MCP reliability fixes + deterministic Workflow token accounting.
+
+### Fixed
+- **MCP server `spawn node ENOENT`** — the vendored server spawned its `.cjs`
+  tools via the bare string `"node"`, which fails when Claude Code launches the
+  stdio server with a PATH that lacks `node` (NVM/fnm/volta/asdf, or any
+  restricted launch env). All 12 cjs-wrapper tools died while the 2 native tools
+  worked. Now spawns `process.execPath` (the absolute path of the running node).
+- **Misleading ENOENT from an unexpanded `${projectRoot}`** — `resolveProjectRoot()`
+  trusted any non-empty `CLAUDE_PROJECT_DIR`, so a literal unexpanded template
+  token flowed into `execFile`'s `cwd` and surfaced as `spawn <node> ENOENT`. It
+  now validates the value is a real directory and falls back to cwd otherwise.
+- **`.mcp.json` template** drops the broken `env.CLAUDE_PROJECT_DIR: "${projectRoot}"`
+  block — Claude Code injects `CLAUDE_PROJECT_DIR` for stdio servers itself.
+
+### Changed
+- **Code-orchestrated JS drivers migrated to MCP** — `wfl-run-task`, `wfl-run-sprint`,
+  and `wfl-fix-bug` now drive their store/preflight/collate/commit operations
+  through `mcp__forge__*` tools instead of Bash-exec'ing `node .forge/tools/*.cjs`.
+  The `mcp-callsite` gate now also scans the `workflows-js/` drivers (previously a
+  blind spot). `wfl-init` intentionally stays on Bash — it runs before the MCP
+  server exists (it is what creates it).
+- **Removed the dead per-phase merge-sidecar dispatch** — its only writer (the
+  pi-runtime usage-hook) does not exist in the Claude Code Workflow path, so every
+  merge found nothing and merely burned one agent dispatch per phase.
+
+### Added
+- **`forge-usage-report.cjs`** — a deterministic, no-LLM tool that reconciles
+  per-phase token cost from the Workflow harness transcript onto the COMPLETE
+  events (summing real provider usage, joining agent→event by the agent's own
+  complete-emit). Wired into all three orchestration drivers to run before
+  collate, so the cost section is accurate for Claude-Code-driven runs. Idempotent;
+  no-ops events already populated by the pi path. See
+  `doc/analysis/workflow-token-accounting.md`.
+
+---
+
 ## [1.6.0] — 2026-06-20
 
 MCP tool surface — first release of the vendored stdio MCP server.

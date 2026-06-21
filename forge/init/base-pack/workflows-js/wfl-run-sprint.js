@@ -127,11 +127,11 @@ async function dispatchTask(sprintId, taskId, mode) {
   await agent(
     [
       `Emit a task-dispatch event for task ${taskId} in sprint ${sprintId}.`,
-      `node .forge/tools/store-cli.cjs emit ${sprintId}`,
+      `Call mcp__forge__store { "command":"emit", "args":["${sprintId}",`,
       `'{"eventId":"<uuid-v4>","type":"task-dispatch","taskId":"${taskId}","sprintId":"${sprintId}",`,
       `"role":"orchestrator","action":"task-dispatch","phase":"dispatch","iteration":1,`,
       `"startTimestamp":"<ISO-now>","endTimestamp":"<ISO-now>","durationMinutes":0,`,
-      `"model":"<your-model-id>","provider":"anthropic"}'`,
+      `"model":"<your-model-id>","provider":"anthropic"}'] }`,
       'Replace <uuid-v4> with a UUID v4 string (e.g. crypto.randomUUID()), <ISO-now> with the',
       'current UTC ISO 8601 timestamp, and <your-model-id> with the actual model you are using.',
       'Do NOT modify any other store records.',
@@ -257,7 +257,7 @@ phase('Load')
 const loaded = await agent(
   [
     `Load Forge sprint ${sprintId}.`,
-    `\`node .forge/tools/store-cli.cjs read sprint ${sprintId} --json\` and read every task in`,
+    `Call mcp__forge__store { "command":"read", "args":["sprint","${sprintId}","--json"] } and read every task in`,
     `.forge/store/tasks/ whose sprintId === ${sprintId}.`,
     'Return: sprintId, executionMode (the sprint record\'s mode; default "sequential" if absent),',
     'and tasks[] each with taskId, status, and dependencies[].',
@@ -289,12 +289,12 @@ log(`Dependency plan: ${waves.length} step(s) — ${waves.map(w => `[${w.join(',
 await agent(
   [
     `Emit a sprint-start event for sprint ${sprintId}.`,
-    'paths.forgeRoot, then run:',
-    `node .forge/tools/store-cli.cjs emit ${sprintId}`,
+    'Call mcp__forge__store { "command":"emit", "args":[',
+    `"${sprintId}",`,
     `'{"eventId":"<uuid-v4>","type":"sprint-start","sprintId":"${sprintId}",`,
     `"role":"orchestrator","action":"sprint-start",`,
     `"startTimestamp":"<ISO-now>","endTimestamp":"<ISO-now>","durationMinutes":0,`,
-    `"model":"<your-model-id>","provider":"anthropic","taskCount":${active.length}}'`,
+    `"model":"<your-model-id>","provider":"anthropic","taskCount":${active.length}}'] }`,
     'Replace <uuid-v4> with a UUID v4 string, <ISO-now> with the current UTC ISO 8601 timestamp,',
     'and <your-model-id> with the actual model you are using.',
     'Do NOT modify any other store records.',
@@ -310,7 +310,7 @@ await agent(
 await agent(
   [
     `Transition sprint ${sprintId} to active status.`,
-    `node .forge/tools/store-cli.cjs update-status sprint ${sprintId} active`,
+    `Call mcp__forge__store { "command":"update-status", "args":["sprint","${sprintId}","active"] }`,
     'If the sprint is already active or completed, the command is a no-op — that is fine.',
     'Return "ok".',
   ].join(' '),
@@ -326,7 +326,7 @@ phase('Execute')
 await agent(
   [
     `Clear the sprint progress log for ${sprintId} before dispatching any task.`,
-    `node .forge/tools/store-cli.cjs progress-clear ${sprintId}`,
+    `Call mcp__forge__store { "command":"progress-clear", "args":["${sprintId}"] }`,
     'Exit 0 for a missing log is expected and fine. Do NOT modify any other store records.',
   ].join(' '),
   { label: `progress-clear:${sprintId}`, phase: 'Execute' }
@@ -351,11 +351,11 @@ await agent(
     `Escalated task outcomes: ${JSON.stringify(results.filter(r => !r.terminal || r.status === 'escalated').map(r => ({ id: r.taskId, status: r.status, note: r.note })))}.`,
     '',
     'Step 1 — For each escalated/non-terminal task listed above, emit a type:friction event:',
-    `  node .forge/tools/store-cli.cjs emit ${sprintId} '{"eventId":"<uuid-v4>","type":"friction","sprintId":"${sprintId}","workflow":"wfl:run-sprint","persona":"orchestrator","issue":"respawn-exhausted","taskId":"<task-id>","startTimestamp":"<ISO-now>","endTimestamp":"<ISO-now>","durationMinutes":0,"model":"<your-model-id>","provider":"anthropic"}'`,
+    `  Call mcp__forge__store { "command":"emit", "args":["${sprintId}", '{"eventId":"<uuid-v4>","type":"friction","sprintId":"${sprintId}","workflow":"wfl:run-sprint","persona":"orchestrator","issue":"respawn-exhausted","taskId":"<task-id>","startTimestamp":"<ISO-now>","endTimestamp":"<ISO-now>","durationMinutes":0,"model":"<your-model-id>","provider":"anthropic"}'] }`,
     '  Replace <uuid-v4>, <task-id>, <ISO-now>, <your-model-id> with actual values.',
     '',
     'Step 2 — Drain any .forge/cache/FRICTION-*.jsonl files:',
-    '  For each line in each FRICTION-*.jsonl file, emit the record as a type:friction event via store-cli.',
+    '  For each line in each FRICTION-*.jsonl file, emit the record as a type:friction event via mcp__forge__store.',
     '  After emitting all records from a file, delete the file.',
     '',
     'If no escalations occurred AND no FRICTION-*.jsonl files exist, do nothing (skip silently).',
@@ -373,28 +373,33 @@ const committedIds = results.filter(r => r.status === 'committed').map(r => r.ta
 const report = await agent(
   [
     `All tasks for ${sprintId} have reached a terminal state.`,
-    '`node .forge/tools/collate.cjs`.',
-    `Then set the sprint status: "completed" if all tasks committed, otherwise "partially-completed", via store-cli update-status.`,
+    `STEP 0 (token accounting — run BEFORE collate): Run \`node .forge/tools/forge-usage-report.cjs --sprint ${sprintId} --apply\`.`,
+    `   This deterministically reconciles per-phase token usage from this run's Workflow transcript (including every`,
+    `   task sub-workflow) onto the sprint's COMPLETE events, so collate's cost section is accurate. It is a Bash tool`,
+    `   (reads the Workflow harness transcript — no MCP equivalent; documented boundary). BEST-EFFORT: if it prints`,
+    `   "no workflow transcript dir" or errors, log and continue — do NOT abort collation.`,
+    'Then call mcp__forge__collate { "sprintId":"' + sprintId + '" }.',
+    `Then set the sprint status: "completed" if all tasks committed, otherwise "partially-completed", via mcp__forge__store { "command":"update-status", "args":["sprint","${sprintId}","<status>"] }.`,
     `Per-task outcomes: ${JSON.stringify(results.map(r => ({ id: r.taskId, status: r.status })))}.`,
     // Gap #4 (AC4): emit sprint-complete event with outcome counts.
     `Then emit a sprint-complete event via:`,
-    `node .forge/tools/store-cli.cjs emit ${sprintId}`,
+    `mcp__forge__store { "command":"emit", "args":["${sprintId}",`,
     `'{"eventId":"<uuid-v4>","type":"sprint-complete","sprintId":"${sprintId}",`,
     `"role":"orchestrator","action":"sprint-complete",`,
     `"startTimestamp":"<sprint-start-ISO>","endTimestamp":"<ISO-now>","durationMinutes":<elapsed>,`,
     `"model":"<your-model-id>","provider":"anthropic",`,
     `"taskCount":${results.length},"completedTaskIds":${JSON.stringify(committedIds)},`,
     `"verdict":"${committed === results.length ? 'complete' : 'partial'}",`,
-    `"waveCount":${waves.length},"maxConcurrency":${mode === 'sequential' ? 1 : waves.reduce((m, w) => Math.max(m, w.length), 1)}}'`,
+    `"waveCount":${waves.length},"maxConcurrency":${mode === 'sequential' ? 1 : waves.reduce((m, w) => Math.max(m, w.length), 1)}}'] }`,
     'Replace placeholders: <uuid-v4>=UUID v4, <sprint-start-ISO>=sprint start timestamp,',
     '<ISO-now>=current UTC ISO 8601, <elapsed>=minutes elapsed since sprint-start, <your-model-id>=actual model.',
     // Gap #16 (AC2): rebuild context pack — mirrors collator_agent.md §Algorithm §3.
     // On exit 1 (architecture dir absent), skip silently.
-    `Then rebuild the context pack: node .forge/tools/build-context-pack.cjs --arch-dir engineering/architecture --out-md .forge/cache/context-pack.md --out-json .forge/cache/context-pack.json`,
+    `Then rebuild the context pack (no MCP tool — Bash boundary): node .forge/tools/build-context-pack.cjs --arch-dir engineering/architecture --out-md .forge/cache/context-pack.md --out-json .forge/cache/context-pack.json`,
     '(If build-context-pack.cjs exits 1 because the architecture dir is absent, skip silently and continue.)',
     // Gap #16 (AC3): write WRITEBACK-SUMMARY.json to sprint artifact path.
     // Use sprint.path from the store read (not a reconstructed template).
-    `Then read the sprint record: node .forge/tools/store-cli.cjs read sprint ${sprintId} --json`,
+    `Then read the sprint record: mcp__forge__store { "command":"read", "args":["sprint","${sprintId}","--json"] }`,
     'Extract sprint.path. Write WRITEBACK-SUMMARY.json to that path with this shape:',
     `{ "objective": "Sprint ${sprintId} collation complete", "key_changes": [<list of committed task ids>], "verdict": "<complete|partial>", "written_at": "<ISO-now>" }`,
     // Gap #16 (AC4): invoke forge:refresh-kb-links via Skill tool.

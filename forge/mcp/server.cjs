@@ -16004,8 +16004,9 @@ var path = __toESM(require("node:path"), 1);
 var import_node_child_process = require("node:child_process");
 var import_node_util = require("node:util");
 var execFileAsync = (0, import_node_util.promisify)(import_node_child_process.execFile);
+var NODE_BIN = process.execPath;
 async function runCjsMcp(toolPath, argv, cwd, timeoutMs) {
-  const result = await execFileAsync("node", [toolPath, ...argv], {
+  const result = await execFileAsync(NODE_BIN, [toolPath, ...argv], {
     cwd,
     encoding: "utf8",
     timeout: timeoutMs
@@ -30954,15 +30955,22 @@ function buildAnswerSchema(type2, options, question) {
 }
 
 // src/extensions/forgecli/mcp/project-root.ts
+var import_node_fs2 = require("node:fs");
 function resolveProjectRoot() {
   const envRoot = process.env["CLAUDE_PROJECT_DIR"];
-  if (envRoot) {
+  if (envRoot && (0, import_node_fs2.existsSync)(envRoot) && (0, import_node_fs2.statSync)(envRoot).isDirectory()) {
     return envRoot;
   }
   const cwd = process.cwd();
-  process.stderr.write(
-    "[forge-mcp] CLAUDE_PROJECT_DIR not set \u2014 falling back to cwd: " + cwd + "\n"
-  );
+  if (envRoot) {
+    process.stderr.write(
+      "[forge-mcp] CLAUDE_PROJECT_DIR is set but not a directory (" + envRoot + ") \u2014 falling back to cwd: " + cwd + "\n"
+    );
+  } else {
+    process.stderr.write(
+      "[forge-mcp] CLAUDE_PROJECT_DIR not set \u2014 falling back to cwd: " + cwd + "\n"
+    );
+  }
   return cwd;
 }
 

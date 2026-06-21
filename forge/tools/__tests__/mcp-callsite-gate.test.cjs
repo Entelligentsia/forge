@@ -3,20 +3,33 @@
 // in model-facing markdown after the MCP call-site migration.
 //
 // The 14 MCP tools each have a corresponding .cjs file. This gate scans all
-// model-facing markdown (workflows, personas, commands, fragments) and FAILS
-// if it finds any `node .forge/tools/<x>.cjs` instruction for the 8 cjs-backed
+// model-facing markdown (workflows, personas, commands, fragments) AND the
+// code-orchestrated JS drivers (base-pack/workflows-js/wfl-*.js) and FAILS if
+// it finds any `node .forge/tools/<x>.cjs` instruction for the 8 cjs-backed
 // covered tools (the 2 native-TS tools — forge_markdown, forge_ask_user — have
 // no .cjs to grep for).
+//
+// SCOPE NOTE (FORGE-S34 follow-up): the original T07 gate scanned only `.md`
+// in meta/commands, which left the `wfl-*.js` drivers — whose subagent prompts
+// also drive the 14 ops — as an unguarded blind spot (they shipped fully on
+// Bash-cjs while the gate stayed green). This gate now ALSO scans the JS
+// drivers' prompt strings, locking in their migration to `mcp__forge__*`.
 //
 // Allowlisted exclusions:
 //   1. forge/forge/hooks/**  — hook scripts exec .cjs outside the LLM loop.
 //   2. friction-emit.cjs     — not in the 14 tools.
 //   3. read-verdict.cjs, manage-versions.cjs, build-overlay.cjs,
 //      build-context-pack.cjs, substitute-placeholders.cjs, forge-preflight.cjs
-//      — orchestrator/build internals, not in 14.
+//      — orchestrator/build internals, not in 14. (forge-preflight.cjs is the
+//      hook-primed SESSION preflight; the phase-scoped forge_preflight tool does
+//      not fit it — Bash boundary.)
 //   4. _fragments/friction-emit.md — uses friction-emit.cjs (allowlisted above).
 //   5. meta-migrate.md — legitimately references validate-store.cjs as a
 //      migration run-command, not as an agent-facing instruction.
+//   6. wfl-init.js — the `4ge init` driver runs BEFORE the MCP server exists
+//      (init is what writes .mcp.json + vendors .forge/mcp/server.cjs), so it
+//      cannot call MCP tools and legitimately stays on Bash-cjs (manage-config,
+//      verify-phase, build-* are all init-time bootstrap ops). Hard boundary.
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -36,6 +49,10 @@ const SCAN_DIRS = [
   path.join(FORGE_ROOT, 'meta', 'skills'),
   path.join(FORGE_ROOT, 'commands'),
 ];
+
+// Code-orchestrated JS drivers whose subagent PROMPTS drive the 14 ops. These
+// were the T07 blind spot — scanned here as `.js`, same COVERED/ALLOWLIST rules.
+const WORKFLOWS_JS_DIR = path.join(FORGE_ROOT, 'init', 'base-pack', 'workflows-js');
 
 // The 8 cjs-backed covered tool names (covered by the 14-tool MCP surface,
 // excluding the 2 native-TS tools which have no .cjs counterpart).
@@ -67,6 +84,9 @@ const ALLOWLISTED_CJS = new Set([
 const ALLOWLISTED_BASENAMES = new Set([
   'friction-emit.md',  // documents the excluded tool
   'meta-migrate.md',   // uses validate-store.cjs as a migration run-command
+  'wfl-init.js',       // init driver runs before the MCP server exists (it
+                       // creates it) — manage-config/verify-phase/build-* are
+                       // init-time bootstrap ops; Bash is the hard boundary.
 ]);
 
 /**
@@ -84,6 +104,21 @@ function collectMarkdownFiles(dir) {
       // Exclude hook paths.
       if (full.includes('/hooks/')) continue;
       results.push(full);
+    }
+  }
+  return results;
+}
+
+/**
+ * Collect the `wfl-*.js` driver files in the workflows-js dir (non-recursive).
+ * Their subagent prompt strings are scanned with the same rules as markdown.
+ */
+function collectDriverFiles(dir) {
+  const results = [];
+  if (!fs.existsSync(dir)) return results;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isFile() && entry.name.startsWith('wfl-') && entry.name.endsWith('.js')) {
+      results.push(path.join(dir, entry.name));
     }
   }
   return results;
@@ -118,6 +153,8 @@ test('no covered Bash-cjs call-sites remain in model-facing markdown', () => {
   for (const dir of SCAN_DIRS) {
     allFiles.push(...collectMarkdownFiles(dir));
   }
+  // Also scan the code-orchestrated JS drivers (T07 blind spot).
+  allFiles.push(...collectDriverFiles(WORKFLOWS_JS_DIR));
 
   const violations = [];
   for (const file of allFiles) {

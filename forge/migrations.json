@@ -1,4 +1,16 @@
 {
+  "1.6.0": {
+    "version": "1.6.1",
+    "date": "2026-06-21",
+    "notes": "MCP reliability + Workflow token accounting. (1) The vendored MCP server now spawns its cjs tools via process.execPath (absolute path of the running node) instead of bare \"node\" — fixes `spawn node ENOENT` that killed all 12 cjs-wrapper tools when Claude Code launched the stdio server with a PATH lacking node (NVM/fnm/volta/asdf or any restricted env). (2) resolveProjectRoot() now validates CLAUDE_PROJECT_DIR is a real directory before trusting it, falling back to cwd — fixes a misleading ENOENT when an unexpanded ${projectRoot} token reached execFile's cwd. (3) The init .mcp.json template drops the broken env.CLAUDE_PROJECT_DIR block (Claude Code injects CLAUDE_PROJECT_DIR itself). (4) The code-orchestrated JS drivers (wfl-run-task/run-sprint/fix-bug) migrated their subagent-prompt call-sites from Bash node .forge/tools/*.cjs to mcp__forge__* tool calls; the mcp-callsite gate now also scans the workflows-js drivers (T07 blind spot). wfl-init stays on Bash (it runs before the MCP server exists). (5) Removed the dead per-phase merge-sidecar dispatch (its pi-runtime writer does not exist in the Workflow path); added forge-usage-report.cjs — a deterministic no-LLM tool that reconciles per-phase token cost from the Workflow transcript onto COMPLETE events before collate, wired into all three orchestration drivers.",
+    "target": "mcp:server,init:.mcp.json,workflows-js:wfl-run-task,workflows-js:wfl-run-sprint,workflows-js:wfl-fix-bug,tools:forge-usage-report",
+    "regenerate": [],
+    "breaking": false,
+    "manual": [
+      "After /forge:update, restart Claude Code so the forge MCP server reloads with the spawn + project-root fixes.",
+      "Re-running `4ge init claude .` refreshes the .mcp.json template (drops the unused env block) — existing projects keep working via the server's cwd fallback."
+    ]
+  },
   "1.5.1": {
     "version": "1.6.0",
     "date": "2026-06-20",
