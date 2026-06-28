@@ -1,4 +1,13 @@
 {
+  "1.6.3": {
+    "version": "1.6.4",
+    "date": "2026-06-28",
+    "notes": "Fix dead vendored reference to forge-usage-report.cjs (FORGE-BUG-030/036 MODULE_NOT_FOUND class). The tool was added at 1.6.3 (2026-06-21) and registered in schemas/structure-manifest.json, and init/base-pack/workflows-js/wfl-fix-bug.js, wfl-run-task.js, and wfl-run-sprint.js reference it, but it was missing from payload-manifest.json's tools selection. build-payload.cjs therefore did not copy it into the default payload, leaving bootstrapped projects with a dead .forge/tools/forge-usage-report.cjs reference (caught by the forge-cli vendored-refs gate) and a runtime MODULE_NOT_FOUND risk. Added forge-usage-report.cjs to the tools include list. Also regenerated integrity.json, structure-manifest.json, and enum-catalog.json, which had drifted to version 1.6.2 while plugin.json was at 1.6.3.",
+    "target": "schemas:payload-manifest",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
   "1.6.2": {
     "version": "1.6.3",
     "date": "2026-06-21",
