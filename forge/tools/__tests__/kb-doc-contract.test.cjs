@@ -123,3 +123,55 @@ describe('Phase-2 substance fragments (Slice 2)', () => {
     }
   });
 });
+
+// Slice 3 (FORGE-S35-T04): a not-applicable topic is a *certainty*, so its stub
+// is a confident (100%) `status: not-applicable` doc — NOT a low-confidence
+// guess. Every substance fragment that prescribes an absent-topic stub must say
+// so with the canonical marker and must never instruct "set confidence low" /
+// "accordingly". index.md and context.md carry no absent-topic stub (their topic
+// is never fully skipped) and are excluded.
+const STUB_BEARING_FRAGMENTS = [
+  'stack',
+  'processes',
+  'routing',
+  'database',
+  'testing',
+  'deployment',
+  'entity-model',
+  'stack-checklist',
+  'domain-model',
+  'domain-concepts',
+];
+
+describe('Phase-2 not-applicable stub policy (Slice 3)', () => {
+  it('every stub-bearing fragment prescribes the confident status: not-applicable stub', () => {
+    for (const name of STUB_BEARING_FRAGMENTS) {
+      const frag = path.join(PHASE_2_DIR, `${name}.md`);
+      assert.ok(fs.existsSync(frag), `missing stub-bearing fragment: phase-2/${name}.md`);
+      const src = fs.readFileSync(frag, 'utf8');
+      assert.match(
+        src,
+        /confidence:\s*100%/i,
+        `phase-2/${name}.md must prescribe a 100% confidence stub for an absent topic`,
+      );
+      assert.match(
+        src,
+        /status:\s*not-applicable/i,
+        `phase-2/${name}.md must prescribe a status: not-applicable marker for an absent topic`,
+      );
+    }
+  });
+
+  it('no stub-bearing fragment instructs "set confidence low/accordingly"', () => {
+    for (const name of STUB_BEARING_FRAGMENTS) {
+      const frag = path.join(PHASE_2_DIR, `${name}.md`);
+      if (!fs.existsSync(frag)) continue; // reported above
+      const src = fs.readFileSync(frag, 'utf8');
+      assert.doesNotMatch(
+        src,
+        /set confidence\s+(low|accordingly)/i,
+        `phase-2/${name}.md still tells a not-applicable topic to "set confidence low/accordingly"`,
+      );
+    }
+  });
+});

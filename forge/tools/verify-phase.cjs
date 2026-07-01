@@ -195,6 +195,16 @@ const ARCH_DOCS = [
 //   <!-- AUTO-GENERATED — confidence: 85% -->                  (phase-2-discover.md Step 3)
 const CONFIDENCE_HEADER = /confidence:\s*\d+%/i;
 
+// A not-applicable topic is a certainty, not a guess: an absent-topic stub is a
+// confident (100%) doc carrying this marker (FORGE-S35-T04 / Slice 3). The marker
+// may live inside the AUTO-GENERATED header comment or in the body. A doc bearing
+// it satisfies the substantive-OR-not-applicable gate even with no other body.
+const STATUS_NOT_APPLICABLE = /status:\s*not-applicable/i;
+
+// Strip HTML comments (the AUTO-GENERATED confidence/status header lives in one)
+// so a doc that is nothing but its header is recognised as empty.
+const HTML_COMMENT = /<!--[\s\S]*?-->/g;
+
 function verifyPhase2(cwd, kbPath) {
   const missing = [];
   const checked = [];
@@ -215,6 +225,17 @@ function verifyPhase2(cwd, kbPath) {
     }
     if (!CONFIDENCE_HEADER.test(content)) {
       missing.push(`${rel} (no confidence header)`);
+      continue;
+    }
+    // Substantive-OR-not-applicable gate (FORGE-S35-T04): a doc passes iff it
+    // carries a `status: not-applicable` marker OR has non-empty body content
+    // after the header. Header-only/empty docs are rejected. Completeness stays
+    // ADVISORY — no confidence-percentage threshold, no entity-count bar — so an
+    // entity-less/library project passes with confident not-applicable stubs.
+    const hasNotApplicable = STATUS_NOT_APPLICABLE.test(content);
+    const body = content.replace(HTML_COMMENT, '').trim();
+    if (!hasNotApplicable && body.length === 0) {
+      missing.push(`${rel} (empty — no substance and no status: not-applicable marker)`);
     }
   }
 
