@@ -87,3 +87,39 @@ describe('KB-doc contract drift-guard', () => {
     assert.deepStrictEqual(arr, CANONICAL, 'run-init-types.ts KB_DOC_IDS drifted from the contract');
   });
 });
+
+// Slice 2 (FORGE-S35-T03): the fat phase-2-discover.md rulebook is split into
+// per-step substance fragments under init/phases/phase-2/. Each subagent sees
+// only its own docId's work: the shared procedure (generate-kb-doc.md) + one
+// fragment. This drift-guard requires a fragment file for every canonical
+// KB_DOC_ID basename plus `index` and `context` (12 total), each carrying its
+// unique `<!-- kb-doc-fragment: <name> -->` marker.
+const PHASE_2_DIR = path.join(FORGE_FORGE, 'init', 'phases', 'phase-2');
+const FRAGMENT_NAMES = [
+  ...CANONICAL.map((id) => id.slice(id.lastIndexOf('/') + 1)),
+  'index',
+  'context',
+];
+
+describe('Phase-2 substance fragments (Slice 2)', () => {
+  it('has a fragment file for every KB_DOC_ID basename plus index + context (12 total)', () => {
+    assert.strictEqual(FRAGMENT_NAMES.length, 12, 'expected exactly 12 fragment names');
+    for (const name of FRAGMENT_NAMES) {
+      const frag = path.join(PHASE_2_DIR, `${name}.md`);
+      assert.ok(fs.existsSync(frag), `missing Phase-2 substance fragment: phase-2/${name}.md`);
+    }
+  });
+
+  it('each fragment carries its own kb-doc-fragment marker', () => {
+    for (const name of FRAGMENT_NAMES) {
+      const frag = path.join(PHASE_2_DIR, `${name}.md`);
+      if (!fs.existsSync(frag)) continue; // reported by the existence test
+      const src = fs.readFileSync(frag, 'utf8');
+      assert.match(
+        src,
+        new RegExp(`<!--\\s*kb-doc-fragment:\\s*${name}\\s*-->`),
+        `phase-2/${name}.md is missing its <!-- kb-doc-fragment: ${name} --> marker`,
+      );
+    }
+  });
+});

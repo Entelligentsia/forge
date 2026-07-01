@@ -1,0 +1,23 @@
+<!-- kb-doc-fragment: deployment -->
+# Substance — `architecture/deployment`
+
+**Output path:** `{kbFolder}/architecture/deployment.md`
+
+**Topic focus:** how the system ships — target environments, CI/CD pipelines,
+container/infra definitions, and release/publish mechanics. Describe *how the
+built artifact reaches production*.
+
+**Discovery input to read:** the `processes` domain findings from Phase 1 (CI
+config, Dockerfiles, deploy scripts, infra-as-code, publish config).
+
+**Required output:**
+- Confidence header on line 1.
+- Target environments (dev/staging/prod) and how they differ.
+- CI/CD pipeline stages and triggers.
+- Infra/container definitions and where they live.
+- Release/publish steps.
+- No build-command detail — that is `processes`.
+
+**Not applicable:** if the project has no deployment/CI configuration, write:
+`No deployment pipeline detected — this project has no CI/CD or infra config.`
+and set confidence low.

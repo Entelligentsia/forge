@@ -1,4 +1,15 @@
 {
+  "1.6.5": {
+    "version": "1.6.6",
+    "date": "2026-07-01",
+    "notes": "FORGE-S35-T03 (Slice 2): split the fat Phase-2 rulebook into per-step substance fragments so each /forge:init discovery subagent sees ONLY its own docId's work. Before this, the forge-cli native init pipeline (run-init-pipeline.ts) preloaded the entire init/phases/phase-2-discover.md rulebook and injected it verbatim into every Phase-2 subagent (10 kb-doc + index + context), differentiated only by a trailing AGENT PARAMS block — a weak model read the whole rulebook and executed all of it. Now: generate-kb-doc.md is confirmed as the SHARED procedure (write path, confidence header, verify-back, not-applicable stub) with a composition preamble; 12 new substance fragments live under init/phases/phase-2/ (10 KB_DOC_ID basenames + index + context), each carrying its topic focus, which Phase-1 discovery input to read, its required output, a not-applicable stub, and a unique <!-- kb-doc-fragment: <name> --> marker. The dispatcher (init-phase-dispatch.ts) gains readInitSharedProcedure + readInitPhase2Fragment (throw-on-missing); run-init-pipeline.ts sets the Phase-2 base = shared procedure and each step's buildPrompt appends its OWN fragment + params — phase-2-discover.md is no longer injected into any subagent. build-payload.cjs's single-level .md-only INIT_RULEBOOK_DIRS walk gained one-level recursion so the new phase-2/ subdir lands in the bundle (12 fragments copied). Scope: phase-2-discover.md and wfl-init.js are intentionally left intact — the wfl-init.js workflow-port repoint onto these fragments is Slice 3; the KB_DOC_IDS / verify-phase 10-doc contract is unchanged. Backwards-compat: no break; the fragment tree ships via the payload bundle, not generation.",
+    "target": "init:phases:phase-2,init:generation:generate-kb-doc",
+    "regenerate": [],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update to receive the new init/phases/phase-2/ substance-fragment tree and the generate-kb-doc.md composition preamble. This only affects the forge-cli native /forge:init pipeline; no store or KB migration is required. The wfl-init.js markdown workflow port still reads phase-2-discover.md and is repointed onto these fragments in a later slice."
+    ]
+  },
   "1.6.4": {
     "version": "1.6.5",
     "date": "2026-07-01",

@@ -1,5 +1,13 @@
 # Knowledge Base Doc Generation — Per-Subagent Instructions
 
+> **Prompt composition (Slice 2).** This file is the *shared procedure* injected
+> into every Phase-2 subagent. Your full prompt is assembled as:
+> **shared procedure (this file) + one per-step substance fragment
+> (`init/phases/phase-2/<step>.md`) + an `<!-- AGENT PARAMS -->` block**. The
+> substance fragment names the single doc you write, which Phase-1 discovery
+> input to read, its required output, and the not-applicable stub for an absent
+> topic. You never see the other steps' fragments — generate only your own.
+
 You are generating **ONE** knowledge base document. You have been given:
 
 1. A **discovery context** — the raw findings from Phase 1 discovery scans,
