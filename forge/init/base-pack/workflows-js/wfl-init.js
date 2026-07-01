@@ -233,12 +233,20 @@ ${VENDORED}
 // Phase 2 — Discover (startPhase <= 2)
 // ─────────────────────────────────────────────────────────────────────────────
 let phase2Result;
+// The canonical 10-doc KB contract (FORGE-S35-T01). DRIFT-GUARD: keep byte-
+// identical (same items, same order) to ARCH_DOCS in tools/verify-phase.cjs and
+// KB_DOC_IDS in forge-cli's run-init-types.ts — asserted by
+// tools/__tests__/kb-doc-contract.test.cjs. The Phase-2 verify gate checks
+// exactly these docIds, so this fan-out and that gate must agree.
 const KB_DOC_IDS = [
   'architecture/stack',
   'architecture/processes',
   'architecture/routing',
   'architecture/database',
   'architecture/testing',
+  'architecture/deployment',
+  'architecture/entity-model',
+  'architecture/stack-checklist',
   'business-domain/domain-model',
   'business-domain/domain-concepts',
 ];
@@ -263,7 +271,7 @@ ${VENDORED}
     });
   }
 
-  // Fan-out: 7 parallel KB-doc agents
+  // Fan-out: 10 parallel KB-doc agents
   const kbDocPrompt = (docId) => `
 You are a Forge KB-doc generation agent. Your doc id is: "${docId}".
 1. Read \`.forge/init/phases/phase-2-discover.md\` for the full doc spec for "${docId}".
@@ -303,7 +311,7 @@ ${kbDocPrompt(docId)}
 
   // Sequential index agent (after all leaf docs — real data dependency)
   const indexResult = await agent(`
-You are the Forge init index agent. All 7 KB architecture docs have been generated.
+You are the Forge init index agent. All 10 KB docs have been generated.
 Read \`.forge/init/phases/phase-2-discover.md\` Step 4 (index files).
 Generate the 3 INDEX files:
   - ${kbFolder}/architecture/INDEX.md

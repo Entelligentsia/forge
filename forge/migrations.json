@@ -1,4 +1,18 @@
 {
+  "1.6.4": {
+    "version": "1.6.5",
+    "date": "2026-07-01",
+    "notes": "FORGE-S35-T01: freeze ONE shared 10-doc KB contract across the Phase-2 verify gate and both init fan-out drivers, closing a three-way drift. Before this, verify-phase.cjs ARCH_DOCS listed 7 architecture-only docs and hardcoded an 'architecture/' path prefix; wfl-init.js KB_DOC_IDS listed a different 7 (with two business-domain/ docs); and init/phases/phase-2-discover.md's doc-spec table mis-pathed entity-model (under business-domain/) and stack-checklist (at KB root). The widened gate now checks 10 canonical docIds — architecture/{stack,processes,routing,database,testing,deployment,entity-model,stack-checklist} + business-domain/{domain-model,domain-concepts} — resolving each prefix-agnostically as {kbPath}/{docId}.md and additionally requiring a confidence-header token (/confidence:\\s*\\d+%/i, matching both in-tree AUTO-GENERATED header forms; not-applicable stubs still satisfy). wfl-init.js KB_DOC_IDS and forge-cli run-init-types.ts KB_DOC_IDS are synced byte-identical to the gate's ARCH_DOCS, so each fan-out agrees with its own line-327 gate; a new drift-guard test (tools/__tests__/kb-doc-contract.test.cjs) pins all three arrays to the canonical order. phase-2-discover.md's table is corrected (option B) to the canonical {KB_PATH}/{docId}.md paths with updated counts — keeping it the live interim path authority for both fan-out drivers; its removal + per-step fragments are deferred to FORGE-S35-T03. Backwards-compat: a pre-existing KB carrying only the old 7 docs (or the mis-relocated entity-model/stack-checklist paths) now fails --phase 2 until re-run; entity-model is homed under architecture/ per FEAT-011.",
+    "target": "tools:verify-phase,workflows-js:wfl-init,init:phases:phase-2-discover",
+    "regenerate": [
+      "tools",
+      "workflows-js"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild tools workflows-js to re-vendor .forge/tools/verify-phase.cjs and refresh the init driver. Existing projects whose KB predates the 10-doc contract (only 7 docs, or entity-model/stack-checklist at the old paths) will fail /forge:health Phase-2 verify until the missing docs are generated at the canonical architecture/ + business-domain/ paths — re-run /forge:init discovery or author them by hand."
+    ]
+  },
   "1.6.3": {
     "version": "1.6.4",
     "date": "2026-06-28",
