@@ -368,6 +368,74 @@ describe('wfl-init — AC10: escalate-don\'t-continue', () => {
   });
 });
 
+// ── FORGE-S35-T05 (Slice 4): Phase-2 convergence onto shared fragments ───────
+// The Phase-2 per-role prompts must compose the SHARED procedure
+// (init/generation/generate-kb-doc.md) + their OWN phase-2/<name>.md fragment +
+// an <!-- AGENT PARAMS --> block, mirroring forge-cli run-init-pipeline.ts. The
+// fat-doc scoping (phase-2-discover.md injected into every subagent) is removed,
+// and the KB-doc fan-out splits into an 8-leaf wave then a 2-derived wave.
+describe('wfl-init — S35-T05: shared-fragment convergence', () => {
+  let src;
+  const load = () => { if (!src) src = fs.readFileSync(SRC, 'utf8'); return src; };
+
+  it('kb-doc prompt references the shared generate-kb-doc.md procedure', () => {
+    assert.match(load(), /init\/generation\/generate-kb-doc\.md/,
+      'kb-doc prompt must point at the shared procedure init/generation/generate-kb-doc.md');
+  });
+
+  it('kb-doc prompt references a per-doc phase-2/<name>.md fragment', () => {
+    assert.match(load(), /init\/phases\/phase-2\/\$\{fragment\}\.md/,
+      'kb-doc prompt must reference its own init/phases/phase-2/${fragment}.md fragment');
+  });
+
+  it('kb-doc prompt carries an AGENT PARAMS block with role and docId', () => {
+    const s = load();
+    assert.ok(s.includes('<!-- AGENT PARAMS -->'), 'AGENT PARAMS block not found');
+    assert.match(s, /role:\s*kb-doc/, 'AGENT PARAMS must declare role: kb-doc');
+    assert.match(s, /docId:\s*\$\{docId\}/, 'AGENT PARAMS must declare docId: ${docId}');
+  });
+
+  it('index prompt references phase-2/index.md and the shared procedure', () => {
+    assert.match(load(), /init\/phases\/phase-2\/index\.md/,
+      'index prompt must reference init/phases/phase-2/index.md');
+  });
+
+  it('context prompt references phase-2/context.md', () => {
+    assert.match(load(), /init\/phases\/phase-2\/context\.md/,
+      'context prompt must reference init/phases/phase-2/context.md');
+  });
+
+  it('no phase-2-discover.md fat-doc scoping remains anywhere in the driver', () => {
+    assert.doesNotMatch(load(), /phase-2-discover\.md/,
+      'phase-2-discover.md must no longer be read by any Phase-2 prompt (fat-doc scoping removed)');
+  });
+
+  it('KB-doc fan-out splits into two waves selected BY DOC NAME (no array slice)', () => {
+    const s = load();
+    assert.ok(s.includes('DERIVED_DOC_IDS') && s.includes('LEAF_DOC_IDS'),
+      'expected LEAF_DOC_IDS + DERIVED_DOC_IDS wave partition constants');
+    assert.ok(s.includes("'architecture/stack-checklist'") && s.includes("'business-domain/domain-concepts'"),
+      'Wave B (derived) must be keyed to stack-checklist + domain-concepts by name');
+    assert.match(s, /KB_DOC_IDS\.filter\(/,
+      'leaf/derived partition must be a name-based .filter() of KB_DOC_IDS, not a slice');
+    assert.doesNotMatch(s, /KB_DOC_IDS\.slice\(/,
+      'wave partition must NOT use KB_DOC_IDS.slice — interleaved order would mis-partition');
+  });
+
+  it('both waves are dispatched (leaf wave before derived wave) with retry-once each', () => {
+    const s = load();
+    assert.ok(s.includes('LEAF_DOC_IDS') && s.includes('runKbDocWave'),
+      'expected a runKbDocWave helper invoked per wave');
+    // Two distinct wave dispatches: leaf then derived.
+    const leafIdx = s.indexOf('runKbDocWave(LEAF_DOC_IDS');
+    const derivedIdx = s.indexOf('runKbDocWave(DERIVED_DOC_IDS');
+    assert.ok(leafIdx !== -1 && derivedIdx !== -1, 'both wave dispatches must be present');
+    assert.ok(leafIdx < derivedIdx, 'leaf wave must be dispatched before the derived wave');
+    // retry-once cap preserved: the wave helper retries failed docs once.
+    assert.match(s, /kb-doc-retry:/, 'per-wave retry-once (kb-doc-retry label) must be preserved');
+  });
+});
+
 describe('wfl-init — AC11: syntax + SIDE-EFFECT OWNERSHIP header', () => {
   it('node --check passes on wfl-init.js', () => {
     try {

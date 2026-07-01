@@ -5,6 +5,101 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.6.9] — 2026-07-01
+
+### Changed
+- **Named release of the reconciled `/forge:init` step-machine (FEAT-011, Slices 0–5).**
+  This version draws the release boundary around the four preceding init-reconciliation
+  slices: the frozen 10-doc KB contract (1.6.5), the per-step Phase-2 substance
+  fragments (1.6.6), the confident *not-applicable* stub policy plus widened Phase-2
+  verify gate (1.6.7), and the `wfl-init.js` Phase-2 fragment convergence (1.6.8).
+  No `.cjs`/`.js` logic changed in this release — the underlying behaviour already
+  shipped across 1.6.5–1.6.8; 1.6.9 consolidates them under one migratable boundary.
+- **forge-cli payload re-vendored to 1.6.9.** `dist/forge-payload` is regenerated from
+  the 1.6.9 plugin source and `forge.bundledVersion` bumped `1.6.5 → 1.6.9`, closing the
+  two-layer drift (the `bundledVersion == payload-manifest forge_version` gate, BUG-019).
+
+---
+
+## [1.6.8] — 2026-07-01
+
+### Changed
+- **Converged the markdown-workflow init driver onto the shared Phase-2 fragment set
+  (Slice 4).** `init/base-pack/workflows-js/wfl-init.js` no longer tells every Phase-2
+  subagent to read the whole `phase-2-discover.md` fat rulebook. Each kb-doc prompt now
+  composes the shared `generate-kb-doc.md` procedure + its own `phase-2/<name>.md`
+  substance fragment + an `AGENT PARAMS` block; index and context prompts repoint at
+  `phase-2/index.md` and `phase-2/context.md`; the gate agent inlines the scaffold
+  commands. The KB-doc fan-out now runs in two cross-reference waves (8 leaf docs, then
+  the 2 derived docs selected by name), matching forge-cli's native pipeline.
+
+---
+
+## [1.6.7] — 2026-07-01
+
+### Changed
+- **The fixed 10-doc KB surface always materializes; an absent topic becomes a confident
+  not-applicable stub (Slice 3).** All 10 stub-bearing Phase-2 fragments now prescribe
+  the confident stub shape (`confidence: 100% — status: not-applicable` header + heading +
+  one-sentence absence statement) instead of "set confidence low"; `generate-kb-doc.md`
+  documents that shape authoritatively; and `verifyPhase2` in `verify-phase.cjs` enforces
+  substantive-OR-not-applicable — a header-only/empty doc now fails `--phase 2`. No
+  confidence-percentage or entity-count hard gate is introduced (library projects pass).
+
+### Breaking
+- A KB carrying header-only empty stubs (a confidence header but no body and no
+  `status: not-applicable` marker) now **fails** `verify-phase --phase 2` until
+  re-materialized with the marker or a body.
+
+---
+
+## [1.6.6] — 2026-07-01
+
+### Changed
+- **Split the fat Phase-2 rulebook into per-step substance fragments (Slice 2).** The
+  forge-cli native init pipeline no longer injects the entire `phase-2-discover.md`
+  rulebook into every Phase-2 subagent. 12 new substance fragments live under
+  `init/phases/phase-2/` (10 KB-doc basenames + index + context), each carrying its own
+  topic focus, discovery input, required output, and not-applicable stub;
+  `generate-kb-doc.md` is confirmed as the shared procedure with a composition preamble.
+  `build-payload.cjs` gained one-level recursion so the `phase-2/` subdir ships in the
+  bundle. `phase-2-discover.md` is no longer injected into any subagent.
+
+---
+
+## [1.6.5] — 2026-07-01
+
+### Changed
+- **Froze ONE shared 10-doc KB contract across the Phase-2 verify gate and both init
+  fan-out drivers (Slice 1).** Closes a three-way drift between `verify-phase.cjs`
+  `ARCH_DOCS` (was 7 architecture-only docs), `wfl-init.js` `KB_DOC_IDS`, and
+  `phase-2-discover.md`'s doc-spec table. The gate now checks 10 canonical docIds —
+  `architecture/{stack,processes,routing,database,testing,deployment,entity-model,stack-checklist}`
+  + `business-domain/{domain-model,domain-concepts}` — resolved prefix-agnostically, and a
+  new drift-guard test (`kb-doc-contract.test.cjs`) pins all three arrays to the canonical
+  order.
+
+### Breaking
+- A pre-existing KB carrying only the old 7 docs (or `entity-model`/`stack-checklist` at
+  their former paths) now fails `verify-phase --phase 2` until re-run; `entity-model` is
+  homed under `architecture/` per FEAT-011.
+
+---
+
+## [1.6.4] — 2026-06-28
+
+### Fixed
+- **Dead vendored reference to `forge-usage-report.cjs` (FORGE-BUG-030/036
+  `MODULE_NOT_FOUND` class).** The tool was added at 1.6.3 and referenced by the
+  `wfl-fix-bug.js` / `wfl-run-task.js` / `wfl-run-sprint.js` drivers, but was missing from
+  `payload-manifest.json`'s tools selection, so `build-payload.cjs` never copied it into
+  the default payload — leaving bootstrapped projects with a dead
+  `.forge/tools/forge-usage-report.cjs` reference and a runtime `MODULE_NOT_FOUND` risk.
+  Added it to the tools include list; also regenerated `integrity.json`,
+  `structure-manifest.json`, and `enum-catalog.json`, which had drifted to 1.6.2.
+
+---
+
 ## [1.6.3] — 2026-06-21
 
 ### Fixed

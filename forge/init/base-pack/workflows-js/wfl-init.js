@@ -4,7 +4,7 @@ export const meta = {
   whenToUse: "Run the LLM-orchestrated half of /forge:init after `4ge init claude .` has bootstrapped the project structure. Dispatch by name: workflow('wfl:init', { forgeRoot, kbFolder, startPhase, createClaudeMd, isoTimestamp, rawArguments }).",
   phases: [
     { title: 'Collect',     detail: 'parallel() 5 discovery agents scan codebase domains; config-writer agent merges findings and writes config + init-progress.json; verify-phase gate with one retry cap' },
-    { title: 'Discover',    detail: 'gate+scaffold agent verifies phase 1; parallel() 7 KB-doc agents generate architecture docs with JS-held retry-once; sequential index + context agents close the phase' },
+    { title: 'Discover',    detail: 'gate+scaffold agent verifies phase 1 and scaffolds KB dirs; KB-doc fan-out runs in two cross-reference waves (8 leaf docs, then 2 derived) with JS-held retry-once per wave; sequential index + context agents close the phase. Each Phase-2 subagent composes the shared generate-kb-doc.md procedure + its own phase-2/<name>.md fragment + an AGENT PARAMS block.' },
     { title: 'Materialize', detail: 'single haiku agent runs deterministic substitute-placeholders + generation-manifest + build-overlay; Phase 3 verify failure is a hard halt (no retry — rebuild/restart)' },
     { title: 'Register',    detail: 'single haiku agent runs content-register steps; CLAUDE.md creation gated on args.createClaudeMd === true; returns pendingActions for Tomoshibi' },
     { title: 'Report',      detail: 'return structured result { ok, lastPhase, stack, skillMatches, counts, confidence, pendingActions, failure? } for the command wrapper to render' },
@@ -259,8 +259,14 @@ if (startPhase <= 2) {
 You are the Forge init Phase 2 gate agent. Execute these steps in order:
 1. Run: node .forge/tools/verify-phase.cjs --phase 1
    If exit non-zero, set ok=false and error=<stderr> in your output and stop.
-2. Read \`.forge/init/phases/phase-2-discover.md\` Step 2 (scaffold mkdir
-   commands) and execute them. Create the KB directory structure under ${kbFolder}/.
+2. Scaffold the KB + store directory structure (fast Bash operations):
+   mkdir -p "${kbFolder}/architecture" "${kbFolder}/business-domain" \
+            "${kbFolder}/sprints" "${kbFolder}/bugs" "${kbFolder}/tools" \
+            ".forge/store/sprints" ".forge/store/tasks" \
+            ".forge/store/bugs" ".forge/store/events"
+   touch "${kbFolder}/sprints/.gitkeep" "${kbFolder}/bugs/.gitkeep" \
+         ".forge/store/sprints/.gitkeep" ".forge/store/tasks/.gitkeep" \
+         ".forge/store/bugs/.gitkeep" ".forge/store/events/.gitkeep"
 3. Set ok=true.
 ${VENDORED}
 `, { model: ROLE_TIER['gate'], label: 'phase2-gate', phase: 'Discover', schema: OK_SCHEMA });
@@ -271,53 +277,93 @@ ${VENDORED}
     });
   }
 
-  // Fan-out: 10 parallel KB-doc agents
-  const kbDocPrompt = (docId) => `
+  // Per-doc prompt: compose the SHARED generation procedure + this doc's OWN
+  // substance fragment + an AGENT PARAMS block (mirrors forge-cli
+  // run-init-pipeline.ts). No fat-doc scoping — a subagent sees only its docId.
+  const kbDocPrompt = (docId) => {
+    const fragment = docId.slice(docId.lastIndexOf('/') + 1);
+    return `
 You are a Forge KB-doc generation agent. Your doc id is: "${docId}".
-1. Read \`.forge/init/phases/phase-2-discover.md\` for the full doc spec for "${docId}".
-2. If \`.forge/init/generation/generate-kb-doc.md\` exists, read it for the
-   generation rulebook; otherwise follow the doc spec from step 1 directly.
+1. Read \`.forge/init/generation/generate-kb-doc.md\` — the SHARED generation
+   procedure (write path, confidence header, verify-back, confident
+   not-applicable stub). It is the rulebook for HOW to write any KB doc.
+2. Read \`.forge/init/phases/phase-2/${fragment}.md\` — YOUR substance fragment
+   (topic focus, which Phase-1 discovery input to read, required output for
+   "${docId}" only). Do the work it describes and nothing else.
 3. Generate the doc using all available project context (including
-   .forge/config.json written in Phase 1).
+   .forge/config.json written in Phase 1 and the Phase-1 discovery findings).
 4. Write the doc to the correct path under ${kbFolder}/.
 5. Set id="${docId}", ok=<true if written>, confidence=<0-1>, error=<if not ok>.
+
+<!-- AGENT PARAMS -->
+role: kb-doc
+docId: ${docId}
+kbFolder: ${kbFolder}
+isoTimestamp: ${isoTimestamp}
 ${VENDORED}
 `;
+  };
 
-  const kbDocResults = await parallel(
-    KB_DOC_IDS.map((docId) => () =>
-      agent(kbDocPrompt(docId), { model: ROLE_TIER['kb-doc'], label: `kb-doc:${docId}`, phase: 'Discover', schema: KB_DOC_SCHEMA })
-    )
-  );
+  // KB-doc fan-out in two cross-reference waves (ADR init-step-machine.md §5 +
+  // AC2): Wave A = the 8 leaf docs; Wave B = the 2 derived docs
+  // (stack-checklist ← stack,testing; domain-concepts ← domain-model) dispatched
+  // AFTER the leaves exist. Partition is BY DOC NAME via .filter() — never an
+  // array slice, since KB_DOC_IDS interleaves the derived docs (stack-checklist
+  // at index 7, before domain-model at index 8).
+  const DERIVED_DOC_IDS = ['architecture/stack-checklist', 'business-domain/domain-concepts'];
+  const LEAF_DOC_IDS = KB_DOC_IDS.filter((docId) => !DERIVED_DOC_IDS.includes(docId));
 
-  // JS-held retry-once for any failed KB-doc
-  const failedDocs = KB_DOC_IDS.filter((docId, i) => !kbDocResults[i] || !kbDocResults[i].ok);
-  if (failedDocs.length > 0) {
+  // One KB-doc wave: parallel fan-out + JS-held retry-once. Returns the ids that
+  // are STILL failed after the single retry (empty array on full success).
+  const runKbDocWave = async (waveDocs, waveLabel) => {
+    const results = await parallel(
+      waveDocs.map((docId) => () =>
+        agent(kbDocPrompt(docId), { model: ROLE_TIER['kb-doc'], label: `kb-doc:${docId}`, phase: 'Discover', schema: KB_DOC_SCHEMA })
+      )
+    );
+    const failed = waveDocs.filter((docId, i) => !results[i] || !results[i].ok);
+    if (failed.length === 0) return [];
     const retryResults = await parallel(
-      failedDocs.map((docId) => () =>
+      failed.map((docId) => () =>
         agent(`
-KB-doc "${docId}" failed on first attempt. Retry it:
+KB-doc "${docId}" failed on first attempt (${waveLabel}). Retry it:
 ${kbDocPrompt(docId)}
 `, { model: ROLE_TIER['kb-doc'], label: `kb-doc-retry:${docId}`, phase: 'Discover', schema: KB_DOC_SCHEMA })
       )
     );
-    const stillFailed = failedDocs.filter((docId, i) => !retryResults[i] || !retryResults[i].ok);
-    if (stillFailed.length > 0) {
-      return halt(2, `KB-doc generation failed after retry for: ${stillFailed.join(', ')}`, {
-        failedDocs: stillFailed.join(', '),
-      });
-    }
+    return failed.filter((docId, i) => !retryResults[i] || !retryResults[i].ok);
+  };
+
+  // Wave A — 8 leaf docs.
+  const failedWaveA = await runKbDocWave(LEAF_DOC_IDS, 'wave A (leaf)');
+  if (failedWaveA.length > 0) {
+    return halt(2, `KB-doc generation failed after retry for: ${failedWaveA.join(', ')}`, {
+      failedDocs: failedWaveA.join(', '),
+    });
+  }
+
+  // Wave B — 2 derived docs, dispatched after their cross-referenced leaves exist.
+  const failedWaveB = await runKbDocWave(DERIVED_DOC_IDS, 'wave B (derived)');
+  if (failedWaveB.length > 0) {
+    return halt(2, `KB-doc generation failed after retry for: ${failedWaveB.join(', ')}`, {
+      failedDocs: failedWaveB.join(', '),
+    });
   }
 
   // Sequential index agent (after all leaf docs — real data dependency)
   const indexResult = await agent(`
 You are the Forge init index agent. All 10 KB docs have been generated.
-Read \`.forge/init/phases/phase-2-discover.md\` Step 4 (index files).
-Generate the 3 INDEX files:
-  - ${kbFolder}/architecture/INDEX.md
-  - ${kbFolder}/business-domain/INDEX.md
-  - ${kbFolder}/INDEX.md
+1. Read \`.forge/init/generation/generate-kb-doc.md\` — the SHARED generation
+   procedure (write path + confidence header conventions).
+2. Read \`.forge/init/phases/phase-2/index.md\` — YOUR substance fragment
+   (which INDEX files to build and what to link). Do the work it describes.
+3. Link ONLY docs that exist on disk under ${kbFolder}/ at write time.
 Set ok=true when done, or ok=false with error=<message>.
+
+<!-- AGENT PARAMS -->
+role: index
+kbFolder: ${kbFolder}
+isoTimestamp: ${isoTimestamp}
 ${VENDORED}
 `, { model: ROLE_TIER['index'], label: 'index', phase: 'Discover', schema: OK_SCHEMA });
 
@@ -328,12 +374,19 @@ ${VENDORED}
   // Context agent: project-context.json + calibration + init-progress.json + verify
   const contextResult = await agent(`
 You are the Forge init context agent. KB docs and index files are complete.
-Execute \`.forge/init/phases/phase-2-discover.md\` Steps 5–6:
-5. Write project-context.json (combined structured context from all discovery
-   findings). Write calibration baseline.
-6. Write .forge/init-progress.json: { "lastPhase": 2, "timestamp": "${isoTimestamp}" }.
-   Run: node .forge/tools/verify-phase.cjs --phase 2 --kb-path "${kbFolder}"
+1. Read \`.forge/init/generation/generate-kb-doc.md\` — the SHARED generation
+   procedure.
+2. Read \`.forge/init/phases/phase-2/context.md\` — YOUR substance fragment
+   (construct .forge/project-context.json from discovered facts + the schema).
+   Do the work it describes, and write the calibration baseline.
+3. Write .forge/init-progress.json: { "lastPhase": 2, "timestamp": "${isoTimestamp}" }.
+4. Run: node .forge/tools/verify-phase.cjs --phase 2 --kb-path "${kbFolder}"
 Set verifyExit=<exit code>, verifyError=<stderr if non-zero>, ok=(verifyExit===0).
+
+<!-- AGENT PARAMS -->
+role: context
+kbFolder: ${kbFolder}
+isoTimestamp: ${isoTimestamp}
 ${VENDORED}
 `, { model: ROLE_TIER['context'], label: 'context', phase: 'Discover', schema: PHASE_RESULT_SCHEMA });
 
