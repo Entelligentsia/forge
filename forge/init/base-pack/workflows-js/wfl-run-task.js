@@ -97,12 +97,14 @@ export const meta = {
 //   RESOLVE_SCHEMA phase items gain optional on_revision field. revisionTarget()
 //   prefers phase.on_revision (command-name lookup) over nearest-preceding-non-review.
 //
-// TOKEN SIDECAR MERGE (Gap #14 — FORGE-S28-T05):
-//   After each phase subagent returns, an escalate-agent pattern calls
-//   store-cli merge-sidecar with the eventId agreed before spawn.
-//   The eventId uses the _complete suffix (token usage lands on the COMPLETE event,
-//   not the start event). The driver passes eventId into runPhase() so the subagent
-//   prompt references the same eventId when writing the sidecar via --sidecar.
+// PER-PHASE EVENT ID (Gap #14 — FORGE-S28-T05; sidecar removed FORGE-S38):
+//   The driver computes a deterministic eventId per (sprint, task, role, iteration)
+//   and passes it into runPhase() so the subagent stamps it on its COMPLETE event.
+//   The token-sidecar merge that previously followed each phase has been REMOVED:
+//   its only writer (the pi-runtime usage-hook) does not exist in the Claude Code
+//   Workflow path, so every merge found no sidecar and merely burned an agent
+//   dispatch per phase. Token accounting for this path is handled deterministically
+//   outside the per-phase loop (see doc/analysis — Workflow token accounting).
 //
 // PERSONA/SKILL INJECTION (Gap #8 — FORGE-S28-T05):
 //   ROLE_TO_NOUN maps each role to its persona noun. Subagent prompt instructs
@@ -201,7 +203,7 @@ const BANNER_MAP = {
   'validate':    'forge-validator',
   'approve':     'forge-architect',
   'commit':      'forge-engineer',
-  'writeback':   'forge-engineer',
+  'writeback':   'forge-collator',
 }
 
 // Role → persona noun mapping for role-block injection (Gap #8).
@@ -213,7 +215,7 @@ const ROLE_TO_NOUN = {
   'validate':    'validator',
   'approve':     'architect',
   'commit':      'engineer',
-  'writeback':   'engineer',
+  'writeback':   'collator',
 }
 
 const RESOLVE_SCHEMA = {
@@ -280,8 +282,8 @@ function revisionTarget(phases, reviewIdx) {
 // Gap #6: firstPhase=true triggers session preflight check (phase-index-0 only).
 // Gap #11: simplified=true uses a shorter prompt (retry path, strips arch+summary block).
 // Gap #14: eventId is the COMPLETE-event id pre-computed by the JS loop; the subagent
-// must use this exact id when writing its token sidecar (--sidecar form) so mergeSidecar()
-// can find the file. Use the _complete suffix because token usage lands on the COMPLETE event.
+// must stamp this exact id on its COMPLETE event. Use the _complete suffix because token
+// usage (when captured) lands on the COMPLETE event, not the start event.
 function runPhase(taskId, sprintId, phase, iteration, { firstPhase = false, simplified = false, eventId = null } = {}) {
   const personaNoun = ROLE_TO_NOUN[phase.role] || 'engineer'
   const reviewLoopCtx = REVIEW_ROLES.includes(phase.role)
@@ -304,7 +306,8 @@ function runPhase(taskId, sprintId, phase, iteration, { firstPhase = false, simp
     lines.push(
       '',
       '0. SESSION PREFLIGHT (first phase only). Read `.forge/cache/preflight-status.json`.',
-      '   If the file is absent, run `node .forge/tools/forge-preflight.cjs` and read the JSON it writes.',
+      '   If the file is absent, run `node .forge/tools/forge-preflight.cjs` (session preflight has no',
+      '   phase-scoped MCP tool and writes a cache file — Bash is the boundary) and read the JSON it writes.',
       '   If blob.ok === false in the result, HALT immediately — do NOT proceed to the gate or phase.',
       '   Set status escalated, and return gatePassed=false, escalated=true, verdict="none",',
       '   with the preflight warnings in note.',
@@ -314,13 +317,13 @@ function runPhase(taskId, sprintId, phase, iteration, { firstPhase = false, simp
   // Gap #7: Gate exit-code distinction.
   lines.push(
     '',
-    '1. PRE-FLIGHT GATE. Run `node .forge/tools/preflight-gate.cjs --phase ' + phase.role + ' --task ' + taskId + '`.',
-    '   Capture the exit code:',
-    '   • exit_code == 0 → gate passed, continue.',
-    '   • exit_code == 1 → gate failed (prerequisite missing). Set status escalated.',
-    '     Return gatePassed=false, escalated=true, verdict="none", note: "gate_failed: <stderr>".',
-    '   • exit_code == 2 → gate misconfigured (unknown phase or malformed block). Set status escalated.',
-    '     Return gatePassed=false, escalated=true, verdict="none", note: "gate_misconfigured: <stderr>".',
+    '1. PRE-FLIGHT GATE. Call the `mcp__forge__preflight` tool with { "phase": "' + phase.role + '", "task": "' + taskId + '" }.',
+    '   Interpret the result:',
+    '   • result indicates the gate passed → continue.',
+    '   • result indicates a gate failure (prerequisite missing). Set status escalated.',
+    '     Return gatePassed=false, escalated=true, verdict="none", note: "gate_failed: <details>".',
+    '   • result indicates a misconfiguration (unknown phase or malformed block). Set status escalated.',
+    '     Return gatePassed=false, escalated=true, verdict="none", note: "gate_misconfigured: <details>".',
   )
 
   // Gap #8: Persona/skill role-block injection.
@@ -337,7 +340,7 @@ function runPhase(taskId, sprintId, phase, iteration, { firstPhase = false, simp
   lines.push(
     '',
     '2. PROJECT CONTEXT + RUN THE PHASE.',
-    '   Run `node .forge/tools/build-overlay.cjs --task ' + taskId + ' --format md`',
+    '   Run `node .forge/tools/build-overlay.cjs --task ' + taskId + ' --format md` (no MCP tool — Bash boundary)',
     '   and inject its stdout as the Project Context block for this phase.',
     '   If build-overlay.cjs exits non-zero, fall back to reading `engineering/MASTER_INDEX.md`',
     '   (documented degradation path — not silent swallow).',
@@ -349,10 +352,10 @@ function runPhase(taskId, sprintId, phase, iteration, { firstPhase = false, simp
   if (reviewLoopCtx) lines.push(reviewLoopCtx)
 
   // Gap #3/emit: PHASE EVENTS.
-  // Gap #14: if an eventId was threaded in from the JS loop, instruct the subagent to use it
-  // for the COMPLETE event's eventId and for the --sidecar token file so mergeSidecar() matches.
+  // Gap #14: if an eventId was threaded in from the JS loop, instruct the subagent to stamp it
+  // on the COMPLETE event so downstream token-accounting can match the event deterministically.
   const eventIdLine = eventId
-    ? '   Use eventId="' + eventId + '" for the COMPLETE event (the driver will call merge-sidecar with this id).'
+    ? '   Use eventId="' + eventId + '" for the COMPLETE event.'
     : '   Use a fresh crypto.randomUUID() for both start and complete event ids.'
   // forge-engineering#39: explicit type-token guidance per
   // .forge/workflows/_fragments/event-vocabulary.md. Without it, subagents
@@ -368,18 +371,17 @@ function runPhase(taskId, sprintId, phase, iteration, { firstPhase = false, simp
     '',
     '3. EMIT YOUR PHASE EVENTS. You are the only actor that knows your runtime attribution.',
     '   3a. BEFORE running the phase workflow: note the start timestamp (startTimestamp = new Date().toISOString()).',
-    '   Emit a start event via `node .forge/tools/store-cli.cjs emit ' + sprintId + " '{event-json}'\`",
+    '   Emit a start event by calling the `mcp__forge__store` tool with { "command": "emit", "args": ["' + sprintId + '", "{event-json}"] }',
     '   with action="start", role="' + phase.role + '", iteration=' + iteration + ', startTimestamp and endTimestamp both equal to startTimestamp (0-duration placeholder).',
     '   The start event MUST NOT include a "type" field.',
     '   3b. AFTER the phase workflow completes: note the end timestamp (endTimestamp = new Date().toISOString()).',
     '   Compute durationMinutes = (new Date(endTimestamp) - new Date(startTimestamp)) / 60000.',
-    '   Emit a complete event via `node .forge/tools/store-cli.cjs emit ' + sprintId + " '{event-json}'\`",
+    '   Emit a complete event by calling the `mcp__forge__store` tool with { "command": "emit", "args": ["' + sprintId + '", "{event-json}"] }',
     '   conforming to `.forge/schemas/event.schema.json` (role, action="complete", phase, iteration=' + iteration + ',',
     '   startTimestamp, endTimestamp, durationMinutes, plus your own model/provider/token usage — do NOT invent placeholder model strings).',
     '   COMPLETE-event type (per .forge/workflows/_fragments/event-vocabulary.md): ' + typeTokenLine,
     '   NEVER copy the action value ("start"/"complete") into "type" — those tokens are schema-rejected and the event would be dropped.',
     '   ' + eventIdLine,
-    '   If `/cost` data is available, also write the token sidecar via the `--sidecar` form with the COMPLETE eventId. Best-effort; skip silently if unavailable.',
     '',
     '   Gap #5 FRICTION DRAIN: After any failure event (malformed verdict, null dispatch, max-iter exhaustion),',
     '   drain any `.forge/cache/FRICTION-*.jsonl` files and emit each record as type "friction" with',
@@ -394,11 +396,11 @@ function runPhase(taskId, sprintId, phase, iteration, { firstPhase = false, simp
     REVIEW_ROLES.includes(phase.role)
       ? '4. READ VERDICT. This is a REVIEW phase. The phase workflow records its verdict into the store '
         + 'summary (`summaries.' + phase.role + '.verdict`) via set-summary — make sure that write happened. '
-        + 'Then resolve it with the canonical tool `node .forge/tools/read-verdict.cjs --phase ' + phase.role + ' --task ' + taskId + '` '
-        + '(reads the structured summary, NOT a markdown artifact path). '
-        + 'Route on the STDOUT token the tool prints (approved | revision | n/a | unknown), NOT on the exit code. '
-        + 'Map STDOUT token → verdict: "approved"→"approved", "revision"→"revision", "n/a"→"malformed", "unknown"→"malformed". '
-        + 'The exit code is unreliable (exits 1 for both revision AND missing/n/a). NEVER guess.'
+        + 'Then resolve it by calling the `mcp__forge__store` tool with { "command": "read", "args": ["task", "' + taskId + '", "--json"] } '
+        + 'and reading `summaries.' + phase.role + '.verdict` directly from the returned task JSON '
+        + '(the structured summary, NOT a markdown artifact path). '
+        + 'Map the verdict value → result verdict: "approved"→"approved", "revision"→"revision", '
+        + 'missing / "n/a" / any other value → "malformed". NEVER guess.'
       : '4. NON-REVIEW phase: return verdict="none".',
   )
 
@@ -426,12 +428,12 @@ function runPhase(taskId, sprintId, phase, iteration, { firstPhase = false, simp
 // When the pre-task status guard finds a SKIP_STATUS, the task is silently
 // skipped. To give the event log a complete picture, emit a task-dispatch event
 // with action:"skip" so downstream collators can account for every task.
-// Pattern: mirrors escalateTask / mergeSidecar agent delegation (JS cannot shell out).
+// Pattern: mirrors escalateTask agent delegation (JS cannot shell out).
 function emitSkip(taskId, sprintId, taskStatus) {
   return agent(
     [
       `Emit a task_skipped event for Forge task ${taskId} (sprint ${sprintId}).`,
-      `node .forge/tools/store-cli.cjs emit ${sprintId}`,
+      `Call the \`mcp__forge__store\` tool with { "command": "emit", "args": ["${sprintId}", `,
       `'{"type":"task-dispatch","action":"skip","taskId":"${taskId}","sprintId":"${sprintId}",`,
       // forge-engineering#39: iteration must be >= 1 (schema minimum) — the
       // former zero value made every skip event silently schema-rejected.
@@ -439,6 +441,7 @@ function emitSkip(taskId, sprintId, taskStatus) {
       `"notes":"pre-task SKIP_STATUS guard: task status is ${taskStatus}",`,
       `"startTimestamp":"<ISO-now>","endTimestamp":"<ISO-now>","durationMinutes":0,`,
       `"model":"<your-model-id>","provider":"anthropic"}'`,
+      `] } (the event JSON is the second element of the args array).`,
       'Replace <ISO-now> with the current UTC ISO 8601 timestamp and <your-model-id> with your actual model id.',
       'Best-effort — if the emit fails, log and continue. Return "ok".',
     ].join(' '),
@@ -452,8 +455,8 @@ function escalateTask(taskId, sprintId, reason) {
   return agent(
     [
       `Escalate Forge task ${taskId} to a human.`,
-      `run \`node .forge/tools/store-cli.cjs update-status task ${taskId} status escalated\``,
-      `and emit one event (sprint ${sprintId}) with verdict="escalated" and notes="${reason}".`,
+      `Call the \`mcp__forge__store\` tool with { "command": "update-status", "args": ["task", "${taskId}", "status", "escalated"] }`,
+      `and emit one event (sprint ${sprintId}) with verdict="escalated" and notes="${reason}" via the \`mcp__forge__store\` tool { "command": "emit", "args": ["${sprintId}", "{event-json}"] }.`,
       `Return the task's final status as taskStatus, gatePassed=true, verdict="none", escalated=true, phase="escalate", role="escalate".`,
     ].join(' '),
     { label: `${taskId}:escalate`, phase: 'Pipeline', schema: PHASE_RESULT_SCHEMA, model: resolveModel('commit', {}) }
@@ -466,24 +469,11 @@ function emitRetryEvent(taskId, sprintId, role, iteration, reason) {
   return agent(
     [
       `Emit a subagent_retry event for Forge task ${taskId} (sprint ${sprintId}).`,
-      `node .forge/tools/store-cli.cjs emit ${sprintId} '{"type":"task-implemented","action":"subagent_retry","role":"${role}","taskId":"${taskId}","phase":"${role}","iteration":${iteration},"notes":"${reason}"}'`,
+      `Call the \`mcp__forge__store\` tool with { "command": "emit", "args": ["${sprintId}", '{"type":"task-implemented","action":"subagent_retry","role":"${role}","taskId":"${taskId}","phase":"${role}","iteration":${iteration},"notes":"${reason}"}'] }`,
       `(fill in eventId, sprintId, startTimestamp, endTimestamp, durationMinutes=0, model, provider from runtime.)`,
       `Return "ok".`,
     ].join(' '),
     { label: `${taskId}:retry-event:${iteration}`, phase: 'Pipeline', model: resolveModel('commit', {}) }
-  )
-}
-
-// --- merge token sidecar (Gap #14) ------------------------------------------
-// After each phase, call merge-sidecar to merge the phase subagent's token sidecar.
-function mergeSidecar(sprintId, eventId) {
-  return agent(
-    [
-      `Merge the token sidecar for sprint ${sprintId}, eventId ${eventId}.`,
-      `node .forge/tools/store-cli.cjs merge-sidecar ${sprintId} ${eventId}`,
-      `Best-effort — if the sidecar file does not exist, skip silently. Return "ok".`,
-    ].join(' '),
-    { label: `merge-sidecar:${eventId}`, phase: 'Pipeline', model: resolveModel('commit', {}) }
   )
 }
 
@@ -496,14 +486,19 @@ phase('Resolve')
 const resolved = await agent(
   [
     `Resolve the run-task pipeline for Forge task ${taskId}..`,
-    `Read \`node .forge/tools/store-cli.cjs read task ${taskId} --json\` for its current status and sprintId.`,
+    `Call the \`mcp__forge__store\` tool with { "command": "read", "args": ["task", "${taskId}", "--json"] } for its current status and sprintId.`,
     'Then resolve the phase pipeline EXACTLY as `.forge/workflows/orchestrate_task.md` § Pipeline Resolution prescribes:',
     'if task.pipeline names a key in `.forge/config.json` pipelines, use those phases; otherwise use the default pipeline.',
     // LOW #20: writeback added to hardcoded default pipeline (orchestrate_task.md §3 full default).
     'The hardcoded default is: plan → review-plan → implement → review-code → validate → approve → writeback → commit,',
     'mapping roles to workflow files: plan→plan_task.md, review-plan→review_plan.md, implement→implement_plan.md,',
     'review-code→review_code.md, validate→validate_task.md, approve→architect_approve.md,',
-    'writeback→update_implementation.md, commit→commit_task.md.',
+    'writeback→collator_agent.md, commit→commit_task.md.',
+    'CRITICAL: writeback is the COLLATOR phase (gather task artifacts into KB views) — it maps to',
+    'collator_agent.md, which writes markdown views only and does NOT change task status. Do NOT map',
+    'writeback to update_implementation.md (the engineer revision-applier): that sets status back to',
+    '"implemented" after approve, and the commit phase requires status "approved" — every task would',
+    'then escalate at commit. Commit must see the task still "approved" after writeback.',
     'maxIterations defaults to 3 for review roles (review-plan, review-code, validate) and 1 otherwise.',
     'Return taskId, sprintId, taskStatus, and the ordered phases[]. Read-only — do NOT modify anything.',
   ].join(' '),
@@ -540,7 +535,7 @@ while (i < phases.length) {
   // Gap #11: Simplified-retry-prompt — detect empty/whitespace/timeout result.
   // Emit subagent_retry event, then retry with simplified prompt.
   // Gap #14: Compute eventId using _complete suffix (token usage lands on COMPLETE event,
-  // not start). Pass eventId into runPhase so subagent uses it for sidecar agreement.
+  // not start). Pass eventId into runPhase so the subagent stamps it on the COMPLETE event.
   // Determinism: eventId must NOT read the wall clock — new Date()/Date.now() throw in the
   // workflow sandbox (breaks resume) and surface as a runtime throw because nested-by-name
   // workflows aren't statically pre-scanned. A deterministic key unique per
@@ -561,8 +556,6 @@ while (i < phases.length) {
     log(`✗ ${taskId}  ${p.role}  — dispatch failed twice, escalating`)
     break
   }
-  // Gap #14: merge token sidecar after each phase.
-  await mergeSidecar(sprintId, eventId)
   results.push(r)
 
   // Gate failure or subagent self-escalation (already wrote status=escalated).
@@ -626,6 +619,22 @@ if (reachedEnd) {
   log(`⚠ Task ${taskId} escalated: ${escalationReason}`)
   log(`   Resume with the failing phase command after addressing the issue, or re-run wfl:run-task.`)
 }
+
+// Token accounting: deterministically reconcile this run's per-phase token usage
+// from the Workflow transcript onto the task's COMPLETE events (no per-phase
+// agent — replaces the removed merge-sidecar). Best-effort: a missing transcript
+// just no-ops. When nested under wfl:run-sprint this is idempotent — the sprint
+// driver also reconciles before collate; already-stamped events are skipped.
+await agent(
+  [
+    `Reconcile token usage for task ${taskId} (sprint ${sprintId}).`,
+    `Run \`node .forge/tools/forge-usage-report.cjs --sprint ${sprintId} --apply\`.`,
+    `This stamps per-phase token usage from this run's Workflow transcript onto the task's events`,
+    `(deterministic Bash tool — reads the harness transcript, no MCP equivalent; documented boundary).`,
+    `BEST-EFFORT: if it prints "no workflow transcript dir" or errors, log and continue. Return "ok".`,
+  ].join(' '),
+  { label: `usage-report:${taskId}`, phase: 'Report', model: resolveModel('commit', {}) }
+)
 
 return {
   taskId,

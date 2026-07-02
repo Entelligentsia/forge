@@ -48,7 +48,8 @@
           "commit-task.cjs",
           "query-logger.cjs",
           "forge-preflight.cjs",
-          "reset-plan.cjs"
+          "reset-plan.cjs",
+          "forge-usage-report.cjs"
         ]
       },
       "note": "Curated TOOLS_TO_COPY allowlist (build-payload Pass-2 2a). Forward-checked only — an unlisted tool is a deliberate minimal-payload exclusion, not drift. New runtime-required tools MUST be added here (FORGE-BUG-030/036 MODULE_NOT_FOUND class)."
@@ -209,10 +210,10 @@
       "install": ".forge/init/phases/",
       "owner": "forge-scaffold",
       "select": {
-        "recursive": false,
+        "recursive": true,
         "ext": [".md"]
       },
-      "note": "Init rulebook phase prompts read by run-phases.ts / wfl-init.js (build-payload Pass-2 2e-pre)."
+      "note": "Init rulebook phase prompts read by run-phases.ts / wfl-init.js (build-payload Pass-2 2e-pre). Recursive so the phase-2/ per-step substance fragments (index.md, context.md, and the 10 KB-doc fragments) vendor into .forge/init/phases/phase-2/ — wfl-init.js references them literally (FORGE-S35-T06 / Slice 5)."
     },
     {
       "source": "init/discovery",

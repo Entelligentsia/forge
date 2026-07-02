@@ -1,6 +1,6 @@
 {
-  "version": "1.4.11",
-  "generatedAt": "2026-06-11T06:08:57.968Z",
+  "version": "1.6.4",
+  "generatedAt": "2026-06-28T15:47:37.965Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -154,6 +154,7 @@
         "compression-gate.cjs",
         "delete-candidate-detector.cjs",
         "forge-preflight.cjs",
+        "forge-usage-report.cjs",
         "friction-emit.cjs",
         "generation-manifest.cjs",
         "judge-proposal.cjs",

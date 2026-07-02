@@ -1,7 +1,23 @@
 'use strict';
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const { deriveSlug } = require('../seed-store.cjs');
+
+const SEED_STORE = path.join(__dirname, '..', 'seed-store.cjs');
+
+function makeProject(prefix) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'seed-store-'));
+  fs.mkdirSync(path.join(dir, '.forge'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, '.forge', 'config.json'),
+    JSON.stringify({ project: { prefix }, paths: { engineering: 'engineering' } }),
+  );
+  return dir;
+}
 
 describe('seed-store.cjs — deriveSlug', () => {
   test('converts to lower-kebab-case', () => {
@@ -52,5 +68,56 @@ describe('seed-store.cjs — deriveSlug', () => {
 
   test('handles underscores', () => {
     assert.equal(deriveSlug('user_auth_module'), 'user-auth-module');
+  });
+});
+
+describe('seed-store.cjs — store skeleton', () => {
+  test('writes COLLATION_STATE.json baseline even with zero entities', () => {
+    const dir = makeProject('LLAMA');
+    try {
+      execFileSync('node', [SEED_STORE], { cwd: dir });
+
+      const statePath = path.join(dir, '.forge', 'store', 'COLLATION_STATE.json');
+      assert.ok(fs.existsSync(statePath), 'COLLATION_STATE.json should exist after seeding a fresh project');
+
+      const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+      assert.equal(state.sprintCount, 0);
+      assert.equal(state.taskCount, 0);
+      assert.equal(state.bugCount, 0);
+      assert.equal(state.featureCount, 0);
+      assert.equal(typeof state.collatedAt, 'string');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('--dry-run does not create the store', () => {
+    const dir = makeProject('LLAMA');
+    try {
+      execFileSync('node', [SEED_STORE, '--dry-run'], { cwd: dir });
+      assert.ok(
+        !fs.existsSync(path.join(dir, '.forge', 'store')),
+        'dry-run must not create .forge/store/',
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('COLLATION_STATE counts reflect seeded entities', () => {
+    const dir = makeProject('LLAMA');
+    try {
+      const sprintDir = path.join(dir, 'engineering', 'sprints', 'LLAMA-S01-first', 'T01-alpha');
+      fs.mkdirSync(sprintDir, { recursive: true });
+      execFileSync('node', [SEED_STORE], { cwd: dir });
+
+      const state = JSON.parse(
+        fs.readFileSync(path.join(dir, '.forge', 'store', 'COLLATION_STATE.json'), 'utf8'),
+      );
+      assert.equal(state.sprintCount, 1);
+      assert.equal(state.taskCount, 1);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

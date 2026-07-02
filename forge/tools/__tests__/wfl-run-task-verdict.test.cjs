@@ -6,7 +6,8 @@
 // workflow (string-invariant tests on the prompt template):
 //
 //   1. No exit-code mapping in the review-phase subagent prompt.
-//   2. STDOUT token routing present in the review-phase subagent prompt.
+//   2. Structured summary-verdict routing (summaries.<phase>.verdict via
+//      mcp__forge__store read) present in the review-phase subagent prompt.
 //   3. Token vocabulary (approved|revision|n/a|unknown) present in the review-phase prompt.
 //   4. n/a and unknown map to 'malformed' in the review-phase prompt.
 //   5. Start event instruction (action="start") present in the runPhase prompt.
@@ -39,12 +40,13 @@ describe('wfl-run-task-verdict — Gap #1: STDOUT token routing (not exit code)'
     );
   });
 
-  it('AC #1: review-phase prompt contains STDOUT token routing reference', () => {
+  it('AC #1: review-phase prompt routes on the structured summary verdict', () => {
     if (!src) src = fs.readFileSync(SRC, 'utf8');
-    const hasStdout = src.includes('stdout') || src.includes('STDOUT');
+    // Post-MCP migration: read-verdict.cjs (STDOUT token) is replaced by reading
+    // summaries.<phase>.verdict directly from the record via mcp__forge__store read.
     assert.ok(
-      hasStdout,
-      'No "stdout"/"STDOUT" reference found — the prompt must instruct the subagent to use the STDOUT token.'
+      src.includes('mcp__forge__store') && src.includes('summaries.') && src.includes('.verdict'),
+      'review-phase prompt must read summaries.<phase>.verdict via mcp__forge__store read.'
     );
   });
 
@@ -73,14 +75,16 @@ describe('wfl-run-task-verdict — Gap #1: STDOUT token routing (not exit code)'
     );
   });
 
-  it('AC #2: unknown maps to malformed in the review-phase prompt', () => {
+  it('AC #2: any other / missing verdict value maps to malformed', () => {
     if (!src) src = fs.readFileSync(SRC, 'utf8');
+    // Post-MCP migration: the catch-all is "missing / n/a / any other value → malformed"
+    // (was: STDOUT "unknown" token → malformed).
     const reviewBranchStart = src.indexOf('READ VERDICT');
     assert.ok(reviewBranchStart !== -1, '"READ VERDICT" marker not found.');
     const reviewBranchSrc = src.slice(reviewBranchStart, reviewBranchStart + 1000);
     assert.ok(
-      reviewBranchSrc.includes('unknown'),
-      'Token "unknown" not found in the READ VERDICT branch — unknown must map to malformed.'
+      reviewBranchSrc.includes('any other') && reviewBranchSrc.includes('malformed'),
+      'READ VERDICT branch must route "any other value" → malformed.'
     );
   });
 });

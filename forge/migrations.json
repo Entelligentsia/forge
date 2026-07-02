@@ -1,4 +1,122 @@
 {
+  "1.6.9": {
+    "version": "1.6.10",
+    "date": "2026-07-02",
+    "notes": "seed-store.cjs now always lays down the store skeleton: it writes a COLLATION_STATE.json baseline (with the actual seeded sprint/task/bug counts, featureCount 0) even when zero entities are present. Before this, a fresh /forge:init on a project with no pre-existing sprints/tasks/bugs left .forge/store/ entirely absent — seed-store no-oped ('Seeded: 0 sprint(s)...') because the store dir was only ever created lazily by Store.writeSprint/Task/Bug. The result was an inconsistent post-init state: Phase 4 appended .forge/store/events/ to .gitignore for a directory that did not exist, and there was no collation watermark until the first /forge:collate. Reads already degraded gracefully (store-cli list -> [], validate-store -> passed) and writes self-created the store, so this was low-severity, but init now leaves a consistent store. --dry-run is unchanged (writes nothing). The next real /forge:collate overwrites the baseline with live counts.",
+    "target": "tools:seed-store",
+    "regenerate": [
+      "tools"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update (or /forge:rebuild tools) to re-vendor .forge/tools/seed-store.cjs. No store or KB migration is required — existing projects already have a COLLATION_STATE.json once they have collated. Projects initialised before this fix that never ran /forge:collate will simply gain the baseline on their next collate; no manual action needed."
+    ]
+  },
+  "1.6.8": {
+    "version": "1.6.9",
+    "date": "2026-07-01",
+    "notes": "FORGE-S35-T06 (Slice 5): named release of the reconciled /forge:init step-machine (FEAT-011, Slices 0-4). No .cjs/.js logic change in this task — the version bump IS the deliverable: it draws the release boundary around the frozen 10-doc KB contract (1.6.5), the per-step Phase-2 substance fragments (1.6.6), the confident not-applicable stub + widened verify gate (1.6.7), and the wfl-init.js Phase-2 fragment convergence (1.6.8). The forge-cli payload is re-vendored so dist/forge-payload matches 1.6.9 plugin source and forge.bundledVersion is bumped 1.6.5 -> 1.6.9 to close the two-layer drift (BUG-019 bundledVersion == manifest forge_version gate). Backwards-compat: non-breaking; the underlying init/verify behaviour already shipped across 1.6.5-1.6.8 — this entry consolidates them under one migratable release and refreshes the vendored bundle.",
+    "target": "init:phase-2-discover,tools:verify-phase,schemas:payload-manifest",
+    "regenerate": [
+      "tools"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update (or /forge:rebuild tools) to re-vendor the 1.6.9 tools bundle. No store or KB migration is required beyond the 1.6.5-1.6.8 chain already applied; this release pins the version boundary, refreshes the forge-cli payload, and flips the payload-manifest init/phases select to recursive so the Slice-2 phase-2/ substance fragments vendor into .forge/init/phases/phase-2/ (wfl-init.js references phase-2/index.md and phase-2/context.md literally)."
+    ]
+  },
+  "1.6.7": {
+    "version": "1.6.8",
+    "date": "2026-07-01",
+    "notes": "FORGE-S35-T05 (Slice 4): converge the markdown-workflow init driver (init/base-pack/workflows-js/wfl-init.js) onto the shared Phase-2 fragment set, matching what forge-cli's run-init-pipeline.ts already does. Before this, every Phase-2 subagent prompt in wfl-init.js told the agent to read the whole init/phases/phase-2-discover.md fat rulebook 'for the full doc spec for {docId}' — so a weak model saw all 10 doc specs plus the index/context/scaffold steps and could execute the wrong one; and all 10 KB docs fanned out in a single parallel() wave. Now: the kb-doc prompt composes the SHARED procedure init/generation/generate-kb-doc.md + its OWN init/phases/phase-2/<name>.md substance fragment + a trailing <!-- AGENT PARAMS --> block (role/docId/kbFolder/isoTimestamp); the index and context prompts likewise repoint at phase-2/index.md and phase-2/context.md; the gate agent inlines the scaffold mkdir/touch commands instead of reading phase-2-discover.md Step 2 — phase-2-discover.md is no longer read by any Phase-2 prompt. The KB-doc fan-out now runs in two cross-reference waves per the init-step-machine ADR §5: Wave A = the 8 leaf docs, then Wave B = the 2 derived docs (architecture/stack-checklist ← stack,testing; business-domain/domain-concepts ← domain-model) selected BY DOC NAME via KB_DOC_IDS.filter() (never an array slice, which would mis-partition the interleaved order), each wave keeping the JS-held retry-once cap and failedDocs halt. KB_DOC_IDS and the verify-phase --phase 2 10-doc contract are unchanged (kb-doc-contract drift guard stays green). forge-cli keeps its single 10-doc wave for now; reconciling it to the same 8+2 layout is a deferred follow-up. Backwards-compat: no store/schema/hook change; regenerating vendored tools/workflows via /forge:rebuild picks up the new driver.",
+    "target": "init:workflows-js:wfl-init",
+    "regenerate": [
+      "tools"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update (or /forge:rebuild tools workflows-js) to re-vendor the converged init driver. This only affects the markdown-workflow /forge:init path; no store or KB migration is required. Behaviour is equivalent — the same 10 KB docs are produced — but each Phase-2 subagent now sees only its own doc's fragment, and the 2 derived docs are generated in a second wave after their referenced leaves."
+    ]
+  },
+  "1.6.6": {
+    "version": "1.6.7",
+    "date": "2026-07-01",
+    "notes": "FORGE-S35-T04 (Slice 3): make the fixed 10-doc KB surface always materialize — an absent topic becomes a CONFIDENT not-applicable stub, and the Phase-2 verify gate enforces substantive-OR-not-applicable while keeping completeness advisory. Before this, each Phase-2 substance fragment ended its 'Not applicable' clause with 'set confidence low/accordingly' (contradicting the policy that an absent topic is a certainty), generate-kb-doc.md never spelled the stub format out, and verifyPhase2 in verify-phase.cjs only checked existence + a confidence-header token — a header-only/empty doc passed. Now: all 10 stub-bearing fragments (stack, processes, routing, database, testing, deployment, entity-model, stack-checklist, domain-model, domain-concepts) prescribe the confident stub — header line `<!-- AUTO-GENERATED by /forge:init — confidence: 100% — status: not-applicable -->` + `# Heading` + the one-sentence absence statement; generate-kb-doc.md documents that shape authoritatively (Rule 3); and verifyPhase2 rejects a doc that carries a confidence header but no `status: not-applicable` marker AND no non-empty body after the header. No confidence-percentage hard gate and no entity-count bar are introduced — an entity-less/library project passes. index.md and context.md carry no absent-topic stub and are unchanged. wfl-init.js is intentionally left intact (its repoint is Slice 4). Backwards-compat: a KB carrying header-only empty stubs with no `status: not-applicable` marker now FAILS --phase 2 until re-materialized with the marker or a body.",
+    "target": "tools:verify-phase,init:generation:generate-kb-doc,init:phases:phase-2",
+    "regenerate": [
+      "tools"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update (or /forge:rebuild tools) to receive the updated verify-phase.cjs gate, the confident not-applicable stub policy in the init/phases/phase-2/ fragments, and the generate-kb-doc.md stub documentation. If your KB carries header-only empty stubs (a confidence header but no body and no `status: not-applicable` marker), re-run /forge:init KB materialization so each absent-topic doc gains the marker or a body — otherwise verify-phase --phase 2 will fail."
+    ]
+  },
+  "1.6.5": {
+    "version": "1.6.6",
+    "date": "2026-07-01",
+    "notes": "FORGE-S35-T03 (Slice 2): split the fat Phase-2 rulebook into per-step substance fragments so each /forge:init discovery subagent sees ONLY its own docId's work. Before this, the forge-cli native init pipeline (run-init-pipeline.ts) preloaded the entire init/phases/phase-2-discover.md rulebook and injected it verbatim into every Phase-2 subagent (10 kb-doc + index + context), differentiated only by a trailing AGENT PARAMS block — a weak model read the whole rulebook and executed all of it. Now: generate-kb-doc.md is confirmed as the SHARED procedure (write path, confidence header, verify-back, not-applicable stub) with a composition preamble; 12 new substance fragments live under init/phases/phase-2/ (10 KB_DOC_ID basenames + index + context), each carrying its topic focus, which Phase-1 discovery input to read, its required output, a not-applicable stub, and a unique <!-- kb-doc-fragment: <name> --> marker. The dispatcher (init-phase-dispatch.ts) gains readInitSharedProcedure + readInitPhase2Fragment (throw-on-missing); run-init-pipeline.ts sets the Phase-2 base = shared procedure and each step's buildPrompt appends its OWN fragment + params — phase-2-discover.md is no longer injected into any subagent. build-payload.cjs's single-level .md-only INIT_RULEBOOK_DIRS walk gained one-level recursion so the new phase-2/ subdir lands in the bundle (12 fragments copied). Scope: phase-2-discover.md and wfl-init.js are intentionally left intact — the wfl-init.js workflow-port repoint onto these fragments is Slice 3; the KB_DOC_IDS / verify-phase 10-doc contract is unchanged. Backwards-compat: no break; the fragment tree ships via the payload bundle, not generation.",
+    "target": "init:phases:phase-2,init:generation:generate-kb-doc",
+    "regenerate": [],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update to receive the new init/phases/phase-2/ substance-fragment tree and the generate-kb-doc.md composition preamble. This only affects the forge-cli native /forge:init pipeline; no store or KB migration is required. The wfl-init.js markdown workflow port still reads phase-2-discover.md and is repointed onto these fragments in a later slice."
+    ]
+  },
+  "1.6.4": {
+    "version": "1.6.5",
+    "date": "2026-07-01",
+    "notes": "FORGE-S35-T01: freeze ONE shared 10-doc KB contract across the Phase-2 verify gate and both init fan-out drivers, closing a three-way drift. Before this, verify-phase.cjs ARCH_DOCS listed 7 architecture-only docs and hardcoded an 'architecture/' path prefix; wfl-init.js KB_DOC_IDS listed a different 7 (with two business-domain/ docs); and init/phases/phase-2-discover.md's doc-spec table mis-pathed entity-model (under business-domain/) and stack-checklist (at KB root). The widened gate now checks 10 canonical docIds — architecture/{stack,processes,routing,database,testing,deployment,entity-model,stack-checklist} + business-domain/{domain-model,domain-concepts} — resolving each prefix-agnostically as {kbPath}/{docId}.md and additionally requiring a confidence-header token (/confidence:\\s*\\d+%/i, matching both in-tree AUTO-GENERATED header forms; not-applicable stubs still satisfy). wfl-init.js KB_DOC_IDS and forge-cli run-init-types.ts KB_DOC_IDS are synced byte-identical to the gate's ARCH_DOCS, so each fan-out agrees with its own line-327 gate; a new drift-guard test (tools/__tests__/kb-doc-contract.test.cjs) pins all three arrays to the canonical order. phase-2-discover.md's table is corrected (option B) to the canonical {KB_PATH}/{docId}.md paths with updated counts — keeping it the live interim path authority for both fan-out drivers; its removal + per-step fragments are deferred to FORGE-S35-T03. Backwards-compat: a pre-existing KB carrying only the old 7 docs (or the mis-relocated entity-model/stack-checklist paths) now fails --phase 2 until re-run; entity-model is homed under architecture/ per FEAT-011.",
+    "target": "tools:verify-phase,workflows-js:wfl-init,init:phases:phase-2-discover",
+    "regenerate": [
+      "tools",
+      "workflows-js"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild tools workflows-js to re-vendor .forge/tools/verify-phase.cjs and refresh the init driver. Existing projects whose KB predates the 10-doc contract (only 7 docs, or entity-model/stack-checklist at the old paths) will fail /forge:health Phase-2 verify until the missing docs are generated at the canonical architecture/ + business-domain/ paths — re-run /forge:init discovery or author them by hand."
+    ]
+  },
+  "1.6.3": {
+    "version": "1.6.4",
+    "date": "2026-06-28",
+    "notes": "Fix dead vendored reference to forge-usage-report.cjs (FORGE-BUG-030/036 MODULE_NOT_FOUND class). The tool was added at 1.6.3 (2026-06-21) and registered in schemas/structure-manifest.json, and init/base-pack/workflows-js/wfl-fix-bug.js, wfl-run-task.js, and wfl-run-sprint.js reference it, but it was missing from payload-manifest.json's tools selection. build-payload.cjs therefore did not copy it into the default payload, leaving bootstrapped projects with a dead .forge/tools/forge-usage-report.cjs reference (caught by the forge-cli vendored-refs gate) and a runtime MODULE_NOT_FOUND risk. Added forge-usage-report.cjs to the tools include list. Also regenerated integrity.json, structure-manifest.json, and enum-catalog.json, which had drifted to version 1.6.2 while plugin.json was at 1.6.3.",
+    "target": "schemas:payload-manifest",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "1.6.2": {
+    "version": "1.6.3",
+    "date": "2026-06-21",
+    "notes": "Fix postflight-gate false-halt on slugged artifact directories. The postflight gate's buildSubstitutions reconstructed the artifact dir from bare IDs (sprints/<sprintId>/<taskId>), so on projects whose on-disk dirs carry slugs (sprintId 'S39' -> 'sprint_39_helpdesk_front_door', taskId 'WI-S39-T01' -> 'WI-S39-T01-inbound-email-threading') it looked for PLAN.md at engineering/sprints/S39/WI-S39-T01/ and reported output-missing for an artifact that existed at the slug path — halting a pipeline whose plan phase succeeded. The plan phase, forge_artifact, and the preflight gate all resolve via the task record's authoritative `path` field, but postflight did not, so the two gates disagreed for every phase. postflight now derives {sprint}/{task} from rec.path using the same deriveSprintTaskFromArtifactPath helper the preflight gate already uses (prepending the `sprints/` segment per postflight's {sprint} convention), and falls back to ID reconstruction only when no usable path is present. Single fix covers every phase (plan/implement/review/validate/approve/commit) since they share one substitution map.",
+    "target": "tools:postflight-gate",
+    "regenerate": [],
+    "breaking": false,
+    "manual": [
+      "After /forge:update, re-run any task that false-halted with 'output-missing: artifact absent: engineering/sprints/<ID>/<ID>/PLAN.md' — the artifact already exists at the slug path and the gate now finds it."
+    ]
+  },
+  "1.6.1": {
+    "version": "1.6.2",
+    "date": "2026-06-21",
+    "notes": "Fix wfl:run-task spurious escalation at commit. The driver's hardcoded default pipeline mapped the `writeback` phase to update_implementation.md — the engineer's revision-applier, which sets task status back to 'implemented'. Running after `approve` (status='approved'), writeback reset the status, then the `commit` phase (commit-task.cjs requires status 'approved') tripped its precondition and escalated the task. writeback is the COLLATOR phase per meta-orchestrate (role->persona: writeback->collator); it now correctly maps to collator_agent.md, which writes markdown KB views + WRITEBACK-SUMMARY.json only and does NOT change task status — so commit still sees 'approved'. Also corrects the driver's ROLE_TO_NOUN and banner map for writeback (engineer -> collator).",
+    "target": "workflows-js:wfl-run-task",
+    "regenerate": [],
+    "breaking": false,
+    "manual": []
+  },
+  "1.6.0": {
+    "version": "1.6.1",
+    "date": "2026-06-21",
+    "notes": "MCP reliability + Workflow token accounting. (1) The vendored MCP server now spawns its cjs tools via process.execPath (absolute path of the running node) instead of bare \"node\" — fixes `spawn node ENOENT` that killed all 12 cjs-wrapper tools when Claude Code launched the stdio server with a PATH lacking node (NVM/fnm/volta/asdf or any restricted env). (2) resolveProjectRoot() now validates CLAUDE_PROJECT_DIR is a real directory before trusting it, falling back to cwd — fixes a misleading ENOENT when an unexpanded ${projectRoot} token reached execFile's cwd. (3) The init .mcp.json template drops the broken env.CLAUDE_PROJECT_DIR block (Claude Code injects CLAUDE_PROJECT_DIR itself). (4) The code-orchestrated JS drivers (wfl-run-task/run-sprint/fix-bug) migrated their subagent-prompt call-sites from Bash node .forge/tools/*.cjs to mcp__forge__* tool calls; the mcp-callsite gate now also scans the workflows-js drivers (T07 blind spot). wfl-init stays on Bash (it runs before the MCP server exists). (5) Removed the dead per-phase merge-sidecar dispatch (its pi-runtime writer does not exist in the Workflow path); added forge-usage-report.cjs — a deterministic no-LLM tool that reconciles per-phase token cost from the Workflow transcript onto COMPLETE events before collate, wired into all three orchestration drivers.",
+    "target": "mcp:server,init:.mcp.json,workflows-js:wfl-run-task,workflows-js:wfl-run-sprint,workflows-js:wfl-fix-bug,tools:forge-usage-report",
+    "regenerate": [],
+    "breaking": false,
+    "manual": [
+      "After /forge:update, restart Claude Code so the forge MCP server reloads with the spawn + project-root fixes.",
+      "Re-running `4ge init claude .` refreshes the .mcp.json template (drops the unused env block) — existing projects keep working via the server's cwd fallback."
+    ]
+  },
   "1.5.1": {
     "version": "1.6.0",
     "date": "2026-06-20",

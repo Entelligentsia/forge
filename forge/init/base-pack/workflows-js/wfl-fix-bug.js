@@ -190,35 +190,34 @@ function runBugPhase(bugId, phase, iter) {
     [
       `You are running a SINGLE pipeline phase for Forge bug ${bugId} (sprint bugs).`,
       `Phase: role="${phase.role}", command="${phase.command}", workflow="${phase.workflow}", iteration=${iter}.`,
-      '1. PRE-FLIGHT GATE. Run `node .forge/tools/preflight-gate.cjs --phase ' + phase.role + ' --bug ' + bugId + '`.',
-      '   If it exits non-zero: do NOT run the phase. Set status via',
-      '   `node .forge/tools/store-cli.cjs update-status bug ' + bugId + ' status escalated`, emit an escalation event,',
-      '   and return gatePassed=false, escalated=true, verdict="none", with the gate stderr in note.',
+      '1. PRE-FLIGHT GATE. Call the MCP tool mcp__forge__preflight { "phase": "' + phase.role + '", "bug": "' + bugId + '" }.',
+      '   If the result indicates failure: do NOT run the phase. Set status via',
+      '   mcp__forge__store { "command": "update-status", "args": ["bug", "' + bugId + '", "status", "escalated"] }, emit an escalation event,',
+      '   and return gatePassed=false, escalated=true, verdict="none", with the gate failure detail in note.',
       '2. RUN THE PHASE. Read `.forge/workflows/' + phase.workflow + '` and follow it for bug ' + bugId + '.',
       '   The workflow writes its own artifacts, {PHASE}-SUMMARY.json, and any bug-status changes.',
       '   Also read the task-scoped slice of `engineering/MASTER_INDEX.md` for project context.',
       '3. EMIT YOUR PHASE EVENTS. You are the only actor that knows your runtime attribution.',
       '   3a. BEFORE running the phase workflow: note the start timestamp (startTimestamp = new Date().toISOString()).',
-      '   Emit a start event via `node .forge/tools/store-cli.cjs emit bugs \'{event-json}\'`',
+      '   Emit a start event via mcp__forge__store { "command": "emit", "args": ["bugs", "<event-json-string>"] }',
       '   with action="start", role="' + phase.role + '", iteration=' + iter + ', startTimestamp and endTimestamp both equal to startTimestamp (0-duration placeholder).',
       '   The start event MUST NOT include a "type" field.',
       '   3b. AFTER the phase workflow completes: note the end timestamp (endTimestamp = new Date().toISOString()).',
       '   Compute durationMinutes = (new Date(endTimestamp) - new Date(startTimestamp)) / 60000.',
-      '   Emit a complete event via `node .forge/tools/store-cli.cjs emit bugs \'{event-json}\'`',
+      '   Emit a complete event via mcp__forge__store { "command": "emit", "args": ["bugs", "<event-json-string>"] }',
       '   conforming to `.forge/schemas/event.schema.json` (role, action="complete", phase, iteration=' + iter + ', bugId,',
       '   startTimestamp, endTimestamp, durationMinutes, plus your own model/provider/token usage — do NOT invent placeholder model strings).',
       '   COMPLETE-event type (per .forge/workflows/_fragments/event-vocabulary.md): ' + typeTokenLine,
       '   NEVER copy the action value ("start"/"complete") into "type" — those tokens are schema-rejected and the event would be dropped.',
-      '   If `/cost` data is available, also write the token sidecar via the `--sidecar` form. Best-effort; skip silently if unavailable.',
       '   Then drain any `.forge/cache/FRICTION-*.jsonl` friction records you produced and emit them as type "friction".',
       phase.role && REVIEW_ROLES.includes(phase.role)
         ? '4. READ VERDICT. This is a REVIEW phase. The phase workflow records its verdict into the store '
           + 'summary (`summaries.' + phase.role + '.verdict`) via set-bug-summary — make sure that write happened. '
-          + 'Then resolve it with the canonical tool `node .forge/tools/read-verdict.cjs --phase ' + phase.role + ' --bug ' + bugId + '` '
-          + '(reads the structured summary, NOT a markdown artifact path). '
-          + 'Route on the STDOUT token the tool prints (approved | revision | n/a | unknown), NOT on the exit code. '
-          + 'Map STDOUT token → verdict: "approved"→"approved", "revision"→"revision", "n/a"→"malformed", "unknown"→"malformed". '
-          + 'The exit code is unreliable (exits 1 for both revision AND missing/n/a). NEVER guess.'
+          + 'Then resolve it by calling mcp__forge__store { "command": "read", "args": ["bug", "' + bugId + '", "--json"] } '
+          + 'and reading `summaries.' + phase.role + '.verdict` directly from the returned record '
+          + '(the structured summary, NOT a markdown artifact path). '
+          + 'Map the verdict value → result verdict: "approved"→"approved", "revision"→"revision", '
+          + 'missing / "n/a" / any other value→"malformed". NEVER guess.'
         : '4. NON-REVIEW phase: return verdict="none".',
       '5. Read `.forge/store/bugs/' + bugId + '.json` and return its final status as taskStatus, plus a one-line note.',
     ].join('\n'),
@@ -233,7 +232,7 @@ function escalateBug(bugId, reason) {
   return agent(
     [
       `Escalate Forge bug ${bugId} to a human.`,
-      `run \`node .forge/tools/store-cli.cjs update-status bug ${bugId} status escalated\``,
+      `Call mcp__forge__store { "command": "update-status", "args": ["bug", "${bugId}", "status", "escalated"] }`,
       `and emit one event (sprint bugs) with verdict="escalated" and notes="${reason}".`,
       `Return the bug's final status as taskStatus, gatePassed=true, verdict="none", escalated=true, phase="escalate", role="escalate".`,
     ].join(' '),
@@ -251,7 +250,7 @@ phase('Resolve')
 const resolved = await agent(
   [
     `Read the bug record for ${bugId}..`,
-    `Run \`node .forge/tools/store-cli.cjs read bug ${bugId} --json\` and return bugId and bugStatus.`,
+    `Call mcp__forge__store { "command": "read", "args": ["bug", "${bugId}", "--json"] } and return bugId and bugStatus.`,
     `Read-only — do NOT modify anything.`,
   ].join(' '),
   { label: `resolve:${bugId}`, phase: 'Resolve', schema: BUG_RESOLVE_SCHEMA }
@@ -269,8 +268,8 @@ if (SKIP_STATUS.includes(resolved.bugStatus)) {
   await agent(
     [
       `Emit a bug-skipped event for ${bugId}.`,
-      `Run \`node .forge/tools/store-cli.cjs emit bugs '{"eventId":"<uuid-v4>","type":"bug-skipped","sprintId":"bugs","bugId":"${bugId}","role":"orchestrator","action":"skipped","notes":"status=${resolved.bugStatus}","startTimestamp":"'$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)'","endTimestamp":"'$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)'","durationMinutes":0,"model":"n/a","provider":"n/a"}'\`.`,
-      'Replace <uuid-v4> with a UUID v4 string (e.g. crypto.randomUUID()). Do NOT modify any other store records.',
+      `Call mcp__forge__store { "command": "emit", "args": ["bugs", "<event-json-string>"] } where <event-json-string> is the JSON string \`{"eventId":"<uuid-v4>","type":"bug-skipped","sprintId":"bugs","bugId":"${bugId}","role":"orchestrator","action":"skipped","notes":"status=${resolved.bugStatus}","startTimestamp":"<now-iso>","endTimestamp":"<now-iso>","durationMinutes":0,"model":"n/a","provider":"n/a"}\`.`,
+      'Replace <uuid-v4> with a UUID v4 string (e.g. crypto.randomUUID()) and both <now-iso> with the current UTC timestamp (new Date().toISOString()). Do NOT modify any other store records.',
       `Best-effort. Return taskStatus="${resolved.bugStatus}", gatePassed=true, verdict="none", escalated=false, phase="skip", role="orchestrator".`,
     ].join(' '),
     { label: `${bugId}:skip`, phase: 'Skip', schema: BUG_PHASE_RESULT_SCHEMA, model: 'haiku' }
@@ -290,26 +289,25 @@ let triageResult = await agent(
   [
     `You are running the TRIAGE phase for Forge bug ${bugId} (sprint bugs).`,
     `Phase: role="triage", command="triage", workflow="triage.md", iteration=1.`,
-    '1. PRE-FLIGHT GATE. Run `node .forge/tools/preflight-gate.cjs --phase triage --bug ' + bugId + '`.',
-    '   If it exits non-zero: do NOT run the phase. Return gatePassed=false, escalated=true, verdict="none".',
+    '1. PRE-FLIGHT GATE. Call the MCP tool mcp__forge__preflight { "phase": "triage", "bug": "' + bugId + '" }.',
+    '   If the result indicates failure: do NOT run the phase. Return gatePassed=false, escalated=true, verdict="none".',
     '2. RUN THE PHASE. Read `.forge/workflows/triage.md` and follow it for bug ' + bugId + '.',
     '   The triage workflow writes TRIAGE.md + TRIAGE-SUMMARY.json with a route field ("A" or "B").',
-    '   Call `node .forge/tools/store-cli.cjs set-bug-summary ' + bugId + ' triage` with the summary.',
+    '   Call mcp__forge__store { "command": "set-bug-summary", "args": ["' + bugId + '", "triage", "<summary-json-string>"] } with the summary.',
     '   CRITICAL: write summaries.triage.route (field name is "route" NOT "path").',
     '   Do NOT write bug.status in this phase — the orchestrator owns the status writes.',
     '3. EMIT YOUR PHASE EVENTS. You are the only actor that knows your runtime attribution.',
     '   3a. BEFORE running the triage workflow: note the start timestamp (startTimestamp = new Date().toISOString()).',
-    '   Emit a start event via `node .forge/tools/store-cli.cjs emit bugs \'{event-json}\'`',
+    '   Emit a start event via mcp__forge__store { "command": "emit", "args": ["bugs", "<event-json-string>"] }',
     '   with action="start", role="triage", iteration=1, startTimestamp and endTimestamp both equal to startTimestamp (0-duration placeholder).',
     '   The start event MUST NOT include a "type" field.',
     '   3b. AFTER the triage workflow completes: note the end timestamp (endTimestamp = new Date().toISOString()).',
     '   Compute durationMinutes = (new Date(endTimestamp) - new Date(startTimestamp)) / 60000.',
-    '   Emit a complete event via `node .forge/tools/store-cli.cjs emit bugs \'{event-json}\'`',
+    '   Emit a complete event via mcp__forge__store { "command": "emit", "args": ["bugs", "<event-json-string>"] }',
     '   conforming to `.forge/schemas/event.schema.json` (role, action="complete", phase, iteration=1, bugId,',
     '   startTimestamp, endTimestamp, durationMinutes, plus your own model/provider/token usage — do NOT invent placeholder model strings).',
     '   COMPLETE-event type (per .forge/workflows/_fragments/event-vocabulary.md): set type="bug-triaged".',
     '   NEVER copy the action value ("start"/"complete") into "type" — those tokens are schema-rejected and the event would be dropped.',
-    '   If `/cost` data is available, also write the token sidecar via the `--sidecar` form. Best-effort; skip silently if unavailable.',
     '4. NON-REVIEW phase: return verdict="none".',
     '5. Read `.forge/store/bugs/' + bugId + '.json` and return its final status as taskStatus, plus a one-line note.',
   ].join('\n'),
@@ -322,8 +320,8 @@ if (!triageResult) {
     [
       `You are running the TRIAGE phase for Forge bug ${bugId} (sprint bugs). This is a retry.`,
       `Phase: role="triage", command="triage", workflow="triage.md", iteration=1.`,
-      '1. PRE-FLIGHT GATE. Run `node .forge/tools/preflight-gate.cjs --phase triage --bug ' + bugId + '`.',
-      '   If it exits non-zero: return gatePassed=false, escalated=true, verdict="none".',
+      '1. PRE-FLIGHT GATE. Call the MCP tool mcp__forge__preflight { "phase": "triage", "bug": "' + bugId + '" }.',
+      '   If the result indicates failure: return gatePassed=false, escalated=true, verdict="none".',
       '2. RUN THE PHASE. Read `.forge/workflows/triage.md` and follow it for bug ' + bugId + '.',
       '   Write summaries.triage.route (field name is "route" NOT "path").',
       '   Do NOT write bug.status — the orchestrator owns the status writes.',
@@ -348,8 +346,8 @@ if (!triageResult.gatePassed || triageResult.escalated) {
 // Two separate calls: reported→triaged, then triaged→in-progress.
 await agent(
   [
-    `Run \`node .forge/tools/store-cli.cjs update-status bug ${bugId} status triaged\`.`,
-    `Then run \`node .forge/tools/store-cli.cjs update-status bug ${bugId} status in-progress\`.`,
+    `Call mcp__forge__store { "command": "update-status", "args": ["bug", "${bugId}", "status", "triaged"] }.`,
+    `Then call mcp__forge__store { "command": "update-status", "args": ["bug", "${bugId}", "status", "in-progress"] }.`,
     `Return taskStatus="in-progress", gatePassed=true, verdict="none", escalated=false, phase="status-write", role="orchestrator".`,
   ].join(' '),
   { label: `${bugId}:status-write`, phase: 'StatusWrite', schema: BUG_PHASE_RESULT_SCHEMA, model: 'haiku' }
@@ -359,7 +357,7 @@ await agent(
 const routeResult = await agent(
   [
     `Read the bug record for ${bugId}..`,
-    `Run \`node .forge/tools/store-cli.cjs read bug ${bugId} --json\`.`,
+    `Call mcp__forge__store { "command": "read", "args": ["bug", "${bugId}", "--json"] }.`,
     `Return the value of summaries.triage.route (field name is "route" NOT "path").`,
     `Return as: { bugId: "${bugId}", bugStatus: "<current status>", note: "<route value A or B>" }.`,
   ].join(' '),
@@ -455,7 +453,7 @@ if (escalated) {
 }
 
 // Step 3 — Finalize (inline, not a subagent phase per fix_bug.md § Finalize).
-// Run collate.cjs {bugId} --purge-events then preflight-gate --phase finalize --bug {bugId}.
+// Run mcp__forge__collate (purgeEvents) then mcp__forge__preflight (phase=finalize, bug={bugId}).
 // Gate failure escalates but PRESERVES bug.status=fixed (already set by commit phase).
 phase('Finalize')
 log(`→ ${bugId}  finalize [${tierFor('finalize')}]`)
@@ -463,16 +461,23 @@ log(`→ ${bugId}  finalize [${tierFor('finalize')}]`)
 const finalizeResult = await agent(
   [
     `Finalize Forge bug ${bugId}..`,
-    `Step 1: Run \`node .forge/tools/collate.cjs ${bugId} --purge-events\`.`,
+    `Step 1 (token accounting — MUST run BEFORE collate purges events): Run`,
+    `   \`node .forge/tools/forge-usage-report.cjs --sprint bugs --apply\`.`,
+    `   This deterministically reconciles per-phase token usage from THIS run's Workflow transcript`,
+    `   onto the bug's COMPLETE events, so collate's cost section is accurate. It is a Bash tool`,
+    `   (it reads the Workflow harness transcript — there is no MCP equivalent; documented boundary).`,
+    `   BEST-EFFORT: if it prints "no workflow transcript dir" or errors, log and continue — do NOT`,
+    `   escalate on this step. It MUST run before Step 2 because collate --purge-events deletes the events.`,
+    `Step 2: Call mcp__forge__collate { "sprintId": "${bugId}", "purgeEvents": true }.`,
     `   This purges this bug's events from the shared bugs/ dir and embeds the cost section in INDEX.md.`,
     `   Do NOT run a separate cost aggregation — collate handles it automatically.`,
-    `Step 2: Run \`node .forge/tools/preflight-gate.cjs --phase finalize --bug ${bugId}\`.`,
-    `   If the gate exits non-zero: emit one escalation event to sprint bugs with verdict="escalated"`,
+    `Step 3: Call mcp__forge__preflight { "phase": "finalize", "bug": "${bugId}" }.`,
+    `   If the gate result indicates failure: emit one escalation event to sprint bugs with verdict="escalated"`,
     `   and notes="finalize gate failed". Do NOT call update-status bug — bug.status is already "fixed".`,
     `   Return escalated=true in that case.`,
-    `Step 3: If both steps succeeded, return gatePassed=true, escalated=false, verdict="none",`,
+    `Step 4: If collate and the gate succeeded, return gatePassed=true, escalated=false, verdict="none",`,
     `   taskStatus="fixed", phase="finalize", role="finalize".`,
-    `   If gate failed, return gatePassed=false, escalated=true, verdict="none", taskStatus="fixed".`,
+    `   If the gate failed, return gatePassed=false, escalated=true, verdict="none", taskStatus="fixed".`,
   ].join('\n'),
   { label: `${bugId}:finalize:1`, phase: 'Finalize', schema: BUG_PHASE_RESULT_SCHEMA, model: tierFor('finalize') }
 )

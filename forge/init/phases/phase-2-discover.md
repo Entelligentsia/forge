@@ -1,6 +1,6 @@
 # Phase 2 — Discover
 
-**Deliverable:** 7 KB architecture docs + 3 index files + `project-context.json` + calibration baseline.
+**Deliverable:** 10 KB docs (8 architecture + 2 business-domain) + 3 index files + `project-context.json` + calibration baseline.
 
 Set `$FORGE_ROOT` and resolve `$KB_PATH` from `.forge/config.json`:
 
@@ -49,31 +49,37 @@ touch "{KB_PATH}/sprints/.gitkeep" "{KB_PATH}/bugs/.gitkeep" \
 
 Read `$FORGE_ROOT/init/generation/generate-kb-doc.md` once (the per-subagent rulebook).
 
-Generate all 7 knowledge-base documents. For each document, analyse the
+Generate all 10 knowledge-base documents. For each document, analyse the
 project codebase for that topic and write to its output path. After writing
 each document, read it back and verify the confidence header is present
 (`<!-- AUTO-GENERATED — confidence: NN% -->`).
+
+Output paths below are the canonical `{KB_PATH}/{docId}.md` targets for the
+shared 10-doc contract (verify-phase.cjs `--phase 2` checks exactly these).
 
 | Document | Output path | Focus |
 |----------|-------------|-------|
 | stack.md | `{KB_PATH}/architecture/stack.md` | Languages, frameworks, runtime, versions |
 | processes.md | `{KB_PATH}/architecture/processes.md` | Services, build/deploy topology |
-| database.md | `{KB_PATH}/architecture/database.md` | Entities, relationships, field types |
 | routing.md | `{KB_PATH}/architecture/routing.md` | API surface, route groups, auth strategy |
+| database.md | `{KB_PATH}/architecture/database.md` | Entities, relationships, field types |
+| testing.md | `{KB_PATH}/architecture/testing.md` | Test frameworks, run commands, coverage |
 | deployment.md | `{KB_PATH}/architecture/deployment.md` | Environments, CI/CD, infra targets |
-| entity-model.md | `{KB_PATH}/business-domain/entity-model.md` | Full entity inventory with fields |
-| stack-checklist.md | `{KB_PATH}/stack-checklist.md` | Review checklist items from stack + testing |
+| entity-model.md | `{KB_PATH}/architecture/entity-model.md` | Full entity inventory with fields |
+| stack-checklist.md | `{KB_PATH}/architecture/stack-checklist.md` | Review checklist items from stack + testing |
+| domain-model.md | `{KB_PATH}/business-domain/domain-model.md` | Business entities, relationships, invariants |
+| domain-concepts.md | `{KB_PATH}/business-domain/domain-concepts.md` | Ubiquitous language, core domain concepts |
 
-You may spawn all 7 as parallel subagents in a single Agent tool message for speed.
-Wait for all 7 to return. Retry any that returned FAILED: once.
+You may spawn all 10 as parallel subagents in a single Agent tool message for speed.
+Wait for all 10 to return. Retry any that returned FAILED: once.
 Any still failing after one retry: halt and surface the id list.
 
 ### Step 4 — Create index files (sequential)
 
 After all leaf docs are written:
 
-1. **`{KB_PATH}/architecture/INDEX.md`** — list and link to the 5 architecture docs
-2. **`{KB_PATH}/business-domain/INDEX.md`** — list and link to entity-model.md
+1. **`{KB_PATH}/architecture/INDEX.md`** — list and link to the 8 architecture docs
+2. **`{KB_PATH}/business-domain/INDEX.md`** — list and link to domain-model.md and domain-concepts.md
 3. **`{KB_PATH}/MASTER_INDEX.md`** — scaffold linking both INDEX files; include
    `## Domain Entities` section listing discovered entities (one per line)
 

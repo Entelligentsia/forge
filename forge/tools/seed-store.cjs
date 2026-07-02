@@ -215,6 +215,20 @@ try {
     }
   }
 
+  // Always lay down the store skeleton — a COLLATION_STATE.json baseline is
+  // written even when zero entities are seeded, so a fresh `/forge:init`
+  // leaves a consistent `.forge/store/` (dir + watermark) instead of nothing.
+  // The next real `/forge:collate` overwrites this with live counts.
+  if (!DRY_RUN) {
+    Store.writeCollationState({
+      collatedAt: new Date().toISOString(),
+      featureCount: 0,
+      sprintCount,
+      taskCount,
+      bugCount,
+    });
+  }
+
   const prefix_ = DRY_RUN ? '[dry-run] ' : '';
   console.log(`${prefix_}Seeded: ${sprintCount} sprint(s), ${taskCount} task(s), ${bugCount} bug(s)`);
 } catch (e) {

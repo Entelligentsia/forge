@@ -5,6 +5,194 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.6.10] — 2026-07-02
+
+### Fixed
+- **`seed-store` now lays down the store skeleton on a fresh `/forge:init`.** On a
+  project with no pre-existing sprints/tasks/bugs, `seed-store.cjs` no-oped
+  (`Seeded: 0 sprint(s)…`) and left `.forge/store/` entirely absent — the store dir
+  was only ever created lazily by `Store.writeSprint/Task/Bug`. The result was an
+  inconsistent post-init state: Phase 4 appended `.forge/store/events/` to
+  `.gitignore` for a directory that did not exist, and there was no collation
+  watermark until the first `/forge:collate`. `seed-store` now always writes a
+  `COLLATION_STATE.json` baseline (actual seeded counts, `featureCount 0`) even with
+  zero entities. `--dry-run` still writes nothing; the next real `/forge:collate`
+  overwrites the baseline with live counts. Reads already degraded gracefully
+  (`store-cli list` → `[]`, `validate-store` → passed) and writes self-created the
+  store, so this was low-severity, but init now leaves a consistent store. Migration
+  `target: tools:seed-store`, non-breaking.
+
+---
+
+## [1.6.9] — 2026-07-01
+
+### Changed
+- **Named release of the reconciled `/forge:init` step-machine (FEAT-011, Slices 0–5).**
+  This version draws the release boundary around the four preceding init-reconciliation
+  slices: the frozen 10-doc KB contract (1.6.5), the per-step Phase-2 substance
+  fragments (1.6.6), the confident *not-applicable* stub policy plus widened Phase-2
+  verify gate (1.6.7), and the `wfl-init.js` Phase-2 fragment convergence (1.6.8).
+  No `.cjs`/`.js` logic changed in this release — the underlying behaviour already
+  shipped across 1.6.5–1.6.8; 1.6.9 consolidates them under one migratable boundary.
+- **forge-cli payload re-vendored to 1.6.9.** `dist/forge-payload` is regenerated from
+  the 1.6.9 plugin source and `forge.bundledVersion` bumped `1.6.5 → 1.6.9`, closing the
+  two-layer drift (the `bundledVersion == payload-manifest forge_version` gate, BUG-019).
+
+---
+
+## [1.6.8] — 2026-07-01
+
+### Changed
+- **Converged the markdown-workflow init driver onto the shared Phase-2 fragment set
+  (Slice 4).** `init/base-pack/workflows-js/wfl-init.js` no longer tells every Phase-2
+  subagent to read the whole `phase-2-discover.md` fat rulebook. Each kb-doc prompt now
+  composes the shared `generate-kb-doc.md` procedure + its own `phase-2/<name>.md`
+  substance fragment + an `AGENT PARAMS` block; index and context prompts repoint at
+  `phase-2/index.md` and `phase-2/context.md`; the gate agent inlines the scaffold
+  commands. The KB-doc fan-out now runs in two cross-reference waves (8 leaf docs, then
+  the 2 derived docs selected by name), matching forge-cli's native pipeline.
+
+---
+
+## [1.6.7] — 2026-07-01
+
+### Changed
+- **The fixed 10-doc KB surface always materializes; an absent topic becomes a confident
+  not-applicable stub (Slice 3).** All 10 stub-bearing Phase-2 fragments now prescribe
+  the confident stub shape (`confidence: 100% — status: not-applicable` header + heading +
+  one-sentence absence statement) instead of "set confidence low"; `generate-kb-doc.md`
+  documents that shape authoritatively; and `verifyPhase2` in `verify-phase.cjs` enforces
+  substantive-OR-not-applicable — a header-only/empty doc now fails `--phase 2`. No
+  confidence-percentage or entity-count hard gate is introduced (library projects pass).
+
+### Breaking
+- A KB carrying header-only empty stubs (a confidence header but no body and no
+  `status: not-applicable` marker) now **fails** `verify-phase --phase 2` until
+  re-materialized with the marker or a body.
+
+---
+
+## [1.6.6] — 2026-07-01
+
+### Changed
+- **Split the fat Phase-2 rulebook into per-step substance fragments (Slice 2).** The
+  forge-cli native init pipeline no longer injects the entire `phase-2-discover.md`
+  rulebook into every Phase-2 subagent. 12 new substance fragments live under
+  `init/phases/phase-2/` (10 KB-doc basenames + index + context), each carrying its own
+  topic focus, discovery input, required output, and not-applicable stub;
+  `generate-kb-doc.md` is confirmed as the shared procedure with a composition preamble.
+  `build-payload.cjs` gained one-level recursion so the `phase-2/` subdir ships in the
+  bundle. `phase-2-discover.md` is no longer injected into any subagent.
+
+---
+
+## [1.6.5] — 2026-07-01
+
+### Changed
+- **Froze ONE shared 10-doc KB contract across the Phase-2 verify gate and both init
+  fan-out drivers (Slice 1).** Closes a three-way drift between `verify-phase.cjs`
+  `ARCH_DOCS` (was 7 architecture-only docs), `wfl-init.js` `KB_DOC_IDS`, and
+  `phase-2-discover.md`'s doc-spec table. The gate now checks 10 canonical docIds —
+  `architecture/{stack,processes,routing,database,testing,deployment,entity-model,stack-checklist}`
+  + `business-domain/{domain-model,domain-concepts}` — resolved prefix-agnostically, and a
+  new drift-guard test (`kb-doc-contract.test.cjs`) pins all three arrays to the canonical
+  order.
+
+### Breaking
+- A pre-existing KB carrying only the old 7 docs (or `entity-model`/`stack-checklist` at
+  their former paths) now fails `verify-phase --phase 2` until re-run; `entity-model` is
+  homed under `architecture/` per FEAT-011.
+
+---
+
+## [1.6.4] — 2026-06-28
+
+### Fixed
+- **Dead vendored reference to `forge-usage-report.cjs` (FORGE-BUG-030/036
+  `MODULE_NOT_FOUND` class).** The tool was added at 1.6.3 and referenced by the
+  `wfl-fix-bug.js` / `wfl-run-task.js` / `wfl-run-sprint.js` drivers, but was missing from
+  `payload-manifest.json`'s tools selection, so `build-payload.cjs` never copied it into
+  the default payload — leaving bootstrapped projects with a dead
+  `.forge/tools/forge-usage-report.cjs` reference and a runtime `MODULE_NOT_FOUND` risk.
+  Added it to the tools include list; also regenerated `integrity.json`,
+  `structure-manifest.json`, and `enum-catalog.json`, which had drifted to 1.6.2.
+
+---
+
+## [1.6.3] — 2026-06-21
+
+### Fixed
+- **Postflight gate false-halted on slugged artifact directories.** The postflight
+  gate reconstructed each phase's artifact directory from bare IDs
+  (`sprints/<sprintId>/<taskId>/`), so on projects whose on-disk dirs carry slugs
+  (sprintId `S39` → `sprint_39_helpdesk_front_door`, taskId `WI-S39-T01` →
+  `WI-S39-T01-inbound-email-threading`) it looked for `PLAN.md` at
+  `engineering/sprints/S39/WI-S39-T01/` and reported `output-missing` for an
+  artifact that existed at the slug path — halting a pipeline whose plan phase had
+  succeeded. The plan phase, `forge_artifact`, and the **preflight** gate all
+  resolve via the task record's authoritative `path` field; postflight did not, so
+  the gates disagreed. Postflight now derives `{sprint}`/`{task}` from `rec.path`
+  using the same `deriveSprintTaskFromArtifactPath` helper the preflight gate uses,
+  and only falls back to ID reconstruction when no usable path is present. One fix
+  covers every phase (plan/implement/review/validate/approve/commit) — they share a
+  single substitution map.
+
+---
+
+## [1.6.2] — 2026-06-21
+
+### Fixed
+- **`wfl:run-task` spuriously escalated tasks at commit.** The driver's default
+  pipeline mapped the `writeback` phase to `update_implementation.md` — the
+  engineer's revision-applier, which sets status back to `implemented`. Running
+  after `approve`, writeback un-approved the task; the `commit` phase
+  (`commit-task.cjs` requires `approved`) then tripped its precondition and
+  escalated. `writeback` is the **collator** phase (meta-orchestrate role→persona)
+  and now maps to `collator_agent.md`, which writes KB views + `WRITEBACK-SUMMARY.json`
+  only and does **not** change task status — so commit still sees `approved`. Also
+  fixes the driver's `ROLE_TO_NOUN`/banner for writeback (engineer → collator).
+
+---
+
+## [1.6.1] — 2026-06-21
+
+MCP reliability fixes + deterministic Workflow token accounting.
+
+### Fixed
+- **MCP server `spawn node ENOENT`** — the vendored server spawned its `.cjs`
+  tools via the bare string `"node"`, which fails when Claude Code launches the
+  stdio server with a PATH that lacks `node` (NVM/fnm/volta/asdf, or any
+  restricted launch env). All 12 cjs-wrapper tools died while the 2 native tools
+  worked. Now spawns `process.execPath` (the absolute path of the running node).
+- **Misleading ENOENT from an unexpanded `${projectRoot}`** — `resolveProjectRoot()`
+  trusted any non-empty `CLAUDE_PROJECT_DIR`, so a literal unexpanded template
+  token flowed into `execFile`'s `cwd` and surfaced as `spawn <node> ENOENT`. It
+  now validates the value is a real directory and falls back to cwd otherwise.
+- **`.mcp.json` template** drops the broken `env.CLAUDE_PROJECT_DIR: "${projectRoot}"`
+  block — Claude Code injects `CLAUDE_PROJECT_DIR` for stdio servers itself.
+
+### Changed
+- **Code-orchestrated JS drivers migrated to MCP** — `wfl-run-task`, `wfl-run-sprint`,
+  and `wfl-fix-bug` now drive their store/preflight/collate/commit operations
+  through `mcp__forge__*` tools instead of Bash-exec'ing `node .forge/tools/*.cjs`.
+  The `mcp-callsite` gate now also scans the `workflows-js/` drivers (previously a
+  blind spot). `wfl-init` intentionally stays on Bash — it runs before the MCP
+  server exists (it is what creates it).
+- **Removed the dead per-phase merge-sidecar dispatch** — its only writer (the
+  pi-runtime usage-hook) does not exist in the Claude Code Workflow path, so every
+  merge found nothing and merely burned one agent dispatch per phase.
+
+### Added
+- **`forge-usage-report.cjs`** — a deterministic, no-LLM tool that reconciles
+  per-phase token cost from the Workflow harness transcript onto the COMPLETE
+  events (summing real provider usage, joining agent→event by the agent's own
+  complete-emit). Wired into all three orchestration drivers to run before
+  collate, so the cost section is accurate for Claude-Code-driven runs. Idempotent;
+  no-ops events already populated by the pi path. See
+  `doc/analysis/workflow-token-accounting.md`.
+
+---
+
 ## [1.6.0] — 2026-06-20
 
 MCP tool surface — first release of the vendored stdio MCP server.

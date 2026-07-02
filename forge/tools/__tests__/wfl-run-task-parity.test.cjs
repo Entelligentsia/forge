@@ -14,7 +14,7 @@
 //   7. #11 simplified retry prompt (simplified, subagent_retry, You MUST produce a result).
 //   8. #12 three-cluster model resolution (ANTHROPIC_DEFAULT_OPUS_MODEL, single cluster, ROLE_TIER_DEFAULTS).
 //   9. #13 on_revision field in RESOLVE_SCHEMA phases; revisionTarget uses it.
-//  10. #14 merge-sidecar invocation in JS loop.
+//  10. #14 eventId threading in JS loop (per-phase merge-sidecar removed — S38).
 //  11. Syntax check: node --check passes.
 
 const { describe, it } = require('node:test');
@@ -246,12 +246,19 @@ describe('wfl-run-task-parity — Gap #13: on_revision field in RESOLVE_SCHEMA',
   });
 });
 
-describe('wfl-run-task-parity — Gap #14: merge-sidecar invocation + eventId threading', () => {
-  it('AC #14a: source contains merge-sidecar invocation in the pipeline loop', () => {
+describe('wfl-run-task-parity — Gap #14: eventId threading (sidecar removed FORGE-S38)', () => {
+  it('AC #14a: per-phase merge-sidecar dispatch is REMOVED', () => {
     const s = getSrc();
+    // The token-sidecar merge was removed: its only writer (the pi-runtime
+    // usage-hook) does not exist in the Claude Code Workflow path, so every
+    // merge found no sidecar and merely burned an agent dispatch per phase.
+    // Token accounting for this path is handled deterministically outside the
+    // per-phase loop. Guard against the dead dispatch reappearing.
+    // Guard the actual DISPATCH (a prose mention of the removal in a comment is fine):
+    // no mergeSidecar() helper, and no agent instructed to invoke merge-sidecar.
     assert.ok(
-      s.includes('merge-sidecar'),
-      'No "merge-sidecar" found — token sidecar must be merged after each phase.'
+      !s.includes('mergeSidecar(') && !s.includes('"command": "merge-sidecar"') && !s.includes('store-cli.cjs merge-sidecar'),
+      'merge-sidecar dispatch found — it was removed (no sidecar writer exists in the Workflow path).'
     );
   });
 
@@ -285,13 +292,13 @@ describe('wfl-run-task-parity — Gap #14: merge-sidecar invocation + eventId th
     );
   });
 
-  it('AC #14e: subagent prompt uses the threaded eventId for sidecar writing instruction', () => {
+  it('AC #14e: subagent prompt stamps the threaded eventId on the COMPLETE event', () => {
     const s = getSrc();
-    // The sidecar instruction should reference the eventId from the driver
-    const hasSidecarInstruction = s.includes('COMPLETE eventId') || s.includes('with the COMPLETE event') || s.includes('Use eventId=');
+    // The driver-agreed eventId must be stamped on the subagent's COMPLETE event
+    // so downstream token-accounting can match the event deterministically.
     assert.ok(
-      hasSidecarInstruction,
-      'No eventId-anchored sidecar write instruction found — subagent must use the driver-agreed eventId for sidecar.'
+      s.includes('Use eventId='),
+      'No eventId-anchored COMPLETE-event instruction found — subagent must stamp the driver-agreed eventId.'
     );
   });
 });
@@ -374,11 +381,22 @@ describe('wfl-run-task-parity — LOW #20: writeback in default pipeline', () =>
     );
   });
 
-  it('AC #20b: writeback maps to update_implementation.md in role-to-workflow list', () => {
+  it('AC #20b: writeback maps to collator_agent.md (status-safe), NOT update_implementation.md', () => {
     const s = getSrc();
+    // writeback is the COLLATOR phase (meta-orchestrate § role-to-persona:
+    // writeback -> collator). It must map to collator_agent.md — which writes
+    // markdown views only and does NOT touch task status. Mapping it to
+    // update_implementation.md (the engineer revision-applier) set status back
+    // to "implemented" after approve, tripping commit-task.cjs's "requires
+    // approved" precondition and escalating every task at commit.
+    // Match the literal arrow-mapping form (not prose that merely mentions both).
     assert.ok(
-      s.includes('update_implementation.md'),
-      'No "update_implementation.md" found — writeback must map to update_implementation.md per orchestrate_task.md §3.'
+      s.includes('writeback→collator_agent.md'),
+      'writeback must map to collator_agent.md (status-safe KB writeback).'
+    );
+    assert.ok(
+      !s.includes('writeback→update_implementation.md'),
+      'writeback must NOT map to update_implementation.md — it resets status to "implemented" and breaks commit.'
     );
   });
 });
