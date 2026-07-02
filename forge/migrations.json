@@ -1,4 +1,17 @@
 {
+  "1.6.9": {
+    "version": "1.6.10",
+    "date": "2026-07-02",
+    "notes": "seed-store.cjs now always lays down the store skeleton: it writes a COLLATION_STATE.json baseline (with the actual seeded sprint/task/bug counts, featureCount 0) even when zero entities are present. Before this, a fresh /forge:init on a project with no pre-existing sprints/tasks/bugs left .forge/store/ entirely absent — seed-store no-oped ('Seeded: 0 sprint(s)...') because the store dir was only ever created lazily by Store.writeSprint/Task/Bug. The result was an inconsistent post-init state: Phase 4 appended .forge/store/events/ to .gitignore for a directory that did not exist, and there was no collation watermark until the first /forge:collate. Reads already degraded gracefully (store-cli list -> [], validate-store -> passed) and writes self-created the store, so this was low-severity, but init now leaves a consistent store. --dry-run is unchanged (writes nothing). The next real /forge:collate overwrites the baseline with live counts.",
+    "target": "tools:seed-store",
+    "regenerate": [
+      "tools"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update (or /forge:rebuild tools) to re-vendor .forge/tools/seed-store.cjs. No store or KB migration is required — existing projects already have a COLLATION_STATE.json once they have collated. Projects initialised before this fix that never ran /forge:collate will simply gain the baseline on their next collate; no manual action needed."
+    ]
+  },
   "1.6.8": {
     "version": "1.6.9",
     "date": "2026-07-01",

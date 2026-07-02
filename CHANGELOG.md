@@ -5,6 +5,25 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.6.10] — 2026-07-02
+
+### Fixed
+- **`seed-store` now lays down the store skeleton on a fresh `/forge:init`.** On a
+  project with no pre-existing sprints/tasks/bugs, `seed-store.cjs` no-oped
+  (`Seeded: 0 sprint(s)…`) and left `.forge/store/` entirely absent — the store dir
+  was only ever created lazily by `Store.writeSprint/Task/Bug`. The result was an
+  inconsistent post-init state: Phase 4 appended `.forge/store/events/` to
+  `.gitignore` for a directory that did not exist, and there was no collation
+  watermark until the first `/forge:collate`. `seed-store` now always writes a
+  `COLLATION_STATE.json` baseline (actual seeded counts, `featureCount 0`) even with
+  zero entities. `--dry-run` still writes nothing; the next real `/forge:collate`
+  overwrites the baseline with live counts. Reads already degraded gracefully
+  (`store-cli list` → `[]`, `validate-store` → passed) and writes self-created the
+  store, so this was low-severity, but init now leaves a consistent store. Migration
+  `target: tools:seed-store`, non-breaking.
+
+---
+
 ## [1.6.9] — 2026-07-01
 
 ### Changed
