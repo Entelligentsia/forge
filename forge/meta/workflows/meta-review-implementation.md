@@ -133,7 +133,7 @@ The Supervisor reviews the Engineer's implementation for correctness, quality, a
 
 - **Workflow Structure:** The generated `review_implementation.md` must follow the strict "Algorithm" block format.
 - **Markers (required by `/forge:run-task` kickoff shim):** Generated workflow MUST include the "Iron Laws" section, the "Store-Write Verification" section, the literal `forge_store` token, and the `.forge/personas/supervisor.md` persona path. Missing any → kickoff shim refuses to dispatch.
-- **Verdict Detection:** The generated workflow MUST enforce the strict `**Verdict:** [Approved | Revision Required]` format.
+- **Verdict Detection:** Instruct the supervisor to write a literal `**Verdict:** [Approved | Revision Required]` line in CODE_REVIEW.md for human readability. Downstream gates read `summaries.code_review.verdict` via read-verdict.cjs, not this markdown — the line remains a useful breadcrumb for operators reviewing artifacts.
 - **Context Isolation:** Forbid inline execution of complex code review logic; use the `Agent` tool for sub-tasks.
 - **Project Specifics:**
   - Embed project-specific code quality standards and linting rules.

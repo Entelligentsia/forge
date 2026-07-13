@@ -1,4 +1,20 @@
 {
+  "1.6.10": {
+    "version": "1.6.11",
+    "date": "2026-07-13",
+    "notes": "Removed the misleading 'Verdict Detection' / 'orchestrator branches on this' Generation Instructions from the review workflow metas (review_plan, review_code, validate, review_sprint_completion). These developer-facing meta instructions falsely claimed the orchestrator branches on the literal `**Verdict:**` markdown line in review artifacts; in reality all verdict routing reads schema-validated store summaries (record.summaries.<key>.verdict, or task.status for approve) via read-verdict.cjs — the markdown `**Verdict:**` line is a human breadcrumb only, never parsed by any gate. The generated workflow output is unchanged (the false claims were never emitted into .forge/workflows/*.md — only the step-4 `**Verdict:**` format instruction and the store-summary guidance ship, both of which are retained). Also corrected the stale base-pack-byte-budget assertion message that said 'downstream preflight gates parse only this exact form', and added an explicit test-justified retention rationale to the read-verdict.cjs unknown-phase underscore fallback (covered by read-verdict.test.cjs). Closes Entelligentsia/forge#113.",
+    "target": "workflows:review_plan,workflows:review_code,workflows:validate_task,workflows:architect_review_sprint_completion",
+    "regenerate": [
+      "workflows:review_plan",
+      "workflows:review_code",
+      "workflows:validate_task",
+      "workflows:architect_review_sprint_completion"
+    ],
+    "breaking": false,
+    "manual": [
+      "No behaviour change. Run /forge:update to refresh the four named review workflows (content is identical — the misleading developer-facing Generation Instructions were never emitted into generated output); or skip it — no store or KB migration is required."
+    ]
+  },
   "1.6.9": {
     "version": "1.6.10",
     "date": "2026-07-02",

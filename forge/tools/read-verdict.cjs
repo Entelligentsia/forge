@@ -86,7 +86,12 @@ function readVerdict({ record, phase, entityType }) {
       const v = record.summaries && record.summaries[altSpec] && record.summaries[altSpec].verdict;
       return { verdict: ALLOWED_VERDICTS.has(v) ? v : null, source: 'summaries (alt-map)', key: altSpec };
     }
-    // Defensive defaults: hyphen → underscore fallback.
+    // Defensive fallback for phases not present in either entity's verdict-source
+    // map (e.g. a future review phase before its map entry lands). Hyphen -> underscore
+    // swap matches the canonical summary-key convention. Retained deliberately, not
+    // dead code: the behaviour is pinned by read-verdict.test.cjs ("unknown phase
+    // falls back to underscore-swapped key"). For all current pipeline phases the
+    // map lookup above resolves first and this branch is unreachable.
     const fallbackKey = String(phase).replace(/-/g, '_');
     const v = record.summaries && record.summaries[fallbackKey] && record.summaries[fallbackKey].verdict;
     return {

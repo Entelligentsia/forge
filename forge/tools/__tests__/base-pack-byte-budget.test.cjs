@@ -176,7 +176,7 @@ describe('base-pack-byte-budget — verdict-emitting phase files instruct canoni
       assert.ok(
         content.includes('**Verdict:**'),
         `${file} must instruct subagent to emit a literal "**Verdict:**" line — ` +
-        `downstream preflight gates parse only this exact form.`
+        `a human breadcrumb in the review artifact; downstream gates read the store summary verdict via read-verdict.cjs, not this markdown.`
       );
     });
   }

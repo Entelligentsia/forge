@@ -5,6 +5,29 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.6.11] — 2026-07-13
+
+### Fixed
+- **Removed misleading "orchestrator branches on `**Verdict:**`" claims from
+  review workflow metas.** The `meta-review-plan`, `meta-review-implementation`,
+  `meta-validate`, and `meta-review-sprint-completion` Generation Instructions
+  falsely stated the orchestrator branches on the literal `**Verdict:**` markdown
+  line in review artifacts. All verdict routing actually reads schema-validated
+  store summaries (`record.summaries.<key>.verdict`, or `task.status` for the
+  approve phase) via `read-verdict.cjs` — the `**Verdict:**` line is a human
+  breadcrumb only, never parsed by any gate. The generated workflow output is
+  unchanged (the false claims were never emitted into `.forge/workflows/*.md`);
+  only the developer-facing meta instructions and a stale test assertion message
+  were corrected, and the `read-verdict.cjs` unknown-phase fallback got an
+  explicit test-justified retention rationale. Closes
+  [Entelligentsia/forge#113](https://github.com/Entelligentsia/forge/issues/113).
+
+**Regenerate:** workflows:review_plan, workflows:review_code,
+workflows:validate_task, workflows:architect_review_sprint_completion (content
+identical — refresh only)
+
+---
+
 ## [1.6.10] — 2026-07-02
 
 ### Fixed

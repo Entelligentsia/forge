@@ -127,7 +127,7 @@ deps:
 <!-- See _fragments/generation-instructions.md for Generation Instructions template -->
 ## Generation Instructions
 
-- Enforce `**Verdict:** [Approved | Revision Required]` format exactly — orchestrator branches on this.
+- **Verdict Detection:** Instruct the supervisor to write a literal `**Verdict:** [Approved | Revision Required]` line in PLAN_REVIEW.md for human readability. Downstream gates read `summaries.review_plan.verdict` via read-verdict.cjs, not this markdown — the line remains a useful breadcrumb for operators reviewing artifacts.
 - **Markers (required by `/forge:run-task` kickoff shim):** Generated workflow MUST include the "Iron Laws" section, the "Store-Write Verification" section, the literal `forge_store` token, and the `.forge/personas/supervisor.md` persona path. Missing any → kickoff shim refuses to dispatch.
 - Token Reporting: `_fragments/finalize.md` — wire via `file_ref:`.
 - Event Emission: "complete" event MUST include the `eventId` passed by the orchestrator.

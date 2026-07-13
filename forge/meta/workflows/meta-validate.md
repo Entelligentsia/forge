@@ -129,7 +129,7 @@ Emit `type:friction` `{workflow:validate, persona:qa-engineer, issue}` per `_fra
 ## Generation Instructions
 
 - **Workflow Structure:** The generated `validate_task.md` must follow the strict "Algorithm" block format.
-- **Verdict Detection:** The generated workflow MUST enforce the strict `**Verdict:** [Approved | Revision Required]` format.
+- **Verdict Detection:** Instruct the QA engineer to write a literal `**Verdict:** [Approved | Revision Required]` line in VALIDATION_REPORT.md for human readability. Downstream gates read `summaries.validation.verdict` via read-verdict.cjs, not this markdown — the line remains a useful breadcrumb for operators reviewing artifacts.
 - **Context Isolation:** Forbid inline execution of validation tests; use the `Agent` tool for sub-tasks.
 - **Project Specifics:**
   - Reference project-specific validation tools or smoke tests.
