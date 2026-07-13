@@ -109,12 +109,12 @@ The Supervisor reviews the Engineer's implementation for correctness, quality, a
 
 7. Emit Summary Sidecar:
    - Write the review summary via forge_artifact:
-     `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"review-impl-summary", content:"<JSON>" })`
-     The JSON shape:
+     `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"review-code-summary", content:"<JSON>" })`
+     The JSON shape (`key_changes` is REQUIRED — `findings` alone fails PHASE_SUMMARY_SCHEMA validation):
      ```json
      {
        "objective":   "<one sentence — what this review assessed>",
-       "findings":    ["<up to 12 bullets, 200 chars each — key issues or confirmations>"],
+       "key_changes": ["<up to 12 bullets, 200 chars each — key issues or confirmations>"],
        "verdict":     "<approved | revision>",
        "written_at":  "<current ISO 8601 timestamp>",
        "artifact_ref":"CODE_REVIEW.md"

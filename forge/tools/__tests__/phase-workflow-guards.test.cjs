@@ -155,3 +155,65 @@ describe('pipeline-step-guard :: user-visible guard block present', () => {
     });
   }
 });
+
+// Regression test for the WI-S48-T01 systemic halt: a summary-emitting
+// workflow must instruct the subagent to write the summary sidecar under the
+// SAME artifact kind that `forge_store set-summary <phaseKey>` auto-resolves
+// (PHASE_TO_KIND[phaseKey]). If the written sidecar and the set-summary-
+// resolved sidecar differ, set-summary silently re-ingests the STALE sidecar
+// (the one matching the canonical filename) and the freshly-written verdict
+// never reaches the store. The orchestrator then reads a stale verdict,
+// burns the revision cap, and halts — deterministically, on every approving
+// review after a prior revision round.
+//
+// Concrete defect this guards: meta-review-implementation.md told subagents to
+// write `artifact:"review-impl-summary"` (REVIEW-IMPL-SUMMARY.json) and then
+// call `set-summary ... code_review`, which auto-resolves REVIEW-CODE-SUMMARY.json
+// — orphaning every approved code-review verdict.
+describe('summary-sidecar-kind-consistency :: workflow artifact kind matches PHASE_TO_KIND', () => {
+  const { PHASE_TO_KIND, ARTIFACT_CATALOG } = require('../lib/artifact-kinds.cjs');
+
+  const SUMMARY_WORKFLOWS = [
+    'meta-plan-task.md',
+    'meta-implement.md',
+    'meta-review-plan.md',
+    'meta-review-implementation.md',
+    'meta-validate.md',
+    'meta-approve.md',
+  ];
+
+  for (const file of SUMMARY_WORKFLOWS) {
+    test(`${file}: forge_artifact summary kind matches set-summary phase key`, () => {
+      const p = path.join(WORKFLOWS_DIR, file);
+      assert.ok(fs.existsSync(p), `expected workflow file at ${p}`);
+      const contents = fs.readFileSync(p, 'utf8');
+
+      // The set-summary / set-bug-summary call carries the canonical phase
+      // key as args[1], e.g. args:["{taskId}", "code_review"].
+      const setSummaryMatch = contents.match(
+        /set-(?:bug-)?summary[^)\]]*?args:\s*\[[^\]]*,\s*"([a-z_]+)"/,
+      );
+      assert.ok(setSummaryMatch, `${file}: could not find set-summary call with a phase key`);
+      const phaseKey = setSummaryMatch[1];
+      assert.ok(PHASE_TO_KIND[phaseKey], `${file}: phase key "${phaseKey}" has no PHASE_TO_KIND entry`);
+
+      // The forge_artifact write call that emits the summary sidecar, e.g.
+      // artifact:"review-code-summary". Take the LAST "*-summary" occurrence —
+      // the summary sidecar write is the final artifact write; earlier ones
+      // are the human-readable artifact (CODE_REVIEW.md, PLAN.md, ...) whose
+      // kind does not end in -summary.
+      const artifactMatches = [...contents.matchAll(/artifact:\s*"([a-z0-9-]*-summary)"/g)];
+      assert.ok(artifactMatches.length > 0, `${file}: no forge_artifact "*-summary" write found`);
+      const summaryKind = artifactMatches[artifactMatches.length - 1][1];
+
+      const expected = PHASE_TO_KIND[phaseKey];
+      assert.equal(
+        summaryKind, expected,
+        `${file}: summary sidecar artifact kind "${summaryKind}" does not match ` +
+          `PHASE_TO_KIND["${phaseKey}"]="${expected}". set-summary auto-resolves the ` +
+          `sidecar for "${phaseKey}" to ${ARTIFACT_CATALOG[expected].filename}, so the ` +
+          `written sidecar would be orphaned and the verdict never reaches the store.`,
+      );
+    });
+  }
+});

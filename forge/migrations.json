@@ -1,4 +1,17 @@
 {
+  "1.6.11": {
+    "version": "1.6.12",
+    "date": "2026-07-13",
+    "notes": "Fix: the review-code workflow told the supervisor subagent to write its summary sidecar with `artifact:\"review-impl-summary\"` (REVIEW-IMPL-SUMMARY.json) and then register it via `forge_store set-summary ... code_review`, which auto-resolves the sidecar for phase `code_review` to REVIEW-CODE-SUMMARY.json (PHASE_TO_KIND['code_review']='review-code-summary'). The two filenames never matched, so set-summary silently re-ingested the STALE round-1 sidecar (verdict 'revision') and returned OK — the freshly-written 'approved' verdict in REVIEW-IMPL-SUMMARY.json was orphaned (no VALID_SUMMARY_PHASES entry maps to it) and never reached record.summaries.code_review.verdict. The orchestrator then read the stale 'revision', burned the review-code revision cap, and halted — deterministically, on every approving review after a prior revision round, since the stale REVIEW-CODE-SUMMARY.json persisted and could never be overwritten via the instructed path (WI-S48-T01 systemic halt; reproduce: any review-code task that approves after round 1 returned revision). Also corrected the JSON-shape example in the same Emit-Summary step: it used `findings` (an optional schema field) where `key_changes` is REQUIRED by PHASE_SUMMARY_SCHEMA / artifact.cjs SUMMARY_REQUIRED — a summary with only `findings` fails set-summary validation, sending the subagent down a wrong retry path. The meta source `meta-review-implementation.md` now instructs `artifact:\"review-code-summary\"` and the `key_changes`-required field, matching PHASE_TO_KIND. New regression test (phase-workflow-guards.test.cjs :: summary-sidecar-kind-consistency) asserts every summary-emitting workflow's forge_artifact summary kind equals PHASE_TO_KIND[<set-summary phase key>], so this class of sidecar/set-summary divergence cannot recur silently.",
+    "target": "workflows:review_code",
+    "regenerate": [
+      "workflows:review_code"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update (or /forge:rebuild workflows:review_code) to refresh the review-code workflow. Projects with a task currently halted at the review-code revision cap should, after updating, reset the pipeline to the review-code phase and re-run: `4ge reset <TASK-ID> --to review-code` — the next review pass now writes the approved verdict to the sidecar that set-summary actually reads, so the verdict reaches the store and the pipeline advances. No store or KB migration is required; existing REVIEW-IMPL-SUMMARY.json sidecars are inert orphans and can be deleted."
+    ]
+  },
   "1.6.10": {
     "version": "1.6.11",
     "date": "2026-07-13",
