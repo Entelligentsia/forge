@@ -12,6 +12,7 @@
     "outputTokens":     { "type": "integer", "minimum": 0 },
     "cacheReadTokens":  { "type": "integer", "minimum": 0 },
     "cacheWriteTokens": { "type": "integer", "minimum": 0 },
+    "contextTokens":    { "type": "integer", "minimum": 0 },
     "model":            { "type": "string",  "maxLength": 120 },
     "provider":         { "type": "string",  "maxLength": 60 },
     "durationMinutes":  { "type": "number",  "minimum": 0 },

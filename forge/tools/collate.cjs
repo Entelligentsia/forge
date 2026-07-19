@@ -237,10 +237,11 @@ function buildBugIndex(bug, availableDocs, costTotals) {
   if (costTotals && costTotals.inputTokens !== undefined) {
     lines.push('## Cost', '');
     const rows = [
-      ['Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD', 'Source'],
+      ['Input Tokens', 'Output Tokens', 'Context (peak)', 'Cache Read', 'Cache Write', 'Est. Cost USD', 'Source'],
       [
         fmtTokens(costTotals.inputTokens),
         fmtTokens(costTotals.outputTokens),
+        fmtTokens(costTotals.contextTokens),
         fmtTokens(costTotals.cacheReadTokens),
         fmtTokens(costTotals.cacheWriteTokens),
         fmtCost(costTotals.estimatedCostUSD),
@@ -326,6 +327,7 @@ function mergeSidecarEvents(primaryEvents, sidecars) {
       if (sidecar.outputTokens     !== undefined) merged.outputTokens     = sidecar.outputTokens;
       if (sidecar.cacheReadTokens  !== undefined) merged.cacheReadTokens  = sidecar.cacheReadTokens;
       if (sidecar.cacheWriteTokens !== undefined) merged.cacheWriteTokens = sidecar.cacheWriteTokens;
+      if (sidecar.contextTokens    !== undefined) merged.contextTokens    = sidecar.contextTokens;
       if (sidecar.tokenSource      !== undefined) merged.tokenSource      = sidecar.tokenSource;
       if (sidecar.model && !merged.model) merged.model = sidecar.model;
       if (sidecar.provider && !merged.provider) merged.provider = sidecar.provider;
@@ -528,21 +530,23 @@ function buildCostReport(sprint, events, orphanSidecars, huskPrimaries) {
     const byTask = {};
     for (const e of tokenEvents) {
       const tid = e.taskId || 'no-task';
-      if (!byTask[tid]) byTask[tid] = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0, sources: new Set() };
+      if (!byTask[tid]) byTask[tid] = { inputTokens: 0, outputTokens: 0, contextTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0, sources: new Set() };
       const g = byTask[tid];
       g.inputTokens     += e.inputTokens     || 0;
       g.outputTokens    += e.outputTokens    || 0;
+      g.contextTokens   += e.contextTokens   || 0;
       g.cacheReadTokens += e.cacheReadTokens  || 0;
       g.cacheWriteTokens+= e.cacheWriteTokens || 0;
       g.estimatedCostUSD+= e.estimatedCostUSD || 0;
       g.sources.add(e.tokenSource);
     }
-    const rows = [['Task', 'Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD', 'Source']];
+    const rows = [['Task', 'Input Tokens', 'Output Tokens', 'Context (peak)', 'Cache Read', 'Cache Write', 'Est. Cost USD', 'Source']];
     for (const [tid, g] of Object.entries(byTask).sort(([a], [b]) => a.localeCompare(b))) {
       rows.push([
         tid,
         fmtTokens(g.inputTokens),
         fmtTokens(g.outputTokens),
+        fmtTokens(g.contextTokens),
         fmtTokens(g.cacheReadTokens),
         fmtTokens(g.cacheWriteTokens),
         fmtCost(g.estimatedCostUSD),
@@ -558,20 +562,22 @@ function buildCostReport(sprint, events, orphanSidecars, huskPrimaries) {
     const byRole = {};
     for (const e of tokenEvents) {
       const role = e.role || '(unknown)';
-      if (!byRole[role]) byRole[role] = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0 };
+      if (!byRole[role]) byRole[role] = { inputTokens: 0, outputTokens: 0, contextTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0 };
       const g = byRole[role];
       g.inputTokens     += e.inputTokens     || 0;
       g.outputTokens    += e.outputTokens    || 0;
+      g.contextTokens   += e.contextTokens   || 0;
       g.cacheReadTokens += e.cacheReadTokens  || 0;
       g.cacheWriteTokens+= e.cacheWriteTokens || 0;
       g.estimatedCostUSD+= e.estimatedCostUSD || 0;
     }
-    const rows = [['Role', 'Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD']];
+    const rows = [['Role', 'Input Tokens', 'Output Tokens', 'Context (peak)', 'Cache Read', 'Cache Write', 'Est. Cost USD']];
     for (const [role, g] of Object.entries(byRole).sort(([a], [b]) => a.localeCompare(b))) {
       rows.push([
         role,
         fmtTokens(g.inputTokens),
         fmtTokens(g.outputTokens),
+        fmtTokens(g.contextTokens),
         fmtTokens(g.cacheReadTokens),
         fmtTokens(g.cacheWriteTokens),
         fmtCost(g.estimatedCostUSD),
@@ -649,20 +655,22 @@ function buildCostReport(sprint, events, orphanSidecars, huskPrimaries) {
     const byModel = {};
     for (const e of tokenEvents) {
       const model = e.model || '(unknown)';
-      if (!byModel[model]) byModel[model] = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0 };
+      if (!byModel[model]) byModel[model] = { inputTokens: 0, outputTokens: 0, contextTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0 };
       const g = byModel[model];
       g.inputTokens     += e.inputTokens     || 0;
       g.outputTokens    += e.outputTokens    || 0;
+      g.contextTokens   += e.contextTokens   || 0;
       g.cacheReadTokens += e.cacheReadTokens  || 0;
       g.cacheWriteTokens+= e.cacheWriteTokens || 0;
       g.estimatedCostUSD+= e.estimatedCostUSD || 0;
     }
-    const rows = [['Model', 'Input Tokens', 'Output Tokens', 'Cache Read', 'Cache Write', 'Est. Cost USD']];
+    const rows = [['Model', 'Input Tokens', 'Output Tokens', 'Context (peak)', 'Cache Read', 'Cache Write', 'Est. Cost USD']];
     for (const [model, g] of Object.entries(byModel).sort(([a], [b]) => a.localeCompare(b))) {
       rows.push([
         model,
         fmtTokens(g.inputTokens),
         fmtTokens(g.outputTokens),
+        fmtTokens(g.contextTokens),
         fmtTokens(g.cacheReadTokens),
         fmtTokens(g.cacheWriteTokens),
         fmtCost(g.estimatedCostUSD),
@@ -1009,10 +1017,11 @@ for (const bug of allBugs) {
     const bugEvents = events.filter(e => e.bugId === bug.bugId);
     const tokenEvents = bugEvents.filter(e => e.inputTokens !== undefined);
     if (tokenEvents.length > 0) {
-      const totals = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0, sources: new Set() };
+      const totals = { inputTokens: 0, outputTokens: 0, contextTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, estimatedCostUSD: 0, sources: new Set() };
       for (const e of tokenEvents) {
         totals.inputTokens     += e.inputTokens     || 0;
         totals.outputTokens    += e.outputTokens    || 0;
+        totals.contextTokens   += e.contextTokens   || 0;
         totals.cacheReadTokens += e.cacheReadTokens  || 0;
         totals.cacheWriteTokens+= e.cacheWriteTokens || 0;
         totals.estimatedCostUSD+= e.estimatedCostUSD || 0;
@@ -1021,6 +1030,7 @@ for (const bug of allBugs) {
       costTotals = {
         inputTokens: totals.inputTokens,
         outputTokens: totals.outputTokens,
+        contextTokens: totals.contextTokens,
         cacheReadTokens: totals.cacheReadTokens,
         cacheWriteTokens: totals.cacheWriteTokens,
         estimatedCostUSD: totals.estimatedCostUSD,

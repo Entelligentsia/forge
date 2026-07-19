@@ -1,4 +1,22 @@
 {
+  "1.6.12": {
+    "version": "1.6.13",
+    "date": "2026-07-19",
+    "notes": "Token-metric truthfulness. (1) Pricing (lib/pricing.cjs): family-tier string matching — any model naming 'opus'/'sonnet'/'haiku' that isn't an explicitly-listed generation is now priced at its family tier (claude-opus/claude-sonnet/claude-haiku catch-alls) instead of canonicalizing to null and reporting a misleading $0.00. Fixes claude-sonnet-5 / claude-haiku-4-5 showing $0.00 in COST_REPORT despite hundreds of millions of cache-read tokens. Models with no recognised family word (e.g. gpt-*) still return null — no false pricing. (2) New optional token field `contextTokens` on event + event-sidecar schemas: the PEAK (high-water) per-turn context-window size (max of input+cacheRead+cacheWrite over turns), a NON-cumulative size metric. store-cli record-usage gains `--context-tokens`; forge-usage-report computes the peak from Claude-Code Workflow transcripts; collate surfaces a new 'Context (peak)' column in Per-Task / Per-Role / Model Split / bug Cost tables. Rationale: cumulative cacheReadTokens re-counts the same cached prefix on every turn and balloons to tens of millions — a billing quantity, not a context-size quantity, and not comparable to Claude Code's per-agent token figure. Additive/backward-compatible: contextTokens is optional; old events/sidecars without it still validate. New tests across pricing/store-cli/forge-usage-report/collate.",
+    "target": "schemas:event,schemas:event-sidecar,tools:store-cli,tools:collate,tools:forge-usage-report,tools:lib:pricing",
+    "regenerate": [
+      "schemas:event",
+      "schemas:event-sidecar",
+      "tools:store-cli",
+      "tools:collate",
+      "tools:forge-usage-report",
+      "tools:lib:pricing"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update to refresh the schemas and cost tooling. contextTokens is populated on new runs only — historical events lack it and render blank in the Context (peak) column (cumulative Cache Read is still shown). No store migration required."
+    ]
+  },
   "1.6.11": {
     "version": "1.6.12",
     "date": "2026-07-13",

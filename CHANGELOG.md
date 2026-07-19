@@ -5,6 +5,35 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.6.13] — 2026-07-19
+
+### Fixed
+- **Cost reports no longer show `$0.00` for current-generation models.**
+  `lib/pricing.cjs` now falls back to **family-tier pricing** by string-matching
+  `opus` / `sonnet` / `haiku` in the model name: any generation not explicitly
+  listed (e.g. `claude-sonnet-5`, `claude-haiku-4-5`) is priced at its family
+  tier (`claude-opus` / `claude-sonnet` / `claude-haiku` catch-alls) instead of
+  canonicalizing to `null` and reporting `$0.00`. Models with no recognised
+  family word (e.g. `gpt-*`) still return `null` — no false pricing.
+
+### Added
+- **`contextTokens` — an honest, non-inflating context-size metric.** A new
+  optional token field on the `event` and `event-sidecar` schemas records the
+  **peak** (high-water) per-turn context-window size — `max(input + cacheRead +
+  cacheWrite)` across an agent's turns — rather than the cumulative
+  `cacheReadTokens`, which re-counts the same cached prefix on every turn and
+  balloons to tens of millions (a billing quantity, not a context size).
+  `store-cli record-usage` accepts `--context-tokens`; `forge-usage-report`
+  derives the peak from Claude-Code Workflow transcripts; and `collate` surfaces
+  a **"Context (peak)"** column in the Per-Task, Per-Role, Model Split, and bug
+  Cost tables. Additive and backward-compatible — old events without the field
+  still validate.
+
+**Regenerate:** schemas:event, schemas:event-sidecar, tools:store-cli,
+tools:collate, tools:forge-usage-report, tools:lib:pricing
+
+---
+
 ## [1.6.11] — 2026-07-13
 
 ### Fixed

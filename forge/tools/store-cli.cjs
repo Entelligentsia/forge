@@ -379,6 +379,7 @@ function listEntities(entity, filter) {
 // Canonical event schema token fields
 const CANONICAL_TOKEN_FIELDS = [
   'inputTokens', 'outputTokens', 'cacheReadTokens', 'cacheWriteTokens',
+  'contextTokens',
   'model', 'provider', 'durationMinutes', 'startTimestamp', 'endTimestamp',
   'tokenSource'
 ];
@@ -386,6 +387,7 @@ const CANONICAL_TOKEN_FIELDS = [
 // Accepted sidecar fields (includes aliases)
 const SIDECAR_ACCEPTED_FIELDS = new Set([
   'inputTokens', 'outputTokens', 'cacheReadTokens', 'cacheWriteTokens',
+  'contextTokens',
   'model', 'provider', 'durationMinutes',
   'startTimestamp', 'endTimestamp', 'cacheCreationTokens',
   'tokenSource'
@@ -1053,6 +1055,7 @@ function cmdRecordUsage() {
     console.error('    --output-tokens <n>         Output token count');
     console.error('    --cache-read-tokens <n>     Cache read token count');
     console.error('    --cache-write-tokens <n>    Cache write token count');
+    console.error('    --context-tokens <n>        Peak context-window tokens (high-water, non-cumulative)');
     console.error('    --token-source <src>         reported | estimated');
     console.error('    --model <model>             Model identifier');
     console.error('    --provider <name>           Provider name (e.g. anthropic, zai, openai)');
@@ -1074,6 +1077,8 @@ function cmdRecordUsage() {
       sidecar.cacheReadTokens = parseInt(flagArgs[++i], 10);
     } else if (arg === '--cache-write-tokens' && flagArgs[i + 1]) {
       sidecar.cacheWriteTokens = parseInt(flagArgs[++i], 10);
+    } else if (arg === '--context-tokens' && flagArgs[i + 1]) {
+      sidecar.contextTokens = parseInt(flagArgs[++i], 10);
     } else if (arg === '--token-source' && flagArgs[i + 1]) {
       sidecar.tokenSource = flagArgs[++i];
     } else if (arg === '--model' && flagArgs[i + 1]) {

@@ -47,7 +47,7 @@ try { ({ computeCost } = require('./lib/pricing.cjs')); } catch { computeCost = 
 // Canonical token fields we may write (subset of CANONICAL_TOKEN_FIELDS that this
 // tool sources from the transcript). model/provider/timestamps already live on
 // the COMPLETE event the subagent emitted — we add only the measured counts.
-const TOKEN_FIELDS = ['inputTokens', 'outputTokens', 'cacheReadTokens', 'cacheWriteTokens'];
+const TOKEN_FIELDS = ['inputTokens', 'outputTokens', 'cacheReadTokens', 'cacheWriteTokens', 'contextTokens'];
 
 // ---------------------------------------------------------------------------
 // arg parsing
@@ -127,15 +127,28 @@ function parseJsonl(file) {
 }
 
 // Sum provider usage across an agent's assistant turns.
+//
+// The four token counts are cumulative sums (correct for billing — cache reads
+// bill per turn). contextTokens is DIFFERENT: it's the high-water mark of the
+// per-turn prompt size (input + cacheRead + cacheWrite), i.e. how large the
+// context window got — NOT a per-turn sum. This is the non-inflating "size"
+// number comparable to a Claude-Code per-agent token figure; cumulative
+// cacheReadTokens re-counts the same context on every turn and balloons to
+// tens of millions, which is a billing quantity, not a context-size quantity.
 function sumUsage(records) {
-  const acc = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
+  const acc = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, contextTokens: 0 };
   for (const r of records) {
     const u = r && r.message && r.message.usage;
     if (!u) continue;
-    acc.inputTokens += u.input_tokens || 0;
+    const input      = u.input_tokens || 0;
+    const cacheRead  = u.cache_read_input_tokens || 0;
+    const cacheWrite = u.cache_creation_input_tokens || 0;
+    acc.inputTokens += input;
     acc.outputTokens += u.output_tokens || 0;
-    acc.cacheReadTokens += u.cache_read_input_tokens || 0;
-    acc.cacheWriteTokens += u.cache_creation_input_tokens || 0;
+    acc.cacheReadTokens += cacheRead;
+    acc.cacheWriteTokens += cacheWrite;
+    const turnContext = input + cacheRead + cacheWrite;
+    if (turnContext > acc.contextTokens) acc.contextTokens = turnContext;
   }
   return acc;
 }
@@ -271,7 +284,7 @@ function main() {
 }
 
 function zeroBucket() {
-  return { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
+  return { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, contextTokens: 0 };
 }
 
 function cost(usage, model) {
@@ -291,12 +304,12 @@ function printHuman(r) {
   lines.push(`Token usage — sprint ${r.sprint}  (${r.applied ? 'applied' : 'dry-run'})`);
   lines.push(`  workflow: ${r.workflowDir}`);
   for (const e of r.events) {
-    lines.push(`  ${e.eventId.padEnd(48)} in=${e.inputTokens} out=${e.outputTokens} cr=${e.cacheReadTokens} cw=${e.cacheWriteTokens}`);
+    lines.push(`  ${e.eventId.padEnd(48)} in=${e.inputTokens} out=${e.outputTokens} cr=${e.cacheReadTokens} cw=${e.cacheWriteTokens} ctx=${e.contextTokens}`);
   }
   lines.push(`  ${'overhead (unattributed helpers)'.padEnd(48)} in=${r.overhead.inputTokens} out=${r.overhead.outputTokens}`);
   lines.push(`  attributed=${r.attributed} skippedExisting=${r.skippedExisting} unattributed=${r.unattributed}`);
   const tc = r.totals.cost;
-  lines.push(`  TOTAL  in=${r.totals.inputTokens} out=${r.totals.outputTokens} cr=${r.totals.cacheReadTokens} cw=${r.totals.cacheWriteTokens}${tc != null ? `  ~$${tc.toFixed ? tc.toFixed(4) : tc}` : ''}`);
+  lines.push(`  TOTAL  in=${r.totals.inputTokens} out=${r.totals.outputTokens} cr=${r.totals.cacheReadTokens} cw=${r.totals.cacheWriteTokens} ctx=${r.totals.contextTokens}${tc != null ? `  ~$${tc.toFixed ? tc.toFixed(4) : tc}` : ''}`);
   process.stdout.write(lines.join('\n') + '\n');
 }
 

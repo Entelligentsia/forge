@@ -791,6 +791,22 @@ describe('collate.cjs — buildCostReport', () => {
     assert.ok(result.includes('TST-S01-T02'), 'should include second task ID');
   });
 
+  test('surfaces a Context (peak) column distinct from cumulative Cache Read', () => {
+    const evtCtx = {
+      eventId: 'evt-ctx', taskId: 'TST-S01-T01', role: 'engineer', phase: 'implement',
+      model: 'claude-sonnet-4-6',
+      inputTokens: 880, outputTokens: 116_708,
+      cacheReadTokens: 58_672_285,   // cumulative — balloons with turn count
+      cacheWriteTokens: 733_790,
+      contextTokens: 226_900,        // peak high-water — the real context size
+      estimatedCostUSD: 3.14, tokenSource: 'reported',
+    };
+    const result = buildCostReport(sprint, [evtCtx], orphans, husks);
+    assert.ok(result.includes('Context (peak)'), 'Per-Task Totals must carry a Context (peak) column');
+    assert.ok(result.includes('226,900'), 'peak context value must render');
+    assert.ok(result.includes('58,672,285'), 'cumulative cache read still rendered separately');
+  });
+
   test('does NOT contain (unknown) task identifier row when all events have taskId', () => {
     const result = buildCostReport(sprint, [eventT1, eventT2], orphans, husks);
     // Check no row has (unknown) as first column (task identifier)

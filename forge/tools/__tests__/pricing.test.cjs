@@ -302,3 +302,80 @@ describe('pricing.cjs — Opus 4.x rate correction', () => {
     assert.equal(result.canonical, 'claude-opus-4-8');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Current-generation models + family-tier fallback.
+// Pre-fix, claude-sonnet-5 / claude-haiku-4-5 canonicalized → null and every
+// cost involving them reported $0.00 (see WI-S50/S51 COST_REPORT "unmapped
+// model names"). Fix: add explicit entries for the shipping generations AND a
+// family-tier fallback so ANY opus/sonnet/haiku string is priced at its tier
+// instead of dropping to $0. Rate structure is uniform: cacheWrite = 1.25×
+// input, cacheRead = 0.10× input (matches every generation already in the map).
+// ---------------------------------------------------------------------------
+describe('pricing.cjs — current generations + family-tier fallback', () => {
+  test('claude-sonnet-5 (unlisted generation) canonicalizes to the sonnet tier', () => {
+    const result = canonicalizeModel('claude-sonnet-5');
+    assert.ok(result !== null, 'claude-sonnet-5 must not canonicalize to null');
+    assert.equal(result.canonical, 'claude-sonnet', 'string-matched to sonnet tier, not enumerated');
+    const cost = computeCost({
+      inputTokens: 1_000_000, outputTokens: 1_000_000, cacheReadTokens: 0, cacheWriteTokens: 0,
+      model: 'claude-sonnet-5',
+    });
+    assert.ok(Math.abs(cost - 18.00) < 0.001, `sonnet tier $3+$15 = $18, got ${cost}`);
+  });
+
+  test('claude-haiku-4-5 (unlisted generation) canonicalizes to the haiku tier', () => {
+    const result = canonicalizeModel('claude-haiku-4-5');
+    assert.ok(result !== null, 'claude-haiku-4-5 must not canonicalize to null');
+    assert.equal(result.canonical, 'claude-haiku', 'string-matched to haiku tier, not enumerated');
+    const cost = computeCost({
+      inputTokens: 1_000_000, outputTokens: 1_000_000, cacheReadTokens: 0, cacheWriteTokens: 0,
+      model: 'claude-haiku-4-5',
+    });
+    assert.ok(Math.abs(cost - 6.00) < 0.001, `haiku tier $1+$5 = $6, got ${cost}`);
+  });
+
+  test('dated alias claude-haiku-4-5-20251001 is priced at haiku tier', () => {
+    const result = computeCost({
+      inputTokens: 1_000_000, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0,
+      model: 'claude-haiku-4-5-20251001',
+    });
+    assert.ok(result !== null, 'dated haiku alias must not report null/$0');
+    assert.ok(Math.abs(result - 1.00) < 0.001, `expected ~$1.00, got ${result}`);
+  });
+
+  test('unknown FUTURE opus generation falls back to opus-tier pricing (not null)', () => {
+    const result = computeCost({
+      inputTokens: 1_000_000, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0,
+      model: 'claude-opus-9-9',
+    });
+    assert.ok(result !== null, 'any opus must be priced at opus tier, never null');
+    assert.ok(Math.abs(result - 5.00) < 0.001, `opus tier input $5/MTok, got ${result}`);
+  });
+
+  test('unknown FUTURE sonnet generation falls back to sonnet-tier pricing', () => {
+    const result = computeCost({
+      inputTokens: 1_000_000, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0,
+      model: 'claude-sonnet-7',
+    });
+    assert.ok(result !== null, 'any sonnet must be priced at sonnet tier, never null');
+    assert.ok(Math.abs(result - 3.00) < 0.001, `sonnet tier input $3/MTok, got ${result}`);
+  });
+
+  test('unknown FUTURE haiku generation falls back to haiku-tier pricing', () => {
+    const result = computeCost({
+      inputTokens: 1_000_000, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0,
+      model: 'claude-haiku-6',
+    });
+    assert.ok(result !== null, 'any haiku must be priced at haiku tier, never null');
+    assert.ok(Math.abs(result - 1.00) < 0.001, `haiku tier input $1/MTok, got ${result}`);
+  });
+
+  test('a model with NO recognised family word still returns null (no false pricing)', () => {
+    assert.equal(canonicalizeModel('gpt-5-turbo'), null);
+    assert.equal(computeCost({
+      inputTokens: 1_000_000, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0,
+      model: 'gpt-5-turbo',
+    }), null);
+  });
+});

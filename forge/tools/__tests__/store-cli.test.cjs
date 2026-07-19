@@ -1451,6 +1451,29 @@ describe('store-cli.cjs — record-usage subcommand', () => {
     }
   });
 
+  test('record-usage persists --context-tokens (peak, non-cumulative)', () => {
+    const tmpDir = makeUsageStore();
+    try {
+      const r = spawnSync(process.execPath, [
+        STORE_CLI, 'record-usage', 'S1', 'E-CTX',
+        '--input-tokens', '800',
+        '--output-tokens', '500',
+        '--cache-read-tokens', '58672285',
+        '--cache-write-tokens', '733790',
+        '--context-tokens', '226900',
+        '--token-source', 'reported',
+      ], { cwd: tmpDir, encoding: 'utf8' });
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+      const sidecar = JSON.parse(fs.readFileSync(
+        path.join(tmpDir, '.forge', 'store', 'events', 'S1', '_E-CTX_usage.json'), 'utf8'));
+      assert.equal(sidecar.contextTokens, 226900,
+        'contextTokens (peak) must persist independently of cumulative cacheReadTokens');
+      assert.equal(sidecar.cacheReadTokens, 58672285);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   test('record-usage with minimal fields writes sidecar with only eventId and provided fields', () => {
     const tmpDir = makeUsageStore();
     try {

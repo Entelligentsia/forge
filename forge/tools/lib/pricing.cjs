@@ -25,6 +25,15 @@
  *   claude-sonnet-4-5: input $3.00,  output $15.00, cacheRead $0.30, cacheWrite $3.75
  *   claude-sonnet-4-6: input $3.00,  output $15.00, cacheRead $0.30, cacheWrite $3.75
  *   claude-haiku-3-5:  input $0.80,  output $4.00,  cacheRead $0.08, cacheWrite $1.00
+ *
+ * Family-tier catch-alls: rather than enumerate every future generation, any
+ * model string containing "opus"/"sonnet"/"haiku" that doesn't match a listed
+ * generation is priced at its family tier (claude-opus/claude-sonnet/claude-haiku).
+ * This prevents new models (e.g. claude-sonnet-5, claude-haiku-4-5) from
+ * reporting a misleading $0.00. cacheWrite = 1.25× input, cacheRead = 0.10× input:
+ *   claude-opus:   input $5.00, output $25.00, cacheRead $0.50, cacheWrite $6.25
+ *   claude-sonnet: input $3.00, output $15.00, cacheRead $0.30, cacheWrite $3.75
+ *   claude-haiku:  input $1.00, output $5.00,  cacheRead $0.10, cacheWrite $1.25
  */
 
 // All rates in USD per token (divide MTok rate by 1,000,000)
@@ -71,7 +80,41 @@ const MODEL_PRICING = Object.freeze({
     cacheRead:   0.08  / 1_000_000,
     cacheWrite:  1.00  / 1_000_000,
   },
+  // ── Family-tier catch-alls ────────────────────────────────────────────────
+  // Any generation NOT explicitly listed above is priced at its family tier by
+  // string-matching the family word (opus / sonnet / haiku) — we deliberately
+  // do NOT enumerate every generation (claude-sonnet-5, claude-haiku-4-5, …).
+  // This keeps new/unmapped models from reporting a misleading $0.00. Rate
+  // structure is uniform: cacheWrite = 1.25× input, cacheRead = 0.10× input.
+  'claude-opus': {
+    input:       5.00  / 1_000_000,
+    output:     25.00  / 1_000_000,
+    cacheRead:   0.50  / 1_000_000,
+    cacheWrite:  6.25  / 1_000_000,
+  },
+  'claude-sonnet': {
+    input:       3.00  / 1_000_000,
+    output:     15.00  / 1_000_000,
+    cacheRead:   0.30  / 1_000_000,
+    cacheWrite:  3.75  / 1_000_000,
+  },
+  'claude-haiku': {
+    input:       1.00  / 1_000_000,
+    output:      5.00  / 1_000_000,
+    cacheRead:   0.10  / 1_000_000,
+    cacheWrite:  1.25  / 1_000_000,
+  },
 });
+
+// Family-tier fallback: [familyWord, tierCanonical]. When no specific generation
+// matches, a model string containing one of these words is priced at that tier's
+// catch-all entry in MODEL_PRICING above. Words are mutually exclusive within a
+// model name, so order is irrelevant.
+const FAMILY_TIER_FALLBACK = [
+  ['opus',   'claude-opus'],
+  ['sonnet', 'claude-sonnet'],
+  ['haiku',  'claude-haiku'],
+];
 
 /**
  * Known model families for canonical resolution.
@@ -144,6 +187,15 @@ function canonicalizeModel(model) {
     }
     // Contains the canonical family segment (e.g. 'claude-sonnet-4-6' in a longer variant)
     if (lower.includes(canonical)) {
+      return { canonical, contextWindow };
+    }
+  }
+
+  // Family-tier fallback: no specific generation matched, but the model names a
+  // known family word → price at that tier's representative generation. Keeps
+  // future/unmapped generations (e.g. claude-opus-9-9) from reporting $0.00.
+  for (const [word, canonical] of FAMILY_TIER_FALLBACK) {
+    if (lower.includes(word)) {
       return { canonical, contextWindow };
     }
   }
