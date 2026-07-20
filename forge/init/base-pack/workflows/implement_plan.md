@@ -88,7 +88,7 @@ deps:
 7. Emit Summary Sidecar:
    - Write `IMPLEMENTATION-SUMMARY.json` via `forge_artifact`:
      `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"implementation-summary", content:"<JSON>" })`
-     JSON shape: `{"objective":"<one sentence>", "key_changes":["<up to 12 bullets>"], "files_changed":["<path>"], "verdict":"n/a", "written_at":"<ISO 8601>", "artifact_ref":"PROGRESS.md"}`
+     JSON shape: `{"objective":"<one sentence>", "key_changes":["<up to 12 bullets>"], "files_changed":["<path>"], "verdict":"n/a", "artifact_ref":"PROGRESS.md"}`
    - `files_changed`: every repo path this phase changed (one `git status --porcelain`); `commit-task.cjs` stages from it.
    - Then link sidecar to store (task mode):
      `forge_store({ command:"set-summary", args:["{taskId}", "implementation"] })`

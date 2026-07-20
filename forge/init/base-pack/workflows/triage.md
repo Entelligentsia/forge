@@ -120,7 +120,6 @@ deps:
          "Rationale: <one line>"
        ],
        "verdict":     "n/a",
-       "written_at":  "<current ISO 8601 timestamp>",
        "artifact_ref":"TRIAGE.md",
        "route":       "A"
      }

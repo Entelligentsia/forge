@@ -109,7 +109,6 @@ deps:
        "objective":   "<one sentence — what this review assessed>",
        "findings":    ["<up to 12 bullets, 200 chars each — key issues or confirmations>"],
        "verdict":     "<approved | revision>",
-       "written_at":  "<current ISO 8601 timestamp>",
        "artifact_ref":"PLAN_REVIEW.md"
      }
      ```

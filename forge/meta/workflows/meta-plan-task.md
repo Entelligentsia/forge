@@ -96,7 +96,6 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
        "objective":   "<one sentence — what this plan sets out to build>",
        "key_changes": ["<up to 12 bullets, 200 chars each>"],
        "verdict":     "n/a",
-       "written_at":  "<current ISO 8601 timestamp>",
        "artifact_ref":"PLAN.md"
      }
      ```

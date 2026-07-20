@@ -98,7 +98,6 @@ The Architect gives final sign-off on a completed task after Supervisor approval
        "objective":   "<one sentence — what this approval covered>",
        "findings":    ["<up to 12 bullets, 200 chars each — architectural notes, deployment concerns>"],
        "verdict":     "<approved | revision>",
-       "written_at":  "<current ISO 8601 timestamp>",
        "artifact_ref":"ARCHITECT_APPROVAL.md"
      }
      ```

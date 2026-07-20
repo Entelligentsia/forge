@@ -69,7 +69,10 @@ const VALID_SUMMARY_PHASES = new Set(['plan', 'review_plan', 'implementation', '
 // set it.
 const PHASE_SUMMARY_SCHEMA = {
   type: 'object',
-  required: ['objective', 'written_at'],
+  // `written_at` is NOT required as input: it is store-owned and stamped by
+  // _setSummaryOnEntity at registration time (FORGE-BUG-042 root cause D).
+  // A subagent has no clock, so any value it supplies is discarded.
+  required: ['objective'],
   properties: {
     objective:   { type: 'string', maxLength: 280 },
     key_changes: { type: 'array', items: { type: 'string', maxLength: 200 }, maxItems: 12 },
@@ -1399,9 +1402,16 @@ function _setSummaryOnEntity(entityKind, entityId, phase, summaryFilePath) {
     process.exit(1);
   }
 
-  // Merge summary (record was loaded above for path resolution)
+  // Merge summary (record was loaded above for path resolution).
+  // FORGE-BUG-042 root cause D: `written_at` is stamped HERE, not read from the
+  // sidecar. Registration is the only point in the pipeline with both a real
+  // clock and knowledge that this write is happening now — which is exactly the
+  // ordering fact the orchestrator's stale-summary gate needs. Any value the
+  // subagent authored is overwritten rather than rejected, so a payload running
+  // an older workflow (which still emits the field) keeps working across a
+  // plugin/forge-cli version skew.
   if (!record.summaries) record.summaries = {};
-  record.summaries[phase] = summary;
+  record.summaries[phase] = { ...summary, written_at: new Date().toISOString() };
 
   // Atomic write: tmp + rename
   const entityDirKey = entityKind === 'task' ? 'tasks' : 'bugs';

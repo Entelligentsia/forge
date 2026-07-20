@@ -85,7 +85,6 @@ record a **route** decision in its summary:
     "Rationale: <one line>"
   ],
   "verdict": "n/a",
-  "written_at": "<iso>",
   "artifact_ref": "TRIAGE.md",
   "route": "A"
 }

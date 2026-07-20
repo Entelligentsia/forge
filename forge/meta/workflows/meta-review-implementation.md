@@ -116,7 +116,6 @@ The Supervisor reviews the Engineer's implementation for correctness, quality, a
        "objective":   "<one sentence — what this review assessed>",
        "key_changes": ["<up to 12 bullets, 200 chars each — key issues or confirmations>"],
        "verdict":     "<approved | revision>",
-       "written_at":  "<current ISO 8601 timestamp>",
        "artifact_ref":"CODE_REVIEW.md"
      }
      ```

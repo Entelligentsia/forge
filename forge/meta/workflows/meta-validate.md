@@ -111,7 +111,6 @@ The Supervisor performs a final validation of the implementation against the acc
        "objective":   "<one sentence — what acceptance criteria were validated>",
        "findings":    ["<up to 12 bullets, 200 chars each — pass/fail per criterion>"],
        "verdict":     "<approved | revision>",
-       "written_at":  "<current ISO 8601 timestamp>",
        "artifact_ref":"VALIDATION_REPORT.md"
      }
      ```

@@ -70,8 +70,7 @@ Never set `FORGE_SKIP_WRITE_VALIDATION=1` — operator-only emergency switch.
      {
        "objective":   "<one sentence — what views were regenerated>",
        "key_changes": ["<up to 6 bullets — which files were written>"],
-       "verdict":     "n/a",
-       "written_at":  "<current ISO 8601 timestamp>"
+       "verdict":     "n/a"
      }
      ```
      The orchestrator reads this file directly to compose the collation event narrative. Do NOT call `set-summary` to register it — that would mutate the store in violation of Iron Law 1.

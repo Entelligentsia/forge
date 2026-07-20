@@ -395,9 +395,16 @@ describe('store-cli.cjs — PHASE_SUMMARY_SCHEMA', () => {
     assert.ok(Array.isArray(PHASE_SUMMARY_SCHEMA.required));
     assert.ok(typeof PHASE_SUMMARY_SCHEMA.properties === 'object');
   });
-  test('requires objective and written_at', () => {
+  test('requires objective', () => {
     assert.ok(PHASE_SUMMARY_SCHEMA.required.includes('objective'));
-    assert.ok(PHASE_SUMMARY_SCHEMA.required.includes('written_at'));
+  });
+  // FORGE-BUG-042 root cause D: written_at is store-owned, stamped at
+  // registration. Requiring it as input would put it back in the subagent's
+  // output contract, which is what produced hallucinated timestamps.
+  test('does NOT require written_at as input (store-owned)', () => {
+    assert.ok(!PHASE_SUMMARY_SCHEMA.required.includes('written_at'));
+    assert.ok(PHASE_SUMMARY_SCHEMA.properties.written_at,
+      'written_at must remain a declared property — the store writes it');
   });
   test('has additionalProperties: false', () => {
     assert.equal(PHASE_SUMMARY_SCHEMA.additionalProperties, false);
@@ -451,11 +458,10 @@ describe('store-cli.cjs — validateRecord maxLength/maxItems extensions', () =>
     assert.ok(errors.some(e => e.includes('objective')));
   });
 
-  test('missing written_at rejects', () => {
+  test('missing written_at is accepted (store stamps it at registration)', () => {
     const { written_at: _, ...rest } = VALID_SUMMARY;
     const errors = validateRecord(rest, PHASE_SUMMARY_SCHEMA);
-    assert.ok(errors.length > 0);
-    assert.ok(errors.some(e => e.includes('written_at')));
+    assert.equal(errors.length, 0, `expected no errors, got: ${errors.join('; ')}`);
   });
 
   test('objective at 281 chars rejects (maxLength: 280)', () => {
@@ -506,6 +512,90 @@ describe('store-cli.cjs — validateRecord maxLength/maxItems extensions', () =>
   test('findings with 13 items rejects (maxItems: 12)', () => {
     const errors = validateRecord({ ...VALID_SUMMARY, findings: new Array(13).fill('finding') }, PHASE_SUMMARY_SCHEMA);
     assert.ok(errors.length > 0, 'expected rejection for >12 findings');
+  });
+});
+
+// FORGE-BUG-042 root cause D: `written_at` used to be authored by the subagent,
+// which has no clock. Observed values scattered hours-to-days either side of the
+// real write time (13 of 20 sampled sidecars were exactly T00:00:00Z). The
+// orchestrator's stale-summary gate compares that field against a real
+// Date.now() phase-start, so it read hallucinated timestamps as evidence of a
+// stale write and halted mid-pipeline. The field is now store-owned: stamped at
+// registration time, and whatever the sidecar carries is discarded.
+describe('store-cli.cjs — set-summary stamps written_at (FORGE-BUG-042 root cause D)', () => {
+  test('overwrites a sidecar-supplied written_at with the registration time', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const summaryFile = path.join(tmpDir, 'summary.json');
+      // A timestamp an hour in the past — the shape a model hallucinates.
+      const stale = { ...VALID_SUMMARY, written_at: '2020-01-01T00:00:00.000Z' };
+      fs.writeFileSync(summaryFile, JSON.stringify(stale));
+
+      const before = Date.now();
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'plan', summaryFile], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      const after = Date.now();
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+      const task = readTaskFile(tmpDir, 'T01');
+      const stampedMs = Date.parse(task.summaries.plan.written_at);
+      assert.ok(!Number.isNaN(stampedMs), 'written_at must parse as a date');
+      assert.notEqual(task.summaries.plan.written_at, stale.written_at,
+        'sidecar-supplied written_at must NOT survive into the store');
+      assert.ok(stampedMs >= before && stampedMs <= after,
+        `written_at must be stamped during registration (got ${task.summaries.plan.written_at}, ` +
+        `window ${new Date(before).toISOString()}..${new Date(after).toISOString()})`);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('stamps written_at when the sidecar omits it entirely', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeTaskFile(tmpDir, 'T01', MINIMAL_TASK);
+      const summaryFile = path.join(tmpDir, 'summary.json');
+      const { written_at, ...noTimestamp } = VALID_SUMMARY;
+      fs.writeFileSync(summaryFile, JSON.stringify(noTimestamp));
+
+      const before = Date.now();
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-summary', 'T01', 'plan', summaryFile], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      const after = Date.now();
+      assert.equal(result.status, 0,
+        `written_at is no longer a required input; stderr: ${result.stderr}`);
+
+      const task = readTaskFile(tmpDir, 'T01');
+      const stampedMs = Date.parse(task.summaries.plan.written_at);
+      assert.ok(stampedMs >= before && stampedMs <= after, 'written_at must be stamped by the store');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('stamps written_at on bug summaries too (set-bug-summary)', () => {
+    const tmpDir = makeTempStore();
+    try {
+      writeBugFile(tmpDir, 'BUG-001', MINIMAL_BUG);
+      const summaryFile = path.join(tmpDir, 'summary.json');
+      fs.writeFileSync(summaryFile, JSON.stringify({ ...VALID_SUMMARY, written_at: '2020-01-01T00:00:00.000Z' }));
+
+      const before = Date.now();
+      const result = spawnSync(process.execPath, [STORE_CLI, 'set-bug-summary', 'BUG-001', 'triage', summaryFile], {
+        cwd: tmpDir, encoding: 'utf8'
+      });
+      const after = Date.now();
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+      const bug = readBugFile(tmpDir, 'BUG-001');
+      const stampedMs = Date.parse(bug.summaries.triage.written_at);
+      assert.ok(stampedMs >= before && stampedMs <= after, 'written_at must be stamped by the store');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });
 

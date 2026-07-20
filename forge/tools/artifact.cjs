@@ -37,7 +37,11 @@ const { ArtifactStore, FsArtifactImpl, resolveEntityDir } = artifactStore;
 
 // ── Summary JSON validation ──────────────────────────────────────────────────
 
-const SUMMARY_REQUIRED = ['objective', 'key_changes', 'verdict', 'written_at'];
+// `written_at` is deliberately absent: it is store-owned, stamped by
+// store-cli's set-summary at registration time (FORGE-BUG-042 root cause D).
+// Requiring it here would push the field back into the subagent's output
+// contract — and a subagent has no clock.
+const SUMMARY_REQUIRED = ['objective', 'key_changes', 'verdict'];
 
 function validateSummaryJson(content) {
   let obj;
@@ -51,7 +55,6 @@ function validateSummaryJson(content) {
   if (typeof obj.objective !== 'string') return `"objective" must be a string`;
   if (!Array.isArray(obj.key_changes)) return `"key_changes" must be an array`;
   if (typeof obj.verdict !== 'string') return `"verdict" must be a string`;
-  if (typeof obj.written_at !== 'string') return `"written_at" must be a string`;
   return null;
 }
 
