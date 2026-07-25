@@ -37,7 +37,7 @@ deps:
 ```
 
 0a. Pre-flight Gate Check:
-   - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
+   - **Entity-mode resolution:** from the kickoff args, `--task {id}` → `entity_kind="task"`; `--bug {id}` → `entity_kind="bug"`; either sets `record_id={id}`. Every call below uses those two.
    - Run: `node .forge/tools/preflight-gate.cjs --phase validate --{entity_kind} {record_id}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
@@ -74,26 +74,21 @@ deps:
 
 2. Load Context:
    - Read task prompt
-   - Read the sprint's SPRINT_REQUIREMENTS.md — this is where the acceptance
-     criteria live. Resolve the sprint from the task record's sprint FK, then
-     read the sprint record's `path` field for its artifact directory; never
-     reconstruct the path. If the file is absent (task added outside sprint
-     intake), fall back to the acceptance criteria in the task prompt and note
-     the gap in the report.
+   - Read SPRINT_REQUIREMENTS.md — the acceptance criteria live there. Resolve
+     the sprint via the task's sprint FK, then read the sprint record's `path`;
+     never reconstruct it. Absent → use the task prompt's AC, note the gap.
    - Read approved PLAN.md
    - Read the implementation
    - Read PROGRESS.md
 
 3. Validation:
-   - Validate against the acceptance criteria from SPRINT_REQUIREMENTS.md. Use
-     the plan's own "Acceptance Criteria" list only as a cross-check: it is the
-     implementer's restatement, and a criterion the plan dropped is exactly the
-     failure this phase exists to catch. Where the two diverge,
-     SPRINT_REQUIREMENTS.md wins and the divergence is itself a finding.
+   - Validate against SPRINT_REQUIREMENTS.md's acceptance criteria. The plan's
+     AC list is a cross-check only — it is the implementer's restatement. Where
+     they diverge SPRINT_REQUIREMENTS.md wins, and that divergence is a finding.
    - Verify that all technical constraints (e.g., performance, security) are met
    - Check for any regressions in related functionality
-   - When re-running the test suite, use exactly this command: {{TEST_COMMAND}}
-     Do NOT substitute a bare `python` / `python3` — the project interpreter is rarely on `$PATH`.
+   - Re-run the test suite with exactly: {{TEST_COMMAND}} — never a bare
+     `python`/`python3`; the project interpreter is rarely on `$PATH`.
 
 4. Verdict:
    - Write the validation report via:
@@ -105,7 +100,7 @@ deps:
      - See step 1 for iteration header and final-iteration Next Steps requirements.
 
 5. Finalize:
-   - Update task status via `node .forge/tools/store-cli.cjs update-status task {taskId} status review-approved` (if Approved) or `node .forge/tools/store-cli.cjs update-status task {taskId} status code-revision-required` (if Revision Required)
+   - Update task status: `node .forge/tools/store-cli.cjs update-status task {record_id} status <STATUS>` where `<STATUS>` is `review-approved` if Approved, `code-revision-required` if Revision Required.
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
 6. Emit Summary Sidecar:
