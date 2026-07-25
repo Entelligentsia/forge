@@ -60,10 +60,12 @@ The Engineer implements the approved plan: write code, run tests, verify, and do
    - Ensure all new code follows established project patterns
 
 3. Verification:
-   - Run syntax verification: {SYNTAX_CHECK}
-   - Run test suite using the **resolved test command** from `commands.test` in `.forge/config.json` (i.e. `` `${commands.test}` ``, e.g. `.venv/bin/python -m pytest`, `npm test`, `cargo test`). Do NOT invoke bare `python` / `python3` / `pytest` — the project interpreter is rarely on `$PATH`; using the resolved command avoids `python: command not found` and `No module named pytest`.
-   - Template placeholder: {{TEST_COMMAND}} (resolved at materialize time from `commands.test`).
-   - Run build if frontend assets modified: {BUILD_COMMAND}
+   - Run syntax verification: {{SYNTAX_CHECK}}
+   - Run the test suite: {{TEST_COMMAND}}
+     Use exactly that command. Do NOT substitute a bare `python` / `python3` /
+     `pytest` — the project interpreter is rarely on `$PATH`, and guessing
+     produces `command not found` or `No module named pytest`.
+   - Run build if frontend assets modified: {{BUILD_COMMAND}}
 
 4. Documentation:
    - Write PROGRESS.md via `forge_artifact`:
@@ -132,7 +134,7 @@ Emit `type:friction` `{workflow:implement, persona:engineer, issue}` per `_fragm
 - **Markers (required by `/forge:implement` kickoff shim):** Generated workflow MUST include the "Iron Laws" section, the "Store-Write Verification" section, the literal `forge_store` token, and the `engineer.md` persona path. Missing any → kickoff shim refuses to dispatch.
 - **Context Isolation:** Forbid inline execution of complex logic; use the `Agent` tool for sub-tasks.
 - **Project Specifics:**
-  - Replace {SYNTAX_CHECK}, {TEST_COMMAND}, and {BUILD_COMMAND} with actual project commands.
+  - Placeholders use the double-brace form ({{SYNTAX_CHECK}}, {{TEST_COMMAND}}, {{BUILD_COMMAND}}) — that is the only form `substitute-placeholders.cjs` matches. A single-brace token is never substituted and reaches the subagent as literal text.
   - Reference project-specific architecture docs by name.
 - **Token Reporting:** See `_fragments/finalize.md` — wire via `file_ref:`.
 - **Event Emission:** Ensure the "complete" event includes the `eventId` passed by the orchestrator.

@@ -1,6 +1,6 @@
 {
-  "version": "1.6.12",
-  "generatedAt": "2026-07-13T08:43:37.793Z",
+  "version": "1.6.13",
+  "generatedAt": "2026-07-25T02:42:34.634Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -148,6 +148,7 @@
         "build-init-context.cjs",
         "build-overlay.cjs",
         "build-persona-pack.cjs",
+        "check-placeholders.cjs",
         "check-structure.cjs",
         "collate.cjs",
         "commit-task.cjs",

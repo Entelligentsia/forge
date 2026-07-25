@@ -252,6 +252,27 @@ function buildSubstitutionMap(config, context, rules, opts) {
   map.set('LINT_COMMAND', commands.lint || '');
   map.set('KB_PATH', engRoot + '/architecture');
 
+  // BUILD_COMMAND / SYNTAX_CHECK resolve to an explicit skip instruction rather
+  // than '' when unconfigured: these land mid-Algorithm in implement_plan.md,
+  // where an empty string reads as a command the subagent failed to receive.
+  map.set('BUILD_COMMAND', commands.build || 'no build step configured — skip this step');
+
+  // syntaxCheck is an extension→command object in the config schema; render it
+  // as one line so a single placeholder covers polyglot projects. A plain
+  // string is accepted for projects with one checker.
+  const syntaxCheck = commands.syntaxCheck;
+  if (typeof syntaxCheck === 'string' && syntaxCheck) {
+    map.set('SYNTAX_CHECK', syntaxCheck);
+  } else if (syntaxCheck && typeof syntaxCheck === 'object') {
+    const rendered = Object.entries(syntaxCheck)
+      .filter(([, cmd]) => typeof cmd === 'string' && cmd)
+      .map(([ext, cmd]) => `${ext}: ${cmd}`)
+      .join('; ');
+    map.set('SYNTAX_CHECK', rendered || 'no syntax-check command configured — skip this step');
+  } else {
+    map.set('SYNTAX_CHECK', 'no syntax-check command configured — skip this step');
+  }
+
   // ── project-context.json sourced keys ─────────────────────────────────────
   if (context) {
     const arch = context.architecture || {};

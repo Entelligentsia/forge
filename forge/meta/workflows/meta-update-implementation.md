@@ -51,7 +51,8 @@ Update the implementation of a task based on a "Revision Required" verdict from 
 
 3. Implementation:
    - Apply the necessary fixes/changes
-   - Verify the changes using the **resolved test command** from `commands.test` in `.forge/config.json` (i.e. `` `${commands.test}` ``, e.g. `.venv/bin/python -m pytest`). Template placeholder: {{TEST_COMMAND}}. Do NOT invoke bare `python` / `python3` — the project interpreter is rarely on `$PATH`.
+   - Verify the changes using exactly this command: {{TEST_COMMAND}}
+     Do NOT substitute a bare `python` / `python3` — the project interpreter is rarely on `$PATH`.
    - Update PROGRESS.md with a summary of the revisions
 
 4. Finalize:

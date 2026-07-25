@@ -125,6 +125,19 @@ function collectDriverFiles(dir) {
 }
 
 /**
+ * Line-level exemptions: call-sites the MCP surface cannot express.
+ *
+ * `banners.cjs --badge … --quiet` — forge_banner takes only { name } and has no
+ * quiet flag, so an MCP call would print the badge into the LLM context window.
+ * The orchestrator pseudo-code depends on the badge being fully suppressed
+ * (see the digest-compliance note in meta-orchestrate.md). Drop this exemption
+ * once forge_banner grows badge/quiet parameters.
+ */
+function isExemptLine(line) {
+  return line.includes('banners.cjs') && line.includes('--quiet');
+}
+
+/**
  * Scan a file for any `node .forge/tools/<covered>.cjs` patterns.
  * Returns an array of { file, line, lineNumber, tool } objects.
  */
@@ -138,6 +151,7 @@ function scanFile(filePath) {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    if (isExemptLine(line)) continue;
     for (const tool of COVERED_CJS) {
       // Match: node .forge/tools/<tool> (with optional leading backtick/space)
       if (line.includes(`node .forge/tools/${tool}`) || line.includes(`node \`.forge/tools/${tool}`)) {

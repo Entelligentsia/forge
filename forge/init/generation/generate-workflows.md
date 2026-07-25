@@ -63,8 +63,15 @@ After writing the file, verify before returning:
    closing `---`** of the frontmatter block (or as the absolute first non-blank
    line if the meta-workflow had no frontmatter). The symbol is listed in the
    brief's `## Personas` section for this workflow's role.
-3. Confirm **no unsubstituted placeholders** remain (no literal `{TEST_COMMAND}`,
-   `{BUILD_COMMAND}`, `{SYNTAX_CHECK}`, or `{LINT_COMMAND}` in the file)
+3. Confirm **no unsubstituted placeholders** remain. Run the gate rather than
+   eyeballing it — it covers both brace forms and every known key:
+   ```sh
+   node "$FORGE_ROOT/tools/check-placeholders.cjs" .forge/workflows/{id}.md
+   ```
+   Exit 1 → the file still carries a literal placeholder. Fix the source token
+   (it must use the double-brace `{{KEY}}` form) or add the key to
+   `substitute-placeholders.cjs`, then re-materialize. Do NOT record the file
+   in the manifest while this gate fails.
 4. Record in the manifest:
    ```sh
    node "$FORGE_ROOT/tools/generation-manifest.cjs" record ".forge/workflows/{id}.md"

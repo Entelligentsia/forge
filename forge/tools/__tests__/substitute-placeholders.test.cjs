@@ -55,7 +55,12 @@ const MINIMAL_CONFIG = {
 
 const FULL_CONFIG = {
   project: { name: 'Acme Corp', prefix: 'ACME' },
-  commands: { test: 'jest', lint: 'eslint .' },
+  commands: {
+    test: 'jest',
+    lint: 'eslint .',
+    build: 'npm run build',
+    syntaxCheck: { js: 'node --check <file>', ts: 'tsc --noEmit' },
+  },
   paths: { engineering: 'engineering' },
 };
 
@@ -127,6 +132,39 @@ describe('buildSubstitutionMap — config-only', () => {
     const map = buildSubstitutionMap(config, null);
     assert.equal(map.get('TEST_COMMAND'), '');
     assert.equal(map.get('LINT_COMMAND'), '');
+  });
+
+  // FORGE-S36 (#47): BUILD_COMMAND and SYNTAX_CHECK were referenced by
+  // implement_plan.md but absent from the map, so {{BUILD_COMMAND}} /
+  // {{SYNTAX_CHECK}} survived materialization into the runtime prompt.
+  test('maps BUILD_COMMAND from config.commands.build', () => {
+    const map = buildSubstitutionMap(FULL_CONFIG, null);
+    assert.equal(map.get('BUILD_COMMAND'), 'npm run build');
+  });
+
+  test('maps SYNTAX_CHECK by joining config.commands.syntaxCheck entries', () => {
+    const map = buildSubstitutionMap(FULL_CONFIG, null);
+    assert.equal(map.get('SYNTAX_CHECK'), 'js: node --check <file>; ts: tsc --noEmit');
+  });
+
+  test('BUILD_COMMAND falls back to a skip instruction when commands.build is absent', () => {
+    const map = buildSubstitutionMap(MINIMAL_CONFIG, null);
+    assert.equal(map.get('BUILD_COMMAND'), 'no build step configured — skip this step');
+  });
+
+  test('SYNTAX_CHECK falls back to a skip instruction when commands.syntaxCheck is absent', () => {
+    const map = buildSubstitutionMap(MINIMAL_CONFIG, null);
+    assert.equal(map.get('SYNTAX_CHECK'), 'no syntax-check command configured — skip this step');
+  });
+
+  test('SYNTAX_CHECK accepts a plain string form', () => {
+    const config = {
+      project: { name: 'X', prefix: 'X' },
+      commands: { syntaxCheck: 'node --check' },
+      paths: { engineering: 'eng' },
+    };
+    const map = buildSubstitutionMap(config, null);
+    assert.equal(map.get('SYNTAX_CHECK'), 'node --check');
   });
 });
 

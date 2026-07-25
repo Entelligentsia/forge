@@ -82,7 +82,8 @@ deps:
    - Execute the "Acceptance Criteria" checklist from the plan
    - Verify that all technical constraints (e.g., performance, security) are met
    - Check for any regressions in related functionality
-   - When re-running the test suite, use the **resolved test command** from `commands.test` in `.forge/config.json` (i.e. `` `${commands.test}` ``, e.g. `.venv/bin/python -m pytest`). Template placeholder: {{TEST_COMMAND}}. Do NOT invoke bare `python` / `python3` — the project interpreter is rarely on `$PATH`.
+   - When re-running the test suite, use exactly this command: {{TEST_COMMAND}}
+     Do NOT substitute a bare `python` / `python3` — the project interpreter is rarely on `$PATH`.
 
 4. Verdict:
    - Write the validation report via:

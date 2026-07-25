@@ -34,6 +34,7 @@
           "friction-emit.cjs",
           "backfill-provider.cjs",
           "check-structure.cjs",
+          "check-placeholders.cjs",
           "list-skills.js",
           "verify-integrity.cjs",
           "queue-drain.cjs",
