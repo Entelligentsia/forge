@@ -56,7 +56,7 @@ Capture sprint requirements via a structured interview and document them for pla
    - Ensure all deliverables are measurable and testable
 
 5. Finalize:
-   - Update sprint status via `forge_store({ command: "update-status", args: ["sprint", "{sprintId}", "status", "planning`"] })
+   - Update sprint status via `forge_store({ command: "update-status", args: ["sprint", "{sprintId}", "status", "planning"] })`
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 ```
 

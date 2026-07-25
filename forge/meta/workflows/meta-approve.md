@@ -43,7 +43,7 @@ The Architect gives final sign-off on a completed task after Supervisor approval
 
 0a. Pre-flight Gate Check:
    - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
-   - Run: `forge_preflight({ phase: "approve", {entity_kind}: "{record_id}`" })
+   - Run: `forge_preflight({ phase: "approve", {entity_kind}: "{record_id}" })`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
@@ -85,7 +85,7 @@ The Architect gives final sign-off on a completed task after Supervisor approval
 
 4. Finalize:
    - Transitions:
-     - **Task mode** — Update status: `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "approved`."] }) The status IS the verdict signal for task-mode commit gate (`STATUS_SOURCE` in `read-verdict.cjs`).
+     - **Task mode** — Update status: `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "approved"] })`. The status IS the verdict signal for task-mode commit gate (`STATUS_SOURCE` in `read-verdict.cjs`).
      - **Bug mode** — NO status write. The bug remains `in-progress`. The verdict signal travels through `summaries.approve.verdict` written in step 5 below (read by `read-verdict.cjs § BUG_PHASE_VERDICT_SOURCE`). Writing `bug.status` here — especially writing `approved` or `verified` — violates `meta-fix-bug.md § Iron Laws #2` and is the trap that produced the FORGE-BUG-002 regression.
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 

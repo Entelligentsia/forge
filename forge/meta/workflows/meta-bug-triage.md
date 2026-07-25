@@ -60,7 +60,7 @@ and the only phase that records the route decision read by the orchestrator
 ```
 
 0. Pre-flight Gate Check:
-   - Run: `forge_preflight({ phase: "triage", bug: "{bugId}`" })
+   - Run: `forge_preflight({ phase: "triage", bug: "{bugId}" })`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.

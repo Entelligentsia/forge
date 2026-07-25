@@ -43,7 +43,7 @@ The Supervisor performs a final validation of the implementation against the acc
 
 0a. Pre-flight Gate Check:
    - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
-   - Run: `forge_preflight({ phase: "validate", {entity_kind}: "{record_id}`" })
+   - Run: `forge_preflight({ phase: "validate", {entity_kind}: "{record_id}" })`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
    - Exit 0 → continue.
@@ -99,7 +99,7 @@ The Supervisor performs a final validation of the implementation against the acc
      - See step 1 for iteration header and final-iteration Next Steps requirements.
 
 5. Finalize:
-   - Update task status via `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "review-approved`"] }) (if Approved) or `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "code-revision-required`"] }) (if Revision Required)
+   - Update task status via `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "review-approved"] })` (if Approved) or `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "code-revision-required"] })` (if Revision Required)
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
 6. Emit Summary Sidecar:

@@ -376,8 +376,8 @@ Read that file and extract the `sprintId` field. If no sprint files exist, use
 
 ```sh
 MIGRATION_END=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-forge_store({ command: "emit", args: [""{projectSprintId}"", '{
-  "eventId": "migration-'] })"$(date -u +%Y%m%dT%H%M%SZ)"'",
+node .forge/tools/store-cli.cjs emit "{projectSprintId}" '{
+  "eventId": "migration-'"$(date -u +%Y%m%dT%H%M%SZ)"'",
   "taskId": "migration",
   "sprintId": "{projectSprintId}",
   "role": "migration-agent",

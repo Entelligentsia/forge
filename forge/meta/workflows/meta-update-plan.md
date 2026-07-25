@@ -55,7 +55,7 @@ Update the implementation plan of a task based on a "Revision Required" verdict 
    - Update the "Operational Impact" or "Testing Strategy" if the revision changed them
 
 4. Finalize:
-   - Update task status via `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "planned`"] })
+   - Update task status via `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "planned"] })`
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 ```
 

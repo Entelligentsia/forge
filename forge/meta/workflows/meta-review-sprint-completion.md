@@ -42,10 +42,10 @@ Verify that all tasks in a sprint have been completed, committed, and validated 
 4. Finalize:
    - If step-3 verdict is `Approved`:
      - Update sprint status to `completed` via
-       `forge_store({ command: "update-status", args: ["sprint", "{sprintId}", "status", "completed`"] })
+       `forge_store({ command: "update-status", args: ["sprint", "{sprintId}", "status", "completed"] })`
    - If step-3 verdict is `Revision Required` and orchestrator passed `mode=partial`:
      - Update sprint status to `partially-completed` via
-       `forge_store({ command: "update-status", args: ["sprint", "{sprintId}", "status", "partially-completed`"] })
+       `forge_store({ command: "update-status", args: ["sprint", "{sprintId}", "status", "partially-completed"] })`
    - If step-3 verdict is `Revision Required` and orchestrator passed `mode=complete`:
      - Do NOT transition status. Leave the sprint at its current status and exit;
        the orchestrator will surface the verdict to the user.

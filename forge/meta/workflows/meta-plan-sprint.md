@@ -64,7 +64,7 @@ Break sprint requirements into a set of estimated tasks with a dependency graph.
      * Folder: `engineering/sprints/{sprintId}/{taskId}/`
      * File: `TASK_PROMPT.md` — populate from `.forge/templates/TASK_PROMPT_TEMPLATE.md`
        filling in title, objective, acceptance criteria, entities, DSL/CLI changes, and operational impact
-   - Update sprint status via `forge_store({ command: "update-status", args: ["sprint", "{sprintId}", "status", "active`."] })
+   - Update sprint status via `forge_store({ command: "update-status", args: ["sprint", "{sprintId}", "status", "active"] })`.
      If the command exits non-zero, parse the error and retry
      (see Store-Write Verification). Do not proceed until this write succeeds.
 
