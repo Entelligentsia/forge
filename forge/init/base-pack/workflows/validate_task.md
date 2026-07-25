@@ -30,7 +30,7 @@ deps:
 
 ## Store-Write Verification
 
-<!-- See _fragments/store-write-verification.md for the canonical block content -->
+On a store-write failure (non-zero exit or `PreToolUse` exit 2): fix the JSON and retry, up to 3 times, then halt and escalate. Never set `FORGE_SKIP_WRITE_VALIDATION=1`. Rules: `_fragments/store-write-verification.md`.
 
 ## Algorithm
 
@@ -59,17 +59,16 @@ deps:
    - If present, extract:
      - `Iteration: N of M` — current attempt number and the configured limit
      - `Is final iteration: true/false`
-   - If absent (user-invoked, not orchestrated): treat as `iteration 1`, no limit — do
-     NOT read any iteration cap from config. The orchestrator owns loop budgets; a human
-     standalone re-run is the escape hatch for stuck items (forge-engineering#34).
+   - If absent (user-invoked): treat as `iteration 1`, no limit — never read a cap from
+     config. The orchestrator owns loop budgets (forge-engineering#34).
    - Include `(iteration N of M)` (orchestrated) or `(standalone review)` in the opening line of the `VALIDATION_REPORT.md` artifact.
    - If this is the final iteration (`N == M`) and the verdict is `Revision Required`,
      append a `### Next Steps` section to the artifact showing:
      ```
      ### Next Steps
-     - Force-approve (bypass remaining reviews): `/forge:approve --force {task_id}`
+     - Force-approve (bypass remaining reviews): `/forge:approve --force {record_id}`
      - Increase iteration limit: edit `config.pipelines.{pipeline}.phases[validate].maxIterations`
-     - Restart from validation: `/forge:validate {task_id}`
+     - Restart from validation: `/forge:validate {record_id}`
      ```
 
 2. Load Context:
@@ -115,11 +114,9 @@ deps:
        "artifact_ref":"VALIDATION_REPORT.md"
      }
      ```
-   - Call (the sidecar path is auto-resolved from the task record's `path` — never pass it):
-     ```
-     node .forge/tools/store-cli.cjs set-summary {task_id} validation
-     ```
-   - If set-summary exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
+   - Call `node .forge/tools/store-cli.cjs set-summary {record_id} validation` — the sidecar
+     path auto-resolves from the record's `path`; never pass it. Non-zero exit → fix the
+     sidecar JSON and retry; do not proceed without a valid summary.
 ```
 
 ## Friction Emit

@@ -31,7 +31,7 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
 ```
 
 0a. Pre-flight Gate Check:
-   - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
+   - **Entity-mode resolution:** from the kickoff args, `--task {id}` → `entity_kind="task"`; `--bug {id}` → `entity_kind="bug"`; either sets `record_id={id}`. Every call below uses those two.
    - Run: `forge_preflight({ phase: "plan", {entity_kind}: "{record_id}" })`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
@@ -54,7 +54,7 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
    - Read task prompt (source of truth)
    - Query the store for this task and any related entities:
      ```sh
-     forge_store({ command: "nlp", args: ["{taskId} with sprint with feature"] })
+     forge_store({ command: "nlp", args: ["{record_id} with sprint with feature"] })
      ```
      Use store results directly if they include title, status, sprint, and excerpt.
    - Read the architecture summary from your injected context (if present).
@@ -84,8 +84,8 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
 
 5. Finalize:
    - Transitions:
-     - **Task mode** — legal target from this step: `draft → planned`. Out-of-band escapes (any state): `plan-revision-required`, `code-revision-required`, `blocked`, `escalated`, `abandoned`.
-       Update status: `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "planned"] })`
+     - **Task mode** — target `planned`, legally entered from `draft`, from `plan-revision-required` (revision loop), or from `planned` itself (a same-value write is a legal no-op). Out-of-band escapes (any state): `plan-revision-required`, `code-revision-required`, `blocked`, `escalated`, `abandoned`.
+       Update status: `forge_store({ command: "update-status", args: ["task", "{record_id}", "status", "planned"] })`
      - **Bug mode** — NO status write. The bug remains `in-progress` until the commit phase transitions it to `fixed`. Writing `bug.status` here violates `meta-fix-bug.md § Iron Laws #2`.
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
@@ -99,14 +99,9 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
        "artifact_ref":"PLAN.md"
      }
      ```
-     Task mode:
      `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"plan-summary", content:"<JSON>" })`
-     Bug mode:
-     `forge_artifact({ command:"write", entity:"{entity_kind}", entityId:"{record_id}", artifact:"plan-summary", content:"<JSON>" })`
-   - Register the summary with the store (task mode):
-     `forge_store({ command:"set-summary", args:["{record_id}", "plan"] })`
-     Or (bug mode):
-     `forge_store({ command:"set-bug-summary", args:["{record_id}", "plan"] })`
+   - Register it: `forge_store({ command:"set-summary", args:["{record_id}", "plan"] })`
+     — in bug mode use `set-bug-summary` instead.
    - If the set-summary call exits non-zero, fix the sidecar JSON and retry. Do not proceed without a valid summary.
 
 7. Post-Phase Output Guard: satisfy the `outputs` block before returning.
@@ -126,7 +121,7 @@ require summaries.plan.verdict == n/a
 
 ## Store-Write Verification
 
-<!-- See _fragments/store-write-verification.md for the canonical block content -->
+On a store-write failure (non-zero exit or `PreToolUse` exit 2): fix the JSON and retry, up to 3 times, then halt and escalate. Never set `FORGE_SKIP_WRITE_VALIDATION=1`. Rules: `_fragments/store-write-verification.md`.
 
 ## Friction Emit
 Emit `type:friction` `{workflow:plan-task, persona:engineer, issue}` per `_fragments/friction-emit.md`.

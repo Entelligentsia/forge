@@ -30,14 +30,14 @@ deps:
 
 ## Store-Write Verification
 
-<!-- See _fragments/store-write-verification.md for the canonical block content -->
+On a store-write failure (non-zero exit or `PreToolUse` exit 2): fix the JSON and retry, up to 3 times, then halt and escalate. Never set `FORGE_SKIP_WRITE_VALIDATION=1`. Rules: `_fragments/store-write-verification.md`.
 
 ## Algorithm
 
 ```
 
 0a. Pre-flight Gate Check:
-   - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
+   - **Entity-mode resolution:** from the kickoff args, `--task {id}` → `entity_kind="task"`; `--bug {id}` → `entity_kind="bug"`; either sets `record_id={id}`. Every call below uses those two.
    - Run: `node .forge/tools/preflight-gate.cjs --phase review-code --{entity_kind} {record_id}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
@@ -59,17 +59,16 @@ deps:
    - If present, extract:
      - `Iteration: N of M` — current attempt number and the configured limit
      - `Is final iteration: true/false`
-   - If absent (user-invoked, not orchestrated): treat as `iteration 1`, no limit — do
-     NOT read any iteration cap from config. The orchestrator owns loop budgets; a human
-     standalone re-run is the escape hatch for stuck items (forge-engineering#34).
+   - If absent (user-invoked): treat as `iteration 1`, no limit — never read a cap from
+     config. The orchestrator owns loop budgets (forge-engineering#34).
    - Include `(iteration N of M)` (orchestrated) or `(standalone review)` in the opening line of the `CODE_REVIEW.md` artifact.
    - If this is the final iteration (`N == M`) and the verdict is `Revision Required`,
      append a `### Next Steps` section to the artifact showing:
      ```
      ### Next Steps
-     - Force-approve (bypass remaining reviews): `/forge:approve --force {task_id}`
+     - Force-approve (bypass remaining reviews): `/forge:approve --force {record_id}`
      - Increase iteration limit: edit `config.pipelines.{pipeline}.phases[review-code].maxIterations`
-     - Restart from review: `/forge:review-code {task_id}`
+     - Restart from review: `/forge:review-code {record_id}`
      ```
 
 2. Load Context:
@@ -98,7 +97,7 @@ deps:
 
 6. Finalize:
    - Transitions:
-     - **Task mode** — Update status: `node .forge/tools/store-cli.cjs update-status task {taskId} status review-approved` (if Approved) or `... status code-revision-required` (if Revision Required).
+     - **Task mode** — Update status: `node .forge/tools/store-cli.cjs update-status task {record_id} status review-approved` (if Approved) or `... status code-revision-required` (if Revision Required).
      - **Bug mode** — NO status write. The bug remains `in-progress`. The verdict signal travels through `summaries.code_review.verdict` (read by `read-verdict.cjs § BUG_PHASE_VERDICT_SOURCE`), not `bug.status`. Writing `bug.status` here violates `meta-fix-bug.md § Iron Laws #2`.
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
@@ -115,9 +114,9 @@ deps:
      }
      ```
    - Call (task mode):
-     `forge_store({ command:"set-summary", args:["{taskId}", "code_review"] })`
+     `forge_store({ command:"set-summary", args:["{record_id}", "code_review"] })`
      Or (bug mode):
-     `forge_store({ command:"set-bug-summary", args:["{bugId}", "code_review"] })`
+     `forge_store({ command:"set-bug-summary", args:["{record_id}", "code_review"] })`
      `args[1]` is the LITERAL phase key `code_review`, never the record id; `forge_store` has no `entity`/`id`/`phase` field (see `_fragments/store-cli-verbs.md`).
    - If set-summary exits non-zero, `args[1]` was wrong — fix it to `code_review` and retry. Do not return without a valid summary; the orchestrator halts as "verdict missing" if `summaries.code_review` is absent.
 ```

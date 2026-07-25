@@ -27,7 +27,7 @@ deps:
 ```
 
 0a. Pre-flight Gate Check:
-   - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
+   - **Entity-mode resolution:** from the kickoff args, `--task {id}` → `entity_kind="task"`; `--bug {id}` → `entity_kind="bug"`; either sets `record_id={id}`. Every call below uses those two.
    - Run: `node .forge/tools/preflight-gate.cjs --phase implement --{entity_kind} {record_id}`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
@@ -80,10 +80,10 @@ deps:
        - Out-of-band escapes (any state): `plan-revision-required`, `code-revision-required`, `blocked`, `escalated`, `abandoned`
        Update status — check current state first:
        - If predecessor is `planned` or `implementing`:
-         `node .forge/tools/store-cli.cjs update-status task {taskId} status implemented`
+         `node .forge/tools/store-cli.cjs update-status task {record_id} status implemented`
        - If predecessor is `plan-approved` (two-step mandatory — FSM forbids skipping `implementing`):
-         `node .forge/tools/store-cli.cjs update-status task {taskId} status implementing`
-         `node .forge/tools/store-cli.cjs update-status task {taskId} status implemented`
+         `node .forge/tools/store-cli.cjs update-status task {record_id} status implementing`
+         `node .forge/tools/store-cli.cjs update-status task {record_id} status implemented`
      - **Bug mode** — NO status write. The bug remains `in-progress` until the commit phase transitions it to `fixed`. Writing `bug.status` here violates `meta-fix-bug.md § Iron Laws #2`.
    - **Do NOT emit a phase event yourself.** The orchestrator owns event emission — it composes the canonical event from runtime telemetry plus the SUMMARY you write next. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (Plan 11 / Slice 2). Write the SUMMARY and return.
 
@@ -93,9 +93,9 @@ deps:
      JSON shape: `{"objective":"<one sentence>", "key_changes":["<up to 12 bullets>"], "files_changed":["<path>"], "verdict":"n/a", "artifact_ref":"PROGRESS.md"}`
    - `files_changed`: every repo path this phase changed (one `git status --porcelain`); `commit-task.cjs` stages from it.
    - Then link sidecar to store (task mode):
-     `forge_store({ command:"set-summary", args:["{taskId}", "implementation"] })`
+     `forge_store({ command:"set-summary", args:["{record_id}", "implementation"] })`
      Or (bug mode):
-     `forge_store({ command:"set-bug-summary", args:["{bugId}", "implementation"] })`
+     `forge_store({ command:"set-bug-summary", args:["{record_id}", "implementation"] })`
      The sidecar path is auto-resolved from the record's `path` — never pass it.
 
 8. Post-Phase Output Guard: the `outputs` block below is the authoritative enforcer.
@@ -118,7 +118,7 @@ require summaries.implementation.verdict == n/a
 
 ## Store-Write Verification
 
-<!-- See _fragments/store-write-verification.md for the canonical block content -->
+On a store-write failure (non-zero exit or `PreToolUse` exit 2): fix the JSON and retry, up to 3 times, then halt and escalate. Never set `FORGE_SKIP_WRITE_VALIDATION=1`. Rules: `_fragments/store-write-verification.md`.
 
 ## Friction Emit
 Emit `type:friction` `{workflow:implement, persona:engineer, issue}` per `_fragments/friction-emit.md`.

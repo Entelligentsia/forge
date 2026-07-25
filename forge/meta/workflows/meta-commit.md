@@ -37,7 +37,7 @@ Seal a completed and approved task by committing its artifacts to the VCS and up
 
 ## Store-Write Verification
 
-<!-- See _fragments/store-write-verification.md for the canonical block content -->
+On a store-write failure (non-zero exit or `PreToolUse` exit 2): fix the JSON and retry, up to 3 times, then halt and escalate. Never set `FORGE_SKIP_WRITE_VALIDATION=1`. Rules: `_fragments/store-write-verification.md`.
 
 ## Algorithm
 

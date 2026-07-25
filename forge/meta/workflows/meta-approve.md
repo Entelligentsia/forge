@@ -35,14 +35,14 @@ The Architect gives final sign-off on a completed task after Supervisor approval
 
 ## Store-Write Verification
 
-<!-- See _fragments/store-write-verification.md for the canonical block content -->
+On a store-write failure (non-zero exit or `PreToolUse` exit 2): fix the JSON and retry, up to 3 times, then halt and escalate. Never set `FORGE_SKIP_WRITE_VALIDATION=1`. Rules: `_fragments/store-write-verification.md`.
 
 ## Algorithm
 
 ```
 
 0a. Pre-flight Gate Check:
-   - **Entity-mode resolution:** read the kickoff arguments. `--task {id}` → `entity_kind = "task"`, `record_id = {id}`. `--bug {id}` → `entity_kind = "bug"`, `record_id = {id}`. All store-cli calls below substitute `{entity_kind}` and `{record_id}` for the literal "task"/{taskId} placeholders.
+   - **Entity-mode resolution:** from the kickoff args, `--task {id}` → `entity_kind="task"`; `--bug {id}` → `entity_kind="bug"`; either sets `record_id={id}`. Every call below uses those two.
    - Run: `forge_preflight({ phase: "approve", {entity_kind}: "{record_id}" })`
    - Exit 1 (gate failed) → print stderr and HALT. Do not proceed; do not attempt to produce the artifact.
    - Exit 2 (misconfiguration) → print stderr and HALT.
@@ -85,7 +85,7 @@ The Architect gives final sign-off on a completed task after Supervisor approval
 
 4. Finalize:
    - Transitions:
-     - **Task mode** — Update status: `forge_store({ command: "update-status", args: ["task", "{taskId}", "status", "approved"] })`. The status IS the verdict signal for task-mode commit gate (`STATUS_SOURCE` in `read-verdict.cjs`).
+     - **Task mode** — Update status: `forge_store({ command: "update-status", args: ["task", "{record_id}", "status", "approved"] })`. The status IS the verdict signal for task-mode commit gate (`STATUS_SOURCE` in `read-verdict.cjs`).
      - **Bug mode** — NO status write. The bug remains `in-progress`. The verdict signal travels through `summaries.approve.verdict` written in step 5 below (read by `read-verdict.cjs § BUG_PHASE_VERDICT_SOURCE`). Writing `bug.status` here — especially writing `approved` or `verified` — violates `meta-fix-bug.md § Iron Laws #2` and is the trap that produced the FORGE-BUG-002 regression.
    - **Do NOT emit a phase event yourself.** The orchestrator (or kickoff handler) owns event emission — it composes the canonical event from runtime telemetry (model, provider, tokens, wall times) plus the SUMMARY you write in the next step. Subagents that call `store-cli emit` for phase events hallucinate runtime facts (see Plan 11 / Slice 2). Write the SUMMARY and return.
 
@@ -104,11 +104,11 @@ The Architect gives final sign-off on a completed task after Supervisor approval
    - Call (task mode) — optional for tasks, since `task.status` is the canonical signal.
      The sidecar path is auto-resolved from the record's `path` — never pass it:
      ```
-     forge_store({ command: "set-summary", args: ["{taskId}", "approve"] })
+     forge_store({ command: "set-summary", args: ["{record_id}", "approve"] })
      ```
      Or (bug mode) — REQUIRED for bugs, this is the canonical verdict signal:
      ```
-     forge_store({ command: "set-bug-summary", args: ["{bugId}", "approve"] })
+     forge_store({ command: "set-bug-summary", args: ["{record_id}", "approve"] })
      ```
    - In bug mode, if the set-bug-summary call exits non-zero, fix the sidecar JSON and retry. Do not return without a valid summary — the downstream commit gate has no other way to read the approval verdict.
 ```
