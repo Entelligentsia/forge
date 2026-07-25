@@ -47,7 +47,9 @@ deps:
    - Staging is NOT your decision — the tool derives it from the store record.
 
 2. Craft the commit message:
-   - Follow project conventions; include the record ID ({taskId} / {bugId}) in the subject.
+   - Shape: `<type>(<scope>): <subject>` where `<type>` matches the prevailing
+     style in `git log` (fix/feat/chore/docs/refactor/test). Include the record
+     ID ({record_id}) in the subject or body. Body states what changed and why.
    - `Co-authored-by:` trailer from the host runtime: Claude Code →
      `Co-authored-by: Claude <noreply@anthropic.com>`; pi / Ollama / other →
      `Co-authored-by: {modelId} <noreply@{provider}.ai>` from the session's `provider` and

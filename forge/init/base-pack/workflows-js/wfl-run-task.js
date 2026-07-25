@@ -158,7 +158,11 @@ const ROLE_TIER = {
   'implement':   'sonnet',
   'review-plan': 'opus',
   'review-code': 'opus',
-  'validate':    'opus',
+  // validate is sonnet, not opus: review-code and approve are both opus gates
+  // sitting either side of it, and forge-cli routes this phase through the
+  // qa-engineer persona (sonnet). Keeping them aligned means a task costs the
+  // same and is judged the same whichever driver launched it.
+  'validate':    'sonnet',
   'approve':     'opus',
   'commit':      'haiku',
   'writeback':   'haiku',
@@ -167,8 +171,8 @@ const tierFor = (role) => ROLE_TIER[role] || 'sonnet'   // orchestrate_task's RO
 
 // Canonical model IDs for unknown-cluster fallback (Gap #12).
 const ROLE_TIER_DEFAULTS = {
-  opus:   'claude-opus-4-5',
-  sonnet: 'claude-sonnet-4-6',
+  opus:   'claude-opus-4-8',
+  sonnet: 'claude-sonnet-5',
   haiku:  'claude-haiku-4-5',
 }
 
