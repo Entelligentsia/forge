@@ -24,7 +24,7 @@ deps:
 
 ## Purpose
 
-The Supervisor performs a final validation of the implementation against the acceptance criteria and the technical spec.
+The QA Engineer performs a final validation of the implementation against the acceptance criteria and the technical spec.
 
 <!-- See _fragments/iron-laws.md for Iron Laws section structure guidance -->
 ## Iron Laws
@@ -79,12 +79,22 @@ The Supervisor performs a final validation of the implementation against the acc
 
 2. Load Context:
    - Read task prompt
+   - Read the sprint's SPRINT_REQUIREMENTS.md — this is where the acceptance
+     criteria live. Resolve the sprint from the task record's sprint FK, then
+     read the sprint record's `path` field for its artifact directory; never
+     reconstruct the path. If the file is absent (task added outside sprint
+     intake), fall back to the acceptance criteria in the task prompt and note
+     the gap in the report.
    - Read approved PLAN.md
    - Read the implementation
    - Read PROGRESS.md
 
 3. Validation:
-   - Execute the "Acceptance Criteria" checklist from the plan
+   - Validate against the acceptance criteria from SPRINT_REQUIREMENTS.md. Use
+     the plan's own "Acceptance Criteria" list only as a cross-check: it is the
+     implementer's restatement, and a criterion the plan dropped is exactly the
+     failure this phase exists to catch. Where the two diverge,
+     SPRINT_REQUIREMENTS.md wins and the divergence is itself a finding.
    - Verify that all technical constraints (e.g., performance, security) are met
    - Check for any regressions in related functionality
    - When re-running the test suite, use exactly this command: {{TEST_COMMAND}}
