@@ -30,7 +30,7 @@ Seal a completed and approved task by committing its artifacts to the VCS and up
 ## Iron Laws
 
 - Commit only the artifacts produced for this task; do not sweep unrelated working-tree changes into the commit. The commit boundary mirrors the task boundary.
-- Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Announce your identity via `forge_banner` before any other tool use — `.forge/personas/engineer.md` is already loaded as your system prompt; do not re-read it.
 - All store I/O via `forge_store`. Never edit `.forge/store/*.json` directly.
 - **Never run `git add`/`git commit`/`git reset` yourself** — `commit-task.cjs` owns staging, boundary checks, committing, and the terminal transition (#40). Your judgement input is the message.
 - **Commit writes NO summary** (`commit` ∉ `VALID_SUMMARY_PHASES` — any `set-summary` is rejected); the tool's terminal `update-status` is this phase's only store write.

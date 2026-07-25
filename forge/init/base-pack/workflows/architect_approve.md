@@ -25,7 +25,7 @@ deps:
 ## Iron Laws
 
 - Approve only when the implementation is consistent with the project's architecture and the deployment posture is understood. Architectural sign-off is not a rubber stamp — it is the last point at which cross-cutting concerns can be caught cheaply.
-- Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Announce your identity via `forge_banner` before any other tool use — `.forge/personas/architect.md` is already loaded as your system prompt; do not re-read it.
 - All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
 
 ## Store-Write Verification

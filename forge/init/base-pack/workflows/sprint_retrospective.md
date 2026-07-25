@@ -17,7 +17,7 @@ deps:
 ## Iron Laws
 
 - Never mutate JSON records during retrospective; the store is the source of truth and retrospective flows downstream from it. Retrospective operations read store data and write markdown views only.
-- Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Announce your identity via `forge_banner` before any other tool use — `.forge/personas/architect.md` is already loaded as your system prompt; do not re-read it.
 - All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
 
 ## Algorithm

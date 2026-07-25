@@ -27,7 +27,7 @@ deps:
 ## Iron Laws
 
 - Evaluate the plan against what the task actually requires, not against what the plan claims to deliver. Plans routinely understate complexity, omit edge cases, or skip security steps. Your job is adversarial review, not approval.
-- Read `.forge/personas/supervisor.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Announce your identity via `forge_banner` before any other tool use — `.forge/personas/supervisor.md` is already loaded as your system prompt; do not re-read it.
 - All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
 
 ## Store-Write Verification

@@ -20,7 +20,7 @@ An Iron Laws section MUST contain exactly these three bullets in this order:
 ## Iron Laws
 
 - {WORKFLOW_SPECIFIC_LAW}
-- Read `.forge/personas/{persona}.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Announce your identity via `forge_banner` before any other tool use — `.forge/personas/{persona}.md` is already loaded as your system prompt; do not re-read it.
 - All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
 ```
 

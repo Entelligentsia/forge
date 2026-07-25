@@ -30,7 +30,7 @@ Update the implementation plan of a task based on a "Revision Required" verdict 
 ## Iron Laws
 
 - Address every numbered finding in the review artifact. Do not silently drop items; if a finding is wrong, note the reason in the revised plan rather than ignoring it.
-- Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Announce your identity via `forge_banner` before any other tool use — `.forge/personas/architect.md` is already loaded as your system prompt; do not re-read it.
 - All store I/O via `forge_store`. Never edit `.forge/store/*.json` directly.
 
 ## Store-Write Verification

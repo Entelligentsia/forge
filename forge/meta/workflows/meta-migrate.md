@@ -34,7 +34,7 @@ or when `.forge/structure-versions.json` is absent (pre-T05 install detected).
 ## Iron Laws
 
 - Migration operations are reversible and user-confirmed before any destructive writes. Do not skip the Phase 2 confirmation gate — proceed only after the user explicitly accepts the migration plan.
-- Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Announce your identity via `forge_banner` before any other tool use — `.forge/personas/engineer.md` is already loaded as your system prompt; do not re-read it.
 - All store I/O via `forge_store`. Never edit `.forge/store/*.json` directly.
 
 ## Pre-conditions

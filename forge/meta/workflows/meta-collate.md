@@ -22,7 +22,7 @@ Regenerate markdown views from the JSON store. This is a deterministic operation
 ## Iron Laws
 
 - Collation is a read-and-rewrite of generated markdown. Do not mutate any JSON record under `.forge/store/`; the store is the source of truth and collation flows downstream from it.
-- Read `.forge/personas/collator.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Announce your identity via `forge_banner` before any other tool use — `.forge/personas/collator.md` is already loaded as your system prompt; do not re-read it.
 - All store reads via `forge_store`. Never edit `.forge/store/*.json` directly.
 - Do NOT call `set-summary` or `set-bug-summary` from within collation. The collator writes markdown views and a `WRITEBACK-SUMMARY.json` disk file only. Calling `set-summary` mutates the JSON store and violates Iron Law 1 (the store is the source of truth; collation flows downstream from it, not into it). The orchestrator reads `WRITEBACK-SUMMARY.json` directly — no store write is needed.
 

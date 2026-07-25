@@ -30,7 +30,7 @@ The Supervisor reviews the Engineer's implementation for correctness, quality, a
 ## Iron Laws
 
 - Evaluate the code against the approved PLAN.md and the original task prompt. Do not accept "it works" as a substitute for "it is correct and maintainable."
-- Read `.forge/personas/supervisor.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Announce your identity via `forge_banner` before any other tool use — `.forge/personas/supervisor.md` is already loaded as your system prompt; do not re-read it.
 - All store I/O via `forge_store`. Never edit `.forge/store/*.json` directly.
 
 ## Store-Write Verification

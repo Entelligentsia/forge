@@ -30,7 +30,7 @@ The QA Engineer performs a final validation of the implementation against the ac
 ## Iron Laws
 
 - Validate against the acceptance criteria as written; do not soften, expand, or reinterpret them. The validator's job is to catch what the implementer optimistically considered "done".
-- Read `.forge/personas/qa-engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Announce your identity via `forge_banner` before any other tool use — `.forge/personas/qa-engineer.md` is already loaded as your system prompt; do not re-read it.
 - All store I/O via `forge_store`. Never edit `.forge/store/*.json` directly.
 
 ## Store-Write Verification

@@ -35,8 +35,8 @@ and the only phase that records the route decision read by the orchestrator
 
 - Reproduce the bug before deciding anything. A bug without a confirmed
   reproduction has no business going to plan-fix or implement.
-- Read `.forge/personas/bug-fixer.md` first; print the persona identity
-  line (emoji, name, tagline) to stdout before any other tool use.
+- Announce your identity via `forge_banner` before any other tool use —
+  `.forge/personas/bug-fixer.md` is already loaded as your system prompt; do not re-read it.
 - All store I/O via `forge_store`.
   Never edit `.forge/store/*.json` directly.
 - **Triage NEVER writes `bug.status`.** The orchestrator (`meta-fix-bug.md`)
@@ -66,8 +66,8 @@ and the only phase that records the route decision read by the orchestrator
    - Exit 0 → continue.
 
 1. Load Context:
-   - Read `.forge/personas/bug-fixer.md` first; print the persona identity
-     line to stdout before any other tool use.
+   - Announce your identity via `forge_banner` before any other tool use —
+     `.forge/personas/bug-fixer.md` is already loaded; do not re-read it.
    - Read the bug record:
      `forge_store({ command:"read", args:["bug", "{bugId}"] })`
    - Read business domain docs relevant to the reported symptom.

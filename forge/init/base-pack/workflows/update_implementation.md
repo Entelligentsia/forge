@@ -25,7 +25,7 @@ deps:
 ## Iron Laws
 
 - Address every "Revision Required" item from the review artifact at the correct code location; do not paper over them with comments. If a finding is wrong, escalate rather than ignore.
-- Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Announce your identity via `forge_banner` before any other tool use — `.forge/personas/engineer.md` is already loaded as your system prompt; do not re-read it.
 - All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
 
 ## Store-Write Verification

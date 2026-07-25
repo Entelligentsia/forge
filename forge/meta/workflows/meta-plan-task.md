@@ -49,7 +49,7 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
      `× Task {record_id} is in state '{status}' — /forge:plan cannot run from this state; a reset or reassignment must complete first. To run the full pipeline: /forge:run-task {record_id}`
 
 1. Load Context:
-   - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+   - Announce your identity via `forge_banner` before any other tool use — `.forge/personas/engineer.md` is already loaded as your system prompt; do not re-read it.
    - store-cli verbs: `read` | `list` | `write` | `emit` | `update-status` | `set-summary` | `describe` | `nlp` | `query` | `delete` — there is no `get`/`set`/`find`. See `_fragments/store-cli-verbs.md` for full notes; run `--help` before improvising.
    - Read task prompt (source of truth)
    - Query the store for this task and any related entities:
@@ -121,7 +121,7 @@ require summaries.plan.verdict == n/a
 ## Iron Laws
 
 - Follow the Algorithm step by step. No code, pseudocode, or implementation sketches in the plan.
-- Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Announce your identity via `forge_banner` before any other tool use — `.forge/personas/engineer.md` is already loaded as your system prompt; do not re-read it.
 - All store I/O via `forge_store`. Never edit `.forge/store/*.json` directly.
 
 ## Store-Write Verification

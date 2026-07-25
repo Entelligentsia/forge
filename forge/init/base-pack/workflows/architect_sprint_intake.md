@@ -17,7 +17,7 @@ deps:
 ## Iron Laws
 
 - Capture requirements accurately; do not editorialize or pre-select options on the user's behalf. The product manager documents what the user says, not what the agent thinks is best.
-- Read `.forge/personas/product-manager.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Announce your identity via `forge_banner` before any other tool use — `.forge/personas/product-manager.md` is already loaded as your system prompt; do not re-read it.
 - All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
 
 ## Algorithm
