@@ -12,8 +12,8 @@ context:
   master_index: false
   diff_mode: false
 deps:
-  personas: [architect]
-  skills: [architect, generic]
+  personas: [engineer]
+  skills: [engineer, generic]
   templates: [PLAN_TEMPLATE, TASK_PROMPT_TEMPLATE]
   sub_workflows: [review_plan]
   kb_docs: [architecture/stack.md]
@@ -45,7 +45,7 @@ deps:
      `× Task {record_id} is in state '{status}' — /forge:plan cannot run from this state; a reset or reassignment must complete first. To run the full pipeline: /forge:run-task {record_id}`
 
 1. Load Context:
-   - Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+   - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
    - store-cli verbs: `read` | `list` | `write` | `emit` | `update-status` | `set-summary` | `describe` | `nlp` | `query` | `delete` — there is no `get`/`set`/`find`. See `_fragments/store-cli-verbs.md` for full notes; run `--help` before improvising.
    - Read task prompt (source of truth)
    - Query the store for this task and any related entities:
@@ -117,7 +117,7 @@ require summaries.plan.verdict == n/a
 ## Iron Laws
 
 - Follow the Algorithm step by step. No code, pseudocode, or implementation sketches in the plan.
-- Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
 - All store I/O via `forge_store` (or `node .forge/tools/store-cli.cjs`). Never edit `.forge/store/*.json` directly.
 
 ## Store-Write Verification
@@ -125,6 +125,6 @@ require summaries.plan.verdict == n/a
 <!-- See _fragments/store-write-verification.md for the canonical block content -->
 
 ## Friction Emit
-Emit `type:friction` `{workflow:plan-task, persona:architect, issue}` per `_fragments/friction-emit.md`.
+Emit `type:friction` `{workflow:plan-task, persona:engineer, issue}` per `_fragments/friction-emit.md`.
 
 <!-- See _fragments/generation-instructions.md for Generation Instructions template -->

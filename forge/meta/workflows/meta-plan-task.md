@@ -12,8 +12,8 @@ context:
   master_index: false
   diff_mode: false
 deps:
-  personas: [architect]
-  skills: [architect, generic]
+  personas: [engineer]
+  skills: [engineer, generic]
   templates: [PLAN_TEMPLATE, TASK_PROMPT_TEMPLATE]
   sub_workflows: [review_plan]
   kb_docs: [architecture/stack.md]
@@ -49,7 +49,7 @@ The Engineer reads the task prompt, researches the codebase, and produces an imp
      `× Task {record_id} is in state '{status}' — /forge:plan cannot run from this state; a reset or reassignment must complete first. To run the full pipeline: /forge:run-task {record_id}`
 
 1. Load Context:
-   - Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+   - Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
    - store-cli verbs: `read` | `list` | `write` | `emit` | `update-status` | `set-summary` | `describe` | `nlp` | `query` | `delete` — there is no `get`/`set`/`find`. See `_fragments/store-cli-verbs.md` for full notes; run `--help` before improvising.
    - Read task prompt (source of truth)
    - Query the store for this task and any related entities:
@@ -121,7 +121,7 @@ require summaries.plan.verdict == n/a
 ## Iron Laws
 
 - Follow the Algorithm step by step. No code, pseudocode, or implementation sketches in the plan.
-- Read `.forge/personas/architect.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
+- Read `.forge/personas/engineer.md` first; print the persona identity line (emoji, name, tagline) to stdout before any other tool use.
 - All store I/O via `forge_store`. Never edit `.forge/store/*.json` directly.
 
 ## Store-Write Verification
@@ -129,13 +129,13 @@ require summaries.plan.verdict == n/a
 <!-- See _fragments/store-write-verification.md for the canonical block content -->
 
 ## Friction Emit
-Emit `type:friction` `{workflow:plan-task, persona:architect, issue}` per `_fragments/friction-emit.md`.
+Emit `type:friction` `{workflow:plan-task, persona:engineer, issue}` per `_fragments/friction-emit.md`.
 
 <!-- See _fragments/generation-instructions.md for Generation Instructions template -->
 ## Generation Instructions
 
 - **Workflow Structure:** Strict "Algorithm" block format.
-- **Markers (required by `/forge:plan` kickoff shim):** Generated workflow MUST include the "Iron Laws" section, the "Store-Write Verification" section, the literal `forge_store` token, and the `architect.md` persona path. Missing any → kickoff shim refuses to dispatch.
+- **Markers (required by `/forge:plan` kickoff shim):** Generated workflow MUST include the "Iron Laws" section, the "Store-Write Verification" section, the literal `forge_store` token, and the `engineer.md` persona path. Missing any → kickoff shim refuses to dispatch.
 - **Context Isolation:** Forbid inline execution. Delegate complex sub-tasks via the `Agent` tool.
 - **Project Specifics:**
   - Replace architecture/domain doc placeholders with actual project file paths.
