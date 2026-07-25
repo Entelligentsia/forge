@@ -5,6 +5,63 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.6.14] — 2026-07-25
+
+Run-task prompt integrity. Every fix here is in the text the orchestrator sends
+to phase subagents, or in the machinery that produces it.
+
+### Fixed
+- **FORGE-S34-T07 converter damage repaired across meta sources.** The
+  Bash-cjs → MCP call-site migration had four failure modes. Four documents
+  (`meta-collate`, `meta-fix-bug`, `meta-retro`, `meta-retrospective`) had their
+  entire tail consumed as whitespace-tokenized arguments of one
+  `forge_collate({args:[…]})` literal — `meta-fix-bug` lost 283 lines. Twenty-six
+  inline-code spans across fifteen files had their closing backtick absorbed into
+  the final argument, producing invalid enum values such as `"planned` "`, which
+  `store-cli` rejects as an illegal transition. `meta-migrate`'s shell `emit`
+  block, which depends on `$(date)` interpolation, had `] })` injected mid-JSON.
+  Eight `run_bash(f'…')` illustrations in `meta-orchestrate` were rewritten as
+  MCP calls, breaking both f-string quoting and the semantics.
+- **`{SYNTAX_CHECK}` and `{BUILD_COMMAND}` reach subagents as literal text.**
+  Two independent causes: the base-pack source used the single-brace form, which
+  `substitute-placeholders.cjs` never matches, and neither key was in its
+  substitution map. Every materialized `implement_plan.md` shipped the raw token
+  into the verification step. Both fixed; `commands.build` and
+  `commands.syntaxCheck` now resolve, and an unconfigured value renders an
+  explicit "skip this step" rather than an empty string.
+- **The plan phase declared the wrong persona.** It told the subagent to load
+  and announce the architect identity while `run-task` dispatched it with the
+  engineer persona, so the first instruction of every task run was one the
+  subagent could not satisfy, and friction telemetry was misattributed.
+- **The validate phase never read `SPRINT_REQUIREMENTS.md`.** The qa-engineer
+  persona names it as the overriding source of truth; the workflow validated
+  against the plan's restatement of the acceptance criteria, which cannot catch
+  a criterion the plan dropped.
+- **Identity announcement contradicted itself three ways.** The persona ordered
+  a Bash `banners.cjs` call, `FORGE_TOOL_DISCIPLINE` forbade exactly that in
+  favour of `forge_banner`, and the workflow separately ordered a re-read of the
+  persona file that is already the system prompt. Now `forge_banner`-first with
+  a documented Bash fallback, and no re-read.
+- **Model tiers diverged between the two run-task drivers.** `validate` ran opus
+  under `wfl-run-task` and sonnet under forge-cli; `commit` ran haiku and sonnet
+  respectively. Settled at sonnet for validate, haiku for commit and writeback,
+  in both. `ROLE_TIER_DEFAULTS` also still pinned superseded model ids.
+- **Prompt hygiene.** Entity-id placeholders unified on `{record_id}` (42 sites);
+  Store-Write Verification sections state the recovery procedure instead of
+  carrying only an HTML comment; plan-phase FSM prose no longer understates the
+  legal entries into `planned`.
+- **`written_at` packaging.** Carries the FORGE-BUG-042 change, which landed in
+  1.6.13 without a migration entry.
+
+### Added
+- **`check-placeholders.cjs`** — post-materialization gate that fails on a known
+  substitution key left literal in either brace form, ignoring runtime
+  passthrough keys and backticked documentation references. `generate-workflows`
+  already *required* this check and had no tool to run. Wired into `tmp-smoke`,
+  the one gate with a real materialized instance.
+
+---
+
 ## [1.6.13] — 2026-07-19
 
 ### Fixed

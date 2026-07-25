@@ -1,5 +1,5 @@
 {
-  "version": "1.6.13",
+  "version": "1.6.14",
   "generated": "2026-07-25",
   "note": "Tamper-evident only. Authoritative source: /forge:update from remote.",
   "files": {
@@ -45,7 +45,7 @@
     "schemas/transitions/bug.json": "27b17da42d1cebffbd4f61ab3dcd432a0017aa71997d548ed80d22c2fc3fad6a",
     "schemas/transitions/sprint.json": "2e0a629396e687b0ca88e1814ac3e35d84533a5d55b25237ab67feddce3c9deb",
     "schemas/transitions/task.json": "4c71849747baa0d585756e57c56325ff6219c078178374e60815dff91e25e3e7",
-    "schemas/enum-catalog.json": "fe6964ea1bd2381e34dd7aba32ec4739df1457a30a679e5bb99e6c82582cb398",
+    "schemas/enum-catalog.json": "9712a824eaf63abed085f19beadb9efc6ac3c2bf79d3b48b0ec630d23bbbd6c2",
     "tools/verify-integrity.cjs": "3ec3c970dd3d7c3001f8f373bcc40556803eadd2fc2afafb14f1c232cba4cc3f"
   }
 }
