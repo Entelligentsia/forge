@@ -375,7 +375,7 @@ Frameworks detected automatically: Django · FastAPI · Flask · Express · Next
 ---
 
 <div align="center">
-  MIT License · <a href="https://entelligentsia.in/open-source/forge/privacy">Privacy Policy</a>
+  <a href="LICENSE">MIT License</a> · <a href="https://entelligentsia.in/open-source/forge/privacy">Privacy Policy</a>
 </div>
 
 <!-- 

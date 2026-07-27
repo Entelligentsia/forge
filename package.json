@@ -1,5 +1,6 @@
 {
   "name": "forge-plugin",
+  "license": "MIT",
   "scripts": {
     "build-base-pack": "node forge/tools/build-base-pack.cjs --forge-root forge",
     "test": "node --test forge/tools/__tests__/*.test.cjs forge/hooks/__tests__/*.test.cjs",
