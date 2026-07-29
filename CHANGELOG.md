@@ -5,6 +5,42 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.6.15] — 2026-07-29
+
+`meta/` tree audit. One real coverage gap, and the removal of four files that
+had been dead since the v1.0 renames.
+
+### Fixed
+- **`enhance.md` was shipping untracked.** `build-base-pack.cjs`
+  `META_BACKED_WORKFLOWS` builds `meta-enhance.md → enhance.md`
+  unconditionally, so every instance carries `.forge/workflows/enhance.md` —
+  but `build-manifest.cjs` `WORKFLOW_MAP` never listed it, so
+  `structure-manifest.json` did not either, and `check-structure.cjs` /
+  `/forge:health` could not report it missing. Dropping `enhance` from
+  `COMMAND_NAMES` in v1.0 T03 scoped the *command* surface; the workflow
+  mapping should have stayed, as `meta-collate → collator_agent.md` did.
+  Manifest workflow count 17 → 18, total tracked files 136 → 137.
+
+### Removed
+- **Four pre-v1.0 rename aliases under `meta/workflows/`**, each byte-identical
+  to its canonical twin, mapped by neither build table, and referenced by no
+  live code: `meta-quiz-agent.md` (≡ `meta-check-agent.md`),
+  `meta-retrospective.md` (≡ `meta-retro.md`), `meta-sprint-intake.md`
+  (≡ `meta-new-sprint.md`), `meta-sprint-plan.md` (≡ `meta-plan-sprint.md`).
+  The empty stub `meta-sprint-intake-cwd-anchor.test.cjs` went with them.
+  No generated output changes. `build-manifest` reverse-drift warnings drop
+  from 9 to 4 — the remainder are the intentionally-unmapped reference docs
+  (`meta-orchestrate.md`, `meta-fix-bug.md`) and the two base-pack-only
+  persona sources (`meta-orchestrator.md`, `meta-product-manager.md`).
+
+### Added
+- **Cross-table divergence guard.** A new test in `build-manifest.test.cjs`
+  parses `META_BACKED_WORKFLOWS` out of `build-base-pack.cjs` and asserts
+  `WORKFLOW_MAP` covers every entry. The two mapping tables are maintained by
+  hand over the same tree; this is what let `meta-enhance.md` slip.
+
+---
+
 ## [1.6.14] — 2026-07-25
 
 Run-task prompt integrity. Every fix here is in the text the orchestrator sends

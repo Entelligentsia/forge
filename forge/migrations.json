@@ -1,4 +1,17 @@
 {
+  "1.6.14": {
+    "version": "1.6.15",
+    "date": "2026-07-29",
+    "notes": "meta/ tree audit — dead-alias removal and one manifest coverage gap. (1) build-manifest.cjs WORKFLOW_MAP was missing meta-enhance.md → enhance.md. build-base-pack.cjs META_BACKED_WORKFLOWS builds that workflow unconditionally, so every instance ships .forge/workflows/enhance.md, but structure-manifest.json never listed it and check-structure / /forge:health therefore could not detect it going missing. (Removal of enhance from COMMAND_NAMES in v1.0 T03 scoped the command surface, not the workflow — meta-collate → collator_agent.md is the same shape and was always mapped.) Manifest workflow count 17 → 18, total tracked files 136 → 137. A new test parses META_BACKED_WORKFLOWS out of build-base-pack.cjs and asserts WORKFLOW_MAP covers every entry, so the two hand-maintained tables cannot silently diverge again. (2) Deleted four pre-v1.0 rename aliases under meta/workflows/ that were byte-identical to their canonical twins, mapped by neither build table, and referenced by no live code: meta-quiz-agent.md (≡ meta-check-agent.md), meta-retrospective.md (≡ meta-retro.md), meta-sprint-intake.md (≡ meta-new-sprint.md), meta-sprint-plan.md (≡ meta-plan-sprint.md). The empty stub test meta-sprint-intake-cwd-anchor.test.cjs went with them. No generated output changes from the deletions — reverse-drift warnings drop from 9 to 4, the remainder being the intentionally-unmapped reference docs (meta-orchestrate.md, meta-fix-bug.md) and the two base-pack-only persona sources.",
+    "target": "schemas:structure-manifest,tools:build-manifest",
+    "regenerate": [
+      "schemas:structure-manifest"
+    ],
+    "breaking": false,
+    "manual": [
+      "No action required for existing projects. .forge/workflows/enhance.md already ships in every instance; this release only makes /forge:health aware of it. Run /forge:update to pick up the corrected manifest."
+    ]
+  },
   "1.6.13": {
     "version": "1.6.14",
     "date": "2026-07-25",

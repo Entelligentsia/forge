@@ -1,6 +1,6 @@
 {
-  "version": "1.6.14",
-  "generatedAt": "2026-07-25T02:57:54.748Z",
+  "version": "1.6.15",
+  "generatedAt": "2026-07-29T10:47:22.950Z",
   "generatedByTool": "build-manifest.cjs",
   "namespaces": {
     "personas": {
@@ -38,6 +38,7 @@
         "architect_sprint_plan.md",
         "collator_agent.md",
         "commit_task.md",
+        "enhance.md",
         "implement_plan.md",
         "migrate_structural.md",
         "plan_task.md",
@@ -264,6 +265,21 @@
         ],
         "config_fields": [
           "commands.test",
+          "paths.engineering"
+        ]
+      },
+      "enhance": {
+        "personas": [
+          ".forge/personas/engineer.md"
+        ],
+        "skills": [
+          ".forge/skills/engineer-skills.md",
+          ".forge/skills/generic-skills.md"
+        ],
+        "templates": [],
+        "sub_workflows": [],
+        "kb_docs": [],
+        "config_fields": [
           "paths.engineering"
         ]
       },

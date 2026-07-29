@@ -37,15 +37,42 @@ describe('build-manifest.cjs — mapping tables', () => {
     }
   });
 
-  // 17 entries — LLM orchestration prose (orchestrate_task / run_sprint /
+  // 18 entries — LLM orchestration prose (orchestrate_task / run_sprint /
   // fix_bug) retired; JS drivers (workflows-js/wfl-*.js) are the only truth.
-  test('WORKFLOW_MAP has 17 entries', () => {
-    assert.equal(WORKFLOW_MAP.length, 17);
+  test('WORKFLOW_MAP has 18 entries', () => {
+    assert.equal(WORKFLOW_MAP.length, 18);
   });
 
   test('WORKFLOW_MAP contains meta-bug-triage.md → triage.md (FORGE-BUG-040)', () => {
     const entry = WORKFLOW_MAP.find(([src, out]) => src === 'meta-bug-triage.md' && out === 'triage.md');
     assert.ok(entry, 'triage workflow must be wired through WORKFLOW_MAP so build-manifest regenerates it');
+  });
+
+  // build-base-pack.cjs META_BACKED_WORKFLOWS builds meta-enhance.md → enhance.md
+  // unconditionally, so enhance.md always ships in an instance. It was missing
+  // from WORKFLOW_MAP, so structure-manifest.json never listed it and
+  // check-structure / /forge:health could not detect it going missing.
+  // (Removal from COMMAND_NAMES in v1.0 T03 scoped the *command*, not the
+  // workflow — meta-collate/collator_agent.md is the same shape.)
+  test('WORKFLOW_MAP contains meta-enhance.md → enhance.md', () => {
+    const entry = WORKFLOW_MAP.find(([src, out]) => src === 'meta-enhance.md' && out === 'enhance.md');
+    assert.ok(entry, 'enhance workflow is built by build-base-pack and must be tracked in the structure manifest');
+  });
+
+  // Guards the two hand-maintained mapping tables against divergence: every
+  // meta-backed workflow built by build-base-pack.cjs must also be mapped here,
+  // or it ships without manifest coverage (the meta-enhance.md failure mode).
+  test('WORKFLOW_MAP covers every META_BACKED_WORKFLOWS entry in build-base-pack.cjs', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'build-base-pack.cjs'), 'utf8');
+    const block = src.match(/const META_BACKED_WORKFLOWS = \[([\s\S]*?)\];/);
+    assert.ok(block, 'could not locate META_BACKED_WORKFLOWS in build-base-pack.cjs');
+    const pairs = [...block[1].matchAll(/\[\s*'([^']+)',\s*'([^']+)'\s*\]/g)]
+      .map((m) => [m[1], m[2]]);
+    assert.ok(pairs.length > 0, 'parsed no entries from META_BACKED_WORKFLOWS');
+    for (const [metaSrc, out] of pairs) {
+      const entry = WORKFLOW_MAP.find(([s, o]) => s === metaSrc && o === out);
+      assert.ok(entry, `build-base-pack builds ${metaSrc} → ${out} but WORKFLOW_MAP does not map it`);
+    }
   });
 
   test('FRAGMENT_MAP enumerates every meta fragment, each as a [source, output] tuple', () => {
@@ -235,7 +262,7 @@ describe('build-manifest.cjs — parseMetaDeps', () => {
     }
   });
 
-  test('parseMetaDeps on real meta/workflows dir produces edges for all 17 meta sources', () => {
+  test('parseMetaDeps on real meta/workflows dir produces edges for all 18 meta sources', () => {
     const metaDir = path.join(__dirname, '..', '..', 'meta', 'workflows');
     const edges = parseMetaDeps(metaDir, WORKFLOW_MAP);
     const metaSources = WORKFLOW_MAP.filter(([src]) => src !== null);

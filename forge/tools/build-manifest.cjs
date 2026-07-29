@@ -48,6 +48,7 @@ const WORKFLOW_MAP = [
   ['meta-collate.md',                  'collator_agent.md'],
   ['meta-commit.md',                   'commit_task.md'],
   ['meta-bug-triage.md',               'triage.md'],
+  ['meta-enhance.md',                  'enhance.md'],
   ['meta-implement.md',                'implement_plan.md'],
   ['meta-plan-task.md',                'plan_task.md'],
   ['meta-retro.md',                    'sprint_retrospective.md'],
@@ -64,6 +65,13 @@ const WORKFLOW_MAP = [
   // LLM orchestration prose (orchestrate_task / run_sprint / fix_bug) retired —
   // the JS drivers (workflows-js/wfl-*.js) are the only truth. meta-orchestrate.md
   // and meta-fix-bug.md remain in meta/ as reference docs (not built, not mapped).
+  //
+  // This table must stay a superset of build-base-pack.cjs META_BACKED_WORKFLOWS:
+  // anything that tool builds ships in an instance and therefore needs manifest
+  // coverage for check-structure / /forge:health. Guarded by a test in
+  // __tests__/build-manifest.test.cjs. quiz_agent.md is the one exception —
+  // build-base-pack copies it verbatim from base-pack/workflows/, so its
+  // meta-check-agent.md mapping here describes manifest expectation, not lineage.
 ];
 
 // 4. Fragments — non-standalone reference files shared by multiple workflows.
