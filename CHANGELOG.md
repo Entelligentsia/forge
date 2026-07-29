@@ -5,6 +5,50 @@ Format: newest first. Breaking changes are marked **△ Breaking**.
 
 ---
 
+## [1.6.16] — 2026-07-29
+
+`meta/` tree audit, part 2 — the orphaned meta sources. One turned out to be
+the *good* copy of a corrupted shipped file; two were dead ancestors.
+
+### Fixed
+- **`quiz_agent.md` shipped with a persona body spliced into it.** An entire
+  qa-engineer persona — identity banner, Iron Laws, "What You Know", "What You
+  Produce" — sat between the workflow's frontmatter and its
+  `# Workflow: Quiz Agent` heading. The injected block also carried Forge's own
+  repo layout (`forge/.claude-plugin/plugin.json`, `forge/migrations.json`,
+  `docs/security/scan-v{VERSION}.md`) into a file that installs into every
+  project. `quiz_agent.md` is in `build-base-pack.cjs`
+  `COPY_VERBATIM_WORKFLOWS`, so no build step ever validated its shape. The 28
+  spliced lines are removed; the frontmatter and the workflow algorithm are
+  unchanged.
+
+### Removed
+- **`meta/personas/meta-orchestrator.md` and `meta-product-manager.md`** —
+  stale third-person `Meta-Persona` ancestors of personas that
+  `build-base-pack.cjs` ships verbatim from `init/base-pack/personas/` via
+  `BASE_PACK_ONLY_PERSONAS`. Both had already diverged from the files that
+  actually ship (71 vs 43 and 82 vs 42 lines); the shipped personas carry
+  first-person voice and `forge_banner` identity blocks the meta sources never
+  received. Editing them affected no output. `meta/personas/` now has zero
+  reverse drift, and `build-manifest` warnings drop from 4 to 2 — the remainder
+  being the intentionally-unmapped reference docs `meta-orchestrate.md` and
+  `meta-fix-bug.md`.
+
+### Added
+- **Persona-body guard over the checked-in base-pack.** A test in
+  `build-base-pack.test.cjs` scans every `init/base-pack/workflows/*.md` for
+  persona-section markers. Copy-verbatim files bypass every transform in the
+  build path, so nothing else was checking them.
+
+### Known gap
+- The quiz questions in `quiz_agent.md` are still Forge's own (Node version,
+  store event IDs, `plugin.json`) rather than project-generated. That is the
+  pre-existing `COPY_VERBATIM_WORKFLOWS` deferral recorded in
+  `build-base-pack.cjs` and needs the question-generation follow-up task —
+  it is not addressed here.
+
+---
+
 ## [1.6.15] — 2026-07-29
 
 `meta/` tree audit. One real coverage gap, and the removal of four files that

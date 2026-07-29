@@ -1,4 +1,18 @@
 {
+  "1.6.15": {
+    "version": "1.6.16",
+    "date": "2026-07-29",
+    "notes": "meta/ tree audit, part 2 — orphaned meta sources resolved. (1) init/base-pack/workflows/quiz_agent.md shipped with an entire qa-engineer persona body spliced between its frontmatter and its '# Workflow: Quiz Agent' heading: identity banner, Iron Laws, 'What You Know', 'What You Produce'. The injected block also carried Forge's own repo layout (forge/.claude-plugin/plugin.json, forge/migrations.json, docs/security/scan-v{VERSION}.md) into a file that installs into every project. quiz_agent.md is listed in build-base-pack.cjs COPY_VERBATIM_WORKFLOWS, so no build step ever validated its shape. The 28 spliced lines are removed; the workflow algorithm and frontmatter are unchanged. A new test in build-base-pack.test.cjs scans every checked-in base-pack workflow for persona-section markers so this class cannot recur. (2) Deleted meta/personas/meta-orchestrator.md and meta-product-manager.md. Both were stale third-person 'Meta-Persona' ancestors of personas that build-base-pack ships verbatim from init/base-pack/personas/ via BASE_PACK_ONLY_PERSONAS, and both had already diverged from the shipped files (71 vs 43 and 82 vs 42 lines) — the shipped personas carry first-person voice and forge_banner identity blocks that the meta sources never received. Editing the meta files had no effect on any output. meta/personas/ now has zero reverse drift, locked in by a test; build-manifest reverse-drift warnings drop from 4 to 2, the remainder being the intentionally-unmapped reference docs meta-orchestrate.md and meta-fix-bug.md.",
+    "target": "workflows:quiz_agent",
+    "regenerate": [
+      "workflows:quiz_agent"
+    ],
+    "breaking": false,
+    "manual": [
+      "Run /forge:update, then /forge:rebuild to re-materialize .forge/workflows/quiz_agent.md. Until you do, /forge:check-agent in an existing project will keep sending the spliced qa-engineer persona text as part of the workflow prompt.",
+      "Known remaining gap, not fixed here: the quiz questions in quiz_agent.md are still Forge's own (Node version, store event IDs, plugin.json) rather than project-generated. That is the pre-existing COPY_VERBATIM_WORKFLOWS deferral noted in build-base-pack.cjs and needs the question-generation follow-up task."
+    ]
+  },
   "1.6.14": {
     "version": "1.6.15",
     "date": "2026-07-29",

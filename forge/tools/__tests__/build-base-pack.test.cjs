@@ -606,3 +606,24 @@ describe('buildBasePack: validates all expected output files exist', () => {
       'migrate_structural.md must exist in workflows output');
   });
 });
+
+// Guards the CHECKED-IN base-pack tree, not the generated output. quiz_agent.md
+// is copied verbatim by COPY_VERBATIM_WORKFLOWS, so nothing in the build path
+// validates its shape — it had a whole qa-engineer persona body (identity
+// banner, Iron Laws, "What You Produce") spliced between its frontmatter and
+// its "# Workflow:" heading. A workflow is an algorithm; the persona arrives
+// separately as the subagent's system prompt.
+describe('base-pack workflows carry no persona body', () => {
+  const wfDir = path.join(__dirname, '..', '..', 'init', 'base-pack', 'workflows');
+  const PERSONA_MARKERS = ['## What You Produce', '## What I Produce', '## Identity'];
+
+  for (const fname of fs.readdirSync(wfDir).filter((f) => f.endsWith('.md'))) {
+    test(`${fname} has no persona-identity section`, () => {
+      const body = fs.readFileSync(path.join(wfDir, fname), 'utf8');
+      for (const marker of PERSONA_MARKERS) {
+        assert.ok(!body.includes(marker),
+          `${fname} contains persona section "${marker}" — persona prose belongs in base-pack/personas/, not in a workflow`);
+      }
+    });
+  }
+});

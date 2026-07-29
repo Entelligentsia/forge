@@ -217,13 +217,31 @@ describe('build-manifest.cjs — exported functions', () => {
     assert.equal(missing.length, 0);
   });
 
-  test('checkReverseDrift returns empty when all meta files are referenced', () => {
+  test('checkReverseDrift flags a meta file absent from the mapping table', () => {
+    const os = require('os');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'reverse-drift-'));
+    try {
+      fs.writeFileSync(path.join(dir, 'meta-mapped.md'), '# mapped\n');
+      fs.writeFileSync(path.join(dir, 'meta-orphan.md'), '# orphan\n');
+      const warnings = checkReverseDrift(dir, [['meta-mapped.md', 'mapped.md']], 'PERSONA_MAP');
+      assert.ok(Array.isArray(warnings));
+      assert.equal(warnings.length, 1, 'exactly the unmapped file should drift');
+      assert.equal(warnings[0].file, 'meta-orphan.md');
+      assert.equal(warnings[0].label, 'PERSONA_MAP');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // meta-orchestrator.md and meta-product-manager.md were deleted in v1.6.16 —
+  // they were stale ancestors of personas that build-base-pack ships verbatim
+  // from init/base-pack/personas/ via BASE_PACK_ONLY_PERSONAS, and had already
+  // diverged from them. meta/personas/ is now fully mapped; keep it that way.
+  test('meta/personas/ has zero reverse drift — every source is in PERSONA_MAP', () => {
     const dir = path.join(__dirname, '..', '..', 'meta', 'personas');
     const warnings = checkReverseDrift(dir, PERSONA_MAP, 'PERSONA_MAP');
-    // PERSONA_MAP does not include meta-orchestrator.md or meta-product-manager.md,
-    // so those should appear as drift warnings
-    assert.ok(Array.isArray(warnings));
-    assert.ok(warnings.length >= 2, 'orchestrator and product-manager should drift');
+    assert.deepEqual(warnings, [],
+      'an unmapped meta persona is either dead or missing from PERSONA_MAP — resolve it, do not leave it drifting');
   });
 
   test('checkReverseDrift returns empty for a directory with no unreferenced files', () => {
